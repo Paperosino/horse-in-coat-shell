@@ -27,25 +27,21 @@ Hyprstack объединяет скроллинг-тайлинг и привыч
 
 ## Как это выглядит
 
-![Переключение из stacking в tiling](docs/media/mode-switch.gif)
+![lavat, Cava и pipes: смена тем и переключение stacking / tiling](docs/media/mode-switch.gif)
 
-Из плавающих окон в скроллинг-тайлинг — `Super+Ctrl+Shift+M`.
+Kanagawa, Tokyo Night и Catppuccin Latte. Из плавающих окон в скроллинг-тайлинг
+и обратно — `Super+Ctrl+Shift+M`.
 
 <table>
   <tr>
-    <td><img src="docs/media/launcher.gif" alt="Поиск и запуск приложений"><br>Запуск приложений</td>
-    <td><img src="docs/media/notifications.gif" alt="Центр уведомлений и история"><br>История уведомлений</td>
+    <td align="center" width="50%"><img src="docs/media/stacking.gif" width="480" alt="Перемещение плавающих окон с lavat, Cava и pipes"><br>Stacking · свободное размещение окон</td>
+    <td align="center" width="50%"><img src="docs/media/scrolling.gif" width="480" alt="Навигация по ленте окон с lavat, Yazi, Cava и pipes"><br>Scrolling · навигация по ленте</td>
   </tr>
   <tr>
-    <td><img src="docs/media/controls.gif" alt="Быстрые действия Hyprstack"><br>Быстрые действия</td>
-    <td><img src="docs/media/themes.gif" alt="Каталог цветовых тем"><br>Темы и акцентные цвета</td>
+    <td align="center"><img src="docs/media/themes.gif" width="480" alt="Один рабочий стол в темах Kanagawa, Tokyo Night и Catppuccin Latte"><br>Три темы · одно окружение</td>
+    <td align="center"><img src="docs/media/overview.gif" width="480" alt="Обзор открытых окон в светлой теме Catppuccin Latte"><br>Обзор пространства · все окна перед глазами</td>
   </tr>
 </table>
-
-GIF-фрагменты взяты из записи работающей оболочки и проигрываются прямо на странице.
-Обои на демонстрации служат примером
-оформления и не входят в установку: при первом запуске используется однотонный
-фон темы. Свои изображения можно выбрать в настройках. [О демонстрации](docs/media/README.md).
 
 ## Возможности
 

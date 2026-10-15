@@ -73,9 +73,9 @@
 !/docs/media/README.md
 !/docs/media/mode-switch.gif
 !/docs/media/themes.gif
-!/docs/media/launcher.gif
-!/docs/media/notifications.gif
-!/docs/media/controls.gif
+!/docs/media/stacking.gif
+!/docs/media/scrolling.gif
+!/docs/media/overview.gif
 
 # Generated files and machine-local overrides are never source files.
 **/.*

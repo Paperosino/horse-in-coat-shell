@@ -27,25 +27,21 @@ system language are available in settings.
 
 ## See it in action
 
-![Switching from stacking to tiling](docs/media/mode-switch.gif)
+![lavat, Cava and pipes: theme transitions and switching between stacking and tiling](docs/media/mode-switch.gif)
 
-From floating windows to scrolling tiling — `Super+Ctrl+Shift+M`.
+Kanagawa, Tokyo Night and Catppuccin Latte. Switch between floating windows
+and scrolling tiling with `Super+Ctrl+Shift+M`.
 
 <table>
   <tr>
-    <td><img src="docs/media/launcher.gif" alt="Application search and launcher"><br>Application launcher</td>
-    <td><img src="docs/media/notifications.gif" alt="Notification centre and history"><br>Notification history</td>
+    <td align="center" width="50%"><img src="docs/media/stacking.gif" width="480" alt="Moving floating windows with lavat, Cava and pipes"><br>Stacking · arrange windows freely</td>
+    <td align="center" width="50%"><img src="docs/media/scrolling.gif" width="480" alt="Scrolling through lavat, Yazi, Cava and pipes windows"><br>Scrolling · navigate the window strip</td>
   </tr>
   <tr>
-    <td><img src="docs/media/controls.gif" alt="Hyprstack quick actions"><br>Quick actions</td>
-    <td><img src="docs/media/themes.gif" alt="Colour theme catalogue"><br>Themes and accent colours</td>
+    <td align="center"><img src="docs/media/themes.gif" width="480" alt="The same desktop in Kanagawa, Tokyo Night and Catppuccin Latte"><br>Three themes · one desktop</td>
+    <td align="center"><img src="docs/media/overview.gif" width="480" alt="Window overview in the light Catppuccin Latte theme"><br>Overview · every window in sight</td>
   </tr>
 </table>
-
-These GIF clips come from a recording of the running shell and play directly on
-this page. Demo wallpapers are
-examples and are not installed: the first launch uses a solid theme background.
-Choose your own images in settings. [About the demo](docs/media/README.md).
 
 ## Features
 
