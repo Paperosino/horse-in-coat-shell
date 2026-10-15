@@ -34,11 +34,11 @@ and scrolling tiling with `Super+Ctrl+Shift+M`.
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/media/stacking.gif" width="100%" alt="Moving floating windows with lavat, Cava and pipes"><br>Stacking · arrange windows freely</td>
-    <td align="center" width="50%"><img src="docs/media/scrolling.gif" width="100%" alt="Scrolling through lavat, Yazi, Cava and pipes windows"><br>Scrolling · navigate the window strip</td>
+    <td align="center" width="50%"><img src="docs/media/dashboard.gif" width="100%" alt="Opening the dashboard with its calendar, media player and widgets"><br>Dashboard · calendar, media and widgets</td>
+    <td align="center" width="50%"><img src="docs/media/panel-tools.gif" width="100%" alt="Close-ups of the notification centre and panel quick actions"><br>Taskbar · notifications and quick actions</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/media/theme-transitions.gif" width="100%" alt="The same desktop in Kanagawa, Tokyo Night and Catppuccin Latte"><br>Three themes · one desktop</td>
+    <td align="center"><img src="docs/media/customization.gif" width="100%" alt="Adjusting interface transparency, shadows and scale with visible results"><br>Settings · transparency, shadows and scale</td>
     <td align="center"><img src="docs/media/overview.gif" width="100%" alt="Window overview in the light Catppuccin Latte theme"><br>Overview · every window in sight</td>
   </tr>
 </table>

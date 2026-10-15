@@ -34,11 +34,11 @@ Kanagawa, Tokyo Night и Catppuccin Latte. Из плавающих окон в �
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/media/stacking.gif" width="100%" alt="Перемещение плавающих окон с lavat, Cava и pipes"><br>Stacking · свободное размещение окон</td>
-    <td align="center" width="50%"><img src="docs/media/scrolling.gif" width="100%" alt="Навигация по ленте окон с lavat, Yazi, Cava и pipes"><br>Scrolling · навигация по ленте</td>
+    <td align="center" width="50%"><img src="docs/media/dashboard.gif" width="100%" alt="Открытие дашборда с календарём, медиаплеером и виджетами"><br>Дашборд · календарь, медиа и виджеты</td>
+    <td align="center" width="50%"><img src="docs/media/panel-tools.gif" width="100%" alt="Крупные планы центра уведомлений и быстрых действий панели"><br>Панель задач · уведомления и быстрые действия</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/media/theme-transitions.gif" width="100%" alt="Один рабочий стол в темах Kanagawa, Tokyo Night и Catppuccin Latte"><br>Три темы · одно окружение</td>
+    <td align="center"><img src="docs/media/customization.gif" width="100%" alt="Настройка прозрачности, теней и масштаба интерфейса с видимым результатом"><br>Настройки · прозрачность, тени и масштаб</td>
     <td align="center"><img src="docs/media/overview.gif" width="100%" alt="Обзор открытых окон в светлой теме Catppuccin Latte"><br>Обзор пространства · все окна перед глазами</td>
   </tr>
 </table>
