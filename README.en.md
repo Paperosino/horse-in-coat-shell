@@ -27,7 +27,7 @@ system language are available in settings.
 
 ## See it in action
 
-![lavat, Cava and pipes: theme transitions and switching between stacking and tiling](docs/media/mode-switch.gif)
+![lavat, Cava and pipes: theme transitions and switching between stacking and tiling](docs/media/showcase.gif)
 
 Kanagawa, Tokyo Night and Catppuccin Latte. Switch between floating windows
 and scrolling tiling with `Super+Ctrl+Shift+M`.
@@ -38,7 +38,7 @@ and scrolling tiling with `Super+Ctrl+Shift+M`.
     <td align="center" width="50%"><img src="docs/media/scrolling.gif" width="480" alt="Scrolling through lavat, Yazi, Cava and pipes windows"><br>Scrolling · navigate the window strip</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/media/themes.gif" width="480" alt="The same desktop in Kanagawa, Tokyo Night and Catppuccin Latte"><br>Three themes · one desktop</td>
+    <td align="center"><img src="docs/media/theme-transitions.gif" width="480" alt="The same desktop in Kanagawa, Tokyo Night and Catppuccin Latte"><br>Three themes · one desktop</td>
     <td align="center"><img src="docs/media/overview.gif" width="480" alt="Window overview in the light Catppuccin Latte theme"><br>Overview · every window in sight</td>
   </tr>
 </table>

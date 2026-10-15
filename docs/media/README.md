@@ -12,8 +12,8 @@
 
 | Файл | Содержимое |
 | --- | --- |
-| `mode-switch.gif` | Смена тем, stacking → tiling → stacking · 16,6 с |
-| `themes.gif` | Три темы с одинаковым расположением окон · 4 с |
+| `showcase.gif` | Смена тем, stacking → tiling → stacking · 16,6 с |
+| `theme-transitions.gif` | Три темы с одинаковым расположением окон · 4 с |
 | `stacking.gif` | Перемещение плавающего окна и возврат на место · 7,4 с |
 | `scrolling.gif` | Навигация по ленте с lavat, Yazi, Cava и pipes · 8,9 с |
 | `overview.gif` | Обзор открытых окон в светлой теме · 5,3 с |

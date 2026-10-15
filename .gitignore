@@ -71,8 +71,8 @@
 !/docs/media/
 /docs/media/*
 !/docs/media/README.md
-!/docs/media/mode-switch.gif
-!/docs/media/themes.gif
+!/docs/media/showcase.gif
+!/docs/media/theme-transitions.gif
 !/docs/media/stacking.gif
 !/docs/media/scrolling.gif
 !/docs/media/overview.gif
