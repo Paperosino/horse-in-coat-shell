@@ -1,6 +1,6 @@
 [Русский](INSTALL.md) · [Home](README.en.md)
 
-# Manual installation
+# Installation
 
 Follow the steps in order as your regular user. Use `sudo` only for system
 packages. The commands assume Bash. Resolve any command failure before

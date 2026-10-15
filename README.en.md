@@ -9,7 +9,7 @@
 <p align="center">Two ways to work with windows. One desktop shell for Hyprland.</p>
 
 <p align="center">
-  <a href="INSTALL.en.md">Manual installation</a> ·
+  <a href="INSTALL.en.md">Installation</a> ·
   <a href="CONFIGURATION.md">Configuration (RU)</a> ·
   <a href="#demo">Demo</a>
 </p>
@@ -27,7 +27,9 @@ system language are available in settings.
 
 ## See it in action
 
-![Hyprstack appearance settings](docs/media/themes.gif)
+![Switching from stacking to tiling](docs/media/mode-switch.gif)
+
+From floating windows to scrolling tiling — `Super+Ctrl+Shift+M`.
 
 <table>
   <tr>
@@ -88,7 +90,7 @@ are provided for other distributions; a complete installation has not yet been
 verified on each one. Repositories with another Hyprland version or an older Qt
 require a compatible stack first.
 
-## Manual installation
+## Installation
 
 1. Prepare dependencies for your system:
    [Arch / CachyOS / EndeavourOS / Manjaro](INSTALL.en.md#arch),
@@ -99,8 +101,7 @@ require a compatible stack first.
 4. Back up your configuration, copy the files and log into Hyprland.
 5. Run `hyprstack-doctor` and choose your preferred applications.
 
-**Follow the commands in [INSTALL.en.md](INSTALL.en.md), in order.** This
-repository provides manual installation.
+**Follow the commands in [INSTALL.en.md](INSTALL.en.md), in order.**
 
 Fonts, Material Symbols and M3Shapes are included.  Weather, blur and the audio visualiser
 are disabled by default.
