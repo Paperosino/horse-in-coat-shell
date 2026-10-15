@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+data_dir=${XDG_DATA_HOME:-$HOME/.local/share}
+export PYTHONDONTWRITEBYTECODE=1
+exec python3 "$data_dir/hyprstack/shell/assets/diagnostics.py" "$@"

@@ -1,0 +1,35 @@
+pragma Singleton
+
+import QtQuick
+import Quickshell
+import Hyprstack.Config
+import Hyprstack.I18n
+
+Singleton {
+    property bool recordingActive: false
+    property alias enabled: clock.enabled
+    readonly property date date: clock.date
+    readonly property int hours: clock.hours
+    readonly property int minutes: clock.minutes
+    readonly property int seconds: clock.seconds
+
+    readonly property string timeStr: format(Units.twelveHourClock ? "hh:mm:A" : "hh:mm")
+    readonly property list<string> timeComponents: timeStr.split(":")
+    readonly property string hourStr: timeComponents[0] ?? ""
+    readonly property string minuteStr: timeComponents[1] ?? ""
+    readonly property string amPmStr: timeComponents[2] ?? ""
+
+    function format(fmt: string): string {
+        return clock.date.toLocaleString(Tr.locale, fmt);
+    }
+
+    SystemClock {
+        id: clock
+
+        precision: recordingActive || Quickshell.screens.some(s => {
+            const config = GlobalConfig.forScreen(s.name);
+            const clockShown = config.enabled && config.bar.entries.values.some(e => e.id === "clock" && e.enabled);
+            return (clockShown && config.bar.clock.showSeconds) || config.dashboard.showClockSeconds;
+        }) ? SystemClock.Seconds : SystemClock.Minutes
+    }
+}

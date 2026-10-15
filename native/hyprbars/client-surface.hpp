@@ -1,0 +1,242 @@
+// Hyprland 0.56 leaves xdg window-geometry cropping disabled. Respect a
+// client's shadow margins and scale the complete image during geometry tweens.
+#pragma once
+
+#include <hyprland/src/plugins/PluginAPI.hpp>
+#include <hyprland/src/plugins/HookSystem.hpp>
+#include <hyprland/src/render/ElementRenderer.hpp>
+#include <hyprland/src/render/Renderer.hpp>
+#include <hyprland/src/render/pass/SurfacePassElement.hpp>
+#include <hyprland/src/desktop/view/Window.hpp>
+#include <hyprland/src/desktop/view/WLSurface.hpp>
+#include <hyprland/src/desktop/view/Popup.hpp>
+#include <hyprland/src/desktop/state/ViewHitTester.hpp>
+#include <hyprland/src/managers/SeatManager.hpp>
+#include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/protocols/XDGShell.hpp>
+#include <hyprland/src/protocols/core/Compositor.hpp>
+#include <hyprland/src/xwayland/XSurface.hpp>
+#include "globals.hpp"
+#include <algorithm>
+#include <stdexcept>
+
+static CFunctionHook* clientSurfaceUVHook = nullptr;
+static CFunctionHook* clientSurfacePassHook = nullptr;
+static CFunctionHook* clientSurfaceInputHook = nullptr;
+static CFunctionHook* clientPointerMotionHook = nullptr;
+static CFunctionHook* clientStateHook = nullptr;
+static CFunctionHook* clientTextureBoxHook = nullptr;
+static CFunctionHook* clientMinSizeHook = nullptr;
+static CFunctionHook* clientMaxSizeHook = nullptr;
+
+// xdg_toplevel size limits already use window-geometry coordinates. Adding
+// geometry.pos() (the client's shadow offset) makes fixed-size Qt windows
+// grow on every configure/commit round trip in Hyprland 0.56.2.
+static Vector2D clientMinSize(CXDGToplevelResource* toplevel) {
+    return toplevel->m_current.minSize;
+}
+
+static Vector2D clientMaxSize(CXDGToplevelResource* toplevel) {
+    return toplevel->m_current.maxSize;
+}
+
+static CBox clientGeometry(PHLWINDOW window, SP<CWLSurfaceResource> surface) {
+    const auto geometry = window->m_xdgSurface->m_current.geometry;
+    // xdg_surface.set_window_geometry is optional. Its default is the whole
+    // surface; an unset rectangle must not disable fitting a delayed buffer.
+    return geometry.w > 0 && geometry.h > 0 ? geometry : CBox{{}, surface->m_current.size};
+}
+
+using PointerMotionFunction = void (*)(CSeatManager*, uint32_t, const Vector2D&);
+static void clientPointerMotion(CSeatManager* seat, uint32_t time, const Vector2D& local) {
+    const auto original = reinterpret_cast<PointerMotionFunction>(clientPointerMotionHook->m_original);
+    const auto surface = seat->m_state.pointerFocus.lock();
+    const auto wlSurface = Desktop::View::CWLSurface::fromResource(surface);
+    const auto window = wlSurface ? Desktop::View::CWindow::fromView(wlSurface->view()) : nullptr;
+    if (!window || !window->m_isMapped || window->m_isX11 || !window->m_xdgSurface ||
+        surface != window->resource() || !g_pGlobalState || g_pInputManager->isConstrained())
+        return original(seat, time, local);
+    const auto geometry = clientGeometry(window, surface);
+    const auto target = window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    const bool fitted = !window->m_isFloating && !g_pGlobalState->config.enabled->value() &&
+        target.x > 0 && target.y > 0 && geometry.size() != target;
+    if (geometry.w <= 0 || geometry.h <= 0 || geometry.x < 0 || geometry.y < 0 ||
+        (geometry.pos() == Vector2D{} && !fitted))
+        return original(seat, time, local);
+    // During a button grab Hyprland bypasses windowSurfaceAt() and subtracts
+    // the cropped window box. Keep motion in the same surface coordinates as
+    // pointer enter, so even a slight movement cannot cancel a GTK button.
+    auto relative = g_pInputManager->getMouseCoordsInternal() - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    if (fitted) relative = relative * (geometry.size() / target);
+    original(seat, time, relative + geometry.pos());
+}
+
+using TextureBoxFunction = CBox (*)(CSurfacePassElement*);
+static CBox clientTextureBox(CSurfacePassElement* element) {
+    const auto original = reinterpret_cast<TextureBoxFunction>(clientTextureBoxHook->m_original)(element);
+    const auto& data = element->m_data;
+    const auto window = data.pWindow;
+    if (!data.mainSurface || !window || window->m_isX11 || !window->m_xdgSurface ||
+        window->m_isFloating || g_pGlobalState->config.enabled->value() || data.w <= 0 || data.h <= 0)
+        return original;
+    // A client may still display its smaller stacking buffer after the final
+    // tile configure. Hyprland otherwise shrinks its texture box independently
+    // of the window border, leaving desktop gaps at the bottom and right.
+    return {data.pos + data.localPos - data.pMonitor->m_position, {data.w, data.h}};
+}
+
+using ClientStateFunction = void (*)(Desktop::View::CWindow*);
+static void tiledClientState(Desktop::View::CWindow* window) {
+    bool rejected = false;
+    if (window && !window->m_isFloating && !g_pGlobalState->config.enabled->value()) {
+        // CSD requests belong to stacking. This applies to undecorated clients
+        // too: they never get a Hyprbar that could suppress native maximize.
+        const auto reject = [&](auto& state) {
+            rejected = state.requestsMaximize.has_value() || state.requestsMinimize.has_value();
+            state.requestsMaximize.reset();
+            state.requestsMinimize.reset();
+        };
+        if (window->m_xdgSurface && window->m_xdgSurface->m_toplevel)
+            reject(window->m_xdgSurface->m_toplevel->m_state);
+        else if (window->m_xwaylandSurface) reject(window->m_xwaylandSurface->m_state);
+    }
+    reinterpret_cast<ClientStateFunction>(clientStateHook->m_original)(window);
+    // Acknowledge the existing tile instead of leaving a client waiting for a
+    // geometry change. Video fullscreen and the close protocol are untouched.
+    if (rejected && window->m_isMapped) window->sendWindowSize(true);
+}
+
+using SurfaceInputFunction = SP<CWLSurfaceResource> (*)(const Desktop::CViewHitTester*,
+    const Vector2D&, PHLWINDOW, Vector2D&);
+static SP<CWLSurfaceResource> clientSurfaceInput(const Desktop::CViewHitTester* tester,
+    const Vector2D& point, PHLWINDOW window, Vector2D& local) {
+    const auto original = reinterpret_cast<SurfaceInputFunction>(clientSurfaceInputHook->m_original);
+    if (!window || !window->m_isMapped || window->m_isX11 || !window->m_xdgSurface ||
+        (window->m_popupHead && window->m_popupHead->at(point)))
+        return original(tester, point, window, local);
+    const auto surface = window->wlSurface()->resource();
+    if (!surface) return original(tester, point, window, local);
+    const auto geometry = clientGeometry(window, surface);
+    const auto target = window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    const bool fitted = !window->m_isFloating && !g_pGlobalState->config.enabled->value() &&
+        target.x > 0 && target.y > 0 && geometry.size() != target;
+    if (geometry.w <= 0 || geometry.h <= 0 || geometry.x < 0 || geometry.y < 0 ||
+        (geometry.pos() == Vector2D{} && !fitted))
+        return original(tester, point, window, local);
+    // Translate window coordinates back into the uncropped Wayland surface
+    // tree before selecting the recipient and computing pointer coordinates.
+    auto relative = point - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    if (fitted) relative = relative * (geometry.size() / target);
+    const auto [recipient, coordinates] = surface->at(relative + geometry.pos(), true);
+    if (recipient) local = coordinates;
+    return recipient;
+}
+
+using SurfacePassFunction = void (*)(CSurfacePassElement*, const CSurfacePassElement::SRenderData&);
+static void clientSurfacePass(CSurfacePassElement* element, const CSurfacePassElement::SRenderData& original) {
+    auto data = original;
+    const auto window = data.pWindow;
+    if (window && !window->m_isX11 && window->m_xdgSurface &&
+        !data.mainSurface && !data.popup && data.squishOversized) {
+        // Subsurface positions include the parent's CSD shadow margins.
+        // The main image's UVs already remove those margins; make the entire
+        // render pass use the same window origin, including occlusion/clips.
+        const auto geometry = window->m_xdgSurface->m_current.geometry;
+        if (geometry.w > 0 && geometry.h > 0 && geometry.x >= 0 && geometry.y >= 0) {
+            data.localPos -= geometry.pos();
+            if (window->sizeAnimation()->isBeingAnimated()) {
+                const auto reported = window->getReportedSize();
+                if (reported.x > 0 && reported.y > 0)
+                    data.localPos = data.localPos * (Vector2D{data.w, data.h} / reported);
+            }
+        }
+    }
+    reinterpret_cast<SurfacePassFunction>(clientSurfacePassHook->m_original)(element, data);
+}
+using SurfaceUVFunction = void (*)(Render::IElementRenderer*, PHLWINDOW, SP<CWLSurfaceResource>,
+    PHLMONITOR, bool, const Vector2D&, const Vector2D&, bool);
+
+static void clientSurfaceUV(Render::IElementRenderer* renderer, PHLWINDOW window,
+    SP<CWLSurfaceResource> surface, PHLMONITOR monitor, bool main,
+    const Vector2D& projected, const Vector2D& logical, bool misaligned) {
+    reinterpret_cast<SurfaceUVFunction>(clientSurfaceUVHook->m_original)(
+        renderer, window, surface, monitor, main, projected, logical, misaligned);
+    if (!main || !window || window->m_isX11 || !window->m_xdgSurface ||
+        !surface || surface != window->wlSurface()->resource()) return;
+
+    const auto size = surface->m_current.size;
+    const auto buffer = surface->m_current.bufferSize;
+    const auto geometry = clientGeometry(window, surface);
+    if (size.x <= 0 || size.y <= 0 || buffer.x <= 0 || buffer.y <= 0 ||
+        geometry.w <= 0 || geometry.h <= 0 || geometry.x < 0 || geometry.y < 0) return;
+    const bool margins = geometry.pos() != Vector2D{} || geometry.size() != size;
+    const bool fitted = !window->m_isFloating && !g_pGlobalState->config.enabled->value() && geometry.size() != logical;
+    if (!margins && !fitted && !window->sizeAnimation()->isBeingAnimated()) return;
+
+    // Geometry is in logical surface coordinates, after any viewporter crop
+    // and destination scale. Compose it with the source viewport's buffer UVs.
+    const auto cropped = geometry.intersection(CBox{{}, size});
+    if (cropped.empty()) return;
+    Vector2D sourceTL{}, sourceBR{1.0, 1.0};
+    if (surface->m_current.viewport.hasSource) {
+        const auto source = surface->m_current.viewport.source;
+        sourceTL = source.pos() / buffer;
+        sourceBR = (source.pos() + source.size()) / buffer;
+    }
+    const auto span = sourceBR - sourceTL;
+    auto& data = g_pHyprRenderer->m_renderData;
+    data.primarySurfaceUVTopLeft = sourceTL + span * (cropped.pos() / size);
+    data.primarySurfaceUVBottomRight = sourceTL + span * ((cropped.pos() + cropped.size()) / size);
+}
+
+static void removeClientSurfacePolicy(HANDLE handle) {
+    if (clientPointerMotionHook) HyprlandAPI::removeFunctionHook(handle, clientPointerMotionHook);
+    clientPointerMotionHook = nullptr;
+    if (clientMaxSizeHook) HyprlandAPI::removeFunctionHook(handle, clientMaxSizeHook);
+    clientMaxSizeHook = nullptr;
+    if (clientMinSizeHook) HyprlandAPI::removeFunctionHook(handle, clientMinSizeHook);
+    clientMinSizeHook = nullptr;
+    if (clientTextureBoxHook) HyprlandAPI::removeFunctionHook(handle, clientTextureBoxHook);
+    clientTextureBoxHook = nullptr;
+    if (clientStateHook) HyprlandAPI::removeFunctionHook(handle, clientStateHook);
+    clientStateHook = nullptr;
+    if (clientSurfaceInputHook) HyprlandAPI::removeFunctionHook(handle, clientSurfaceInputHook);
+    clientSurfaceInputHook = nullptr;
+    if (clientSurfacePassHook) HyprlandAPI::removeFunctionHook(handle, clientSurfacePassHook);
+    clientSurfacePassHook = nullptr;
+    if (clientSurfaceUVHook) HyprlandAPI::removeFunctionHook(handle, clientSurfaceUVHook);
+    clientSurfaceUVHook = nullptr;
+}
+
+static void installClientSurfacePolicy(HANDLE handle) {
+    const auto install = [&](const char* name, const char* prefix, void* replacement) {
+        const auto matches = HyprlandAPI::findFunctionsByName(handle, name);
+        const auto found = std::ranges::find_if(matches, [&](const auto& match) {
+            return match.demangled.starts_with(prefix);
+        });
+        if (found == matches.end()) throw std::runtime_error(std::string("[hyprstack] Missing pinned ") + name);
+        auto hook = HyprlandAPI::createFunctionHook(handle, found->address, replacement);
+        if (!hook || !hook->hook()) {
+            if (hook) HyprlandAPI::removeFunctionHook(handle, hook);
+            throw std::runtime_error(std::string("[hyprstack] Cannot hook ") + name);
+        }
+        return hook;
+    };
+    try {
+        clientMinSizeHook = install("layoutMinSize", "CXDGToplevelResource::layoutMinSize(", reinterpret_cast<void*>(&clientMinSize));
+        clientMaxSizeHook = install("layoutMaxSize", "CXDGToplevelResource::layoutMaxSize(", reinterpret_cast<void*>(&clientMaxSize));
+        clientTextureBoxHook = install("getTexBox", "CSurfacePassElement::getTexBox(", reinterpret_cast<void*>(&clientTextureBox));
+        clientStateHook = install("onUpdateState", "Desktop::View::CWindow::onUpdateState(", reinterpret_cast<void*>(&tiledClientState));
+        clientSurfaceUVHook = install("calculateUVForSurface", "Render::IElementRenderer::calculateUVForSurface(",
+            reinterpret_cast<void*>(&clientSurfaceUV));
+        clientSurfacePassHook = install("CSurfacePassElement", "CSurfacePassElement::CSurfacePassElement(CSurfacePassElement::SRenderData const&)",
+            reinterpret_cast<void*>(&clientSurfacePass));
+        clientSurfaceInputHook = install("windowSurfaceAt", "Desktop::CViewHitTester::windowSurfaceAt(",
+            reinterpret_cast<void*>(&clientSurfaceInput));
+        clientPointerMotionHook = install("sendPointerMotion", "CSeatManager::sendPointerMotion(",
+            reinterpret_cast<void*>(&clientPointerMotion));
+    } catch (...) {
+        removeClientSurfacePolicy(handle);
+        throw;
+    }
+}

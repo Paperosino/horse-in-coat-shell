@@ -1,0 +1,21 @@
+{
+  "general": { "language": "ru_RU", "apps": { "terminal": ["kitty"] } },
+  "appearance": { "transparency": { "enabled": false, "base": 1.0 } },
+  "bar": {
+    "activeWindow": { "compact": false, "showOnHover": true },
+    "workspaces": { "perMonitor": true, "shown": 10 },
+    "tray": { "recolour": false, "compact": false },
+    "statusIcons": [
+      { "id": "kbLayout", "enabled": true },
+      { "id": "lockStatus", "enabled": false },
+      { "id": "audio", "enabled": true },
+      { "id": "microphone", "enabled": true },
+      { "id": "network", "enabled": true },
+      { "id": "bluetooth", "enabled": true },
+      { "id": "battery", "enabled": true }
+    ]
+  },
+  "services": { "smartScheme": false, "weatherEnabled": false, "weatherLocation": "", "weatherProvider": "open-meteo" },
+  "background": { "wallpaperEnabled": true, "visualiser": { "enabled": false } },
+  "dashboard": { "resourceUpdateInterval": 2000, "showWeather": false }
+}

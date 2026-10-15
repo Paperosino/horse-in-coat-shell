@@ -1,0 +1,5411 @@
+# Russian translation of Hyprstack.
+# Copyright (C) 2026 Hyprstack contributors
+# This file is distributed under the same license as Hyprstack.
+msgid ""
+msgstr ""
+"Project-Id-Version: hyprstack-shell 1.1.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-10 00:00+0400\n"
+"PO-Revision-Date: 2026-10-10 00:00+0400\n"
+"Last-Translator: Hyprstack contributors\n"
+"Language-Team: Russian\n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+
+#: modules/polkit/AuthDialog.qml
+#, qt-format
+msgid "Authorizing as %1"
+msgstr "Авторизация от имени %1"
+
+#: modules/polkit/AuthDialog.qml
+msgctxt "button"
+msgid "Authenticate"
+msgstr "Подтвердить"
+
+#: modules/polkit/AuthDialog.qml
+msgid "Show password"
+msgstr "Показать пароль"
+
+#: modules/polkit/AuthDialog.qml
+msgid "Hide password"
+msgstr "Скрыть пароль"
+
+#: modules/polkit/AuthDialog.qml
+msgid "Authentication failed. Please try again."
+msgstr "Не удалось пройти авторизацию. Попробуйте ещё раз."
+
+#: modules/polkit/AuthDialog.qml
+msgid "Waiting for authentication..."
+msgstr "Ожидание авторизации…"
+
+#: modules/polkit/AuthDialog.qml
+msgid "Caps Lock is on"
+msgstr "Caps Lock включён"
+
+
+#. TRANSLATORS: %1 = name of the selected file
+#: components/filedialog/CurrentItem.qml
+#, qt-format
+msgctxt "selected file"
+msgid "\"%1\" selected"
+msgstr "Выбрано «%1»"
+
+#: components/filedialog/DialogButtons.qml
+msgctxt "file filter"
+msgid "Filter:"
+msgstr "Фильтр:"
+
+#: components/filedialog/DialogButtons.qml
+msgctxt "file filter separator"
+msgid ", "
+msgstr ", "
+
+#. TRANSLATORS: %1 = filter label, %2 = file patterns
+#: components/filedialog/DialogButtons.qml
+#, qt-format
+msgctxt "file filter label and patterns"
+msgid "%1 (%2)"
+msgstr "%1 (%2)"
+
+#: components/filedialog/DialogButtons.qml
+msgctxt "button"
+msgid "Select"
+msgstr "Выбрать"
+
+#: components/filedialog/DialogButtons.qml
+#: modules/bar/popouts/WirelessPassword.qml
+#: modules/nexus/common/DialogRowButton.qml
+#: modules/nexus/pages/network/AddNetworkPage.qml
+#: modules/nexus/pages/network/AddVpnPage.qml
+#: modules/utilities/RecordingDeleteModal.qml
+msgctxt "button"
+msgid "Cancel"
+msgstr "Отмена"
+
+#: components/filedialog/FileDialog.qml
+msgid "All files"
+msgstr "Все файлы"
+
+#: components/filedialog/FileDialog.qml
+msgid "Select a file"
+msgstr "Выберите файл"
+
+#: components/filedialog/FolderContents.qml
+msgid "This folder is empty"
+msgstr "Эта папка пуста"
+
+#: components/filedialog/Sidebar.qml
+msgctxt "file dialog sidebar heading"
+msgid "Files"
+msgstr "Файлы"
+
+#: modules/areapicker/Picker.qml assets/hyprstack_cli.py
+msgid "Screenshot taken"
+msgstr "Снимок экрана сделан"
+
+#: modules/areapicker/Picker.qml
+msgid "Screenshot copied to clipboard"
+msgstr "Снимок экрана скопирован в буфер обмена"
+
+#: modules/areapicker/Picker.qml
+msgid "Screenshot ready to edit"
+msgstr "Снимок экрана готов к редактированию"
+
+#: modules/background/Wallpaper.qml
+msgid "Wallpaper missing?"
+msgstr "Обои не найдены?"
+
+#: modules/background/Wallpaper.qml
+msgid "Select a wallpaper"
+msgstr "Выберите обои"
+
+#: modules/background/Wallpaper.qml modules/dashboard/Wrapper.qml
+#: modules/nexus/pages/wallandstyle/WallpaperSelect.qml
+msgid "Image files"
+msgstr "Изображения"
+
+#: modules/background/Wallpaper.qml
+msgid "Set it now!"
+msgstr "Выберите сейчас!"
+
+#: modules/bar/components/ActiveWindow.qml
+msgctxt "shown when no window is focused"
+msgid "Desktop"
+msgstr "Рабочий стол"
+
+#: modules/bar/components/NotificationCenterButton.qml
+#: modules/sidebar/NotifDock.qml
+msgid "Notification center"
+msgstr "Центр уведомлений"
+
+#: modules/bar/components/NotificationCenterButton.qml
+#, qt-format
+msgid "Unread notifications: %1"
+msgstr "Непрочитанных уведомлений: %1"
+
+#: modules/bar/components/Tasks.qml
+msgid "Unpin from taskbar"
+msgstr "Открепить от панели задач"
+
+#: modules/bar/components/Tasks.qml
+msgid "Pin to taskbar"
+msgstr "Закрепить на панели задач"
+
+#: modules/bar/components/Tasks.qml
+msgid "Open new window"
+msgstr "Открыть новое окно"
+
+#: modules/bar/popouts/AudioPopout.qml
+msgctxt "audio output device"
+msgid "Output device"
+msgstr "Устройство вывода"
+
+#: modules/bar/popouts/AudioPopout.qml
+msgctxt "audio input device"
+msgid "Input device"
+msgstr "Устройство ввода"
+
+#: modules/bar/popouts/AudioPopout.qml
+msgid "Volume (muted)"
+msgstr "Громкость (звук выключен)"
+
+#: modules/bar/popouts/AudioPopout.qml
+#, qt-format
+msgid "Volume (%1%)"
+msgstr "Громкость (%1%)"
+
+#: modules/bar/popouts/AudioPopout.qml modules/bar/popouts/Bluetooth.qml
+msgid "Open settings"
+msgstr "Открыть настройки"
+
+#: modules/bar/popouts/Battery.qml utils/SysInfo.qml
+#, qt-plural-format
+msgid "%n day"
+msgid_plural "%n days"
+msgstr[0] "%n день"
+msgstr[1] "%n дня"
+msgstr[2] "%n дней"
+
+#: modules/bar/popouts/Battery.qml utils/SysInfo.qml
+#, qt-plural-format
+msgid "%n hour"
+msgid_plural "%n hours"
+msgstr[0] "%n час"
+msgstr[1] "%n часа"
+msgstr[2] "%n часов"
+
+#: modules/bar/popouts/Battery.qml
+#, qt-plural-format
+msgid "%n min"
+msgid_plural "%n mins"
+msgstr[0] "%n мин"
+msgstr[1] "%n мин"
+msgstr[2] "%n мин"
+
+#: modules/bar/popouts/Battery.qml
+msgctxt "duration component separator"
+msgid ", "
+msgstr ", "
+
+#: modules/bar/popouts/Battery.qml
+msgctxt "power profile"
+msgid "Balanced"
+msgstr "Сбалансированный"
+
+#: modules/bar/popouts/Battery.qml
+msgctxt "power profile"
+msgid "Performance"
+msgstr "Производительность"
+
+#: modules/bar/popouts/Battery.qml
+msgctxt "power profile"
+msgid "Power saver"
+msgstr "Энергосбережение"
+
+#: modules/bar/popouts/Battery.qml
+msgctxt "power profile"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#: modules/bar/popouts/Battery.qml
+msgid "The device is too hot"
+msgstr "Устройство перегрето"
+
+#: modules/bar/popouts/Battery.qml
+msgid "The device is on a lap"
+msgstr "Устройство находится на коленях"
+
+#: modules/bar/popouts/Battery.qml
+msgid "Unknown reason"
+msgstr "Неизвестная причина"
+
+#: modules/bar/popouts/Battery.qml
+#, qt-format
+msgctxt "battery remaining"
+msgid "Remaining: %1%"
+msgstr "Осталось: %1%"
+
+#: modules/bar/popouts/Battery.qml
+msgid "No battery detected"
+msgstr "Батарея не найдена"
+
+#: modules/bar/popouts/Battery.qml
+#, qt-format
+msgid "Power profile: %1"
+msgstr "Профиль питания: %1"
+
+#: modules/bar/popouts/Battery.qml
+#, qt-format
+msgid "Time remaining: %1"
+msgstr "Осталось времени: %1"
+
+#: modules/bar/popouts/Battery.qml
+msgid "Calculating remaining battery life..."
+msgstr "Расчёт оставшегося времени работы от батареи…"
+
+#: modules/bar/popouts/Battery.qml
+#, qt-format
+msgid "Time until charged: %1"
+msgstr "До полной зарядки: %1"
+
+#: modules/bar/popouts/Battery.qml
+msgid "Fully charged!"
+msgstr "Полностью заряжена!"
+
+#: modules/bar/popouts/Battery.qml
+msgid "Calculating time until charged..."
+msgstr "Расчёт времени до полной зарядки…"
+
+#. TRANSLATORS: charger or thermal warning: the battery cannot draw full power
+#: modules/bar/popouts/Battery.qml
+msgid "Performance degraded"
+msgstr "Производительность снижена"
+
+#: modules/bar/popouts/Bluetooth.qml modules/nexus/pages/BluetoothPage.qml
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+#: modules/bar/popouts/Bluetooth.qml modules/bar/popouts/Network.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/panels/LauncherPanel.qml
+#: modules/nexus/pages/panels/SidebarPanel.qml
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgctxt "toggle label"
+msgid "Enabled"
+msgstr "Включено"
+
+#: modules/bar/popouts/Bluetooth.qml
+msgctxt "bluetooth adapter state"
+msgid "Discovering"
+msgstr "Поиск устройств"
+
+#. TRANSLATORS: %n = total paired devices, %1 = how many of them are connected
+#: modules/bar/popouts/Bluetooth.qml
+#, qt-format, qt-plural-format
+msgid "%n device available (%1 connected)"
+msgid_plural "%n devices available (%1 connected)"
+msgstr[0] "Доступно %n устройство (подключено: %1)"
+msgstr[1] "Доступно %n устройства (подключено: %1)"
+msgstr[2] "Доступно %n устройств (подключено: %1)"
+
+#: modules/bar/popouts/Bluetooth.qml modules/bar/popouts/Network.qml
+#, qt-plural-format
+msgid "%n device available"
+msgid_plural "%n devices available"
+msgstr[0] "Доступно %n устройство"
+msgstr[1] "Доступно %n устройства"
+msgstr[2] "Доступно %n устройств"
+
+#: modules/bar/popouts/kblayout/KbLayout.qml
+msgid "Keyboard layouts"
+msgstr "Раскладки клавиатуры"
+
+#: modules/bar/popouts/kblayout/KbLayout.qml
+msgid "XKB limitation: maximum 4 layouts allowed"
+msgstr "Ограничение XKB: максимум 4 раскладки"
+
+#. TRANSLATORS: %1 = language, %2 = layout code
+#: modules/bar/popouts/kblayout/KbLayoutModel.qml
+#, qt-format
+msgctxt "keyboard layout language and code"
+msgid "%1 (%2)"
+msgstr "%1 (%2)"
+
+#: modules/bar/popouts/kblayout/KbLayoutModel.qml
+msgid "Keyboard layout limit"
+msgstr "Максимум раскладок"
+
+#: modules/bar/popouts/kblayout/KbLayoutModel.qml
+msgid "XKB supports only 4 layouts at a time"
+msgstr "XKB поддерживает только 4 раскладки одновременно"
+
+#. TRANSLATORS: %1 = layout code, %2 = layout name
+#: modules/bar/popouts/kblayout/KbLayoutModel.qml
+#, qt-format
+msgctxt "keyboard layout code and name"
+msgid "%1 - %2"
+msgstr "%1 — %2"
+
+#: modules/bar/popouts/LockStatus.qml
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+msgid "Caps lock enabled"
+msgstr "Caps Lock включён"
+
+#: modules/bar/popouts/LockStatus.qml
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+msgid "Caps lock disabled"
+msgstr "Caps Lock выключен"
+
+#: modules/bar/popouts/LockStatus.qml
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+msgid "Num lock enabled"
+msgstr "Num Lock включён"
+
+#: modules/bar/popouts/LockStatus.qml
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+msgid "Num lock disabled"
+msgstr "Num Lock выключен"
+
+#: modules/bar/popouts/Network.qml
+msgid "Wireless"
+msgstr "Беспроводная"
+
+#: modules/bar/popouts/Network.qml
+#, qt-plural-format
+msgid "%n network available"
+msgid_plural "%n networks available"
+msgstr[0] "Доступна %n сеть"
+msgstr[1] "Доступны %n сети"
+msgstr[2] "Доступно %n сетей"
+
+#: modules/bar/popouts/Network.qml
+msgid "Rescan networks"
+msgstr "Повторить поиск сетей"
+
+#: modules/bar/popouts/Network.qml modules/nexus/common/EthernetSection.qml
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+msgid "Ethernet"
+msgstr "Ethernet"
+
+#: modules/bar/popouts/Network.qml
+msgctxt "unknown network interface"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#: modules/bar/popouts/TrayMenu.qml
+msgctxt "button"
+msgid "Back"
+msgstr "Назад"
+
+#: modules/bar/popouts/WirelessPassword.qml
+#: modules/nexus/pages/network/AddNetworkPage.qml
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+msgid "Connect"
+msgstr "Подключить"
+
+#: modules/bar/popouts/WirelessPassword.qml
+msgid "Enter password"
+msgstr "Введите пароль"
+
+#. TRANSLATORS: %1 = the network SSID
+#: modules/bar/popouts/WirelessPassword.qml
+#, qt-format
+msgid "Network: %1"
+msgstr "Сеть: %1"
+
+#: modules/bar/popouts/WirelessPassword.qml
+msgid "Unknown network"
+msgstr "Неизвестная сеть"
+
+#: modules/bar/popouts/WirelessPassword.qml
+msgid "Connection failed. Please check your password and try again."
+msgstr "Не удалось подключиться. Проверьте пароль и повторите попытку."
+
+#: modules/bar/popouts/WirelessPassword.qml modules/nexus/pages/NetworkPage.qml
+msgid "Connecting..."
+msgstr "Подключение…"
+
+#: modules/bar/popouts/WirelessPassword.qml
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "Password"
+msgstr "Пароль"
+
+#: modules/BatteryMonitor.qml
+msgid "Battery warning"
+msgstr "Предупреждение о заряде"
+
+#: modules/BatteryMonitor.qml
+msgid "Battery level is low"
+msgstr "Низкий заряд батареи"
+
+#: modules/BatteryMonitor.qml
+msgid "Hibernating in 5 seconds"
+msgstr "Гибернация через 5 секунд"
+
+#: modules/BatteryMonitor.qml
+msgid "Hibernating to prevent data loss"
+msgstr "Гибернация для предотвращения потери данных"
+
+#: modules/BatteryMonitor.qml
+msgid "Charger unplugged"
+msgstr "Зарядное устройство отключено"
+
+#: modules/BatteryMonitor.qml
+msgid "Battery is discharging"
+msgstr "Батарея разряжается"
+
+#: modules/BatteryMonitor.qml
+msgid "Charger plugged in"
+msgstr "Зарядное устройство подключено"
+
+#: modules/BatteryMonitor.qml
+msgid "Battery is charging"
+msgstr "Батарея заряжается"
+
+#: modules/dashboard/Content.qml modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/PanelsPage.qml
+msgid "Dashboard"
+msgstr "Дашборд"
+
+#: modules/dashboard/Content.qml modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Media"
+msgstr "Медиа"
+
+#: modules/dashboard/Content.qml modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Performance"
+msgstr "Производительность"
+
+#: modules/dashboard/Content.qml modules/nexus/pages/LanguageAndRegion.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Weather"
+msgstr "Погода"
+
+#: modules/dashboard/dash/Media.qml
+msgid "No media"
+msgstr "Нет медиа"
+
+#: modules/dashboard/dash/Media.qml
+msgid "Unknown title"
+msgstr "Неизвестный заголовок"
+
+#: modules/dashboard/dash/Media.qml modules/dashboard/media/Details.qml
+msgid "Unknown album"
+msgstr "Неизвестный альбом"
+
+#: modules/dashboard/dash/Media.qml modules/dashboard/media/Details.qml
+#: modules/lock/Media.qml
+msgid "Unknown artist"
+msgstr "Неизвестный исполнитель"
+
+#. TRANSLATORS: %1 = system uptime, e.g. "2 days, 3 hours"
+#: modules/dashboard/dash/User.qml
+#, qt-format
+msgctxt "system uptime"
+msgid "up %1"
+msgstr "работает %1"
+
+#: modules/dashboard/Media.qml modules/lock/Media.qml
+msgid "Nothing playing"
+msgstr "Ничего не воспроизводится"
+
+#: modules/dashboard/Media.qml
+msgid "Play something for it to show up here!"
+msgstr "Начните воспроизведение, чтобы медиа появилось здесь!"
+
+#: modules/dashboard/media/LyricList.qml
+msgid "Loading lyrics..."
+msgstr "Загрузка текста песни…"
+
+#: modules/dashboard/media/LyricList.qml modules/dashboard/media/LyricsInfo.qml
+msgid "No lyrics found"
+msgstr "Текст песни не найден"
+
+#: modules/dashboard/media/LyricsAndSelector.qml
+msgid "Lyrics"
+msgstr "Текст песни"
+
+#: modules/dashboard/media/LyricsAndSelector.qml
+msgctxt "no media players active"
+msgid "No players"
+msgstr "Нет проигрывателей"
+
+#. TRANSLATORS: %1 = lyrics backend name, e.g. LRCLIB
+#: modules/dashboard/media/LyricsInfo.qml
+#, qt-format
+msgid "Backend: %1"
+msgstr "Служба: %1"
+
+#. TRANSLATORS: %1/%2/%3 = matched track title, artist and album
+#: modules/dashboard/media/LyricsInfo.qml
+#, qt-format
+msgid "Selected candidate: %1 | %2 | %3"
+msgstr "Выбран вариант: %1 | %2 | %3"
+
+#. TRANSLATORS: %1 = lyric timing offset; ms is the millisecond unit, leave untranslated
+#: modules/dashboard/media/LyricsInfo.qml
+#, qt-format
+msgid "Offset: %1 ms"
+msgstr "Смещение: %1 мс"
+
+#: modules/dashboard/media/LyricsInfo.qml modules/dashboard/WeatherTab.qml
+#: modules/lock/center/InputField.qml
+msgid "Loading..."
+msgstr "Загрузка…"
+
+#: modules/dashboard/Performance.qml
+msgid "No widgets enabled"
+msgstr "Виджеты не включены"
+
+#: modules/dashboard/Performance.qml
+msgid "Enable widgets in the dashboard settings"
+msgstr "Включите виджеты в настройках дашборда"
+
+#: modules/dashboard/Performance.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "CPU"
+msgstr "Процессор"
+
+#: modules/dashboard/Performance.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/ServicesPage.qml
+msgid "GPU"
+msgstr "Видеокарта"
+
+#: modules/dashboard/Performance.qml
+msgid "Detecting GPU..."
+msgstr "Определение видеокарты…"
+
+#: modules/dashboard/Performance.qml
+msgctxt "GPU name"
+msgid "None"
+msgstr "Нет"
+
+#: modules/dashboard/performance/BatteryTank.qml
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Battery"
+msgstr "Батарея"
+
+#: modules/dashboard/performance/BatteryTank.qml
+msgctxt "battery state"
+msgid "Full"
+msgstr "Полный"
+
+#: modules/dashboard/performance/BatteryTank.qml
+msgctxt "battery state"
+msgid "Charging"
+msgstr "Зарядка"
+
+#. TRANSLATORS: %1 = hours, %2 = minutes
+#: modules/dashboard/performance/BatteryTank.qml
+#, qt-format
+msgctxt "battery time remaining"
+msgid "%1h %2m"
+msgstr "%1 ч %2 мин"
+
+#. TRANSLATORS: %1 = minutes
+#: modules/dashboard/performance/BatteryTank.qml
+#, qt-format
+msgctxt "battery time remaining"
+msgid "%1m"
+msgstr "%1 мин"
+
+#. TRANSLATORS: labels the CPU or GPU utilisation percentage shown below it
+#: modules/dashboard/performance/HeroCard.qml
+msgctxt "resource usage"
+msgid "Usage"
+msgstr "Использование"
+
+#: modules/dashboard/performance/MemoryCard.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Memory"
+msgstr "Память"
+
+#: modules/dashboard/performance/MemoryCard.qml
+msgctxt "memory used"
+msgid "Used"
+msgstr "Занято"
+
+#: modules/dashboard/performance/NetworkCard.qml modules/nexus/PageRegistry.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+#: modules/nexus/pages/NetworkPage.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Network"
+msgstr "Сеть"
+
+#: modules/dashboard/performance/NetworkCard.qml
+msgid "Collecting data..."
+msgstr "Сбор данных…"
+
+#: modules/dashboard/performance/NetworkCard.qml
+msgctxt "network throughput"
+msgid "Download"
+msgstr "Скачать"
+
+#: modules/dashboard/performance/NetworkCard.qml
+msgctxt "network throughput"
+msgid "Upload"
+msgstr "Отправить"
+
+#: modules/dashboard/performance/NetworkCard.qml
+msgctxt "total network data transferred"
+msgid "Total"
+msgstr "Всего"
+
+#. TRANSLATORS: %1 = downloaded total, %2 = uploaded total
+#: modules/dashboard/performance/NetworkCard.qml
+#, qt-format
+msgid "↓%1 ↑%2"
+msgstr "↓%1 ↑%2"
+
+#: modules/dashboard/performance/StorageCard.qml
+msgctxt "storage used"
+msgid "Used"
+msgstr "Занято"
+
+#: modules/dashboard/performance/StorageCard.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Storage"
+msgstr "Диски"
+
+#: modules/dashboard/performance/StorageCard.qml
+msgid "No disks detected"
+msgstr "Диски не найдены"
+
+#: modules/dashboard/performance/StorageCard.qml
+msgid "No disks"
+msgstr "Нет дисков"
+
+#: modules/dashboard/WeatherTab.qml
+msgid "Sunrise"
+msgstr "Восход"
+
+#: modules/dashboard/WeatherTab.qml
+msgid "Sunset"
+msgstr "Закат"
+
+#: modules/dashboard/WeatherTab.qml
+msgid "Humidity"
+msgstr "Влажность"
+
+#: modules/dashboard/WeatherTab.qml
+msgctxt "apparent temperature"
+msgid "Feels like"
+msgstr "По ощущению"
+
+#: modules/dashboard/WeatherTab.qml
+msgid "Wind"
+msgstr "Ветер"
+
+#: modules/dashboard/WeatherTab.qml
+#, qt-format
+msgid "%1 km/h"
+msgstr "%1 км/ч"
+
+#: modules/dashboard/WeatherTab.qml
+#, qt-format
+msgid "%1-day forecast"
+msgstr "Прогноз на %1 дн."
+
+#: modules/dashboard/WeatherTab.qml
+msgctxt "forecast column"
+msgid "Today"
+msgstr "Сегодня"
+
+#: modules/dashboard/WeatherTab.qml
+#, qt-format
+msgctxt "min/max temperature"
+msgid "%1 / %2"
+msgstr "%1 / %2"
+
+#: modules/dashboard/Wrapper.qml
+msgid "Select a profile picture"
+msgstr "Выберите изображение профиля"
+
+#. TRANSLATORS: %1 = a file path
+#: modules/dashboard/Wrapper.qml
+#, qt-format
+msgid "Profile picture changed"
+msgstr "Изображение профиля изменено"
+
+#: modules/dashboard/Wrapper.qml
+#, qt-format
+msgid "Profile picture changed to %1"
+msgstr "Изображение профиля изменено на %1"
+
+#. TRANSLATORS: %1 = a file path
+#: modules/dashboard/Wrapper.qml
+#, qt-format
+msgid "Unable to change profile picture"
+msgstr "Не удалось изменить изображение профиля"
+
+#: modules/dashboard/Wrapper.qml
+#, qt-format
+msgid "Failed to change profile picture to %1"
+msgstr "Не удалось изменить изображение профиля на %1"
+
+#: modules/launcher/Content.qml
+#, qt-format
+msgid "Type \"%1\" for commands"
+msgstr "Введите «%1» для команд"
+
+#: modules/launcher/ContentList.qml
+msgid "No wallpapers found"
+msgstr "Обои не найдены"
+
+#: modules/launcher/ContentList.qml
+msgid "No results"
+msgstr "Нет результатов"
+
+#: modules/launcher/ContentList.qml
+#, qt-format
+msgid "Try putting some wallpapers in %1"
+msgstr "Добавьте обои в %1"
+
+#: modules/launcher/ContentList.qml
+msgid "Try searching for something else"
+msgstr "Попробуйте другой запрос"
+
+#: modules/launcher/items/CalcItem.qml
+msgid "Calculating..."
+msgstr "Вычисление…"
+
+#: modules/launcher/items/CalcItem.qml
+msgid "Type an expression to calculate"
+msgstr "Введите выражение для вычисления"
+
+#: modules/launcher/items/CalcItem.qml
+msgid "Open in calculator"
+msgstr "Открыть в калькуляторе"
+
+#: modules/launcher/services/Actions.qml
+msgctxt "launcher action with no name"
+msgid "Unnamed"
+msgstr "Без названия"
+
+#: modules/launcher/services/Actions.qml
+msgctxt "launcher action with no description"
+msgid "No description"
+msgstr "Нет описания"
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Vibrant"
+msgstr "Насыщенная"
+
+#: modules/launcher/services/M3Variants.qml
+msgid "A high chroma palette. The primary palette's chroma is at maximum."
+msgstr "Насыщенная палитра с максимальной насыщенностью основного цвета."
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Tonal Spot"
+msgstr "Пастельные оттенки"
+
+#: modules/launcher/services/M3Variants.qml
+msgid "Default for Material theme colours. A pastel palette with a low chroma."
+msgstr "Стандартные цвета Material. Пастельная палитра с низкой насыщенностью."
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Expressive"
+msgstr "Выразительная"
+
+#: modules/launcher/services/M3Variants.qml
+msgid "A medium chroma palette. The primary palette's hue is different from the seed colour, for variety."
+msgstr "Палитра средней насыщенности. Для разнообразия основной оттенок отличается от исходного цвета."
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Fidelity"
+msgstr "Точный цвет"
+
+#: modules/launcher/services/M3Variants.qml
+msgid "Matches the seed colour, even if the seed colour is very bright (high chroma)."
+msgstr "Сохраняет исходный цвет, даже если он очень яркий и насыщенный."
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Content"
+msgstr "Содержимое"
+
+#: modules/launcher/services/M3Variants.qml
+msgid "Almost identical to fidelity."
+msgstr "Почти идентична варианту Fidelity."
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Fruit Salad"
+msgstr "Фруктовый микс"
+
+#: modules/launcher/services/M3Variants.qml
+msgid "A playful theme - the seed colour's hue does not appear in the theme."
+msgstr "Яркая тема, в которой не используется оттенок исходного цвета."
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Rainbow"
+msgstr "Радуга"
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Neutral"
+msgstr "Нейтральная"
+
+#: modules/launcher/services/M3Variants.qml
+msgid "Close to greyscale, a hint of chroma."
+msgstr "Почти серая палитра с лёгким цветовым оттенком."
+
+#: modules/launcher/services/M3Variants.qml
+msgctxt "M3 scheme variant name"
+msgid "Monochrome"
+msgstr "Монохромная"
+
+#: modules/launcher/services/M3Variants.qml
+msgid "All colours are greyscale, no chroma."
+msgstr "Оттенки серого без цветового насыщения."
+
+#: modules/lock/center/InputField.qml
+msgid "Scanning face..."
+msgstr "Распознавание лица…"
+
+#: modules/lock/center/InputField.qml
+msgid "Max tries reached"
+msgstr "Попытки исчерпаны"
+
+#: modules/lock/center/InputField.qml
+msgid "Enter your password"
+msgstr "Введите ваш пароль"
+
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "FP ERROR: %1"
+msgstr "ОШИБКА ОТПЕЧАТКА: %1"
+
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "FACE ERROR: %1"
+msgstr "ОШИБКА РАСПОЗНАВАНИЯ ЛИЦА: %1"
+
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "PW ERROR: %1"
+msgstr "ОШИБКА ПАРОЛЯ: %1"
+
+#. TRANSLATORS: %1 = attempts used so far, %2 = maximum attempts allowed
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "Fingerprint not recognised (%1/%2). Please try again or use password."
+msgstr "Отпечаток не распознан (%1/%2). Попробуйте снова или введите пароль."
+
+#. TRANSLATORS: %1 = attempts used so far, %2 = maximum attempts allowed
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "Face not recognised (%1/%2). Please try again or use password."
+msgstr "Лицо не распознано (%1/%2). Попробуйте снова или введите пароль."
+
+#. TRANSLATORS: %1 = attempts used so far, %2 = maximum attempts allowed
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "Fingerprint not recognised (%1/%2). Please try again."
+msgstr "Отпечаток не распознан (%1/%2). Попробуйте снова."
+
+#. TRANSLATORS: %1 = attempts used so far, %2 = maximum attempts allowed
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "Face not recognised (%1/%2). Please try again."
+msgstr "Лицо не распознано (%1/%2). Попробуйте снова."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Incorrect password. Please try again or use fingerprint."
+msgstr "Неверный пароль. Повторите попытку или используйте отпечаток пальца."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Incorrect password. Please try again or use face."
+msgstr "Неверный пароль. Повторите попытку или используйте распознавание лица."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Incorrect password. Please try again."
+msgstr "Неверный пароль. Повторите попытку."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Maximum password attempts reached. Please use fingerprint."
+msgstr "Исчерпано число попыток ввода пароля. Используйте отпечаток пальца."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Maximum password attempts reached. Please use face."
+msgstr "Исчерпано число попыток ввода пароля. Используйте распознавание лица."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Maximum attempts for all authentication methods reached."
+msgstr "Исчерпано число попыток для всех способов авторизации."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Maximum password attempts reached."
+msgstr "Исчерпано число попыток ввода пароля."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Maximum fingerprint attempts reached. Please use password."
+msgstr "Исчерпано число попыток отпечатка пальца. Введите пароль."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Maximum face attempts reached. Please use password."
+msgstr "Исчерпано число попыток распознавания лица. Введите пароль."
+
+#. TRANSLATORS: %1 = the active keyboard layout name, e.g. "English (US)"
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "Caps lock and Num lock are ON.\nKeyboard layout: %1"
+msgstr "Caps Lock и Num Lock включены.\nРаскладка клавиатуры: %1"
+
+#. TRANSLATORS: %1 = the active keyboard layout name, e.g. "English (US)"
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "Caps lock is ON. Keyboard layout: %1"
+msgstr "Caps Lock включён. Раскладка клавиатуры: %1"
+
+#. TRANSLATORS: %1 = the active keyboard layout name, e.g. "English (US)"
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "Num lock is ON. Keyboard layout: %1"
+msgstr "Num Lock включён. Раскладка клавиатуры: %1"
+
+#. TRANSLATORS: %1 = the active keyboard layout name, e.g. "English (US)"
+#: modules/lock/center/StateMessage.qml
+#, qt-format
+msgid "Keyboard layout: %1"
+msgstr "Раскладка клавиатуры: %1"
+
+#: modules/lock/center/StateMessage.qml
+msgid "Caps lock and Num lock are ON."
+msgstr "Caps Lock и Num Lock включены."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Caps lock is ON."
+msgstr "Caps Lock включён."
+
+#: modules/lock/center/StateMessage.qml
+msgid "Num lock is ON."
+msgstr "Num Lock включён."
+
+#. TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
+#: modules/lock/Fetch.qml
+#, qt-format
+msgid "OS  : %1"
+msgstr "ОС  : %1"
+
+#. TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
+#: modules/lock/Fetch.qml
+#, qt-format
+msgid "WM  : %1"
+msgstr "ОКОННЫЙ МЕНЕДЖЕР: %1"
+
+#. TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
+#: modules/lock/Fetch.qml
+#, qt-format
+msgid "USER: %1"
+msgstr "ПОЛЬЗОВАТЕЛЬ: %1"
+
+#. TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
+#: modules/lock/Fetch.qml
+#, qt-format
+msgid "UP  : %1"
+msgstr "ВРЕМЯ РАБОТЫ: %1"
+
+#. TRANSLATORS: keep the label padded to 4 chars, (+) marks charging
+#: modules/lock/Fetch.qml
+#, qt-format
+msgid "BATT: (+) %1%"
+msgstr "ЗАРЯД: (+) %1%"
+
+#: modules/lock/Fetch.qml
+#, qt-format
+msgid "BATT: %1%"
+msgstr "ЗАРЯД: %1%"
+
+#: modules/lock/Media.qml
+msgid "Unknown track"
+msgstr "Неизвестная композиция"
+
+#: modules/lock/Media.qml
+msgid "Try playing some music!"
+msgstr "Включите музыку!"
+
+#: modules/lock/NotifDock.qml
+#, qt-plural-format
+msgid "%n notification"
+msgid_plural "%n notifications"
+msgstr[0] "%n уведомление"
+msgstr[1] "%n уведомления"
+msgstr[2] "%n уведомлений"
+
+#: modules/lock/NotifDock.qml
+#: modules/nexus/pages/services/NotificationsPage.qml
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Notifications"
+msgstr "Уведомления"
+
+#: modules/lock/NotifDock.qml
+msgid "Unlock for notifications"
+msgstr "Разблокируйте экран для просмотра уведомлений"
+
+#: modules/lock/NotifDock.qml modules/sidebar/NotifDock.qml
+msgid "No notifications"
+msgstr "Нет уведомлений"
+
+#. TRANSLATORS: %1 = apparent temperature, unit already included
+#: modules/lock/weather/BriefInfo.qml
+#, qt-format
+msgid "Feels like %1"
+msgstr "Ощущается как %1"
+
+#. TRANSLATORS: %1/%2 = today's max and min temperature, units already included
+#: modules/lock/weather/BriefInfo.qml
+#, qt-format
+msgid "High %1 • Low %2"
+msgstr "Макс. %1 • Мин. %2"
+
+#: modules/lock/weather/Forecast.qml
+msgid "Hourly forecast"
+msgstr "Почасовой прогноз"
+
+#: modules/lock/weather/Forecast.qml
+msgctxt "forecast column"
+msgid "Now"
+msgstr "Сейчас"
+
+#: modules/nexus/common/AudioDeviceList.qml
+msgctxt "unknown audio device"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#: modules/nexus/common/EthernetSection.qml
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+msgctxt "ethernet link state"
+msgid "Connected"
+msgstr "Подключено"
+
+#: modules/nexus/common/EthernetSection.qml
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+msgctxt "ethernet link state"
+msgid "Not connected"
+msgstr "Нет подключения"
+
+#. TRANSLATORS: %1 = data transferred, already formatted with a unit
+#: modules/nexus/common/EthernetSection.qml
+#, qt-format
+msgid "Data usage: %1"
+msgstr "Передано данных: %1"
+
+#: modules/nexus/common/EthernetSection.qml
+msgid "Wired connection"
+msgstr "Проводное подключение"
+
+#: modules/nexus/common/EthernetSection.qml
+#, qt-format
+msgctxt "ethernet link state with interface name"
+msgid "Not connected • %1"
+msgstr "Нет подключения • %1"
+
+#: modules/nexus/common/EthernetSection.qml
+msgid "Local IP Address"
+msgstr "Локальный IP-адрес"
+
+#: modules/nexus/common/EthernetSection.qml
+msgid "Primary DNS"
+msgstr "Основной DNS"
+
+#: modules/nexus/common/NetworkList.qml
+msgid "No networks found"
+msgstr "Сети не найдены"
+
+#: modules/nexus/common/NetworkList.qml
+msgid "Wi-Fi disabled"
+msgstr "Wi-Fi выключен"
+
+#: modules/nexus/common/NetworkList.qml
+msgctxt "network connected"
+msgid "Connected"
+msgstr "Подключено"
+
+#: modules/nexus/common/NetworkList.qml
+msgctxt "network saved"
+msgid "Saved"
+msgstr "Сохранено"
+
+#. TRANSLATORS: %1 = security type, %2 = connection status
+#: modules/nexus/common/NetworkList.qml
+#, qt-format
+msgctxt "network security and status"
+msgid "Security: %1 • %2"
+msgstr "Защита: %1 • %2"
+
+#: modules/nexus/common/NetworkList.qml
+#, qt-format
+msgctxt "network security"
+msgid "Security: %1"
+msgstr "Защита: %1"
+
+#: modules/nexus/NavPane.qml
+msgid "Search settings"
+msgstr "Поиск настроек"
+
+#: modules/nexus/navpane/SearchResults.qml
+msgid "No settings found"
+msgstr "Настройки не найдены"
+
+#: modules/nexus/PageCompRegistry.qml
+msgid "Page under construction"
+msgstr "Страница в разработке"
+
+#: modules/nexus/PageCompRegistry.qml
+msgid "This page will be available in a future update."
+msgstr "Эта страница появится в будущем обновлении."
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Wallpaper & style"
+msgstr "Обои и оформление"
+
+#: modules/nexus/PageRegistry.qml
+msgid "Wallpaper, fonts, colours"
+msgstr "Обои, шрифты и цвета"
+
+#: modules/nexus/PageRegistry.qml
+msgid "Wi-Fi, ethernet, VPN"
+msgstr "Wi-Fi, Ethernet и VPN"
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/BluetoothPage.qml
+msgid "Connected devices"
+msgstr "Подключённые устройства"
+
+#: modules/nexus/PageRegistry.qml
+msgid "Bluetooth, pairing"
+msgstr "Bluetooth и сопряжение"
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/AudioPage.qml
+msgid "Audio"
+msgstr "Звук"
+
+#: modules/nexus/PageRegistry.qml
+msgid "App volumes, sound devices"
+msgstr "Громкость приложений и звуковые устройства"
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/PanelsPage.qml
+msgid "Panels"
+msgstr "Панели"
+
+#: modules/nexus/PageRegistry.qml
+msgid "Dashboard, taskbar, launcher, sidebar"
+msgstr "Дашборд, панель задач, меню приложений и боковая панель"
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/AppsPage.qml
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Apps"
+msgstr "Приложения"
+
+#: modules/nexus/PageRegistry.qml
+msgid "Default apps, favourites, hidden apps"
+msgstr "Приложения по умолчанию, избранное и скрытые приложения"
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/ServicesPage.qml
+msgid "Services"
+msgstr "Службы"
+
+#: modules/nexus/PageRegistry.qml
+msgid "Poll intervals, lyrics backend"
+msgstr "Интервалы обновления и источник текста песен"
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/LanguageAndRegion.qml
+msgid "Language & region"
+msgstr "Язык и регион"
+
+#: modules/nexus/PageRegistry.qml
+msgid "UI language, weather location, display units"
+msgstr "Язык интерфейса, город для погоды и единицы измерения"
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/KeybindsPage.qml
+msgid "Keyboard shortcuts"
+msgstr "Сочетания клавиш"
+
+#: modules/nexus/PageRegistry.qml
+msgid "Current key bindings and mouse gestures"
+msgstr "Текущие сочетания клавиш и жесты мыши"
+
+#: modules/nexus/PageRegistry.qml modules/nexus/pages/AboutPage.qml
+msgid "About"
+msgstr "О проекте"
+
+#: modules/nexus/PageRegistry.qml
+msgid "System information, credits"
+msgstr "Сведения о системе и участники проекта"
+
+#: modules/nexus/pages/AboutPage.qml
+msgid "System"
+msgstr "Система"
+
+#: modules/nexus/pages/AboutPage.qml
+msgid "Hostname"
+msgstr "Имя компьютера"
+
+#: modules/nexus/pages/AboutPage.qml
+msgctxt "system model name"
+msgid "Device"
+msgstr "Устройство"
+
+#: modules/nexus/pages/AboutPage.qml
+msgid "Distro"
+msgstr "Дистрибутив"
+
+#: modules/nexus/pages/AboutPage.qml
+msgid "Kernel"
+msgstr "Ядро"
+
+#. TRANSLATORS: BIOS or UEFI firmware version
+#: modules/nexus/pages/AboutPage.qml
+msgid "Firmware"
+msgstr "Прошивка"
+
+#: modules/nexus/pages/AboutPage.qml
+msgid "Software"
+msgstr "Программное обеспечение"
+
+#: modules/nexus/pages/AboutPage.qml
+msgctxt "the hyprstack shell itself, not a unix shell"
+msgid "Shell"
+msgstr "Оболочка"
+
+#: modules/nexus/pages/AboutPage.qml
+msgctxt "the hyprstack command line tool"
+msgid "CLI"
+msgstr "Командная строка"
+
+#: modules/nexus/pages/AboutPage.qml
+msgid "Plugins"
+msgstr "Плагины"
+
+#: modules/nexus/pages/AboutPage.qml
+msgid "Loaded plugins"
+msgstr "Загруженные плагины"
+
+#: modules/nexus/pages/apps/AllApps.qml modules/nexus/pages/AppsPage.qml
+msgid "All apps"
+msgstr "Все приложения"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "App info"
+msgstr "Сведения о приложении"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+#: modules/nexus/pages/panels/LauncherPanel.qml
+#: modules/nexus/pages/PanelsPage.qml
+msgid "Launcher"
+msgstr "Меню приложений"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "Favourite"
+msgstr "Избранное"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "Matched by a regex in favouriteApps — edit the config file to change"
+msgstr "Совпадает с регулярным выражением в favouriteApps — измените файл конфигурации"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "Pin to the top of the launcher"
+msgstr "Закрепить в начале меню приложений"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "Hidden"
+msgstr "Скрыто"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "Matched by a regex in hiddenApps — edit the config file to change"
+msgstr "Совпадает с регулярным выражением в hiddenApps — измените файл конфигурации"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "Hide from the launcher"
+msgstr "Скрыть в меню приложений"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "Details"
+msgstr "Подробности"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "App ID"
+msgstr "Идентификатор приложения"
+
+#: modules/nexus/pages/apps/AppInfo.qml
+msgid "Command"
+msgstr "Команда"
+
+#: modules/nexus/pages/AppsPage.qml
+msgid "Default applications"
+msgstr "Приложения по умолчанию"
+
+#: modules/nexus/pages/AppsPage.qml
+msgctxt "default app category"
+msgid "Terminal"
+msgstr "Терминал"
+
+#: modules/nexus/pages/AppsPage.qml
+msgctxt "default app category"
+msgid "Audio"
+msgstr "Звук"
+
+#: modules/nexus/pages/AppsPage.qml
+msgctxt "default app category"
+msgid "Media playback"
+msgstr "Воспроизведение медиа"
+
+#: modules/nexus/pages/AppsPage.qml
+msgctxt "default app category"
+msgid "File manager"
+msgstr "Файловый менеджер"
+
+#: modules/nexus/pages/AppsPage.qml
+msgctxt "app library"
+msgid "Library"
+msgstr "Библиотека"
+
+#: modules/nexus/pages/AppsPage.qml
+msgid "Browse installed apps, set favourites and hidden"
+msgstr "Просмотр установленных приложений, избранное и скрытые приложения"
+
+#: modules/nexus/pages/audio/AppVolumes.qml modules/nexus/pages/AudioPage.qml
+msgid "App volumes"
+msgstr "Громкость приложений"
+
+#: modules/nexus/pages/audio/AppVolumes.qml
+msgid "Adjust the volume of individual apps currently playing audio."
+msgstr "Настройка громкости отдельных приложений, которые воспроизводят звук."
+
+#: modules/nexus/pages/audio/AppVolumes.qml modules/nexus/pages/AudioPage.qml
+msgid "No apps playing audio"
+msgstr "Нет приложений, воспроизводящих звук"
+
+#: modules/nexus/pages/AudioPage.qml
+msgctxt "audio output"
+msgid "Output"
+msgstr "Вывод"
+
+#: modules/nexus/pages/AudioPage.qml
+msgctxt "audio output muted"
+msgid "Muted"
+msgstr "Звук выключен"
+
+#: modules/nexus/pages/AudioPage.qml
+msgctxt "no audio outputs"
+msgid "No output devices"
+msgstr "Нет устройств вывода"
+
+#: modules/nexus/pages/AudioPage.qml
+msgctxt "audio input"
+msgid "Input"
+msgstr "Ввод"
+
+#: modules/nexus/pages/AudioPage.qml
+msgctxt "audio input muted"
+msgid "Muted"
+msgstr "Звук выключен"
+
+#: modules/nexus/pages/AudioPage.qml
+msgctxt "no audio inputs"
+msgid "No input devices"
+msgstr "Нет устройств ввода"
+
+#: modules/nexus/pages/AudioPage.qml
+#, qt-plural-format
+msgid "%n app playing audio"
+msgid_plural "%n apps playing audio"
+msgstr[0] "%n приложение воспроизводит звук"
+msgstr[1] "%n приложения воспроизводят звук"
+msgstr[2] "%n приложений воспроизводят звук"
+
+#: modules/nexus/pages/bluetooth/BluetoothPairing.qml
+#: modules/nexus/pages/BluetoothPage.qml
+msgid "Pair new device"
+msgstr "Добавить новое устройство"
+
+#: modules/nexus/pages/bluetooth/BluetoothPairing.qml
+msgid "Available devices"
+msgstr "Доступные устройства"
+
+#: modules/nexus/pages/bluetooth/BluetoothPairing.qml
+msgid "Searching for devices…"
+msgstr "Поиск устройств…"
+
+#: modules/nexus/pages/bluetooth/BluetoothPairing.qml
+msgid "Unknown device"
+msgstr "Неизвестное устройство"
+
+#: modules/nexus/pages/bluetooth/BluetoothPairing.qml
+msgid "Pairing..."
+msgstr "Сопряжение…"
+
+#. TRANSLATORS: %1 = battery level, already formatted as a percentage
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+#: modules/nexus/pages/BluetoothPage.qml
+#, qt-format
+msgctxt "bluetooth device state with battery"
+msgid "Connected • %1"
+msgstr "Подключено • %1"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+#: modules/nexus/pages/BluetoothPage.qml
+msgctxt "bluetooth device state"
+msgid "Connected"
+msgstr "Подключено"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "bluetooth device state"
+msgid "Paired"
+msgstr "Сопряжено"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "bluetooth device state"
+msgid "Not paired"
+msgstr "Не сопряжено"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "unnamed bluetooth device"
+msgid "Device"
+msgstr "Устройство"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "button"
+msgid "Forget"
+msgstr "Забыть"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "button"
+msgid "Disconnect"
+msgstr "Отключить"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "button"
+msgid "Connect"
+msgstr "Подключить"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "bluetooth device state"
+msgid "Trusted"
+msgstr "Доверенное"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgid "Allow this device to connect automatically"
+msgstr "Разрешить этому устройству подключаться автоматически"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "bluetooth device state"
+msgid "Blocked"
+msgstr "Заблокировано"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgid "Prevent this device from connecting"
+msgstr "Запретить подключение этого устройства"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgid "Wake allowed"
+msgstr "Пробуждение разрешено"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgid "Allow this device to wake the system"
+msgstr "Разрешить этому устройству пробуждать систему"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "bluetooth device state"
+msgid "Unavailable"
+msgstr "Недоступно"
+
+#: modules/nexus/pages/bluetooth/BtDeviceInfo.qml
+msgctxt "bluetooth MAC address"
+msgid "Address"
+msgstr "Адрес"
+
+#: modules/nexus/pages/BluetoothPage.qml
+msgid "No saved devices"
+msgstr "Нет сохранённых устройств"
+
+#: modules/nexus/pages/BluetoothPage.qml
+msgid "Bluetooth disabled"
+msgstr "Bluetooth выключен"
+
+#: modules/nexus/pages/BluetoothPage.qml
+msgctxt "unknown bluetooth device"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#: modules/nexus/pages/BluetoothPage.qml
+msgctxt "bluetooth device state"
+msgid "Saved"
+msgstr "Сохранено"
+
+#. TRANSLATORS: adjective: other devices can find this computer
+#: modules/nexus/pages/BluetoothPage.qml
+msgctxt "bluetooth setting"
+msgid "Discoverable"
+msgstr "Видимость для других устройств"
+
+#: modules/nexus/pages/BluetoothPage.qml
+msgid "Allow nearby devices to find this one"
+msgstr "Разрешить устройствам поблизости находить этот компьютер"
+
+#. TRANSLATORS: adjective: other devices are allowed to pair with this computer
+#: modules/nexus/pages/BluetoothPage.qml
+msgctxt "bluetooth setting"
+msgid "Pairable"
+msgstr "Разрешить сопряжение"
+
+#: modules/nexus/pages/BluetoothPage.qml
+msgid "Allow nearby devices to pair with this one"
+msgstr "Разрешить устройствам поблизости создавать сопряжение"
+
+#: modules/nexus/pages/KeybindsPage.qml
+msgid "Current Hyprland shortcuts, including your custom bindings. Super is the Windows/Meta key."
+msgstr "Текущие сочетания Hyprland, включая пользовательские. Super — это клавиша Windows/Meta."
+
+#: modules/nexus/pages/KeybindsPage.qml
+msgid "Search keyboard shortcuts"
+msgstr "Поиск сочетаний клавиш"
+
+#: modules/nexus/pages/KeybindsPage.qml
+msgid "Refresh"
+msgstr "Обновить"
+
+#: modules/nexus/pages/KeybindsPage.qml
+msgid "Window switcher"
+msgstr "Переключение окон"
+
+#: modules/nexus/pages/KeybindsPage.qml
+msgid "No matching shortcuts"
+msgstr "Подходящие сочетания не найдены"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Automatic by IP"
+msgstr "Автоматически по IP"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "City"
+msgstr "Город"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "No matching cities"
+msgstr "Подходящие города не найдены"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Auto"
+msgstr "Автоматически"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "°C"
+msgstr "°C"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "°F"
+msgstr "°F"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "K"
+msgstr "К"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Binary (KiB, MiB)"
+msgstr "Двоичные (КиБ, МиБ)"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Decimal (KB, MB)"
+msgstr "Десятичные (КБ, МБ)"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "12-hour"
+msgstr "12-часовой"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "24-hour"
+msgstr "24-часовой"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Language"
+msgstr "Язык"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "UI language"
+msgstr "Язык интерфейса"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "The language used in the shell UI"
+msgstr "Язык интерфейса оболочки"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "System language"
+msgstr "Язык системы"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Enable weather"
+msgstr "Включить погоду"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Weather provider"
+msgstr "Провайдер погоды"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "3-day forecast, every 3 hours"
+msgstr "Прогноз на 3 дня, каждые 3 часа"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "7-day forecast, hourly"
+msgstr "Прогноз на 7 дней, каждый час"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Weather location"
+msgstr "Местоположение для погоды"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Choose a city below"
+msgstr "Выберите город ниже"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Determine the city from your public IP address"
+msgstr "Определять город по внешнему IP-адресу"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Selected city"
+msgstr "Выбранный город"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Weather city"
+msgstr "Город для погоды"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Enter a name and select a city from the results"
+msgstr "Введите название и выберите город из результатов"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "City name"
+msgstr "Название города"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Searching for cities…"
+msgstr "Поиск городов…"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Enter at least two characters to search"
+msgstr "Для поиска введите хотя бы два символа"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Current weather location"
+msgstr "Местоположение для погоды"
+
+#: modules/nexus/pages/LanguageAndRegion.qml services/Weather.qml
+msgid "Loading weather…"
+msgstr "Загрузка погоды…"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Refresh weather"
+msgstr "Обновить погоду"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Units"
+msgstr "Единицы измерения"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Temperature"
+msgstr "Температура"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Units for weather temperatures"
+msgstr "Единицы температуры для погоды"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "System temperatures"
+msgstr "Температуры системы"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Units for CPU and GPU temperatures"
+msgstr "Единицы температуры процессора и видеокарты"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Data sizes"
+msgstr "Единицы объёма данных"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Units for data sizes and network speeds"
+msgstr "Единицы объёма данных и скорости сети"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Time & date"
+msgstr "Время и дата"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "Clock format"
+msgstr "Формат часов"
+
+#: modules/nexus/pages/LanguageAndRegion.qml
+msgid "How times are shown across the shell"
+msgstr "Формат времени во всей оболочке"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+#: modules/nexus/pages/NetworkPage.qml
+msgid "Add network"
+msgstr "Добавить сеть"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "Enter the details below to manually connect to a network."
+msgstr "Введите данные ниже для подключения к сети вручную."
+
+#. TRANSLATORS: SSID is a protocol term, leave it untranslated
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "Network name (SSID)"
+msgstr "Название сети (SSID)"
+
+#. TRANSLATORS: sample network name, translate the e.g. but the name is a placeholder
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "e.g. MyHiddenNetwork"
+msgstr "например, MyHiddenNetwork"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "Network name is required"
+msgstr "Необходимо указать название сети"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "Hidden network"
+msgstr "Скрытая сеть"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "Actively probe for a network that doesn't broadcast its name"
+msgstr "Искать сеть, которая не передаёт своё имя"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Security"
+msgstr "Защита"
+
+#. TRANSLATORS: WPA/WPA2/WPA3 are protocol names, leave them untranslated
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "WPA/WPA2/WPA3 Personal"
+msgstr "WPA/WPA2/WPA3 Personal"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgctxt "wifi security type"
+msgid "None (open)"
+msgstr "Нет (открытая сеть)"
+
+#. TRANSLATORS: WPA is a protocol name, leave it untranslated
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "WPA passwords are at least 8 characters"
+msgstr "Пароль WPA должен содержать хотя бы 8 символов"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "Connection failed — check the password"
+msgstr "Не удалось подключиться — проверьте пароль"
+
+#: modules/nexus/pages/network/AddNetworkPage.qml
+msgid "Password must be at least 8 characters"
+msgstr "Пароль должен содержать хотя бы 8 символов"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Edit VPN provider"
+msgstr "Изменить провайдера VPN"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Add VPN provider"
+msgstr "Добавить провайдера VPN"
+
+#. TRANSLATORS: the four names in brackets are provider identifiers, leave them untranslated
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Built-in names (wireguard, warp, tailscale, netbird) auto-fill their commands. For others, provide the connect/disconnect commands."
+msgstr "Для встроенных провайдеров (wireguard, warp, tailscale, netbird) команды заполняются автоматически. Для остальных укажите команды подключения и отключения."
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Provider name"
+msgstr "Название провайдера"
+
+#. TRANSLATORS: id here means the provider identifier, e.g. wireguard
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Built-in id or a custom name"
+msgstr "Встроенный идентификатор или своё название"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Provider name is required"
+msgstr "Необходимо указать название провайдера"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Display name"
+msgstr "Отображаемое имя"
+
+#. TRANSLATORS: the name shown in the VPN provider list on the network page
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Shown in the list"
+msgstr "Показывается в списке"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/NetworkPage.qml
+msgctxt "network interface"
+msgid "Interface"
+msgstr "Интерфейс"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Network interface (for WireGuard / status checks)"
+msgstr "Сетевой интерфейс (для WireGuard и проверки состояния)"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Custom commands (optional)"
+msgstr "Свои команды (необязательно)"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Connect command"
+msgstr "Команда подключения"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Leave empty to use the built-in default"
+msgstr "Оставьте пустым для встроенного значения по умолчанию"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Disconnect command"
+msgstr "Команда отключения"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgid "Delete"
+msgstr "Удалить"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+msgctxt "button"
+msgid "Save"
+msgstr "Сохранить"
+
+#: modules/nexus/pages/network/AddVpnPage.qml
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgctxt "button"
+msgid "Add"
+msgstr "Добавить"
+
+#: modules/nexus/pages/network/AllNetworksPage.qml
+msgid "All networks"
+msgstr "Все сети"
+
+#: modules/nexus/pages/network/AllNetworksPage.qml
+msgctxt "network filter heading"
+msgid "Filters"
+msgstr "Фильтры"
+
+#: modules/nexus/pages/network/AllNetworksPage.qml
+msgctxt "network filter"
+msgid "Saved"
+msgstr "Сохранено"
+
+#: modules/nexus/pages/network/AllNetworksPage.qml
+msgctxt "network filter"
+msgid "Secured"
+msgstr "Защищённая"
+
+#: modules/nexus/pages/network/AllNetworksPage.qml
+msgctxt "network filter"
+msgid "5 GHz"
+msgstr "5 ГГц"
+
+#: modules/nexus/pages/network/AllNetworksPage.qml
+msgctxt "network filter"
+msgid "2.4 GHz"
+msgstr "2,4 ГГц"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Disconnect"
+msgstr "Отключить"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Connection"
+msgstr "Подключение"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+msgid "Status"
+msgstr "Состояние"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+msgid "Speed"
+msgstr "Скорость"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "IP address"
+msgstr "IP-адрес"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Gateway"
+msgstr "Шлюз"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "MAC address"
+msgstr "MAC-адрес"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "IPv4"
+msgstr "IPv4"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "IP assignment"
+msgstr "Назначение IP"
+
+#. TRANSLATORS: DHCP and DNS are protocol names, leave them untranslated
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Automatic (DHCP)"
+msgstr "Автоматически (DHCP)"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Automatic, DNS only"
+msgstr "Автоматически, только DNS"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgctxt "ip configuration method"
+msgid "Manual"
+msgstr "Вручную"
+
+#. TRANSLATORS: CIDR is a networking term, leave it untranslated
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Address (CIDR)"
+msgstr "Адрес (CIDR)"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "IP and prefix, e.g. 192.168.1.50/24"
+msgstr "IP и префикс, например 192.168.1.50/24"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Enter a valid address in CIDR notation"
+msgstr "Введите корректный адрес в формате CIDR"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Enter a valid gateway address"
+msgstr "Введите корректный адрес шлюза"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "DNS servers"
+msgstr "Серверы DNS"
+
+#. TRANSLATORS: describes the DNS servers field above: several addresses separated by commas
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Comma-separated"
+msgstr "Через запятую"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Enter valid DNS server addresses"
+msgstr "Введите корректные адреса серверов DNS"
+
+#: modules/nexus/pages/network/EthernetDetailPage.qml
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Apply"
+msgstr "Применить"
+
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Forget"
+msgstr "Забыть"
+
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Signal"
+msgstr "Сигнал"
+
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+#: modules/nexus/pages/network/SavedNetworksPage.qml services/Nmcli.qml
+msgctxt "wifi security type"
+msgid "Open"
+msgstr "Открыть"
+
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Frequency"
+msgstr "Частота"
+
+#. TRANSLATORS: %1 = channel frequency; MHz is a unit, leave it untranslated
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+#, qt-format
+msgid "%1 MHz"
+msgstr "%1 МГц"
+
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/panels/LauncherPanel.qml
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Behaviour"
+msgstr "Поведение"
+
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Connect automatically"
+msgstr "Подключаться автоматически"
+
+#: modules/nexus/pages/network/NetworkDetailPage.qml
+msgid "Join this network when it's in range"
+msgstr "Подключаться к этой сети в зоне её действия"
+
+#: modules/nexus/pages/network/SavedNetworksPage.qml
+#: modules/nexus/pages/NetworkPage.qml
+msgid "Saved networks"
+msgstr "Сохранённые сети"
+
+#: modules/nexus/pages/network/SavedNetworksPage.qml
+msgid "No saved networks"
+msgstr "Нет сохранённых сетей"
+
+#: modules/nexus/pages/network/SavedNetworksPage.qml
+msgctxt "unknown wifi security"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#. TRANSLATORS: %1 = security type
+#: modules/nexus/pages/network/SavedNetworksPage.qml
+#, qt-format
+msgctxt "network connected with security"
+msgid "Connected • %1"
+msgstr "Подключено • %1"
+
+#: modules/nexus/pages/NetworkPage.qml
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+#. TRANSLATORS: %1 = number of networks found
+#: modules/nexus/pages/NetworkPage.qml
+#, qt-format
+msgid "Show all networks (%1)"
+msgstr "Показать все сети (%1)"
+
+#: modules/nexus/pages/NetworkPage.qml
+#: modules/nexus/pages/panels/UtilitiesPanel.qml services/VPN.qml
+msgid "VPN"
+msgstr "VPN"
+
+#: modules/nexus/pages/NetworkPage.qml
+msgid "No VPN providers configured"
+msgstr "Провайдеры VPN не настроены"
+
+#: modules/nexus/pages/NetworkPage.qml
+msgid "Tap to select"
+msgstr "Нажмите для выбора"
+
+#: modules/nexus/pages/NetworkPage.qml
+msgid "Disconnecting..."
+msgstr "Отключение…"
+
+#: modules/nexus/pages/NetworkPage.qml
+msgctxt "vpn state"
+msgid "Connected"
+msgstr "Подключено"
+
+#: modules/nexus/pages/NetworkPage.qml services/VPN.qml
+msgid "Authentication required"
+msgstr "Требуется авторизация"
+
+#: modules/nexus/pages/NetworkPage.qml
+msgid "An error occurred"
+msgstr "Произошла ошибка"
+
+#: modules/nexus/pages/NetworkPage.qml
+msgid "Selected"
+msgstr "Выбрано"
+
+#: modules/nexus/pages/NetworkPage.qml
+msgctxt "round-trip latency to the VPN endpoint"
+msgid "Current ping"
+msgstr "Текущий пинг"
+
+#: modules/nexus/pages/NetworkPage.qml
+#, qt-format
+msgid "%1 ms"
+msgstr "%1 мс"
+
+#: modules/nexus/pages/NetworkPage.qml
+msgid "Add provider"
+msgstr "Добавить провайдера"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/panels/LauncherPanel.qml
+#: modules/nexus/pages/panels/SidebarPanel.qml
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "General"
+msgstr "Общие"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/panels/LauncherPanel.qml
+#: modules/nexus/pages/panels/taskbar/BarActiveWindow.qml
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Show on hover"
+msgstr "Показывать при наведении"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Reveal when the cursor reaches the screen edge"
+msgstr "Показывать, когда курсор достигает края экрана"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Show clock seconds"
+msgstr "Показывать секунды в часах"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Display seconds for the clock in the main panel"
+msgstr "Показывать секунды в часах основной панели"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Tabs"
+msgstr "Вкладки"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Weather settings"
+msgstr "Настройки погоды"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "City, automatic IP location and weather provider"
+msgstr "Город, автоматическое определение по IP и провайдер погоды"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Performance widgets"
+msgstr "Виджеты производительности"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+#: modules/nexus/pages/panels/LauncherPanel.qml
+#: modules/nexus/pages/panels/SidebarPanel.qml
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Drag threshold"
+msgstr "Порог перетаскивания"
+
+#: modules/nexus/pages/panels/DashboardPanel.qml
+msgid "Pixels dragged before the dashboard opens"
+msgstr "Расстояние перетаскивания до открытия дашборда (пиксели)"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Action prefix"
+msgstr "Префикс действий"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Prefix used to run actions in the launcher"
+msgstr "Префикс для запуска действий в меню приложений"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Prefix must not be alphanumeric"
+msgstr "Префикс не может состоять из букв и цифр"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Display"
+msgstr "Экран"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Max items shown"
+msgstr "Максимум элементов"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Max wallpapers"
+msgstr "Максимум обоев"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Pixels dragged before the launcher opens"
+msgstr "Расстояние перетаскивания до открытия меню приложений (пиксели)"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Vim keybinds"
+msgstr "Сочетания клавиш Vim"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Navigate results with Ctrl+hjkl"
+msgstr "Навигация по результатам с помощью Ctrl+hjkl"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Enable dangerous actions"
+msgstr "Разрешить опасные действия"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Allow actions that shut down or log out"
+msgstr "Разрешить выключение компьютера и выход из сеанса"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Fuzzy search"
+msgstr "Нечёткий поиск"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Actions"
+msgstr "Действия"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Schemes"
+msgstr "Схемы"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+msgid "Variants"
+msgstr "Варианты"
+
+#: modules/nexus/pages/panels/LauncherPanel.qml
+#: modules/nexus/pages/wallandstyle/WallpaperSelect.qml
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Wallpapers"
+msgstr "Обои"
+
+#: modules/nexus/pages/panels/SidebarPanel.qml
+#: modules/nexus/pages/PanelsPage.qml
+msgid "Sidebar"
+msgstr "Боковая панель"
+
+#: modules/nexus/pages/panels/SidebarPanel.qml
+msgid "Pixels dragged before the sidebar opens"
+msgstr "Расстояние перетаскивания до открытия боковой панели (пиксели)"
+
+#: modules/nexus/pages/panels/taskbar/BarActiveWindow.qml
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Active window"
+msgstr "Активное окно"
+
+#: modules/nexus/pages/panels/taskbar/BarActiveWindow.qml
+msgctxt "taskbar active window layout"
+msgid "Compact"
+msgstr "Компактный"
+
+#: modules/nexus/pages/panels/taskbar/BarActiveWindow.qml
+msgctxt "taskbar active window: swap the title and class order"
+msgid "Inverted"
+msgstr "Инвертированный"
+
+#: modules/nexus/pages/panels/taskbar/BarActiveWindow.qml
+msgid "Only show the active window title while hovering"
+msgstr "Показывать заголовок активного окна только при наведении"
+
+#: modules/nexus/pages/panels/taskbar/BarActiveWindow.qml
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+#: modules/nexus/pages/panels/taskbar/BarTray.qml
+msgid "Popout on hover"
+msgstr "Показывать при наведении"
+
+#: modules/nexus/pages/panels/taskbar/BarActiveWindow.qml
+msgid "Show a window details popout when hovering"
+msgstr "Показывать сведения об окне при наведении"
+
+#: modules/nexus/pages/panels/taskbar/BarClock.qml
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Clock"
+msgstr "Часы"
+
+#: modules/nexus/pages/panels/taskbar/BarClock.qml
+msgctxt "taskbar clock: draw a background behind the clock"
+msgid "Background"
+msgstr "Фон"
+
+#: modules/nexus/pages/panels/taskbar/BarClock.qml
+msgid "Show date"
+msgstr "Показывать дату"
+
+#: modules/nexus/pages/panels/taskbar/BarClock.qml
+msgid "Show icon"
+msgstr "Показывать иконку"
+
+#: modules/nexus/pages/panels/taskbar/BarClock.qml
+msgid "Show seconds"
+msgstr "Показывать секунды"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Lock keys"
+msgstr "Клавиши блокировки"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Keyboard layout"
+msgstr "Раскладка клавиатуры"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Speakers"
+msgstr "Динамики"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Microphone"
+msgstr "Микрофон"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Status icons"
+msgstr "Иконки состояния"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Visible icons"
+msgstr "Видимые иконки"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Add entry"
+msgstr "Добавить запись"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Add new entry"
+msgstr "Добавить новую запись"
+
+#: modules/nexus/pages/panels/taskbar/BarStatusIcons.qml
+msgid "Show a details popout when hovering the status icons"
+msgstr "Показывать подробности при наведении на иконки состояния"
+
+#: modules/nexus/pages/panels/taskbar/BarTray.qml
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Tray"
+msgstr "Системный трей"
+
+#: modules/nexus/pages/panels/taskbar/BarTray.qml
+msgctxt "taskbar tray: draw a background behind the tray"
+msgid "Background"
+msgstr "Фон"
+
+#. TRANSLATORS: tint system tray icons with the theme accent colour
+#: modules/nexus/pages/panels/taskbar/BarTray.qml
+msgid "Recolour icons"
+msgstr "Перекрашивать иконки"
+
+#: modules/nexus/pages/panels/taskbar/BarTray.qml
+msgctxt "taskbar tray layout"
+msgid "Compact"
+msgstr "Компактный"
+
+#: modules/nexus/pages/panels/taskbar/BarTray.qml
+msgid "Show the tray menu popout when hovering"
+msgstr "Показывать меню системного трея при наведении"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Workspaces"
+msgstr "Рабочие пространства"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Application colours"
+msgstr "Цвета приложений"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Tinted application icons"
+msgstr "Иконки приложений в цветах темы"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Standard symbols"
+msgstr "Стандартные символы"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Shapes"
+msgstr "Формы"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Numbers / labels"
+msgstr "Номера и подписи"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Workspace icons"
+msgstr "Иконки рабочих пространств"
+
+#. TRANSLATORS: the number of workspaces shown on the bar
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Shown"
+msgstr "Видно"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Number of workspaces displayed"
+msgstr "Количество отображаемых рабочих пространств"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Active indicator"
+msgstr "Индикатор активности"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Active trail"
+msgstr "След активного окна"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Occupied background"
+msgstr "Фон занятого пространства"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Show unoccupied"
+msgstr "Показывать пустые пространства"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "When disabled, hide only empty workspaces after the last occupied or active workspace"
+msgstr "Если выключено, скрывать только пустые пространства после последнего занятого или активного"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Per monitor"
+msgstr "Для каждого монитора"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Hide workspaces not on the current monitor"
+msgstr "Скрывать рабочие пространства других мониторов"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Show windows"
+msgstr "Показывать окна"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Show icons of open windows on each workspace"
+msgstr "Показывать иконки открытых окон на рабочих пространствах"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Windows on special workspaces"
+msgstr "Окна на специальных рабочих пространствах"
+
+#. TRANSLATORS: maximum number of window icons shown per workspace
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgctxt "bar workspaces"
+msgid "Max window icons"
+msgstr "Максимум иконок окон"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Icon appearance"
+msgstr "Вид иконок"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Workspace indicator"
+msgstr "Индикатор рабочего пространства"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Window icons"
+msgstr "Иконки окон"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Window icon size"
+msgstr "Размер иконок окон"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Active icon colour"
+msgstr "Цвет активной иконки"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Tinted icons and symbols; choose a colour from the current scheme"
+msgstr "Тонированные значки и символы; выберите цвет из текущей схемы"
+
+#: modules/nexus/pages/panels/taskbar/BarWorkspaces.qml
+msgid "Inactive icon colour"
+msgstr "Цвет неактивной иконки"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+#: modules/nexus/pages/PanelsPage.qml
+msgid "Taskbar"
+msgstr "Панель задач"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Logo"
+msgstr "Логотип"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Power button"
+msgstr "Кнопка питания"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "All screens"
+msgstr "Все экраны"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Persistent"
+msgstr "Постоянные"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Keep the bar visible at all times"
+msgstr "Всегда показывать панель"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Reveal the bar when the cursor reaches the screen edge"
+msgstr "Показывать панель, когда курсор достигает края экрана"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Pixels dragged before the bar reveals"
+msgstr "Расстояние перетаскивания до появления панели (пиксели)"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Element visibility"
+msgstr "Видимость элементов"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Screen"
+msgstr "Экран"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Choose a screen to hide individual panel elements"
+msgstr "Выберите экран, чтобы скрыть отдельные элементы панели"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Notification centre"
+msgstr "Центр уведомлений"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Applications in stacking mode"
+msgstr "Приложения в режиме стакинга"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Components"
+msgstr "Компоненты"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Indicators, window icons"
+msgstr "Индикаторы и иконки окон"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Title display, popout"
+msgstr "Заголовок окна и всплывающая информация"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "System tray icons"
+msgstr "Иконки системного трея"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Visible indicators"
+msgstr "Видимые индикаторы"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Date, icon, background"
+msgstr "Дата, иконка и фон"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Scroll actions"
+msgstr "Действия при прокрутке"
+
+#: modules/nexus/pages/panels/TaskbarPanel.qml
+msgid "Scroll over the workspace indicator to switch workspaces"
+msgstr "Прокручивать индикатор рабочих пространств для их переключения"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+#: modules/nexus/pages/PanelsPage.qml
+msgid "Utilities"
+msgstr "Утилиты"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Show the utilities panel"
+msgstr "Показывать панель утилит"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Cards"
+msgstr "Карточки"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Keep awake"
+msgstr "Не засыпать"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Show the idle inhibitor card"
+msgstr "Показывать карточку запрета сна"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+#: modules/utilities/cards/Record.qml
+msgid "Screen recorder"
+msgstr "Запись экрана"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Show the screen recorder card"
+msgstr "Показывать карточку записи экрана"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+#: modules/utilities/cards/Toggles.qml
+msgid "Quick toggles"
+msgstr "Быстрые переключатели"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Show the quick toggles card"
+msgstr "Показывать карточку быстрых переключателей"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Toggle wireless networking"
+msgstr "Включить или выключить беспроводную сеть"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Toggle the Bluetooth adapter"
+msgstr "Включить или выключить адаптер Bluetooth"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Mute or unmute the default source"
+msgstr "Выключить или включить микрофон по умолчанию"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Settings"
+msgstr "Настройки"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Open the settings window"
+msgstr "Открыть окно настроек"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Game mode"
+msgstr "Игровой режим"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Toggle game mode"
+msgstr "Переключить игровой режим"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml modules/sidebar/NotifDock.qml
+msgid "Do not disturb"
+msgstr "Не беспокоить"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Silence notifications"
+msgstr "Отключить звук уведомлений"
+
+#: modules/nexus/pages/panels/UtilitiesPanel.qml
+msgid "Connect or disconnect the VPN"
+msgstr "Подключить или отключить VPN"
+
+#: modules/nexus/pages/PanelsPage.qml
+msgctxt "panel status"
+msgid "Enabled"
+msgstr "Включено"
+
+#: modules/nexus/pages/PanelsPage.qml
+msgctxt "panel status"
+msgid "Disabled"
+msgstr "Выключено"
+
+#: modules/nexus/pages/PanelsPage.qml
+msgid "Always visible"
+msgstr "Всегда видна"
+
+#: modules/nexus/pages/PanelsPage.qml
+msgid "Reveal on hover"
+msgstr "Показывать при наведении"
+
+#: modules/nexus/pages/PanelsPage.qml
+msgid "Reveal on drag"
+msgstr "Показывать при перетаскивании"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgctxt "show notifications over fullscreen apps"
+msgid "On"
+msgstr "Вкл."
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgctxt "show notifications over fullscreen apps"
+msgid "Off"
+msgstr "Выкл."
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgctxt "show toasts over fullscreen apps"
+msgid "Off"
+msgstr "Выкл."
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgctxt "show toasts over fullscreen apps: important ones only"
+msgid "Important"
+msgstr "Важные"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgctxt "show toasts over fullscreen apps"
+msgid "On"
+msgstr "Вкл."
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Show in fullscreen"
+msgstr "Показывать поверх полноэкранных окон"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Whether notifications appear over fullscreen apps"
+msgstr "Показывать ли уведомления поверх полноэкранных приложений"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Expire automatically"
+msgstr "Скрывать автоматически"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Dismiss notifications after their timeout"
+msgstr "Скрывать уведомления по истечении времени показа"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Open expanded"
+msgstr "Открывать развёрнутым"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Show notifications expanded by default"
+msgstr "Показывать уведомления развёрнутыми по умолчанию"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Default timeout"
+msgstr "Время показа по умолчанию"
+
+#. TRANSLATORS: ms is the millisecond unit, leave it untranslated
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Time before a notification dismisses (ms)"
+msgstr "Время до скрытия уведомления (мс)"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Group preview count"
+msgstr "Число уведомлений в группе"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Notifications shown per group before collapsing"
+msgstr "Число уведомлений в группе до её сворачивания"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Toasts"
+msgstr "Всплывающие сообщения"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Whether toasts appear over fullscreen apps"
+msgstr "Показывать ли всплывающие сообщения поверх полноэкранных приложений"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Visible toasts"
+msgstr "Видимые всплывающие сообщения"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Maximum number of toasts shown at once"
+msgstr "Максимум одновременно показанных всплывающих уведомлений"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Toast events"
+msgstr "События всплывающих сообщений"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Charging changes"
+msgstr "Изменение состояния зарядки"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Game mode changes"
+msgstr "Изменение игрового режима"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Do not disturb changes"
+msgstr "Изменение режима «Не беспокоить»"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Audio output changes"
+msgstr "Изменение устройства вывода звука"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Audio input changes"
+msgstr "Изменение устройства ввода звука"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Caps lock changes"
+msgstr "Изменение Caps Lock"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Num lock changes"
+msgstr "Изменение Num Lock"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "Keyboard layout changes"
+msgstr "Изменение раскладки клавиатуры"
+
+#: modules/nexus/pages/services/NotificationsPage.qml
+msgid "VPN changes"
+msgstr "Изменение VPN"
+
+#: modules/nexus/pages/services/NotificationsPage.qml services/Players.qml
+msgid "Now playing"
+msgstr "Сейчас играет"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgctxt "lyrics backend"
+msgid "Auto"
+msgstr "Автоматически"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgctxt "lyrics backend"
+msgid "Local"
+msgstr "Локально"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgctxt "gpu type"
+msgid "Auto"
+msgstr "Автоматически"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgctxt "gpu type"
+msgid "Generic"
+msgstr "Универсальная"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgctxt "gpu type"
+msgid "None"
+msgstr "Нет"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Notifications, toasts, timeouts"
+msgstr "Уведомления, всплывающие сообщения и время показа"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Polling"
+msgstr "Обновление данных"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Media refresh"
+msgstr "Обновление медиа"
+
+#. TRANSLATORS: ms is the millisecond unit, leave it untranslated
+#: modules/nexus/pages/ServicesPage.qml
+msgid "How often the media position updates (ms)"
+msgstr "Интервал обновления позиции воспроизведения (мс)"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "System stats refresh"
+msgstr "Обновление статистики системы"
+
+#. TRANSLATORS: CPU and GPU are hardware abbreviations, leave them untranslated
+#: modules/nexus/pages/ServicesPage.qml
+msgid "CPU, memory and GPU update interval (seconds)"
+msgstr "Интервал обновления данных процессора, памяти и видеокарты (секунды)"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Wi-Fi rescan"
+msgstr "Поиск сетей Wi-Fi"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "How often available networks are rescanned (seconds)"
+msgstr "Интервал поиска доступных сетей (секунды)"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Media & lyrics"
+msgstr "Медиа и тексты песен"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Lyrics backend"
+msgstr "Источник текста песен"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Source used to fetch synced lyrics"
+msgstr "Источник синхронизированных текстов песен"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Default player"
+msgstr "Проигрыватель по умолчанию"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Preferred media player when several are open"
+msgstr "Предпочтительный проигрыватель, если открыто несколько"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgctxt "default media player"
+msgid "Auto"
+msgstr "Автоматически"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Input increments"
+msgstr "Шаги изменения"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Volume step"
+msgstr "Шаг громкости"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Amount the volume changes per scroll (%)"
+msgstr "Изменение громкости за один шаг прокрутки (%)"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Brightness step"
+msgstr "Шаг яркости"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Amount the brightness changes per scroll (%)"
+msgstr "Изменение яркости за один шаг прокрутки (%)"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Max volume"
+msgstr "Максимальная громкость"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Upper limit for output volume (%)"
+msgstr "Верхний предел громкости вывода (%)"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Service tuning"
+msgstr "Настройка служб"
+
+#. TRANSLATORS: bars of a spectrum analyser, not the taskbar
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Visualiser bars"
+msgstr "Столбцы визуализатора"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Number of bars in the audio visualisers"
+msgstr "Количество столбцов визуализатора звука"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Smart colour scheme"
+msgstr "Подбирать цветовую схему по обоям"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Derive theme mode and variant from the wallpaper"
+msgstr "Определять режим и вариант темы по обоям"
+
+#: modules/nexus/pages/ServicesPage.qml
+#, qt-format
+msgid "Monitoring: %1"
+msgstr "Интерфейс: %1"
+
+#: modules/nexus/pages/ServicesPage.qml
+msgid "Override for GPU type"
+msgstr "Переопределить тип видеокарты"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Colours"
+msgstr "Цвета"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Import a colour scheme"
+msgstr "Импортировать цветовую схему"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Colour schemes"
+msgstr "Цветовые схемы"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Dark"
+msgstr "Тёмная"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Light"
+msgstr "Светлая"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Import"
+msgstr "Импортировать"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Create a colour scheme"
+msgstr "Создать цветовую схему"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Choose a palette for the shell and window decorations."
+msgstr "Выберите палитру оболочки и оформления окон."
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Default"
+msgstr "По умолчанию"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Custom"
+msgstr "Свой"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Theme name"
+msgstr "Название темы"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Background"
+msgstr "Фон"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Text"
+msgstr "Текст"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Accent"
+msgstr "Акцент"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Cancel"
+msgstr "Отмена"
+
+#: modules/nexus/pages/wallandstyle/ColourSelect.qml
+msgid "Save & apply"
+msgstr "Сохранить и применить"
+
+#: modules/nexus/pages/wallandstyle/WallpaperSelect.qml
+msgid "Browse"
+msgstr "Обзор"
+
+#: modules/nexus/pages/wallandstyle/WallpaperSelect.qml
+msgid "Select an image"
+msgstr "Выберите изображение"
+
+#: modules/nexus/pages/wallandstyle/WallpaperSelect.qml
+msgid "Random"
+msgstr "Случайные"
+
+#: modules/nexus/pages/wallandstyle/WallpaperSelect.qml
+msgid "Featured wallpaper"
+msgstr "Рекомендуемые обои"
+
+#: modules/nexus/pages/wallandstyle/WallpaperSelect.qml
+msgid "Local wallpapers"
+msgstr "Локальные обои"
+
+#: modules/nexus/pages/wallandstyle/WallpaperSelect.qml
+msgid "No local wallpapers found"
+msgstr "Локальные обои не найдены"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Wallpaper disabled"
+msgstr "Обои отключены"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Display wallpaper"
+msgstr "Показывать обои"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Transparency"
+msgstr "Прозрачность"
+
+#. TRANSLATORS: %1/%2 = opacity values from 0 to 1 for the base surface and layered surfaces
+#: modules/nexus/pages/WallpaperAndStyle.qml
+#, qt-format
+msgid "Base %1, layers %2"
+msgstr "База %1, слои %2"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Opacity"
+msgstr "Непрозрачность"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Blur"
+msgstr "Размытие"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Desktop frame in tiling mode"
+msgstr "Рамка рабочего стола в тайловом режиме"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Gaps in tiling mode"
+msgstr "Отступы в тайловом режиме"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Toggle with Win+G"
+msgstr "Переключение: Win+G"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Switch windows on hover in tiling mode"
+msgstr "Переключение окон при наведении в тайловом режиме"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "When disabled, hover a partly hidden window or the screen edge, then click the arrow to switch."
+msgstr "Если выключено, наведите указатель на частично скрытое окно или край экрана, затем нажмите стрелку для переключения."
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Middle-click autoscroll"
+msgstr "Прокрутка средней кнопкой мыши"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Hold the wheel briefly, then move. Short clicks keep tab and link actions; Esc stops."
+msgstr "Ненадолго зажмите колесо мыши и двигайте указатель. Короткое нажатие сохраняет действия с вкладками и ссылками; Esc останавливает прокрутку."
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Window border width"
+msgstr "Толщина рамки окна"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Scrolling mode only; 0 hides the window border"
+msgstr "Только тайловый режим; 0 скрывает рамку окна"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Window border colour"
+msgstr "Цвет рамки окна"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Scrolling mode; choose a colour from the current scheme independently of the theme accent"
+msgstr "Тайловый режим; цвет из текущей схемы независимо от акцента темы"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Window corner rounding"
+msgstr "Скругление углов окон"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Radius in pixels; 0 makes window corners square"
+msgstr "Радиус в пикселях; 0 делает углы окон прямыми"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Dark theme"
+msgstr "Тёмная тема"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Window gaps"
+msgstr "Отступы между окнами"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Inner gaps"
+msgstr "Внутренние отступы"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Padding on each side of a tiled window, in pixels"
+msgstr "Отступы с каждой стороны тайлового окна в пикселях"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Outer gaps"
+msgstr "Внешние отступы"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Padding at the workspace edges, in pixels; identical for every window count"
+msgstr "Отступы по краям рабочего пространства в пикселях, одинаковые при любом числе окон"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Shadows"
+msgstr "Тени"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Window shadows"
+msgstr "Тени окон"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "The same shadow for active and inactive windows"
+msgstr "Одинаковая тень для активных и неактивных окон"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Interface shadows"
+msgstr "Тени интерфейса"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Panels, menus and desktop widgets"
+msgstr "Панели, меню и виджеты рабочего стола"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Shadow size"
+msgstr "Размер теней"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Pixels; 0 disables shadows"
+msgstr "Пиксели; 0 отключает тени"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Shadow intensity"
+msgstr "Интенсивность теней"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Interface scale"
+msgstr "Масштаб интерфейса"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Shell scale"
+msgstr "Масштаб оболочки"
+
+#: modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Panel, menus, text and desktop widgets, in percent"
+msgstr "Панель, меню, текст и виджеты рабочего стола, в процентах"
+
+#: modules/nexus/WindowFactory.qml
+#, qt-format
+msgid "Nexus — %1"
+msgstr "Настройки — %1"
+
+#: modules/sidebar/Notif.qml
+msgid "Dismiss notification"
+msgstr "Скрыть уведомление"
+
+#: modules/sidebar/NotifDock.qml
+msgid "Close notification center"
+msgstr "Закрыть центр уведомлений"
+
+#: modules/sidebar/NotifDock.qml
+msgid "Clear all"
+msgstr "Очистить всё"
+
+#: modules/sidebar/NotifDock.qml
+msgid "New notifications and screenshots appear here."
+msgstr "Новые уведомления и снимки экрана появятся здесь."
+
+#: modules/switcher/WindowSwitcher.qml
+msgid "Switch windows"
+msgstr "Переключение окон"
+
+#: modules/switcher/WindowSwitcher.qml
+msgid "Minimized"
+msgstr "Свёрнуто"
+
+#: modules/utilities/cards/IdleInhibit.qml
+msgctxt "idle inhibitor"
+msgid "Keep awake"
+msgstr "Не засыпать"
+
+#: modules/utilities/cards/IdleInhibit.qml
+msgctxt "idle inhibitor"
+msgid "Preventing sleep mode"
+msgstr "Переход в сон запрещён"
+
+#: modules/utilities/cards/IdleInhibit.qml
+msgctxt "idle inhibitor"
+msgid "Normal power management"
+msgstr "Обычное управление питанием"
+
+#. TRANSLATORS: %1 = a clock time, e.g. 14:30
+#: modules/utilities/cards/IdleInhibit.qml
+#, qt-format
+msgid "Active since %1"
+msgstr "Активно с %1"
+
+#: modules/utilities/cards/Record.qml
+msgctxt "recorder state"
+msgid "Paused"
+msgstr "На паузе"
+
+#: modules/utilities/cards/Record.qml
+msgctxt "recorder state"
+msgid "Running..."
+msgstr "Выполняется…"
+
+#: modules/utilities/cards/Record.qml
+msgctxt "recorder state"
+msgid "Ready"
+msgstr "Готово"
+
+#: modules/utilities/cards/Record.qml
+msgid "Record fullscreen"
+msgstr "Записать весь экран"
+
+#: modules/utilities/cards/Record.qml
+msgctxt "recording mode"
+msgid "Fullscreen"
+msgstr "Полноэкранный режим"
+
+#: modules/utilities/cards/Record.qml
+msgid "Record region"
+msgstr "Записать область"
+
+#: modules/utilities/cards/Record.qml
+msgctxt "recording mode"
+msgid "Region"
+msgstr "Регион"
+
+#: modules/utilities/cards/Record.qml
+msgid "Record fullscreen with sound"
+msgstr "Записать весь экран со звуком"
+
+#: modules/utilities/cards/Record.qml
+msgid "Record region with sound"
+msgstr "Записать область со звуком"
+
+#: modules/utilities/cards/Record.qml
+msgctxt "recording status"
+msgid "PAUSED"
+msgstr "ПАУЗА"
+
+#: modules/utilities/cards/Record.qml
+msgctxt "recording status"
+msgid "REC"
+msgstr "ЗАПИСЬ"
+
+#. TRANSLATORS: %1 = elapsed recording duration, e.g. 01:23
+#: modules/utilities/cards/Record.qml
+#, qt-format
+msgid "Recording for %1"
+msgstr "Запись длится %1"
+
+#: modules/utilities/cards/RecordingList.qml
+msgid "Recordings"
+msgstr "Записи"
+
+#: modules/utilities/cards/RecordingList.qml
+#, qt-format
+msgid "Recording at %1"
+msgstr "Запись в %1"
+
+#: modules/utilities/cards/RecordingList.qml
+msgid "No recordings found"
+msgstr "Записи не найдены"
+
+#: modules/utilities/RecordingDeleteModal.qml
+msgid "Delete recording?"
+msgstr "Удалить запись?"
+
+#: modules/utilities/RecordingDeleteModal.qml
+#, qt-format
+msgid "Recording '%1' will be permanently deleted."
+msgstr "Запись «%1» будет удалена навсегда."
+
+#: modules/utilities/RecordingDeleteModal.qml
+msgctxt "button"
+msgid "Delete"
+msgstr "Удалить"
+
+#: modules/windowinfo/Buttons.qml
+msgid "Move to workspace"
+msgstr "Переместить на рабочее пространство"
+
+#: modules/windowinfo/Buttons.qml
+msgid "Tile"
+msgstr "Вернуть в тайлинг"
+
+#: modules/windowinfo/Buttons.qml
+msgid "Float"
+msgstr "Сделать плавающим"
+
+#: modules/windowinfo/Buttons.qml
+msgid "Unpin"
+msgstr "Открепить"
+
+#: modules/windowinfo/Buttons.qml
+msgid "Pin"
+msgstr "Закрепить"
+
+#: modules/windowinfo/Buttons.qml
+msgid "Kill"
+msgstr "Завершить принудительно"
+
+#: modules/windowinfo/Details.qml modules/windowinfo/Preview.qml
+msgid "No active client"
+msgstr "Нет активного окна"
+
+#: modules/windowinfo/Details.qml
+#, qt-format
+msgctxt "window address"
+msgid "Address: %1"
+msgstr "Адрес: %1"
+
+#: modules/windowinfo/Details.qml
+msgctxt "window address"
+msgid "Address: unknown"
+msgstr "Адрес неизвестен"
+
+#. TRANSLATORS: %1/%2 = x and y position in pixels
+#: modules/windowinfo/Details.qml
+#, qt-format
+msgid "Position: %1, %2"
+msgstr "Позиция: %1, %2"
+
+#. TRANSLATORS: %1/%2 = width and height in pixels; the x is a multiplication sign
+#: modules/windowinfo/Details.qml
+#, qt-format
+msgid "Size: %1 x %2"
+msgstr "Размер: %1 × %2"
+
+#. TRANSLATORS: %1 = workspace name, %2 = workspace id
+#: modules/windowinfo/Details.qml
+#, qt-format
+msgid "Workspace: %1 (%2)"
+msgstr "Рабочее пространство: %1 (%2)"
+
+#. TRANSLATORS: %1 = monitor name, %2 = monitor id, %3/%4 = x/y position in pixels
+#: modules/windowinfo/Details.qml
+#, qt-format
+msgid "Monitor: %1 (%2) at %3, %4"
+msgstr "Монитор: %1 (%2), позиция %3, %4"
+
+#: modules/windowinfo/Details.qml
+msgid "Monitor: unknown"
+msgstr "Монитор неизвестен"
+
+#: modules/windowinfo/Details.qml
+#, qt-format
+msgid "Initial title: %1"
+msgstr "Исходный заголовок: %1"
+
+#: modules/windowinfo/Details.qml
+msgid "Initial title: unknown"
+msgstr "Исходный заголовок неизвестен"
+
+#: modules/windowinfo/Details.qml
+#, qt-format
+msgid "Initial class: %1"
+msgstr "Исходный класс: %1"
+
+#: modules/windowinfo/Details.qml
+msgid "Initial class: unknown"
+msgstr "Исходный класс неизвестен"
+
+#. TRANSLATORS: %1 = process id
+#: modules/windowinfo/Details.qml
+#, qt-format
+msgid "Process id: %1"
+msgstr "Идентификатор процесса: %1"
+
+#: modules/windowinfo/Details.qml
+msgid "Floating: yes"
+msgstr "Плавающее: да"
+
+#: modules/windowinfo/Details.qml
+msgid "Floating: no"
+msgstr "Плавающее: нет"
+
+#: modules/windowinfo/Details.qml
+msgid "Xwayland: yes"
+msgstr "Xwayland: да"
+
+#: modules/windowinfo/Details.qml
+msgid "Xwayland: no"
+msgstr "Xwayland: нет"
+
+#: modules/windowinfo/Details.qml
+msgid "Pinned: yes"
+msgstr "Закреплено: да"
+
+#: modules/windowinfo/Details.qml
+msgid "Pinned: no"
+msgstr "Закреплено: нет"
+
+#: modules/windowinfo/Details.qml
+msgid "Fullscreen state: off"
+msgstr "Полноэкранное состояние: выключено"
+
+#: modules/windowinfo/Details.qml
+msgid "Fullscreen state: maximised"
+msgstr "Полноэкранное состояние: развёрнуто"
+
+#: modules/windowinfo/Details.qml
+msgid "Fullscreen state: on"
+msgstr "Полноэкранное состояние: включено"
+
+#: modules/windowinfo/Details.qml
+msgid "Fullscreen state: unknown"
+msgstr "Полноэкранное состояние неизвестно"
+
+#: modules/windowinfo/Preview.qml
+msgid "Try switching to a window"
+msgstr "Переключитесь на окно"
+
+#. TRANSLATORS: %1 = window title, %2 = monitor name, %3/%4 = x/y position in pixels
+#: modules/windowinfo/Preview.qml
+#, qt-format
+msgid "%1 on monitor %2 at %3, %4"
+msgstr "%1 на мониторе %2 в позиции %3, %4"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgctxt "temperature"
+msgid "%1°"
+msgstr "%1°"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgctxt "temperature"
+msgid "%1°F"
+msgstr "%1°F"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgctxt "temperature"
+msgid "%1 K"
+msgstr "%1 К"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgctxt "temperature"
+msgid "%1°C"
+msgstr "%1°C"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 B"
+msgstr "%1 Б"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 KB"
+msgstr "%1 КБ"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 MB"
+msgstr "%1 МБ"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 GB"
+msgstr "%1 ГБ"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 TB"
+msgstr "%1 ТБ"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 KiB"
+msgstr "%1 КиБ"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 MiB"
+msgstr "%1 МиБ"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 GiB"
+msgstr "%1 ГиБ"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 TiB"
+msgstr "%1 ТиБ"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 B/s"
+msgstr "%1 Б/с"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 KB/s"
+msgstr "%1 КБ/с"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 MB/s"
+msgstr "%1 МБ/с"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 GB/s"
+msgstr "%1 ГБ/с"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 TB/s"
+msgstr "%1 ТБ/с"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 KiB/s"
+msgstr "%1 КиБ/с"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 MiB/s"
+msgstr "%1 МиБ/с"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 GiB/s"
+msgstr "%1 ГиБ/с"
+
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgid "%1 TiB/s"
+msgstr "%1 ТиБ/с"
+
+#. TRANSLATORS: %1 = used amount, %2 = total amount with unit
+#: plugin/src/Hyprstack/I18n/Units.qml
+#, qt-format
+msgctxt "used / total amount"
+msgid "%1 / %2"
+msgstr "%1 / %2"
+
+#: services/Audio.qml
+msgctxt "unknown audio stream"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#: services/Audio.qml
+msgctxt "unknown application audio stream"
+msgid "Unknown application"
+msgstr "Неизвестное приложение"
+
+#: services/Audio.qml
+msgctxt "unknown audio device"
+msgid "Unknown device"
+msgstr "Неизвестное устройство"
+
+#: services/Audio.qml
+msgid "Audio output changed"
+msgstr "Устройство вывода звука изменено"
+
+#: services/Audio.qml
+#, qt-format
+msgid "Now using: %1"
+msgstr "Теперь используется: %1"
+
+#: services/Audio.qml
+msgid "Audio input changed"
+msgstr "Устройство ввода звука изменено"
+
+#: services/GameMode.qml
+msgid "Game mode enabled"
+msgstr "Игровой режим включён"
+
+#: services/GameMode.qml
+msgid "Disabled Hyprland animations, blur, gaps and shadows"
+msgstr "Анимации Hyprland, размытие, отступы и тени выключены"
+
+#: services/GameMode.qml
+msgid "Game mode disabled"
+msgstr "Игровой режим выключен"
+
+#: services/GameMode.qml
+msgid "Hyprland settings restored"
+msgstr "Настройки Hyprland восстановлены"
+
+#: services/Hypr.qml
+msgctxt "keyboard layout"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#: services/Nmcli.qml
+msgid "Enterprise"
+msgstr "Корпоративная"
+
+#: services/Nmcli.qml
+msgid "Enhanced Open"
+msgstr "Enhanced Open"
+
+#. TRANSLATORS: %1 = a number
+#: services/Nmcli.qml
+#, qt-format
+msgid "%1 Gbps"
+msgstr "%1 Гбит/с"
+
+#. TRANSLATORS: %1 = a number
+#: services/Nmcli.qml
+#, qt-format
+msgid "%1 Mbps"
+msgstr "%1 Мбит/с"
+
+#: services/NotifData.qml
+msgid "now"
+msgstr "сейчас"
+
+#: services/NotifData.qml
+#, qt-format
+msgctxt "abbreviated notification age, days"
+msgid "%1d"
+msgstr "%1 д"
+
+#: services/NotifData.qml
+#, qt-format
+msgctxt "abbreviated notification age, hours"
+msgid "%1h"
+msgstr "%1 ч"
+
+#: services/NotifData.qml
+#, qt-format
+msgctxt "abbreviated notification age, minutes"
+msgid "%1m"
+msgstr "%1 мин"
+
+#: services/NotifData.qml
+msgid "Open"
+msgstr "Открыть"
+
+#: services/NotifData.qml
+msgid "Copy"
+msgstr "Копировать"
+
+#: services/NotifData.qml
+msgid "Save"
+msgstr "Сохранить"
+
+#: services/NotifData.qml
+msgid "Show in folder"
+msgstr "Показать в папке"
+
+#: services/Notifs.qml
+msgid "Do not disturb enabled"
+msgstr "Режим «Не беспокоить» включён"
+
+#: services/Notifs.qml
+msgid "Popup notifications are now disabled"
+msgstr "Всплывающие уведомления выключены"
+
+#: services/Notifs.qml
+msgid "Do not disturb disabled"
+msgstr "Режим «Не беспокоить» выключен"
+
+#: services/Notifs.qml
+msgid "Popup notifications are now enabled"
+msgstr "Всплывающие уведомления включены"
+
+#: services/Players.qml
+#, qt-format
+msgctxt "track artist and title"
+msgid "%1 - %2"
+msgstr "%1 — %2"
+
+#: services/ThemeSchemes.qml
+#, qt-format
+msgid "Unable to read colour schemes: %1"
+msgstr "Не удалось прочитать цветовые схемы: %1"
+
+#: services/ThemeSchemes.qml
+#, qt-format
+msgid "Unable to change colour scheme: %1"
+msgstr "Не удалось изменить цветовую схему: %1"
+
+#: services/ThemeSchemes.qml
+msgid "Unable to change colour scheme"
+msgstr "Не удалось изменить цветовую схему"
+
+#: services/VPN.qml
+msgid "VPN connection failed"
+msgstr "Не удалось подключить VPN"
+
+#: services/VPN.qml
+msgid "VPN disconnection failed"
+msgstr "Не удалось отключить VPN"
+
+#: services/VPN.qml
+msgid "Login required"
+msgstr "Требуется вход"
+
+#: services/VPN.qml
+msgid "Machine authorisation required"
+msgstr "Требуется авторизация устройства"
+
+#: services/VPN.qml
+msgid "Tailscale may not be running"
+msgstr "Возможно, Tailscale не запущен"
+
+#: services/VPN.qml
+msgid "Failed to parse status"
+msgstr "Не удалось прочитать состояние"
+
+#: services/VPN.qml
+msgid "WARP registration required"
+msgstr "Требуется регистрация WARP"
+
+#: services/VPN.qml
+msgid "Unknown WARP status"
+msgstr "Состояние WARP неизвестно"
+
+#: services/VPN.qml
+msgid "VPN connected"
+msgstr "VPN подключён"
+
+#: services/VPN.qml
+#, qt-format
+msgid "Connected to %1"
+msgstr "Подключено к %1"
+
+#: services/VPN.qml
+msgid "VPN disconnected"
+msgstr "VPN отключён"
+
+#: services/VPN.qml
+#, qt-format
+msgid "Disconnected from %1"
+msgstr "Отключено от %1"
+
+#: services/VPN.qml
+msgid "VPN authentication required"
+msgstr "Требуется авторизация VPN"
+
+#: services/VPN.qml
+#, qt-format
+msgctxt "vpn name and reason"
+msgid "%1: %2"
+msgstr "%1: %2"
+
+#: services/VPN.qml
+msgid "Unknown error"
+msgstr "Неизвестная ошибка"
+
+#: services/VPN.qml
+msgid "VPN error"
+msgstr "Ошибка VPN"
+
+#. TRANSLATORS: %1 = a shell command, leave it untranslated
+#: services/VPN.qml
+#, qt-format
+msgid "WireGuard module not loaded. Run: %1"
+msgstr "Модуль WireGuard не загружен. Выполните: %1"
+
+#. TRANSLATORS: %1 = a shell command, leave it untranslated
+#: services/VPN.qml
+#, qt-format
+msgid "Permission denied. Run in terminal: %1"
+msgstr "Доступ запрещён. Выполните в терминале: %1"
+
+#. TRANSLATORS: %1 = a shell command, leave it untranslated
+#: services/VPN.qml
+#, qt-format
+msgid "Service not running (run: %1)"
+msgstr "Служба не запущена (выполните: %1)"
+
+#: services/VPN.qml
+#, qt-format
+msgid "Could not start %1. Is it installed?"
+msgstr "Не удалось запустить %1. Программа установлена?"
+
+#: services/VPN.qml
+#, qt-format
+msgid "Could not connect to %1"
+msgstr "Не удалось подключиться к %1"
+
+#: services/Weather.qml
+msgid "No weather"
+msgstr "Нет данных о погоде"
+
+#: services/Weather.qml
+msgid "Invalid weather coordinates"
+msgstr "Некорректные координаты для погоды"
+
+#: services/Weather.qml
+msgid "Unable to determine weather location"
+msgstr "Не удалось определить местоположение для погоды"
+
+#: services/Weather.qml
+msgid "Unable to search for cities"
+msgstr "Не удалось выполнить поиск городов"
+
+#: services/Weather.qml
+msgctxt "weather location unavailable"
+msgid "Unknown city"
+msgstr "Неизвестный город"
+
+#: services/Weather.qml
+msgid "Weather location not found"
+msgstr "Местоположение для погоды не найдено"
+
+#: services/Weather.qml
+msgid "Unable to load weather"
+msgstr "Не удалось загрузить погоду"
+
+#: services/Weather.qml
+msgid "Clear"
+msgstr "Очистить"
+
+#: services/Weather.qml
+msgid "Partly cloudy"
+msgstr "Переменная облачность"
+
+#: services/Weather.qml
+msgid "Overcast"
+msgstr "Пасмурно"
+
+#: services/Weather.qml
+msgid "Fog"
+msgstr "Туман"
+
+#: services/Weather.qml
+msgid "Drizzle"
+msgstr "Морось"
+
+#: services/Weather.qml
+msgid "Freezing drizzle"
+msgstr "Ледяная морось"
+
+#: services/Weather.qml
+msgid "Light rain"
+msgstr "Небольшой дождь"
+
+#: services/Weather.qml
+msgid "Rain"
+msgstr "Дождь"
+
+#: services/Weather.qml
+msgid "Heavy rain"
+msgstr "Сильный дождь"
+
+#: services/Weather.qml
+msgid "Light snow"
+msgstr "Небольшой снег"
+
+#: services/Weather.qml
+msgid "Snow"
+msgstr "Снег"
+
+#: services/Weather.qml
+msgid "Heavy snow"
+msgstr "Сильный снег"
+
+#: services/Weather.qml
+msgid "Light snow showers"
+msgstr "Небольшие снегопады"
+
+#: services/Weather.qml
+msgid "Heavy snow showers"
+msgstr "Сильные снегопады"
+
+#: services/Weather.qml
+msgid "Thunderstorm"
+msgstr "Гроза"
+
+#: services/Weather.qml
+msgid "Thunderstorm with hail"
+msgstr "Гроза с градом"
+
+#: services/Weather.qml
+msgctxt "weather condition"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#. TRANSLATORS: %1 = a number
+#: utils/Strings.qml
+#, qt-format
+msgid "%1%"
+msgstr "%1%"
+
+#. TRANSLATORS: joins uptime components, e.g. "2 days, 3 hours"
+#: utils/SysInfo.qml
+msgctxt "uptime component separator"
+msgid ", "
+msgstr ", "
+
+#: utils/SysInfo.qml
+#, qt-plural-format
+msgid "%n minute"
+msgid_plural "%n minutes"
+msgstr[0] "%n минута"
+msgstr[1] "%n минуты"
+msgstr[2] "%n минут"
+
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+#, qt-plural-format, c-format
+msgid "Config loaded with %n issue."
+msgid_plural "Config loaded with %n issues."
+msgstr[0] "Конфигурация загружена с %n ошибкой."
+msgstr[1] "Конфигурация загружена с %n ошибками."
+msgstr[2] "Конфигурация загружена с %n ошибками."
+
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+msgid "Config loaded successfully!"
+msgstr "Конфигурация успешно загружена!"
+
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+msgid "Config loaded"
+msgstr "Конфигурация загружена"
+
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+msgid "Failed to parse token config"
+msgstr "Не удалось прочитать конфигурацию токенов"
+
+#. TRANSLATORS: %1 = a monitor name
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+#, qt-format
+msgid "Failed to parse token config for %1"
+msgstr "Не удалось прочитать конфигурацию токенов %1"
+
+#. TRANSLATORS: %1 = a monitor name
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+#, qt-format
+msgid "Failed to parse config"
+msgstr "Не удалось прочитать конфигурацию"
+
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+#, qt-format
+msgid "Failed to parse config for %1"
+msgstr "Не удалось прочитать конфигурацию %1"
+
+#. TRANSLATORS: %1 = a monitor name
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+#, qt-format
+msgid "Failed to save config"
+msgstr "Не удалось сохранить конфигурацию"
+
+#: plugin/src/Hyprstack/Config/rootnodes.cpp
+#, qt-format
+msgid "Failed to save config for %1"
+msgstr "Не удалось сохранить конфигурацию %1"
+
+#. TRANSLATORS: %1 = a message from Qalculate, we don't translate it
+#: plugin/src/Hyprstack/qalculator.cpp
+#, qt-format
+msgid "error: %1"
+msgstr "ошибка: %1"
+
+#. TRANSLATORS: %1 = a message from Qalculate, we don't translate it
+#: plugin/src/Hyprstack/qalculator.cpp
+#, qt-format
+msgid "warning: %1"
+msgstr "предупреждение: %1"
+
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+msgid "Caps lock is currently enabled"
+msgstr "Caps Lock сейчас включён"
+
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+msgid "Caps lock is currently disabled"
+msgstr "Caps Lock сейчас выключен"
+
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+msgid "Num lock is currently enabled"
+msgstr "Num Lock сейчас включён"
+
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+msgid "Num lock is currently disabled"
+msgstr "Num Lock сейчас выключен"
+
+#. TRANSLATORS: %1 = an XKB keyboard layout name, e.g. English (US)
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+#, qt-format
+msgid "Keyboard layout changed"
+msgstr "Раскладка клавиатуры изменена"
+
+#: plugin/src/Hyprstack/Services/hyprdevices.cpp
+#, qt-format
+msgid "Layout changed to: %1"
+msgstr "Раскладка изменена на: %1"
+
+#: plugin/src/Hyprstack/Services/sessionmanager.cpp
+msgid "Hibernate failed"
+msgstr "Не удалось перейти в гибернацию"
+
+#: plugin/src/Hyprstack/Services/sessionmanager.cpp
+msgid "Enable hibernation to use this feature."
+msgstr "Для этой функции необходимо включить гибернацию."
+
+#. TRANSLATORS: %1 = the non-integer number that was found
+#: plugin/src/Hyprstack/Settings/codecs.cpp
+#, qt-format
+msgid "Expected an integer, got the real %1"
+msgstr "Ожидалось целое число, получено дробное %1"
+
+#. TRANSLATORS: %1 = the value given, %2/%3 = the allowed minimum and maximum
+#: plugin/src/Hyprstack/Settings/codecs.cpp
+#, qt-format
+msgid "Integer %1 is out of range, expected between %2 and %3"
+msgstr "Целое число %1 вне диапазона. Ожидается значение от %2 до %3"
+
+#. TRANSLATORS: %1 = a config key name, %2 = a C++ type name; both are untranslated identifiers
+#: plugin/src/Hyprstack/Settings/codecs.cpp
+#, qt-format
+msgid "Could not convert %1 to %2"
+msgstr "Не удалось преобразовать %1 в %2"
+
+#. TRANSLATORS: %1 = a config key name, %2 = a comma-separated list of allowed values; both untranslated
+#: plugin/src/Hyprstack/Settings/codecs.cpp
+#, qt-format
+msgid "Invalid enum value %1. Expected one of %2"
+msgstr "Недопустимое значение %1. Ожидается одно из: %2"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "expected type"
+msgid "a boolean"
+msgstr "логическое значение"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "expected type"
+msgid "an integer"
+msgstr "целое число"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "expected type"
+msgid "a number"
+msgstr "число"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "expected type"
+msgid "a string"
+msgstr "строка"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "expected type"
+msgid "an array"
+msgstr "массив"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "expected type"
+msgid "an object"
+msgstr "объект"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "received type"
+msgid "null"
+msgstr "null"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "received type"
+msgid "a boolean"
+msgstr "логическое значение"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "received type"
+msgid "a number"
+msgstr "число"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "received type"
+msgid "a string"
+msgstr "строка"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "received type"
+msgid "an array"
+msgstr "массив"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "received type"
+msgid "an object"
+msgstr "объект"
+
+#: plugin/src/Hyprstack/Settings/common.cpp
+msgctxt "received type"
+msgid "nothing"
+msgstr "ничего"
+
+#. TRANSLATORS: %1/%2 = the allowed types, %3 = the type that was found; all nouns such as "a string"
+#: plugin/src/Hyprstack/Settings/common.cpp
+#, qt-format
+msgid "Expected %1 or %2, got %3"
+msgstr "Ожидалось %1 или %2, получено %3"
+
+#. TRANSLATORS: %1-%3 = the allowed types, %4 = the type that was found; all nouns such as "a string"
+#: plugin/src/Hyprstack/Settings/common.cpp
+#, qt-format
+msgid "Expected %1, %2 or %3, got %4"
+msgstr "Ожидалось %1, %2 или %3, получено %4"
+
+#. TRANSLATORS: %1-%4 = the allowed types, %5 = the type that was found; all nouns such as "a string"
+#: plugin/src/Hyprstack/Settings/common.cpp
+#, qt-format
+msgid "Expected one of: %1, %2, %3, %4; got %5"
+msgstr "Ожидалось одно из: %1, %2, %3, %4; получено %5"
+
+#. TRANSLATORS: %1 = the expected type, %2 = the type that was found; both nouns such as "a string"
+#: plugin/src/Hyprstack/Settings/common.cpp
+#, qt-format
+msgid "Expected %1, got %2"
+msgstr "Ожидалось %1, получено %2"
+
+#: plugin/src/Hyprstack/Settings/node.cpp
+msgid "Global options should not be defined in overlay files"
+msgstr "Глобальные параметры нельзя задавать в файлах отдельных экранов"
+
+#. TRANSLATORS: %1 = a config key name
+#: plugin/src/Hyprstack/Settings/objectnode.cpp
+#, qt-format
+msgid "Unknown option %1"
+msgstr "Неизвестный параметр %1"
+
+#: plugin/src/Hyprstack/Settings/settingsfile.cpp
+#, qt-format
+msgid "Failed to open: %1"
+msgstr "Не удалось открыть: %1"
+
+#: plugin/src/Hyprstack/Settings/settingsfile.cpp
+#, qt-format
+msgid "Failed to parse: %1"
+msgstr "Не удалось прочитать: %1"
+
+#: plugin/src/Hyprstack/Settings/settingsfile.cpp
+msgid "Failed to create parent directory"
+msgstr "Не удалось создать родительскую папку"
+
+#: plugin/src/Hyprstack/Settings/settingsfile.cpp
+#, qt-format
+msgid "Failed to write: %1"
+msgstr "Не удалось записать: %1"
+
+#: plugin/src/Hyprstack/Config/generalconfig.hpp
+msgid "Low battery"
+msgstr "Низкий заряд батареи"
+
+#: plugin/src/Hyprstack/Config/generalconfig.hpp
+msgid "You might want to plug in a charger"
+msgstr "Подключите зарядное устройство"
+
+#: plugin/src/Hyprstack/Config/generalconfig.hpp
+msgid "Did you see the previous message?"
+msgstr "Вы видели предыдущее сообщение?"
+
+#: plugin/src/Hyprstack/Config/generalconfig.hpp
+msgid "You should probably plug in a charger <b>now</b>"
+msgstr "Подключите зарядное устройство <b>сейчас</b>"
+
+#: plugin/src/Hyprstack/Config/generalconfig.hpp
+msgid "Critical battery level"
+msgstr "Критически низкий заряд батареи"
+
+#: plugin/src/Hyprstack/Config/generalconfig.hpp
+msgid "PLUG THE CHARGER RIGHT NOW!!"
+msgstr "СРОЧНО ПОДКЛЮЧИТЕ ЗАРЯДНОЕ УСТРОЙСТВО!"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Calculator"
+msgstr "Калькулятор"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Do simple maths equations (powered by Qalc)"
+msgstr "Простые математические вычисления (с помощью Qalc)"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Scheme"
+msgstr "Схема"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Change the current colour scheme"
+msgstr "Изменить текущую цветовую схему"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Wallpaper"
+msgstr "Обои"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Change the current wallpaper"
+msgstr "Изменить текущие обои"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Variant"
+msgstr "Вариант"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Change the current scheme variant"
+msgstr "Изменить вариант текущей схемы"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Random"
+msgstr "Случайные"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Switch to a random wallpaper"
+msgstr "Выбрать случайные обои"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Light"
+msgstr "Светлая"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Change the scheme to light mode"
+msgstr "Переключить схему на светлый режим"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Dark"
+msgstr "Тёмная"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Change the scheme to dark mode"
+msgstr "Переключить схему на тёмный режим"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Shutdown"
+msgstr "Выключить"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Shutdown the system"
+msgstr "Выключить компьютер"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Reboot"
+msgstr "Перезагрузить"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Reboot the system"
+msgstr "Перезагрузить систему"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Logout"
+msgstr "Выход из сеанса"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Log out of the current session"
+msgstr "Выйти из текущего сеанса"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Lock"
+msgstr "Заблокировать"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Lock the current session"
+msgstr "Заблокировать текущий сеанс"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Sleep"
+msgstr "Сон"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Suspend then hibernate"
+msgstr "Сон с последующей гибернацией"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgctxt "launcher action"
+msgid "Settings"
+msgstr "Настройки"
+
+#: plugin/src/Hyprstack/Config/launcherconfig.hpp
+msgid "Configure the shell"
+msgstr "Настроить оболочку"
+
+#: assets/diagnostics.py
+msgid "Check the Hyprstack installation"
+msgstr "Проверить установку Hyprstack"
+
+#: assets/diagnostics.py
+msgid "OK"
+msgstr "ОК"
+
+#: assets/diagnostics.py
+msgid "FAIL"
+msgstr "ОШИБКА"
+
+#: assets/diagnostics.py
+msgid "missing"
+msgstr "не найдено"
+
+#: assets/hyprstack_cli.py
+#, qt-format
+msgid "Missing command: %1"
+msgstr "Команда не найдена: %1"
+
+#: assets/hyprstack_cli.py
+msgid "Invalid theme mode or variant"
+msgstr "Некорректный режим или вариант темы"
+
+#: assets/hyprstack_cli.py
+msgid "Dynamic schemes use --variant; choose a preset to use --accent"
+msgstr "Динамические схемы используют --variant; для --accent выберите встроенную схему"
+
+#: assets/hyprstack_cli.py
+#, qt-format
+msgid "Unknown colour scheme: %1"
+msgstr "Неизвестная цветовая схема: %1"
+
+#: assets/hyprstack_cli.py
+#, qt-format
+msgid "No wallpapers found in %1"
+msgstr "Обои не найдены в %1"
+
+#: assets/hyprstack_cli.py
+msgid "Wallpaper does not exist"
+msgstr "Файл обоев не существует"
+
+#: assets/hyprstack_cli.py
+msgid "Emoji: "
+msgstr "Эмодзи: "
+
+#: assets/hyprstack_cli.py
+msgid "Invalid Hyprland session signature"
+msgstr "Некорректный идентификатор сеанса Hyprland"
+
+#: assets/hyprstack_cli.py
+msgid "Recording process has already stopped"
+msgstr "Процесс записи уже завершён"
+
+#: assets/hyprstack_cli.py
+msgid "Install wf-recorder to record your screen"
+msgstr "Для записи экрана установите wf-recorder"
+
+#: assets/hyprstack_cli.py
+#, qt-format
+msgid "Recorder could not start; see %1"
+msgstr "Не удалось начать запись; подробности: %1"
+
+#: assets/hyprstack_cli.py
+msgid "Control the Hyprstack desktop"
+msgstr "Управление рабочим окружением Hyprstack"
+
+#: assets/hyprstack_cli.py
+msgid "Commands"
+msgstr "Команды"
+
+#: assets/hyprstack_cli.py
+msgid "View and change colour schemes"
+msgstr "Просмотр и изменение цветовых схем"
+
+#: assets/hyprstack_cli.py
+msgid "View and change wallpapers"
+msgstr "Просмотр и изменение обоев"
+
+#: assets/hyprstack_cli.py
+msgid "Take a screenshot"
+msgstr "Сделать снимок экрана"
+
+#: assets/hyprstack_cli.py
+msgid "Record the screen"
+msgstr "Записать экран"
+
+#: assets/hyprstack_cli.py
+msgid "Open clipboard history"
+msgstr "Открыть историю буфера обмена"
+
+#: assets/hyprstack_cli.py
+msgid "Open emoji picker"
+msgstr "Открыть выбор эмодзи"
+
+#: assets/hyprstack_cli.py
+msgid "Manage the shell"
+msgstr "Управление оболочкой"
+
+#: assets/hyprstack_cli.py
+msgid "Check the installation"
+msgstr "Проверить установку"
+
+#: assets/theme_manager.py
+#, qt-format
+msgid "Invalid colour: %1; use #RRGGBB"
+msgstr "Некорректный цвет: %1; используйте #RRGGBB"
+
+#: assets/theme_manager.py
+msgid "Theme mode must be dark or light"
+msgstr "Режим темы должен быть dark или light"
+
+#: assets/theme_manager.py
+msgid "ANSI palette must have 8 or 16 colours"
+msgstr "Палитра ANSI должна содержать 8 или 16 цветов"
+
+#: assets/theme_manager.py
+msgid "Source palette must be an object"
+msgstr "Исходная палитра должна быть объектом"
+
+#: assets/theme_manager.py
+#, qt-format
+msgid "Invalid source colour name: %1"
+msgstr "Некорректное название исходного цвета: %1"
+
+#: assets/theme_manager.py
+#, qt-format
+msgid "Invalid shell colour role: %1"
+msgstr "Некорректная роль цвета оболочки: %1"
+
+#: assets/theme_manager.py
+msgid "Theme colours must be an object"
+msgstr "Цвета темы должны быть объектом"
+
+#: assets/theme_manager.py
+#, qt-format
+msgid "Missing theme colours: %1"
+msgstr "Отсутствуют цвета темы: %1"
+
+#: assets/theme_manager.py
+msgid "Theme file must contain an object"
+msgstr "Файл темы должен содержать объект"
+
+#: assets/theme_manager.py
+msgid "Choose a theme name (1–80 characters)"
+msgstr "Укажите название темы (1–80 символов)"
+
+#: assets/theme_manager.py
+msgid "Add dark and/or light colours to the theme"
+msgstr "Добавьте в тему цвета тёмного и/или светлого режима"
+
+#: assets/theme_manager.py
+msgid "Unknown colour scheme"
+msgstr "Неизвестная цветовая схема"
+
+#: assets/theme_manager.py
+#, qt-format
+msgid "%1 has no %2 variant for the requested accent or flavour"
+msgstr "В теме %1 нет варианта %2 для указанного акцента или разновидности"
+
+#: assets/theme_manager.py
+msgid "The current scheme is unavailable; choose a scheme from the catalogue"
+msgstr "Текущая схема недоступна; выберите схему из каталога"
+
+#: assets/theme_manager.py
+msgid "Manage Hyprstack colour schemes"
+msgstr "Управление цветовыми схемами Hyprstack"
+
+#: assets/theme_manager.py
+msgid "Update the current builtin's palette, preserving its selection"
+msgstr "Обновить палитру текущей встроенной темы, сохранив выбор"
+
+#: assets/theme_manager.py
+msgid "Mode for a Hyprstack .txt palette"
+msgstr "Режим палитры Hyprstack в формате .txt"
+
+#: assets/theme_manager.py
+msgid "Read a theme JSON object from stdin"
+msgstr "Прочитать объект темы JSON из стандартного ввода"
+
+#: assets/theme_manager.py
+msgid "Theme file is too large (maximum 1 MiB)"
+msgstr "Файл темы слишком большой (максимум 1 МиБ)"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid " (default: %(default)s)"
+msgstr " (по умолчанию: %(default)s)"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "%(heading)s:"
+msgstr "%(heading)s:"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "%(prog)s: error: %(message)s\n"
+msgstr "%(prog)s: ошибка: %(message)s\n"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "%(prog)s: warning: %(message)s\n"
+msgstr "%(prog)s: предупреждение: %(message)s\n"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Activate selected window"
+msgstr "Открыть выбранное окно"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Alucard"
+msgstr "Alucard"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Amber"
+msgstr "Янтарный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Applications"
+msgstr "Приложения"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Aqua"
+msgstr "Аквамариновый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Blue"
+msgstr "Синий"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Blue0"
+msgstr "Синий 0"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Blue1"
+msgstr "Синий 1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Blue2"
+msgstr "Синий 2"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Blue5"
+msgstr "Синий 5"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Blue6"
+msgstr "Синий 6"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Blue7"
+msgstr "Синий 7"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Brightness down"
+msgstr "Уменьшить яркость"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Brightness up"
+msgstr "Увеличить яркость"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Cancel window switching"
+msgstr "Отменить переключение окон"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Capture"
+msgstr "Снимки и запись экрана"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Centre window"
+msgstr "Центрировать окно"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Classic"
+msgstr "Классическая"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Clear notifications"
+msgstr "Очистить уведомления"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Clipboard"
+msgstr "Буфер обмена"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Close window"
+msgstr "Закрыть окно"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Coral"
+msgstr "Коралловый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Custom colour"
+msgstr "Свой цвет"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Custom shortcut"
+msgstr "Пользовательское сочетание"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Cyan"
+msgstr "Голубой"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Dawn"
+msgstr "Рассвет"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Day"
+msgstr "День"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Decrease brightness"
+msgstr "Уменьшить яркость"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Decrease volume"
+msgstr "Уменьшить громкость"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Decrease window height"
+msgstr "Уменьшить высоту окна"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Decrease window width"
+msgstr "Уменьшить ширину окна"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Deep Blue"
+msgstr "Глубокий синий"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Deep Red"
+msgstr "Глубокий красный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Delete clipboard entry"
+msgstr "Удалить запись буфера обмена"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Drag window"
+msgstr "Перетащить окно"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Flamingo"
+msgstr "Фламинго"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Foam"
+msgstr "Пенный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Focus %1"
+msgstr "Переместить фокус: %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Frost"
+msgstr "Иней"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Go to workspace %1"
+msgstr "Перейти на рабочее пространство %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Go to workspace group %1"
+msgstr "Перейти к группе рабочих пространств %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Gold"
+msgstr "Золотой"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Green"
+msgstr "Зелёный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Green1"
+msgstr "Зелёный 1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Green2"
+msgstr "Зелёный 2"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Grey"
+msgstr "Серый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Hyprland configuration"
+msgstr "Конфигурация Hyprland"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Increase brightness"
+msgstr "Увеличить яркость"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Increase volume"
+msgstr "Увеличить громкость"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Increase window height"
+msgstr "Увеличить высоту окна"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Increase window width"
+msgstr "Увеличить ширину окна"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Indigo"
+msgstr "Индиго"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Installed/running Hyprland ABI"
+msgstr "ABI установленного и запущенного Hyprland"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Iris"
+msgstr "Ирисовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Latte"
+msgstr "Latte"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Lavender"
+msgstr "Лавандовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Leaf"
+msgstr "Лиственный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Left mouse button"
+msgstr "Левая кнопка мыши"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Light (adapted)"
+msgstr "Светлая (адаптированная)"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Light Blue"
+msgstr "Светло-синий"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Lock screen"
+msgstr "Заблокировать экран"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Lock window group"
+msgstr "Заблокировать группу окон"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Lotus"
+msgstr "Lotus"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Love"
+msgstr "Рубиновый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Magenta"
+msgstr "Пурпурный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Magenta2"
+msgstr "Пурпурный 2"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Main"
+msgstr "Основная"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Maroon"
+msgstr "Бордовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Mauve"
+msgstr "Сиреневый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Middle mouse button"
+msgstr "Средняя кнопка мыши"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Mint"
+msgstr "Мятный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Mocha"
+msgstr "Mocha"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Move and follow window to workspace %1"
+msgstr "Переместить окно и перейти на рабочее пространство %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Move window %1"
+msgstr "Переместить окно: %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Move window to %1"
+msgstr "Переместить окно: %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Move window to monitor %1"
+msgstr "Переместить окно на монитор %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Move window to next workspace"
+msgstr "Переместить окно на следующее рабочее пространство"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Move window to previous workspace"
+msgstr "Переместить окно на предыдущее рабочее пространство"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Move window to special workspace"
+msgstr "Переместить окно на специальное рабочее пространство"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Move window to workspace %1"
+msgstr "Переместить окно на рабочее пространство %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Move window to workspace group %1"
+msgstr "Переместить окно в группу рабочих пространств %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Mute audio"
+msgstr "Выключить звук"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Mute microphone"
+msgstr "Выключить микрофон"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Native plugin ABI"
+msgstr "ABI нативного плагина"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Next media track"
+msgstr "Следующая композиция"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Next track"
+msgstr "Следующая композиция"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Next window"
+msgstr "Следующее окно"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Next window in group"
+msgstr "Следующее окно в группе"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Next workspace"
+msgstr "Следующее рабочее пространство"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Next workspace group"
+msgstr "Следующая группа рабочих пространств"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Night"
+msgstr "Ночь"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Olive"
+msgstr "Оливковый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "On accent"
+msgstr "На акценте"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "One Dark"
+msgstr "One Dark"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "One Light"
+msgstr "One Light"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open audio settings"
+msgstr "Открыть настройки звука"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open browser"
+msgstr "Открыть браузер"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open dashboard"
+msgstr "Открыть дашборд"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open editor"
+msgstr "Открыть редактор"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open file manager"
+msgstr "Открыть файловый менеджер"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open launcher"
+msgstr "Открыть меню приложений"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open notification centre"
+msgstr "Открыть центр уведомлений"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open overview"
+msgstr "Открыть обзор окон"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open session menu"
+msgstr "Открыть меню сеанса"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Open terminal"
+msgstr "Открыть терминал"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Orange"
+msgstr "Оранжевый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "PAM lock service"
+msgstr "Служба PAM для блокировки"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Page Down"
+msgstr "Page Down"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Page Up"
+msgstr "Page Up"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Paste latest entry"
+msgstr "Вставить последнюю запись"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Peach"
+msgstr "Персиковый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Pick colour"
+msgstr "Выбрать цвет"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Picture in picture"
+msgstr "Картинка в картинке"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Pin window"
+msgstr "Закрепить окно"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Pine"
+msgstr "Хвойный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Pink"
+msgstr "Розовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Play or pause media"
+msgstr "Воспроизведение или пауза"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Polar Night"
+msgstr "Полярная ночь"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Previous media track"
+msgstr "Предыдущая композиция"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Previous track"
+msgstr "Предыдущая композиция"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Previous window"
+msgstr "Предыдущее окно"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Previous window in group"
+msgstr "Предыдущее окно в группе"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Previous workspace"
+msgstr "Предыдущее рабочее пространство"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Previous workspace group"
+msgstr "Предыдущая группа рабочих пространств"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Purple"
+msgstr "Фиолетовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Record with audio"
+msgstr "Записать со звуком"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Red"
+msgstr "Красный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Red1"
+msgstr "Красный 1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Remove window from group"
+msgstr "Убрать окно из группы"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Resize window"
+msgstr "Изменить размер окна"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Restart shell"
+msgstr "Перезапустить оболочку"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Restore lock screen"
+msgstr "Восстановить экран блокировки"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Restore window size"
+msgstr "Восстановить размер окна"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Return window from special workspace"
+msgstr "Вернуть окно со специального рабочего пространства"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Right mouse button"
+msgstr "Правая кнопка мыши"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Ronin Yellow"
+msgstr "Жёлтый ронина"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Rose"
+msgstr "Розовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Rosewater"
+msgstr "Розовая вода"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Samurai Red"
+msgstr "Красный самурая"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Sapphire"
+msgstr "Сапфировый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Screenshot current monitor"
+msgstr "Снимок текущего монитора"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Screenshot frozen region"
+msgstr "Снимок замороженной области"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Screenshot region"
+msgstr "Снимок области"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Secondary"
+msgstr "Вторичный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Session"
+msgstr "Сеанс"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Show or hide panels"
+msgstr "Показать или скрыть панели"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Sky"
+msgstr "Небесный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Snow Storm"
+msgstr "Снежная буря"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Space"
+msgstr "Пробел"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Spring Blue"
+msgstr "Весенний синий"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Spring Violet"
+msgstr "Весенний фиолетовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Start or stop recording"
+msgstr "Начать или остановить запись"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Steel"
+msgstr "Стальной"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Stop media"
+msgstr "Остановить воспроизведение"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Stop shell"
+msgstr "Остановить оболочку"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Suspend"
+msgstr "Перейти в сон"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+#, qt-format
+msgid "Swap column %1"
+msgstr "Переставить столбец: %1"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Syntax Accent"
+msgstr "Цвет синтаксиса"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Tacao"
+msgstr "Светло-персиковый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Teal"
+msgstr "Бирюзовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Tertiary"
+msgstr "Третичный"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Theme accent"
+msgstr "Акцент темы"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Tinted icons and symbols; leave empty to follow the theme"
+msgstr "Тонированные иконки и символы; пустое значение использует цвет темы"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle column width"
+msgstr "Переключить ширину столбца"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle floating"
+msgstr "Переключить плавающий режим"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle fullscreen"
+msgstr "Переключить полноэкранный режим"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle maximized"
+msgstr "Развернуть или восстановить окно"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle music workspace"
+msgstr "Переключить музыкальное рабочее пространство"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle scrolling or stacking"
+msgstr "Переключить тайлинг и стакинг"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle special workspace"
+msgstr "Переключить специальное рабочее пространство"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle system monitor workspace"
+msgstr "Переключить рабочее пространство системного монитора"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle todo workspace"
+msgstr "Переключить рабочее пространство задач"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle window gaps"
+msgstr "Переключить отступы окон"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Toggle window group"
+msgstr "Переключить группу окон"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Unable to read keyboard shortcuts"
+msgstr "Не удалось прочитать сочетания клавиш"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Use #RRGGBB"
+msgstr "Используйте #RRGGBB"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Violet"
+msgstr "Фиолетовый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Violet 2"
+msgstr "Фиолетовый 2"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Volume down"
+msgstr "Уменьшить громкость"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Volume up"
+msgstr "Увеличить громкость"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Wave"
+msgstr "Wave"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Wheel down"
+msgstr "Колесо вниз"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Wheel up"
+msgstr "Колесо вверх"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "White"
+msgstr "Белый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Windows"
+msgstr "Окна"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "Yellow"
+msgstr "Жёлтый"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "ambiguous option: %(option)s could match %(matches)s"
+msgstr "неоднозначный параметр: %(option)s может соответствовать %(matches)s"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "argument \"-\" with mode %r"
+msgstr "аргумент «-» с режимом %r"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "argument %(argument_name)s: %(message)s"
+msgstr "аргумент %(argument_name)s: %(message)s"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "argument '%(argument_name)s' is deprecated"
+msgstr "аргумент «%(argument_name)s» устарел"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "can't open '%(filename)s': %(error)s"
+msgstr "не удалось открыть «%(filename)s»: %(error)s"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "command '%(parser_name)s' is deprecated"
+msgstr "команда «%(parser_name)s» устарела"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "d"
+msgstr "вниз"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "down"
+msgstr "вниз"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "expected at least one argument"
+msgstr "ожидается хотя бы один аргумент"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "expected at most one argument"
+msgstr "ожидается не более одного аргумента"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "expected one argument"
+msgstr "ожидается один аргумент"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "ignored explicit argument %r"
+msgstr "заданный аргумент %r проигнорирован"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "invalid %(type)s value: %(value)r"
+msgstr "некорректное значение типа %(type)s: %(value)r"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "invalid choice: %(value)r (choose from %(choices)s)"
+msgstr "некорректный вариант: %(value)r (выберите из %(choices)s)"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "invalid choice: %(value)r, maybe you meant %(closest)r? (choose from %(choices)s)"
+msgstr "некорректный вариант: %(value)r, возможно, вы имели в виду %(closest)r? (выберите из %(choices)s)"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "l"
+msgstr "влево"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "left"
+msgstr "влево"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "not allowed with argument %s"
+msgstr "нельзя использовать вместе с аргументом %s"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "one of the arguments %s is required"
+msgstr "необходимо указать один из аргументов %s"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "option '%(option)s' is deprecated"
+msgstr "параметр «%(option)s» устарел"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "options"
+msgstr "параметры"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "positional arguments"
+msgstr "позиционные аргументы"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "r"
+msgstr "вправо"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "right"
+msgstr "вправо"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "show program's version number and exit"
+msgstr "показать версию программы и выйти"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "show this help message and exit"
+msgstr "показать эту справку и выйти"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "subcommands"
+msgstr "команды"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "the following arguments are required: %s"
+msgstr "необходимо указать следующие аргументы: %s"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "u"
+msgstr "вверх"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "unexpected option string: %s"
+msgstr "неожиданный параметр: %s"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "unknown parser %(parser_name)r (choices: %(choices)s)"
+msgstr "неизвестная команда %(parser_name)r (варианты: %(choices)s)"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "unrecognized arguments: %s"
+msgstr "неизвестные аргументы: %s"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "up"
+msgstr "вверх"
+
+#: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
+msgid "usage: "
+msgstr "Использование: "

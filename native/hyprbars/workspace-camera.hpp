@@ -1,0 +1,239 @@
+// One camera per output/workspace. Retargeting cannot give neighbouring windows
+// different animation clocks or slide multiple workspaces into the same row.
+#pragma once
+#include <hyprland/src/event/EventBus.hpp>
+#include <hyprland/src/desktop/Workspace.hpp>
+#include <hyprland/src/desktop/state/WindowState.hpp>
+#include <hyprland/src/state/WorkspaceState.hpp>
+#include <hyprland/src/state/MonitorState.hpp>
+#include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
+#include <hyprland/src/render/Renderer.hpp>
+#include <nlohmann/json.hpp>
+#include <chrono>
+#include <vector>
+
+namespace HyprstackCamera {
+using Clock = std::chrono::steady_clock;
+using Json = nlohmann::json;
+static constexpr double duration = .28;
+static double phase(Clock::time_point start) { return std::clamp(std::chrono::duration<double>(Clock::now()-start).count()/duration, 0.0, 1.0); }
+static double eased(double t) { return 1-std::pow(1-t, 3); }
+
+struct Output {
+    PHLMONITORREF monitor;
+    double from = 0, to = 0;
+    Clock::time_point start;
+    double row() const { return from+(to-from)*eased(phase(start)); }
+};
+struct Member { PHLWINDOWREF window; Vector2D goal, size; };
+struct Column {
+    PHLWORKSPACEREF workspace;
+    std::vector<Member> members;
+    Vector2D from;
+    Clock::time_point start;
+    Vector2D offset() const { return from*(1-eased(phase(start))); }
+};
+
+class Cameras {
+  public:
+    Cameras() {
+        m_active = Event::bus()->m_events.workspace.active.listen([this](PHLWORKSPACE workspace) {
+            if (!m_enabled || !workspace || workspace->m_isSpecialWorkspace || workspace->m_id <= 0) return;
+            const auto monitor = workspace->m_monitor.lock();
+            if (!monitor) return;
+            auto& output = forOutput(monitor);
+            const double current = output.row();
+            output.from = m_paused ? workspace->m_id : current;
+            output.to = workspace->m_id;
+            output.start = Clock::now();
+            tick();
+        });
+        m_pre = Event::bus()->m_events.render.pre.listen([this](PHLMONITOR monitor) { update(monitor); });
+        m_timer = makeShared<CEventLoopTimer>(std::nullopt, [this](SP<CEventLoopTimer>, void*) { tick(); }, nullptr);
+        g_pEventLoopManager->addTimer(m_timer);
+    }
+    ~Cameras() { enable(false); if (g_pEventLoopManager) g_pEventLoopManager->removeTimer(m_timer); }
+
+    void enable(bool value) {
+        if (value == m_enabled) return;
+        settle();
+        m_enabled = value;
+        m_outputs.clear(); m_columns.clear();
+        if (value) for (const auto& monitor : State::monitorState()->monitors()) forOutput(monitor);
+    }
+    void pause(bool value) {
+        settle();
+        // Overview can focus another column while the desktop camera is
+        // suspended. Its settled viewport becomes the new baseline at handoff,
+        // rather than starting another slide from the pre-overview positions.
+        m_columns.clear();
+        m_paused = value;
+    }
+    void settle() {
+        for (auto& output : m_outputs) {
+            const auto monitor = output.monitor.lock();
+            if (!monitor) continue;
+            if (monitor->m_activeWorkspace) output.from = output.to = monitor->m_activeWorkspace->m_id;
+            for (const auto& weak : State::workspaceState()->workspaces()) {
+                const auto workspace = weak.lock();
+                if (!workspace || workspace->m_monitor != monitor || workspace->m_isSpecialWorkspace) continue;
+                workspace->m_forceRendering = false;
+                workspace->m_renderOffset->setValueAndWarp({});
+                workspace->m_alpha->setValueAndWarp(workspace == monitor->m_activeWorkspace ? 1.F : 0.F);
+            }
+            g_pHyprRenderer->damageMonitor(monitor);
+        }
+        for (auto& column : m_columns) {
+            if (column.from.size() > .001) for (const auto& member : column.members)
+                if (const auto window = member.window.lock(); window && window->m_isMapped) window->positionAnimation()->warp();
+            column.from = {};
+        }
+        if (m_timer) m_timer->updateTimeout(std::nullopt);
+    }
+    Json status() const {
+        Json result = {{"enabled", m_enabled}, {"paused", m_paused}, {"outputs", Json::array()}, {"columns", Json::array()}};
+        for (const auto& output : m_outputs) if (const auto monitor = output.monitor.lock()) {
+            Json entry = {{"monitor", monitor->m_name}, {"row", output.row()}, {"goal", output.to},
+                {"stride", monitor->m_size.y}, {"workspaces", Json::array()}};
+            for (const auto& weak : State::workspaceState()->workspaces()) if (const auto ws = weak.lock(); ws && ws->m_monitor == monitor && !ws->m_isSpecialWorkspace)
+                entry["workspaces"].push_back({{"id", ws->m_id}, {"y", ws->m_renderOffset->value().y},
+                    {"alpha", ws->m_alpha->value()}, {"rendered", ws->m_forceRendering}});
+            result["outputs"].push_back(entry);
+        }
+        for (const auto& column : m_columns) if (const auto workspace = column.workspace.lock()) {
+            const auto offset = column.offset();
+            Json entry = {{"workspace", workspace->m_id}, {"offset", std::abs(offset.x) >= std::abs(offset.y) ? offset.x : offset.y},
+                {"offsetX", offset.x}, {"offsetY", offset.y}, {"windows", Json::array()}};
+            for (const auto& member : column.members) if (const auto w = member.window.lock(); w && w->m_isMapped) {
+                const auto position = w->positionAnimation()->value(), goal = w->positionAnimation()->goal();
+                entry["windows"].push_back({{"address", std::format("0x{:x}", reinterpret_cast<uintptr_t>(w.get()))},
+                    {"x", position.x}, {"y", position.y}, {"goalX", goal.x}, {"goalY", goal.y}});
+            }
+            result["columns"].push_back(entry);
+        }
+        return result;
+    }
+
+  private:
+    Output& forOutput(PHLMONITOR monitor) {
+        auto found = std::ranges::find_if(m_outputs, [&](const auto& output) { return output.monitor == monitor; });
+        if (found != m_outputs.end()) return *found;
+        const double row = monitor->m_activeWorkspace ? monitor->m_activeWorkspace->m_id : 1;
+        m_outputs.push_back({monitor, row, row, Clock::now()});
+        return m_outputs.back();
+    }
+    void update(PHLMONITOR monitor) {
+        if (!m_enabled || m_paused || !monitor || !monitor->m_activeWorkspace || monitor->m_activeWorkspace->m_id <= 0) return;
+        auto& output = forOutput(monitor);
+        // Internal workspace changes do not emit workspace.active.
+        if (output.to != monitor->m_activeWorkspace->m_id) {
+            output.from = output.row(); output.to = monitor->m_activeWorkspace->m_id; output.start = Clock::now();
+        }
+        const double row = output.row();
+        const double stride = monitor->m_size.y;
+        const bool moving = std::abs(row-output.to) > .00001;
+        for (const auto& weak : State::workspaceState()->workspaces()) {
+            const auto workspace = weak.lock();
+            if (!workspace || workspace->m_monitor != monitor || workspace->m_isSpecialWorkspace || workspace->m_id <= 0) continue;
+            const double y = (workspace->m_id-row)*stride;
+            const bool intersects = moving && std::abs(y) < stride;
+            const Vector2D offset{0.0, moving ? y : 0.0};
+            const float alpha = intersects || (!moving && workspace == monitor->m_activeWorkspace) ? 1.F : 0.F;
+            // Rendering may continue after the workspace animation finishes.
+            // Do not run animation-end/update callbacks on unchanged values.
+            if (workspace->m_renderOffset->value() != offset || workspace->m_renderOffset->goal() != offset)
+                workspace->m_renderOffset->setValueAndWarp(offset);
+            if (workspace->m_alpha->value() != alpha || workspace->m_alpha->goal() != alpha)
+                workspace->m_alpha->setValueAndWarp(alpha);
+            workspace->m_forceRendering = intersects;
+            updateColumns(workspace);
+        }
+        const bool columnsMoving = std::ranges::any_of(m_columns, [&](const auto& column) {
+            return column.workspace && column.workspace->m_monitor == monitor && column.offset().size() > .001;
+        });
+        // render.pre precedes Monitor::m_renderingActive, so damage alone is
+        // consumed by this frame without requesting the next one. Continue at
+        // the output's presentation cadence, including the first idle wake-up.
+        // The fallback timer is only needed to wake an output without a frame.
+        if (moving || columnsMoving)
+            monitor->m_pendingFrame = true;
+        tick();
+    }
+    void updateColumns(PHLWORKSPACE workspace) {
+        auto found = std::ranges::find_if(m_columns, [&](const auto& column) { return column.workspace == workspace; });
+        if (found == m_columns.end()) {
+            m_columns.push_back({workspace, {}, {}, Clock::now()});
+            found = std::prev(m_columns.end());
+        }
+        auto& column = *found;
+        std::vector<Member> next;
+        std::optional<Vector2D> shift;
+        bool rigid = true;
+        size_t matched = 0;
+        for (const auto& window : Desktop::windowState()->windows()) {
+            if (!window->m_isMapped || window->m_isFloating || window->m_pinned || window->m_workspace != workspace) continue;
+            Member member{window, window->positionAnimation()->goal(), window->sizeAnimation()->goal()};
+            const auto old = std::ranges::find_if(column.members, [&](const auto& old) { return old.window == window; });
+            if (old != column.members.end()) {
+                ++matched;
+                const auto delta = member.goal-old->goal;
+                if ((member.size-old->size).size() > .5 || (shift && (delta-*shift).size() > .5)) rigid = false;
+                if (!shift) shift = delta;
+            }
+            next.push_back(member);
+        }
+        if (rigid && matched && shift && shift->size() > .5) {
+            column.from = column.offset()-*shift;
+            column.start = Clock::now();
+        } else if (!rigid) column.from = {};
+        column.members = std::move(next);
+        if (column.from.size() < .001) return;
+        const auto offset = column.offset();
+        for (const auto& member : column.members) if (const auto window = member.window.lock()) {
+            if (phase(column.start) >= 1) window->positionAnimation()->warp();
+            else window->positionAnimation()->setValue(member.goal+offset);
+        }
+        if (phase(column.start) >= 1) column.from = {};
+    }
+    void tick() {
+        if (!m_enabled || m_paused || !m_timer) return;
+        bool moving = false;
+        int interval = 16;
+        std::erase_if(m_outputs, [](const auto& output) { return output.monitor.expired(); });
+        std::erase_if(m_columns, [](const auto& column) { return column.workspace.expired(); });
+        for (const auto& output : m_outputs) if (const auto monitor = output.monitor.lock()) {
+            const bool columnsMoving = std::ranges::any_of(m_columns, [&](const auto& column) {
+                return column.workspace && column.workspace->m_monitor == monitor && column.offset().size() > .001; });
+            if (std::abs(output.row()-output.to) > .00001 || columnsMoving) {
+                moving = true;
+                interval = std::min(interval, std::max(1, static_cast<int>(1000/monitor->m_refreshRate)));
+                g_pHyprRenderer->damageMonitor(monitor);
+            }
+        }
+        m_timer->updateTimeout(moving ? std::optional{std::chrono::milliseconds(interval)} : std::nullopt);
+    }
+
+    bool m_enabled = false, m_paused = false;
+    std::vector<Output> m_outputs;
+    std::vector<Column> m_columns;
+    CHyprSignalListener m_active, m_pre;
+    SP<CEventLoopTimer> m_timer;
+};
+
+static UP<Cameras> cameras;
+static int luaCamera(lua_State* L) {
+    if (!cameras) return luaL_error(L, "Workspace camera is not loaded");
+    const std::string action = luaL_checkstring(L,1);
+    if (action == "enable") cameras->enable(lua_toboolean(L,2));
+    else if (action == "pause") cameras->pause(lua_toboolean(L,2));
+    else if (action == "settle") cameras->settle();
+    else if (action == "status") { lua_pushstring(L,cameras->status().dump().c_str()); return 1; }
+    else return luaL_error(L, "Unknown workspace camera action");
+    lua_pushboolean(L,true); return 1;
+}
+static void install(HANDLE handle) {
+    cameras = makeUnique<Cameras>();
+    HyprlandAPI::addLuaFunction(handle,"hyprbars","workspace_camera",luaCamera);
+}
+static void remove() { cameras.reset(); }
+} // namespace HyprstackCamera
