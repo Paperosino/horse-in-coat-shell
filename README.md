@@ -34,12 +34,12 @@ Kanagawa, Tokyo Night и Catppuccin Latte. Из плавающих окон в �
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/media/stacking.gif" width="480" alt="Перемещение плавающих окон с lavat, Cava и pipes"><br>Stacking · свободное размещение окон</td>
-    <td align="center" width="50%"><img src="docs/media/scrolling.gif" width="480" alt="Навигация по ленте окон с lavat, Yazi, Cava и pipes"><br>Scrolling · навигация по ленте</td>
+    <td align="center" width="50%"><img src="docs/media/stacking.gif" width="100%" alt="Перемещение плавающих окон с lavat, Cava и pipes"><br>Stacking · свободное размещение окон</td>
+    <td align="center" width="50%"><img src="docs/media/scrolling.gif" width="100%" alt="Навигация по ленте окон с lavat, Yazi, Cava и pipes"><br>Scrolling · навигация по ленте</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/media/theme-transitions.gif" width="480" alt="Один рабочий стол в темах Kanagawa, Tokyo Night и Catppuccin Latte"><br>Три темы · одно окружение</td>
-    <td align="center"><img src="docs/media/overview.gif" width="480" alt="Обзор открытых окон в светлой теме Catppuccin Latte"><br>Обзор пространства · все окна перед глазами</td>
+    <td align="center"><img src="docs/media/theme-transitions.gif" width="100%" alt="Один рабочий стол в темах Kanagawa, Tokyo Night и Catppuccin Latte"><br>Три темы · одно окружение</td>
+    <td align="center"><img src="docs/media/overview.gif" width="100%" alt="Обзор открытых окон в светлой теме Catppuccin Latte"><br>Обзор пространства · все окна перед глазами</td>
   </tr>
 </table>
 
