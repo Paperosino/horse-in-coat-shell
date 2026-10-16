@@ -11,6 +11,10 @@
 !/CONFIGURATION.md
 !/MAINTENANCE.md
 !/THIRD_PARTY.md
+!/tests/
+/tests/*
+!/tests/gesture-input.cpp
+!/tests/trackpad-gestures.py
 !/flake.nix
 !/flake.lock
 !/nix/

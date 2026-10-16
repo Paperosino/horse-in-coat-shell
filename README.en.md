@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="INSTALL.en.md">Installation</a> ·
+  <a href="MAINTENANCE.md#обновление">Updating (Russian)</a> ·
   <a href="CONFIGURATION.md">Configuration (RU)</a> ·
   <a href="#demo">Demo</a>
 </p>
@@ -123,6 +124,11 @@ are disabled by default.
 `Super` usually means the Windows logo key. Shortcuts and default applications
 are configurable; the shell settings contain the full list. To switch the
 interface to English, open **Язык и регион → Язык интерфейса** and select English.
+
+In scrolling mode, swipe horizontally with three fingers to scroll columns and
+vertically to switch workspaces. Swipe up with four fingers to open overview;
+swipe down to activate the selection and close it.
+[Gesture settings (Russian)](CONFIGURATION.md#жесты-тачпада).
 
 ## Documentation
 

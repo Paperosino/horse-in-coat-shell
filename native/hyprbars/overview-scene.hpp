@@ -173,6 +173,25 @@ class Scene {
             info.cancelled = true;
             if (!m_stacking && event.delta != 0) dispatch(event.delta > 0 ? "overviewJ" : "overviewK");
         });
+        // Navigation while overview is open belongs to the scene. Letting the
+        // same swipe reach scroll_move/workspace would move the hidden desktop.
+        m_swipeBegin = Event::bus()->m_events.gesture.swipe.begin.listen([this](IPointer::SSwipeBeginEvent event, Event::SCallbackInfo& info) {
+            m_swipeOwned = acceptsInput() && HyprstackCamera::cameras && HyprstackCamera::cameras->navigationFingers(event.fingers);
+            m_swipeDelta = {};
+            if (m_swipeOwned) info.cancelled = true;
+        });
+        m_swipeUpdate = Event::bus()->m_events.gesture.swipe.update.listen([this](IPointer::SSwipeUpdateEvent event, Event::SCallbackInfo& info) {
+            if (!m_swipeOwned) return;
+            info.cancelled = true;
+            m_swipeDelta += event.delta;
+        });
+        m_swipeEnd = Event::bus()->m_events.gesture.swipe.end.listen([this](IPointer::SSwipeEndEvent event, Event::SCallbackInfo& info) {
+            if (!std::exchange(m_swipeOwned, false)) return;
+            info.cancelled = true;
+            if (!acceptsInput() || event.cancelled || std::max(std::abs(m_swipeDelta.x), std::abs(m_swipeDelta.y)) < 40) return;
+            if (std::abs(m_swipeDelta.x) > std::abs(m_swipeDelta.y)) dispatch(m_swipeDelta.x < 0 ? "overviewL" : "overviewH");
+            else if (!m_stacking) dispatch(m_swipeDelta.y < 0 ? "overviewJ" : "overviewK");
+        });
         m_timer = makeShared<CEventLoopTimer>(std::nullopt, [this](SP<CEventLoopTimer> timer, void*) {
             const auto monitor = m_monitor.lock();
             if (!m_running || !monitor) { reset(); return; }
@@ -574,7 +593,9 @@ class Scene {
     Json m_input=Json::object();
     std::set<uint32_t> m_keys,m_buttons;
     SP<CEventLoopTimer> m_timer;
-    CHyprSignalListener m_key,m_move,m_button,m_axis,m_render,m_unmap;
+    CHyprSignalListener m_key,m_move,m_button,m_axis,m_render,m_unmap,m_swipeBegin,m_swipeUpdate,m_swipeEnd;
+    bool m_swipeOwned = false;
+    Vector2D m_swipeDelta;
 };
 static UP<Scene> scene;
 using RectDraw = void (*)(Render::GL::CHyprOpenGLImpl*, const CBox&, const CHyprColor&, Render::GL::CHyprOpenGLImpl::SRectRenderData);

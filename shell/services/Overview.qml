@@ -192,6 +192,7 @@ Singleton {
     }
 
     CustomShortcut { name: "overview"; description: "Toggle window overview"; onPressed: root.toggle() }
+    CustomShortcut { name: "overviewOpen"; description: "Open window overview"; onPressed: if (!root.active) root.toggle() }
     CustomShortcut { name: "overviewH"; description: "Overview left"; onPressed: root.navigate("H") }
     CustomShortcut { name: "overviewJ"; description: "Overview down"; onPressed: root.navigate("J") }
     CustomShortcut { name: "overviewK"; description: "Overview up"; onPressed: root.navigate("K") }
