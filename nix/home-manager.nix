@@ -22,7 +22,29 @@ in {
       source = "${package}/share/hyprstack/shell/assets/hyprland/config";
       recursive = true;
     };
-    xdg.configFile."hyprstack/hypr-user.lua".source = "${package}/share/hyprstack/defaults/hyprstack/hypr-user.lua";
+    # The compositor can start without sourcing hm-session-vars.sh (for example
+    # from a display manager). Resolve its runtime from this generation directly.
+    xdg.configFile."hyprstack/hypr-user.lua".text = ''
+      hl.env("HYPRSTACK_DATA_DIR", "${package}/share/hyprstack")
+      hl.env("HYPRSTACK_SESSION_COMMAND", "${package}/bin/hyprstack-session")
+      dofile("${package}/share/hyprstack/defaults/hyprstack/hypr-user.lua")
+    '';
+
+    systemd.user.services.hyprstack-session = {
+      Unit = {
+        Description = "Hyprstack desktop session";
+        PartOf = [ "graphical-session.target" ];
+        ConditionEnvironment = "HYPRLAND_INSTANCE_SIGNATURE";
+      };
+      Service = {
+        Type = "simple";
+        ExecStart = "${package}/bin/hyprstack-session-runner";
+        Restart = "on-failure";
+        RestartSec = 3;
+        TimeoutStopSec = 10;
+        KillMode = "process";
+      };
+    };
 
     # GUI-editable preferences stay ordinary user files. Only missing defaults
     # are created, so activation preserves monitor rules and local overrides.

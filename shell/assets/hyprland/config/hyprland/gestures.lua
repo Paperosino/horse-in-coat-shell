@@ -22,15 +22,11 @@ hl.gesture({ fingers = vars.gestureFingers, direction = "horizontal", action = "
 hl.gesture({ fingers = vars.workspaceSwipeFingers, direction = "vertical", action = "workspace" })
 
 local function overview(open)
-    local distance = 0
-    return {
-        start = function() distance = 0 end,
-        update = function(event) distance = distance + event.delta.y end,
-        finish = function(event)
-            if event.cancelled or (open and distance > -40) or (not open and distance < 40) then return end
-            hl.dispatch(hl.dsp.global("hyprstack:" .. (open and "overviewOpen" or "overviewAccept")))
-        end,
-    }
+    -- Function actions work with the pinned Hyprland package on both Arch and
+    -- NixOS, including builds without lifecycle callback table support.
+    return function()
+        hl.dispatch(hl.dsp.global("hyprstack:" .. (open and "overviewOpen" or "overviewAccept")))
+    end
 end
 
 hl.gesture({

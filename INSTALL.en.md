@@ -132,6 +132,11 @@ The Nix build retains the compositor ABI check.
      };
      ```
 
+     Use the same `hyprstack` input as the system module in step 2, which provides
+     matching Hyprland and PAM. The Home Manager module installs user configuration
+     and the shell service. Lua paths refer directly to the Nix package, so starting
+     from a display manager does not require manually exported environment variables.
+
    - **Without Home Manager:** clone the source and follow the backup and
      configuration placement commands in step 5 below. Skip CMake and the
      `~/.local` program installation; the NixOS module already installs the programs.
