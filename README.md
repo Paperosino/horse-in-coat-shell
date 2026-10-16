@@ -30,9 +30,6 @@ Hyprstack объединяет скроллинг-тайлинг и привыч
 
 ![lavat, Cava и pipes: смена тем и переключение stacking / tiling](docs/media/showcase.gif)
 
-Kanagawa, Tokyo Night и Catppuccin Latte. Из плавающих окон в скроллинг-тайлинг
-и обратно — `Super+Ctrl+Shift+M`.
-
 <table>
   <tr>
     <td align="center" width="50%"><img src="docs/media/dashboard.gif" width="100%" alt="Открытие дашборда с календарём, медиаплеером и виджетами"><br>Дашборд · календарь, медиа и виджеты</td>
@@ -42,13 +39,10 @@ Kanagawa, Tokyo Night и Catppuccin Latte. Из плавающих окон в �
     <td align="center"><img src="docs/media/customization.gif" width="100%" alt="Настройка прозрачности, теней и масштаба интерфейса с видимым результатом"><br>Настройки · прозрачность, тени и масштаб</td>
     <td align="center"><img src="docs/media/overview.gif" width="100%" alt="Обзор открытых окон в светлой теме Catppuccin Latte"><br>Обзор пространства · все окна перед глазами</td>
   </tr>
+  <tr>
+    <td align="center"><img src="docs/media/trackpad-swipes.gif" width="100%" alt="Прокрутка колонок и рабочих столов, навигация в обзоре жестами тачпада"><br>Жесты тачпада</td>
+  </tr>
 </table>
-
-![Жесты тачпада: прокрутка колонок и рабочих столов, открытие и навигация в обзоре](docs/media/trackpad-swipes.gif)
-
-Три пальца — прокрутка, четыре — открытие и закрытие обзора.
-[Видео MP4 · 1280×800 · 60 кадров/с](docs/media/trackpad-swipes.mp4).
-Записано в работающем Hyprstack с эмулируемым вводом; точки показывают касания.
 
 ## Возможности
 

@@ -30,9 +30,6 @@ system language are available in settings.
 
 ![lavat, Cava and pipes: theme transitions and switching between stacking and tiling](docs/media/showcase.gif)
 
-Kanagawa, Tokyo Night and Catppuccin Latte. Switch between floating windows
-and scrolling tiling with `Super+Ctrl+Shift+M`.
-
 <table>
   <tr>
     <td align="center" width="50%"><img src="docs/media/dashboard.gif" width="100%" alt="Opening the dashboard with its calendar, media player and widgets"><br>Dashboard · calendar, media and widgets</td>
@@ -42,13 +39,10 @@ and scrolling tiling with `Super+Ctrl+Shift+M`.
     <td align="center"><img src="docs/media/customization.gif" width="100%" alt="Adjusting interface transparency, shadows and scale with visible results"><br>Settings · transparency, shadows and scale</td>
     <td align="center"><img src="docs/media/overview.gif" width="100%" alt="Window overview in the light Catppuccin Latte theme"><br>Overview · every window in sight</td>
   </tr>
+  <tr>
+    <td align="center"><img src="docs/media/trackpad-swipes.gif" width="100%" alt="Scrolling columns and workspaces and navigating overview with touchpad gestures"><br>Touchpad gestures</td>
+  </tr>
 </table>
-
-![Touchpad gestures: scrolling columns and workspaces, opening and navigating the overview](docs/media/trackpad-swipes.gif)
-
-Three fingers scroll; four fingers open and close the overview.
-[MP4 video · 1280×800 · 60 fps](docs/media/trackpad-swipes.mp4).
-Recorded in a running Hyprstack session with emulated input; dots show contacts.
 
 ## Features
 
