@@ -15,14 +15,10 @@
   <a href="#demo">Demo</a>
 </p>
 
-Hyprstack combines scrolling tiling with a familiar floating desktop.
-Switch between them with a single shortcut: each mode remembers your window
-layout. The taskbar, launcher, notifications and settings share a consistent
-interface.
-
-The shell uses QML and C++ with Quickshell. Hyprland integration uses Lua and
-a native extension. Russian is the default interface language; English and the
-system language are available in settings.
+Hyprstack is a Hyprland shell with scrolling tiling and floating windows.
+Switch modes with a single shortcut; each mode remembers your window layout.
+Russian is the default language; English and the system language are available
+in settings.
 
 <a id="demo"></a>
 
@@ -46,68 +42,31 @@ system language are available in settings.
 
 ## Features
 
-- **Scrolling and stacking.** A keyboard-driven window strip and a floating mode
-  with titlebars, minimise and maximise controls. Window sizes and positions
-  are restored when switching modes. In tiling, focus follows the pointer by
-  default: hover over a window to focus it.
-- **Overview.** Window and workspace previews, window selection and workspace
-  navigation. Stacking also provides an Alt+Tab switcher with thumbnails.
+- **Scrolling and stacking.** A strip of columns and floating windows with
+  titlebars, minimise and maximise controls. In tiling, focus follows the pointer.
+- **Overview.** Window and workspace thumbnails. Stacking includes an Alt+Tab
+  switcher with window previews.
 - **Taskbar.** Application groups, pinned apps, window previews, workspaces and
   a system tray, with configurable items and placement.
 - **Search and launch.** Applications, calculator, clipboard history, themes
   and wallpapers.
 - **Notifications.** History, grouping, actions and Do Not Disturb.
-- **System controls.** Audio, microphone, networking, Bluetooth, media players,
-  screenshots and recording. Features depend on available services and devices.
-- **Dashboard.** Calendar, media controls and system status. Weather is opt-in,
-  with city selection and two providers.
+- **System controls.** Audio, networking, Bluetooth, screenshots and recording.
+- **Dashboard.** Calendar, media controls, system status and weather.
 - **Appearance.** 18 built-in colour themes, light and dark modes, accents,
   interface scaling, gaps, corners, transparency and animations.
-- **Lock and authentication.** Screen locking through a system PAM service
-  and a themed, built-in Polkit agent.
-
-## Requirements and compatibility
-
-Current source version: **1.1.1**.
-
-| Component | Requirement |
-| --- | --- |
-| Session | Linux, Wayland, **Hyprland 0.56.2** |
-| Shell runtime | **Quickshell ≥ 0.3.1**, with Hyprland, PAM and Polkit modules |
-| Qt | **6.9 or newer**, including matching Qt Quick private headers |
-| Build tools | CMake ≥ 3.22, Ninja, pkg-config, a C++23 compiler |
-| Helpers | Python ≥ 3.10, Pillow, gettext |
-
-Build the native extension on the target computer against its installed Hyprland.
-Version **0.56.2 is required**: a newer compositor is not automatically compatible.
-Rebuild after an ABI change; do not reuse `.so` files from another system.
-
-Supported platforms are **Arch Linux and Arch-based distributions**
-(CachyOS, EndeavourOS, Manjaro), plus **NixOS**. Desktop build and graphical checks
-have been run on CachyOS. NixOS has a package and NixOS/Home Manager modules using
-one dependency set. Required versions are checked in every case; an Arch-based
-distribution can still ship an incompatible package branch. Fedora, Debian/Ubuntu
-and openSUSE are outside the supported platforms.
+- **Lock and authentication.** PAM screen lock and a built-in Polkit agent.
 
 ## Installation
 
-1. Prepare dependencies for your system:
-   [Arch / CachyOS / EndeavourOS / Manjaro](INSTALL.en.md#arch)
-   or [NixOS](INSTALL.en.md#nixos).
-2. Check the Hyprland, Quickshell and Qt versions.
-3. On Arch-based systems, download and build Hyprstack as your regular user.
-   On NixOS, add the package and module to your Nix configuration.
-4. Back up your configuration, copy the files and log into Hyprland.
-5. Run `hyprstack-doctor` and choose your preferred applications.
+- [Arch Linux / CachyOS / EndeavourOS / Manjaro](INSTALL.en.md#arch) — dependencies,
+  build and configuration files.
+- [NixOS](INSTALL.en.md#nixos) — package and NixOS/Home Manager modules.
 
-**Follow the commands in [INSTALL.en.md](INSTALL.en.md), in order.**
+Requires **Hyprland 0.56.2**, **Quickshell ≥ 0.3.1**, **Qt ≥ 6.9**.
+Rebuild the native extension after a Hyprland ABI change.
 
-To update an Arch-based installation, log out of Hyprland and run `./update.sh`
-from the source directory in a TTY. It builds the project, backs up existing
-files and preserves your preferences. [Update guide (Russian)](MAINTENANCE.md#обновление).
-
-Fonts, Material Symbols and M3Shapes are included.  Weather, blur and the audio visualiser
-are disabled by default.
+[Updates and recovery (Russian)](MAINTENANCE.md#обновление).
 
 ## Getting started
 
@@ -125,9 +84,8 @@ are disabled by default.
 | `Super+Q` | Close the window |
 | `Ctrl+Super+L` | Lock the session |
 
-`Super` usually means the Windows logo key. Shortcuts and default applications
-are configurable; the shell settings contain the full list. To switch the
-interface to English, open **Язык и регион → Язык интерфейса** and select English.
+The full shortcut list with search is in **Сочетания клавиш** (Keybindings).
+To switch to English, open **Язык и регион → Язык интерфейса** and select English.
 
 In scrolling mode, swipe horizontally with three fingers to scroll columns and
 vertically to switch workspaces. Swipe up with four fingers to open overview;
@@ -136,7 +94,6 @@ swipe down to activate the selection and close it.
 
 ## Documentation
 
-- [Installation on Arch-based systems and NixOS](INSTALL.en.md)
 - [Configuration, shortcuts, themes and weather (Russian)](CONFIGURATION.md)
 - [Updates, diagnostics and manual removal (Russian)](MAINTENANCE.md)
 - [Third-party components and licences](THIRD_PARTY.md)
@@ -148,5 +105,5 @@ The project uses [Quickshell](https://quickshell.org/),
 [Hyprland](https://hypr.land/), a modified hyprbars and
 [M3Shapes](https://github.com/soramanew/m3shapes).
 
-The main licence is [GPL-3.0](LICENSE). Bundled component and font licences
-and their origins are preserved in [THIRD_PARTY.md](THIRD_PARTY.md).
+Licence: [GPL-3.0](LICENSE). Component and font licences are listed
+in [THIRD_PARTY.md](THIRD_PARTY.md).
