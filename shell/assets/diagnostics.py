@@ -22,7 +22,7 @@ def capture(command):
 
 def checks():
     home = Path.home()
-    data = Path(os.environ.get("XDG_DATA_HOME", home / ".local/share")) / "hyprstack"
+    data = Path(os.environ.get("HYPRSTACK_DATA_DIR", Path(os.environ.get("XDG_DATA_HOME", home / ".local/share")) / "hyprstack"))
     version_text = capture(["Hyprland", "--version-json"])
     try: version = json.loads(version_text or "{}")
     except ValueError: version = {}

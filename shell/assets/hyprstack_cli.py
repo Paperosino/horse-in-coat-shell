@@ -238,10 +238,149 @@ def recording_status():
         alive = data.get("running") and proc_identity(data.get("pid")) == data.get("identity") and data.get("identity") is not None
         if alive:
             data["elapsed"] = max(0, (data.get("paused_at") or time.time()) - data["started"] - data.get("pause_duration", 0))
+            data["state"] = "paused" if data.get("paused") else "recording"
             return data
     except (OSError, ValueError, KeyError, TypeError):
         pass
-    return {"running": False, "paused": False, "elapsed": 0}
+    try:
+        pending = json.loads((STATE / "record/start.json").read_text())
+        if pending.get("identity") is not None and proc_identity(pending.get("pid")) == pending["identity"]:
+            return {**pending, "running": False, "paused": False, "elapsed": 0}
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return {"running": False, "paused": False, "elapsed": 0, "state": "idle"}
+
+
+def recording_output(geometry=None):
+    monitors = json.loads(subprocess.check_output(["hyprctl", "-j", "monitors"], text=True, timeout=5))
+    outputs = [monitor for monitor in monitors if isinstance(monitor, dict) and
+               isinstance(monitor.get("name"), str) and monitor["name"] and not monitor.get("disabled")]
+    if not outputs:
+        raise ValueError(_("No monitor is available for recording"))
+    focused = next((monitor for monitor in outputs if monitor.get("focused")), outputs[0])
+    if geometry is None:
+        return focused["name"]
+    match = re.fullmatch(r"(-?\d+),(-?\d+)\s+(\d+)x(\d+)", geometry)
+    if not match:
+        raise ValueError(_("Invalid recording region"))
+    x, y, width, height = map(int, match.groups())
+    if width <= 0 or height <= 0:
+        raise ValueError(_("Invalid recording region"))
+    def overlap(monitor):
+        mw, mh = monitor["width"], monitor["height"]
+        if monitor.get("transform", 0) % 2:
+            mw, mh = mh, mw
+        scale = max(float(monitor.get("scale", 1)), .01)
+        left, top = monitor.get("x", 0), monitor.get("y", 0)
+        return max(0, min(x + width, left + mw / scale) - max(x, left)) * \
+               max(0, min(y + height, top + mh / scale) - max(y, top))
+    selected = max(outputs, key=lambda monitor: (overlap(monitor), monitor is focused))
+    if not overlap(selected):
+        raise ValueError(_("The recording region is outside the available monitors"))
+    return selected["name"]
+
+
+class RecordingCancelled(Exception):
+    pass
+
+
+def stop_owned_process(process, timeout=2):
+    if process is None or process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
+
+
+def start_recording(args):
+    if not shutil.which("wf-recorder"):
+        raise ValueError(_("Install wf-recorder to record your screen"))
+    state_dir = STATE / "record"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    with (state_dir / "start.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return
+        # Another launcher may have completed after our initial status query.
+        if recording_status()["running"]:
+            return
+        selector, worker, ready = None, None, False
+        pending = state_dir / "start.json"
+        deferred_cancel = False
+        def cancel(signum, frame):
+            raise RecordingCancelled()
+        def defer_cancel(signum, frame):
+            nonlocal deferred_cancel
+            deferred_cancel = True
+        previous = {sig: signal.signal(sig, cancel) for sig in (signal.SIGTERM, signal.SIGINT)}
+        try:
+            state = {"pid": os.getpid(), "identity": proc_identity(os.getpid()),
+                     "state": "selecting" if args.region == "slurp" else "starting"}
+            themes.atomic_json(pending, state)
+            geometry = args.region
+            if geometry == "slurp":
+                # Keep the child handle so both Escape and SIGTERM can cancel
+                # the selector without leaving a layer-shell surface behind.
+                # Keep selector signals unblocked while deferring parent
+                # cancellation until its child handle has been assigned.
+                for sig in previous:
+                    signal.signal(sig, defer_cancel)
+                try:
+                    selector = subprocess.Popen(["slurp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                finally:
+                    for sig in previous:
+                        signal.signal(sig, cancel)
+                if deferred_cancel:
+                    raise RecordingCancelled()
+                geometry, error = selector.communicate(timeout=120)
+                if selector.returncode:
+                    return
+                geometry = geometry.strip()
+                if not geometry:
+                    return
+            output = recording_output(geometry)
+            directory = Path(os.environ.get("HYPRSTACK_RECORDINGS_DIR", xdg_directory("VIDEOS") / "Recordings"))
+            directory.mkdir(parents=True, exist_ok=True)
+            target = directory / ("recording_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f") + ".mp4")
+            command = ["wf-recorder", "-o", output, "-f", str(target)]
+            if args.sound:
+                command.append("--audio")
+            if geometry:
+                command += ["-g", geometry]
+            themes.atomic_json(pending, {**state, "state": "starting"})
+            # Defer cancellation across Popen and handle assignment. Otherwise
+            # a signal at that boundary could detach an unowned worker.
+            mask = signal.pthread_sigmask(signal.SIG_BLOCK, previous)
+            try:
+                worker = subprocess.Popen([sys.executable, __file__, "--record-worker", *command], start_new_session=True,
+                                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            finally:
+                signal.pthread_sigmask(signal.SIG_SETMASK, mask)
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                if recording_status()["running"]:
+                    ready = True
+                    print(target)
+                    return
+                if worker.poll() is not None:
+                    break
+                time.sleep(.05)
+            raise ValueError(_("Recorder could not start; see %1").replace("%1", str(state_dir / "recorder.log")))
+        except RecordingCancelled:
+            return
+        finally:
+            for sig in previous:
+                signal.signal(sig, signal.SIG_IGN)
+            stop_owned_process(selector)
+            if not ready:
+                stop_owned_process(worker, timeout=13)
+            pending.unlink(missing_ok=True)
+            for sig, handler in previous.items():
+                signal.signal(sig, handler)
 
 
 def record_worker(command):
@@ -260,6 +399,9 @@ def record_worker(command):
             previous_fd = signal.set_wakeup_fd(writefd)
             previous = {sig: signal.signal(sig, lambda signum, frame: None)
                         for sig in (signal.SIGCHLD, signal.SIGTERM, signal.SIGINT)}
+            # The launcher defers cancellation across fork/exec. Restore these
+            # signals after installing our handlers, before spawning recorder.
+            signal.pthread_sigmask(signal.SIG_UNBLOCK, (signal.SIGTERM, signal.SIGINT))
             try:
                 signature = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
                 runtime = os.environ.get("XDG_RUNTIME_DIR", "")
@@ -269,6 +411,10 @@ def record_worker(command):
                     event = socket.socket(socket.AF_UNIX)
                     event.connect(str(Path(runtime) / "hypr" / signature / ".socket2.sock"))
                 process = subprocess.Popen(command, stdout=log, stderr=log)
+                try:
+                    return process.wait(timeout=.15)
+                except subprocess.TimeoutExpired:
+                    pass
                 data = {"running": True, "paused": False, "pid": process.pid, "identity": proc_identity(process.pid),
                         "started": time.time(), "pause_duration": 0, "path": command[command.index("-f") + 1]}
                 themes.atomic_json(path, data)
@@ -331,6 +477,15 @@ def record_command(args):
     if args.status:
         print(json.dumps(data))
         return
+    if data.get("state") in ("selecting", "starting"):
+        if args.stop:
+            signal_recording(data, signal.SIGTERM)
+            deadline = time.monotonic() + 15
+            while proc_identity(data["pid"]) == data["identity"] and time.monotonic() < deadline:
+                time.sleep(.05)
+            if proc_identity(data["pid"]) == data["identity"]:
+                raise ValueError(_("The recording selection could not be cancelled"))
+        return
     if data["running"]:
         if args.pause:
             signal_recording(data, signal.SIGCONT if data["paused"] else signal.SIGSTOP)
@@ -344,31 +499,16 @@ def record_command(args):
             if data["paused"]:
                 signal_recording(data, signal.SIGCONT)
             signal_recording(data, signal.SIGINT)
+            if args.stop:
+                deadline = time.monotonic() + 12
+                while recording_status()["running"] and time.monotonic() < deadline:
+                    time.sleep(.05)
+                if recording_status()["running"]:
+                    raise ValueError(_("The recording could not be stopped"))
         return
     if args.pause or args.stop:
         return
-    if not shutil.which("wf-recorder"):
-        raise ValueError(_("Install wf-recorder to record your screen"))
-    directory = Path(os.environ.get("HYPRSTACK_RECORDINGS_DIR", xdg_directory("VIDEOS") / "Recordings"))
-    directory.mkdir(parents=True, exist_ok=True)
-    target = directory / ("recording_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f") + ".mp4")
-    command = ["wf-recorder", "-f", str(target)]
-    if args.sound:
-        command += ["--audio"]
-    if args.region:
-        geometry = subprocess.check_output(["slurp"], text=True, timeout=120).strip() if args.region == "slurp" else args.region
-        if not geometry:
-            return
-        command += ["-g", geometry]
-    subprocess.Popen([sys.executable, __file__, "--record-worker", *command], start_new_session=True,
-                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    deadline = time.monotonic() + 5
-    while time.monotonic() < deadline:
-        if recording_status()["running"]:
-            print(target)
-            return
-        time.sleep(.05)
-    raise ValueError(_("Recorder could not start; see %1").replace("%1", str(STATE / "record/recorder.log")))
+    start_recording(args)
 
 
 def parser():

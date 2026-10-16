@@ -791,7 +791,7 @@ end
 
 local script_dir = debug.getinfo(1, "S").source:sub(2):match("(.*/)")
 local plugin_path = os.getenv("HYPRSTACK_TITLEBAR_PLUGIN") or read(config_dir .. "/titlebars.json").path or
-    (os.getenv("XDG_DATA_HOME") or os.getenv("HOME") .. "/.local/share") .. "/hyprstack/native/hyprstack-bars.so"
+    (os.getenv("HYPRSTACK_DATA_DIR") or (os.getenv("XDG_DATA_HOME") or os.getenv("HOME") .. "/.local/share") .. "/hyprstack") .. "/native/hyprstack-bars.so"
 local plugin_file = io.open(plugin_path, "r")
 if plugin_file then plugin_file:close(); hl.plugin.load(plugin_path) end
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-data_dir=${XDG_DATA_HOME:-$HOME/.local/share}
-export HYPRSTACK_SHELL_DIR=${HYPRSTACK_SHELL_DIR:-$data_dir/hyprstack/shell}
-export QML_IMPORT_PATH="$data_dir/hyprstack/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
-export QML2_IMPORT_PATH="$data_dir/hyprstack/qml${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
-export HYPRSTACK_LIB_DIR="$data_dir/hyprstack/lib"
+data_dir=${HYPRSTACK_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/hyprstack}
+export HYPRSTACK_SHELL_DIR=${HYPRSTACK_SHELL_DIR:-$data_dir/shell}
+export QML_IMPORT_PATH="$data_dir/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
+export QML2_IMPORT_PATH="$data_dir/qml${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
+export HYPRSTACK_LIB_DIR="$data_dir/lib"
 export PATH="$HOME/.local/bin:$PATH"
 export PYTHONDONTWRITEBYTECODE=1
 exec qs --path "$HYPRSTACK_SHELL_DIR" --no-duplicate "$@"

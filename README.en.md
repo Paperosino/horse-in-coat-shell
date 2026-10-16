@@ -81,19 +81,21 @@ Build the native extension on the target computer against its installed Hyprland
 Version **0.56.2 is required**: a newer compositor is not automatically compatible.
 Rebuild after an ABI change; do not reuse `.so` files from another system.
 
-Build and graphical checks have been run on CachyOS. Dependency instructions
-are provided for other distributions; a complete installation has not yet been
-verified on each one. Repositories with another Hyprland version or an older Qt
-require a compatible stack first.
+Supported platforms are **Arch Linux and Arch-based distributions**
+(CachyOS, EndeavourOS, Manjaro), plus **NixOS**. Desktop build and graphical checks
+have been run on CachyOS. NixOS has a package and NixOS/Home Manager modules using
+one dependency set. Required versions are checked in every case; an Arch-based
+distribution can still ship an incompatible package branch. Fedora, Debian/Ubuntu
+and openSUSE are outside the supported platforms.
 
 ## Installation
 
 1. Prepare dependencies for your system:
-   [Arch / CachyOS / EndeavourOS / Manjaro](INSTALL.en.md#arch),
-   [Fedora](INSTALL.en.md#fedora), [Debian / Ubuntu](INSTALL.en.md#debian-ubuntu)
-   or [openSUSE](INSTALL.en.md#opensuse).
+   [Arch / CachyOS / EndeavourOS / Manjaro](INSTALL.en.md#arch)
+   or [NixOS](INSTALL.en.md#nixos).
 2. Check the Hyprland, Quickshell and Qt versions.
-3. Download this repository and build Hyprstack as your regular user.
+3. On Arch-based systems, download and build Hyprstack as your regular user.
+   On NixOS, add the package and module to your Nix configuration.
 4. Back up your configuration, copy the files and log into Hyprland.
 5. Run `hyprstack-doctor` and choose your preferred applications.
 
@@ -124,7 +126,7 @@ interface to English, open **Язык и регион → Язык интерф�
 
 ## Documentation
 
-- [Installation and distribution dependencies](INSTALL.en.md)
+- [Installation on Arch-based systems and NixOS](INSTALL.en.md)
 - [Configuration, shortcuts, themes and weather (Russian)](CONFIGURATION.md)
 - [Updates, diagnostics and manual removal (Russian)](MAINTENANCE.md)
 - [Third-party components and licences](THIRD_PARTY.md)

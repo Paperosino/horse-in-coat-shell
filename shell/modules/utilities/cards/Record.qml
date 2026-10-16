@@ -15,7 +15,7 @@ StyledRect {
 
     required property var props
     required property ScreenState screenState
-    readonly property real nonAnimHeight: btnLayout.implicitHeight + listOrControls.implicitHeight + layout.spacing + layout.anchors.margins * 2
+    readonly property real nonAnimHeight: btnLayout.implicitHeight + listOrControls.implicitHeight + layout.spacing + layout.anchors.margins * 2 + (errorText.visible ? errorText.implicitHeight + layout.spacing : 0)
 
     implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
 
@@ -72,7 +72,7 @@ StyledRect {
 
                 StyledText {
                     Layout.fillWidth: true
-                    text: Recorder.paused ? Tr.trCtx("Paused", "recorder state") : Recorder.running ? Tr.trCtx("Running...", "recorder state") : Tr.trCtx("Ready", "recorder state")
+                    text: Recorder.state === "selecting" ? Tr.tr("Select an area…") : Recorder.state === "starting" ? Tr.tr("Starting…") : Recorder.state === "stopping" ? Tr.tr("Stopping…") : Recorder.paused ? Tr.trCtx("Paused", "recorder state") : Recorder.running ? Tr.trCtx("Running...", "recorder state") : Tr.trCtx("Ready", "recorder state")
                     color: Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.body.small
                     elide: Text.ElideRight
@@ -81,7 +81,7 @@ StyledRect {
             }
 
             SplitButton {
-                disabled: Recorder.running
+                disabled: Recorder.busy
 
                 active: menuItems.find(m => root.props.recordingMode === m.icon + m.text) ?? menuItems[0]
                 menu.onItemSelected: item => root.props.recordingMode = item.icon + item.text
@@ -118,12 +118,12 @@ StyledRect {
         Loader {
             id: listOrControls
 
-            property bool running: Recorder.running
+            property bool controlsVisible: Recorder.busy
 
             asynchronous: true
             Layout.fillWidth: true
             Layout.preferredHeight: implicitHeight
-            sourceComponent: running ? recordingControls : recordingList
+            sourceComponent: controlsVisible ? recordingControls : recordingList
             clip: Layout.preferredHeight < implicitHeight
 
             Behavior on Layout.preferredHeight {
@@ -134,7 +134,7 @@ StyledRect {
                 Anim {}
             }
 
-            Behavior on running {
+            Behavior on controlsVisible {
                 SequentialAnimation {
                     Anim {
                         target: listOrControls
@@ -169,6 +169,17 @@ StyledRect {
                 }
             }
         }
+
+        StyledText {
+            id: errorText
+
+            visible: text !== ""
+            Layout.fillWidth: true
+            text: Recorder.lastError
+            color: Colours.palette.m3error
+            font: Tokens.font.body.small
+            wrapMode: Text.Wrap
+        }
     }
 
     Component {
@@ -198,7 +209,7 @@ StyledRect {
 
                     anchors.centerIn: parent
                     animate: true
-                    text: Recorder.paused ? Tr.trCtx("PAUSED", "recording status") : Tr.trCtx("REC", "recording status")
+                    text: !Recorder.running ? Tr.tr("Pending") : Recorder.paused ? Tr.trCtx("PAUSED", "recording status") : Tr.trCtx("REC", "recording status")
                     color: Recorder.paused ? Colours.palette.m3onTertiary : Colours.palette.m3onError
                     font: Tokens.font.mono.small
                 }
@@ -208,7 +219,7 @@ StyledRect {
                 }
 
                 SequentialAnimation on opacity {
-                    running: !Recorder.paused
+                    running: Recorder.running && !Recorder.paused
                     alwaysRunToEnd: true
                     loops: Animation.Infinite
 
@@ -230,6 +241,8 @@ StyledRect {
             StyledText {
                 Layout.fillWidth: true
                 text: {
+                    if (!Recorder.running)
+                        return Recorder.state === "selecting" ? Tr.tr("Select an area…") : Recorder.state === "stopping" ? Tr.tr("Stopping…") : Tr.tr("Starting…");
                     const elapsed = Recorder.elapsed;
 
                     const hours = Math.floor(elapsed / 3600);
@@ -253,6 +266,8 @@ StyledRect {
                 spacing: Tokens.spacing.extraSmall
 
                 IconButton {
+                    visible: Recorder.running
+                    enabled: !Recorder.controlBusy
                     shapeMorph: true
                     isRound: true
                     label.animate: true
@@ -276,9 +291,10 @@ StyledRect {
                 }
 
                 IconButton {
+                    enabled: !Recorder.controlBusy
                     shapeMorph: true
                     isRound: true
-                    icon: "stop"
+                    icon: Recorder.running ? "stop" : "close"
                     inactiveColour: Colours.palette.m3error
                     inactiveOnColour: Colours.palette.m3onError
                     font: Tokens.font.icon.medium

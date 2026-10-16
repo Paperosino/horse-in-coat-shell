@@ -10,27 +10,69 @@ Singleton {
     readonly property alias running: props.running
     readonly property alias paused: props.paused
     readonly property alias elapsed: props.elapsed
+    readonly property alias state: props.state
+    readonly property bool busy: state !== "idle" || startProc.running || controlProc.running
+    readonly property bool controlBusy: controlProc.running || cancelRequested
     property int refCount: 0
-    property bool needsStart
+    property bool cancelRequested: false
     property list<string> startArgs
-    property bool needsStop
-    property bool needsPause
-    property var queriedState: ({running: false, paused: false, elapsed: 0})
+    property string lastError: ""
+    property string commandError: ""
+    property var queriedState: ({running: false, paused: false, elapsed: 0, state: "idle"})
+
+    function refresh(): void {
+        if (!checkProc.running)
+            checkProc.running = true;
+    }
+
+    function reconcile(): void {
+        const current = root.queriedState;
+        props.running = !!current.running;
+        props.paused = props.running && !!current.paused;
+        props.elapsed = props.running ? current.elapsed : 0;
+        if (root.cancelRequested)
+            props.state = "stopping";
+        else if (props.running)
+            props.state = props.paused ? "paused" : "recording";
+        else if (current.state === "selecting" || current.state === "starting")
+            props.state = current.state;
+        else if (startProc.running)
+            props.state = root.startArgs.includes("-r") || root.startArgs.includes("-sr") ? "selecting" : "starting";
+        else
+            props.state = "idle";
+    }
 
     function start(extraArgs = []): void {
-        needsStart = true;
-        startArgs = extraArgs;
-        checkProc.running = true;
+        if (root.busy)
+            return;
+        root.lastError = "";
+        root.commandError = "";
+        root.startArgs = extraArgs;
+        props.state = extraArgs.includes("-r") || extraArgs.includes("-sr") ? "selecting" : "starting";
+        startProc.exec(["hyprstack", "record", ...extraArgs]);
+    }
+
+    function finishStop(): void {
+        if (!controlProc.running)
+            controlProc.exec(["hyprstack", "record", "--stop"]);
     }
 
     function stop(): void {
-        needsStop = true;
-        checkProc.running = true;
+        if (root.controlBusy)
+            return;
+        root.cancelRequested = true;
+        props.state = "stopping";
+        if (startProc.running)
+            startProc.signal(15);
+        else
+            root.finishStop();
     }
 
     function togglePause(): void {
-        needsPause = true;
-        checkProc.running = true;
+        if (!props.running || root.controlBusy)
+            return;
+        root.commandError = "";
+        controlProc.exec(["hyprstack", "record", "--pause"]);
     }
 
     PersistentProperties {
@@ -38,7 +80,8 @@ Singleton {
 
         property bool running: false
         property bool paused: false
-        property real elapsed: 0 // Might get too large for int
+        property real elapsed: 0
+        property string state: "idle"
 
         reloadableId: "recorder"
     }
@@ -57,60 +100,69 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 try { root.queriedState = JSON.parse(text); }
-                catch (error) { root.queriedState = {running: false, paused: false, elapsed: 0}; }
+                catch (error) { root.queriedState = {running: false, paused: false, elapsed: 0, state: "idle"}; }
             }
         }
         onExited: code => { // qmllint disable signal-handler-parameters
-            const running = code === 0 && root.queriedState.running;
-
-            if (running && root.needsStop) {
-                commandProc.exec(["hyprstack", "record"]);
-                props.running = false;
-                props.paused = false;
-            } else if (running && root.needsPause) {
-                commandProc.exec(["hyprstack", "record", "-p"]);
-                props.paused = !props.paused;
-            } else if (!running && root.needsStart) {
-                commandProc.exec(["hyprstack", "record", ...root.startArgs]);
-                props.running = true;
-                props.paused = root.queriedState.paused;
-                props.elapsed = root.queriedState.elapsed;
-            } else if (!commandProc.running) {
-                // The recording was started/stopped outside the shell (e.g. via
-                // keybind), or our command finished without reaching the optimistic state
-                props.running = running;
-                props.paused = running && root.queriedState.paused;
-                props.elapsed = running ? root.queriedState.elapsed : 0;
-            }
-
-            root.needsStart = false;
-            root.needsStop = false;
-            root.needsPause = false;
+            if (code !== 0)
+                root.queriedState = {running: false, paused: false, elapsed: 0, state: "idle"};
+            root.reconcile();
         }
     }
 
     Process {
-        id: commandProc
+        id: startProc
 
-        // Reconcile with our recorder, including cancelled region selection.
-        onExited: checkProc.running = true // qmllint disable signal-handler-parameters
+        stderr: StdioCollector {
+            onStreamFinished: root.commandError = text.trim()
+        }
+        onStarted: {
+            if (root.cancelRequested)
+                startProc.signal(15);
+        }
+        onExited: code => { // qmllint disable signal-handler-parameters
+            if (root.cancelRequested)
+                root.finishStop();
+            else if (code !== 0)
+                root.lastError = root.commandError;
+            root.refresh();
+        }
+    }
+
+    Process {
+        id: controlProc
+
+        stderr: StdioCollector {
+            onStreamFinished: root.commandError = text.trim()
+        }
+        onExited: code => { // qmllint disable signal-handler-parameters
+            if (code !== 0)
+                root.lastError = root.commandError;
+            root.cancelRequested = false;
+            root.refresh();
+        }
     }
 
     FileView {
         path: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hyprstack/record/status.json`
         printErrors: false
         watchChanges: true
-        onFileChanged: { reload(); checkProc.running = true; }
+        onFileChanged: { reload(); root.refresh(); }
     }
 
-    // Only poll while something is showing the state, i.e. the utilities drawer is open
+    FileView {
+        path: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hyprstack/record/start.json`
+        printErrors: false
+        watchChanges: true
+        onFileChanged: { reload(); root.refresh(); }
+    }
+
     Timer {
-        interval: 1000
-        running: root.refCount > 0
+        interval: 500
+        running: root.refCount > 0 || root.busy
         repeat: true
         triggeredOnStart: true
-
-        onTriggered: checkProc.running = true
+        onTriggered: root.refresh()
     }
 
     Connections {

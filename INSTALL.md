@@ -21,9 +21,11 @@
 сначала завершите старый сеанс. После изменения его ABI пересоберите нативный
 модуль. Для версии Hyprland, отличной от 0.56.2, нужен совместимый выпуск Hyprstack.
 
-На CachyOS проверены сборка и работа интерфейса. Остальные разделы описывают
-подготовку зависимостей, а не подтверждённую поддержку каждого выпуска ОС.
-Не смешивайте пакеты разных выпусков дистрибутива ради одного компонента.
+Поддерживаемые семейства: **Arch Linux и основанные на нём дистрибутивы**,
+а также **NixOS**. Сборка и графические проверки на рабочем окружении выполнены
+на CachyOS; NixOS использует отдельный пакет и модули конфигурации. Fedora,
+Debian/Ubuntu и openSUSE в поддерживаемые платформы не входят. Не смешивайте
+пакеты разных выпусков ради одного компонента.
 
 ## 2. Установите зависимости своего дистрибутива
 
@@ -32,9 +34,9 @@ Network, DBus и ShaderTools, приватные заголовки Qt Quick, li
 заголовки Hyprland, pixman, libdrm, libinput, libudev, Wayland, xkbcommon и
 Pango/Cairo. M3Shapes, шрифты и Material Symbols уже включены в исходники.
 
-Сначала проверьте версии пакетов в своей ветке. **Команды установки Hyprland
+На Arch-based системах сначала проверьте версии пакетов в своей ветке. **Команды установки Hyprland
 ниже применимы только при наличии версии 0.56.2.** Если её нет, подготовьте
-совместимый стек по [документации Hyprland](https://wiki.hypr.land/Getting-Started/Installation/)
+совместимый стек для своей системы по [документации Hyprland](https://wiki.hypr.land/Getting-Started/Installation/)
 и [Quickshell](https://quickshell.org/docs/v0.3.0/guide/install-setup/), затем
 вернитесь к проверке в шаге 3. Hyprstack не добавляет сторонние репозитории.
 
@@ -55,7 +57,7 @@ Pango/Cairo. M3Shapes, шрифты и Material Symbols уже включены 
 
    ```bash
    sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
-     hyprland quickshell qt6-base qt6-declarative qt6-shadertools \
+     hyprland quickshell nlohmann-json qt6-base qt6-declarative qt6-shadertools \
      qt6-svg qt6-imageformats qt6-wayland libqalculate lm_sensors \
      pixman libdrm libinput systemd-libs wayland libxkbcommon pango cairo \
      python python-pillow
@@ -72,144 +74,82 @@ Pango/Cairo. M3Shapes, шрифты и Material Symbols уже включены 
 
 4. Перейдите к шагу 3 ниже.
 
-<a id="fedora"></a>
+<a id="nixos"></a>
 
-### Fedora
+### NixOS
 
-1. Проверьте пакеты, включая совпадение версии `hyprland-devel`:
+На NixOS используйте пакет этого репозитория: Hyprland, Quickshell и Qt берутся
+из одного зафиксированного nixpkgs. Нативный модуль собирается с заголовками
+того же Hyprland. Проверка ABI сохраняется и в Nix-сборке.
 
-   ```bash
-   dnf info hyprland hyprland-devel quickshell qt6-qtbase
+1. Добавьте вход в существующий `flake.nix` конфигурации NixOS:
+
+   ```nix
+   inputs.hyprstack.url = "github:hase9awa/hyprstack-shell";
    ```
 
-   Наличие подходящего Quickshell зависит от выпуска и подключённых
-   репозиториев. Если он отсутствует или старее 0.3.1, используйте варианты
-   установки из [официальной инструкции](https://quickshell.org/docs/v0.3.0/guide/install-setup/).
+2. В `outputs` передайте `hyprstack` и добавьте модуль в `modules` своей системы:
 
-2. Установите совместимый стек и инструменты:
-
-   ```bash
-   sudo dnf install git cmake ninja-build gcc-c++ pkgconf-pkg-config gettext \
-     hyprland hyprland-devel quickshell \
-     qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel \
-     qt6-qtshadertools-devel qt6-qtsvg qt6-qtimageformats qt6-qtwayland \
-     libqalculate-devel lm_sensors-devel python3-pillow \
-     pixman-devel libdrm-devel libinput-devel systemd-devel wayland-devel \
-     libxkbcommon-devel pango-devel cairo-devel
+   ```nix
+   outputs = { nixpkgs, hyprstack, ... }: {
+     nixosConfigurations.YOUR_HOST = nixpkgs.lib.nixosSystem {
+       modules = [
+         ./configuration.nix
+         hyprstack.nixosModules.default
+         { programs.hyprstack.enable = true; }
+       ];
+     };
+   };
    ```
 
-3. Установите программы оболочки:
+   Сохраните остальные входы, модули и параметры своей конфигурации. Модуль
+   включает совместимый Hyprland, PAM для hyprlock и пользовательскую службу
+   оболочки. Настройки мониторов, видеодрайверов, дисков и оборудования он не
+   задаёт. Не переопределяйте `programs.hyprland.package` другим пакетом:
+   проверка модуля отклонит несовпадение.
+
+3. Примените свою конфигурацию и войдите в новый сеанс:
 
    ```bash
-   sudo dnf install kitty firefox fuzzel btop pavucontrol qalculate \
-     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify \
-     brightnessctl NetworkManager pipewire pipewire-pulseaudio wireplumber \
-     polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2 adwaita-icon-theme
+   sudo nixos-rebuild switch --flake .#YOUR_HOST
    ```
 
-4. Перейдите к шагу 3 ниже. Имена и состав пакетов можно проверить в
-   [каталоге Fedora](https://packages.fedoraproject.org/pkgs/qt6-qtdeclarative/qt6-qtdeclarative-devel/).
+   Сеть в оболочке использует NetworkManager, звук — PipeWire/WirePlumber.
+   Включите нужные службы в своей конфигурации NixOS. Модуль не меняет выбранный
+   вами способ управления сетью или звуком.
 
-<a id="debian-ubuntu"></a>
+4. Разместите пользовательскую конфигурацию одним из способов:
 
-### Debian / Ubuntu
+   - **С Home Manager:** добавьте `hyprstack.homeManagerModules.default` в
+     `imports` пользовательского модуля и включите `programs.hyprstack.enable`.
+     Сначала сохраните существующие `~/.config/hypr` и
+     `~/.config/hyprstack/hypr-user.lua`: Home Manager не заменяет конфликтующие
+     файлы молча. Начальные настройки копируются только при отсутствии и
+     остаются доступными для изменения из интерфейса.
 
-1. Обновите сведения о пакетах и проверьте версии:
+     ```nix
+     home-manager.users.YOUR_USER = {
+       imports = [ hyprstack.homeManagerModules.default ];
+       programs.hyprstack.enable = true;
+     };
+     ```
 
-   ```bash
-   sudo apt update
-   apt-cache policy hyprland hyprland-dev quickshell qt6-base-dev
-   ```
+   - **Без Home Manager:** скачайте исходники и выполните команды резервного
+     копирования и размещения файлов из шага 5 ниже. Сборка CMake и установка
+     в `~/.local` не нужны — программы уже установлены модулем NixOS.
 
-   Ubuntu 24.04 и Debian 13 не подходят со штатным Qt. В Ubuntu 26.04 Qt
-   достаточно новый, но штатный Hyprland 0.53.3 не соответствует требованию
-   0.56.2. Testing/Unstable и более новые выпуски также требуют проверки версий.
-   Этот раздел предполагает, что совместимые Hyprland с заголовками и
-   Quickshell уже доступны из выбранного вами источника. Способ установки
-   Quickshell для Debian/Ubuntu описан у [авторов проекта](https://quickshell.org/docs/v0.3.0/guide/install-setup/).
+     ```bash
+     git clone https://github.com/hase9awa/hyprstack-shell.git
+     cd hyprstack-shell
+     ```
 
-2. Установите инструменты и заголовки:
+5. Войдите в Hyprland и выполните `hyprstack-doctor` и `hyprctl configerrors`.
+   При обновлении меняйте вход `hyprstack` в своей Nix-конфигурации, пересобирайте
+   систему и входите в новый сеанс. Home Manager управляет своими файлами:
+   не запускайте поверх них ручное копирование.
 
-   ```bash
-   sudo apt install build-essential git cmake ninja-build pkg-config gettext \
-     qt6-base-dev qt6-base-private-dev qt6-declarative-dev qt6-declarative-private-dev \
-     qt6-shadertools-dev libqt6svg6 qt6-image-formats-plugins qt6-wayland \
-     libqt6sql6-sqlite libqalculate-dev libsensors-dev python3 python3-pil \
-     libpixman-1-dev libdrm-dev libinput-dev libudev-dev libwayland-dev \
-     libxkbcommon-dev libpango1.0-dev libcairo2-dev
-   ```
-
-   При необходимости установите GCC ≥ 14 из репозиториев своего выпуска
-   и выберите его через `CXX` перед запуском CMake.
-
-3. При наличии именно совместимых пакетов установите стек:
-
-   ```bash
-   sudo apt install hyprland hyprland-dev quickshell
-   ```
-
-4. Установите модули QML: в Debian/Ubuntu они отделены от пакетов разработки.
-
-   ```bash
-   sudo apt install qml6-module-qtqml qml6-module-qtqml-models \
-     qml6-module-qtqml-workerscript qml6-module-qtquick \
-     qml6-module-qtquick-controls qml6-module-qtquick-layouts \
-     qml6-module-qtquick-effects qml6-module-qtquick-shapes \
-     qml6-module-qtquick-templates qml6-module-qtquick-window
-   ```
-
-5. Установите программы оболочки:
-
-   ```bash
-   sudo apt install kitty firefox fuzzel btop pavucontrol qalc \
-     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify-bin \
-     brightnessctl network-manager pipewire pipewire-pulse wireplumber \
-     polkitd hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2-utils adwaita-icon-theme
-   ```
-
-6. Перейдите к шагу 3 ниже. Сведения о штатных версиях Ubuntu:
-   [Hyprland](https://packages.ubuntu.com/search?keywords=hyprland),
-   [Qt](https://packages.ubuntu.com/search?keywords=qt6-base-dev).
-   Штатный Qt Debian: [пакет Debian 13](https://packages.debian.org/trixie/qt6-base-dev).
-
-<a id="opensuse"></a>
-
-### openSUSE Tumbleweed / Slowroll
-
-1. Проверьте версии и доступность пакетов:
-
-   ```bash
-   zypper info hyprland hyprland-devel quickshell qt6-base-devel
-   ```
-
-   Для Leap требования те же; наличие совместимого стека не предполагается.
-   Если Quickshell отсутствует, выберите источник или сборку по
-   [официальной инструкции](https://quickshell.org/docs/v0.3.0/guide/install-setup/).
-
-2. Установите совместимый стек и зависимости:
-
-   ```bash
-   sudo zypper install git cmake ninja gcc-c++ pkgconf-pkg-config gettext-tools \
-     hyprland hyprland-devel quickshell \
-     qt6-base-devel qt6-declarative-devel qt6-shadertools-devel \
-     qt6-core-private-devel qt6-gui-private-devel qt6-qml-private-devel qt6-quick-private-devel \
-     libQt6Svg6 qt6-imageformats qt6-wayland-integration qt6-sql-sqlite \
-     libqalculate-devel libsensors4-devel python3-Pillow \
-     pixman-devel libdrm-devel libinput-devel libudev-devel wayland-devel \
-     libxkbcommon-devel pango-devel cairo-devel
-   ```
-
-3. Установите программы оболочки:
-
-   ```bash
-   sudo zypper install kitty firefox fuzzel btop pavucontrol qalculate \
-     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify-tools \
-     brightnessctl NetworkManager pipewire pipewire-pulseaudio wireplumber \
-     polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2-tools adwaita-icon-theme
-   ```
-
-4. Перейдите к шагу 3 ниже. Если имя пакета отличается в вашей ветке,
-   уточните его через `zypper search` или [каталог openSUSE](https://software.opensuse.org/).
+Шаги 3–4 ниже относятся к сборке на Arch-based системах. Для NixOS используйте
+пакет и модули, описанные выше.
 
 ### Необязательные компоненты и системные службы
 
@@ -315,9 +255,15 @@ config_dir=${XDG_CONFIG_HOME:-$HOME/.config}
 mkdir -p "$config_dir/hypr" "$config_dir/hyprstack" "$config_dir/systemd/user"
 cp -R shell/assets/hyprland/config/. "$config_dir/hypr/"
 cp -R distribution/defaults/hyprstack/. "$config_dir/hyprstack/"
-cp distribution/systemd/user/hyprstack-session.service "$config_dir/systemd/user/"
 export PATH="$HOME/.local/bin:$PATH"
 hyprstack scheme set -n hyprstack-catppuccin -m dark
+```
+
+Только на Arch-based системах скопируйте пользовательскую службу. На NixOS
+она уже предоставляется системным модулем; этот шаг пропустите.
+
+```bash
+cp distribution/systemd/user/hyprstack-session.service "$config_dir/systemd/user/"
 ```
 
 Если работает пользовательский systemd, перечитайте службу:
@@ -331,8 +277,8 @@ fi
 Добавьте `$HOME/.local/bin` в `PATH` своего профиля входа, если этого ещё нет.
 При собственных переменных XDG они должны быть одинаковыми в TTY и графическом
 сеансе. В системе с systemd убедитесь, что `dbus-update-activation-environment`
-доступен: на Debian/Ubuntu его предоставляет `dbus-bin`, в других системах —
-пакеты D-Bus. `systemctl --user enable` для службы Hyprstack не требуется:
+доступен: в Arch-based системах его предоставляет пакет `dbus`,
+на NixOS — соответствующая конфигурация D-Bus. `systemctl --user enable` для службы Hyprstack не требуется:
 она запускается конфигурацией Hyprland. Без пользовательского systemd
 используется встроенный менеджер сеанса.
 
@@ -349,7 +295,7 @@ start-hyprland
 После входа откройте терминал и выполните:
 
 ```bash
-~/.local/bin/hyprstack-doctor
+hyprstack-doctor
 hyprctl configerrors
 ```
 

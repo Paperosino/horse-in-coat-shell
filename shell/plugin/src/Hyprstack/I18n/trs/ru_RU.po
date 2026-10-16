@@ -5409,3 +5409,39 @@ msgstr "вверх"
 #: shell/assets/schemes/presets.json shell/assets/hyprland/layouts.lua shell/assets/hyprland/config/hyprland/keybinds.lua
 msgid "usage: "
 msgstr "Использование: "
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "Select an area…"
+msgstr "Выберите область…"
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "Starting…"
+msgstr "Запуск…"
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "Stopping…"
+msgstr "Остановка…"
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "Pending"
+msgstr "Ожидание"
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "No monitor is available for recording"
+msgstr "Нет доступного монитора для записи"
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "Invalid recording region"
+msgstr "Некорректная область записи"
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "The recording region is outside the available monitors"
+msgstr "Область записи находится за пределами доступных мониторов"
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "The recording selection could not be cancelled"
+msgstr "Не удалось отменить выбор области записи"
+
+#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+msgid "The recording could not be stopped"
+msgstr "Не удалось остановить запись"
