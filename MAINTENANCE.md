@@ -4,148 +4,71 @@
 
 ## Обновление
 
-Нативный модуль зависит от ABI Hyprland. После обновления композитора нужна
-пересборка под соответствующие заголовки. Исходники 1.1.1 рассчитаны на
-**Hyprland 0.56.2**; для другой версии нужен совместимый выпуск Hyprstack.
-Готовый модуль с другого компьютера не заменяет сборку.
+### Arch Linux и основанные на нём дистрибутивы
 
-### Arch-based: обновление из Git или ZIP
-
-Команды рассчитаны на установку из [INSTALL.md](INSTALL.md) в `~/.local`.
-Выполняйте их обычным пользователем в Bash, в одном терминале. После ошибки
-устраните причину, прежде чем выполнять следующую команду.
-
-**Завершите Hyprland и перейдите в TTY до установки файлов.** Перезапуск одной
-оболочки не обновляет уже загруженный в композитор нативный модуль.
-
-1. Перейдите в каталог исходников и сохраните конфигурацию:
+1. Завершите сеанс Hyprland и перейдите в TTY: **Ctrl+Alt+F3**.
+2. Войдите обычным пользователем, откройте каталог исходников и выполните:
 
    ```bash
    cd /путь/к/hyprstack-shell
-   config_dir=${XDG_CONFIG_HOME:-$HOME/.config}
-   backup_dir=$(mktemp -d "$HOME/hyprstack-backup.XXXXXXXX")
-
-   for name in hypr hyprstack; do
-       if [ -e "$config_dir/$name" ] || [ -L "$config_dir/$name" ]; then
-           cp -a "$config_dir/$name" "$backup_dir/$name"
-       fi
-   done
-
-   if [ -e "$config_dir/systemd/user/hyprstack-session.service" ] || \
-      [ -L "$config_dir/systemd/user/hyprstack-session.service" ]; then
-       cp -a "$config_dir/systemd/user/hyprstack-session.service" "$backup_dir/"
-   fi
-   printf 'Резервная копия: %s\n' "$backup_dir"
+   ./update.sh
    ```
 
-   Запишите выведенный путь. При собственных XDG-переменных используйте те же
-   значения, что и в графическом сеансе. Личные изменения управляемых файлов
-   `hypr/` и `hyprstack/hypr-user.lua` предварительно перенесите в
-   `hyprstack/local.lua`, `monitors.lua` или `hypr-vars.lua`.
-
-2. Получите новые исходники. Для Git:
-
-   ```bash
-   git status --short
-   git rev-parse HEAD > "$backup_dir/source-revision"
-   git pull --ff-only
-   ```
-
-   Если есть собственные изменения исходников, сначала сохраните их отдельным
-   коммитом или через `git stash`. Для ZIP скачайте новый архив, распакуйте в
-   отдельный каталог и перейдите в него; команды Git пропустите.
-
-3. Сверьте зависимости с новым [INSTALL.md](INSTALL.md), затем соберите
-   проект в новом каталоге. Проверка ABI выполняется при настройке CMake:
-
-   ```bash
-   Hyprland --version-json
-   qs --version
-   pkg-config --modversion Qt6Core hyprland
-
-   build_dir=$(mktemp -d "$PWD/build-update.XXXXXXXX")
-   cmake -S . -B "$build_dir" -G Ninja \
-     -DCMAKE_BUILD_TYPE=Release \
-     -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
-     -DCMAKE_INSTALL_DATADIR="${XDG_DATA_HOME:-$HOME/.local/share}"
-   cmake --build "$build_dir" --parallel 2
-   cmake --install "$build_dir"
-   printf '%s\n' "$build_dir" > "$backup_dir/build-directory"
-   ```
-
-   При недостатке памяти используйте `--parallel 1`. Сохраните каталог сборки:
-   в нём находится `install_manifest.txt` для последующего ручного удаления.
-
-4. Обновите управляемую Lua-конфигурацию. Это необходимо и для новых жестов:
-   `cmake --install` сам по себе не обновляет `~/.config/hypr`.
-
-   ```bash
-   next_hypr=$(mktemp -d "$config_dir/hyprstack-update.XXXXXXXX")
-   cp -R shell/assets/hyprland/config/. "$next_hypr/"
-   if [ -f "$config_dir/hypr/scheme/current.lua" ]; then
-       cp -L "$config_dir/hypr/scheme/current.lua" "$next_hypr/scheme/current.lua"
-   fi
-   if [ -e "$config_dir/hypr" ] || [ -L "$config_dir/hypr" ]; then
-       mv "$config_dir/hypr" "$backup_dir/hypr-replaced"
-   fi
-   mv "$next_hypr" "$config_dir/hypr"
-
-   mkdir -p "$config_dir/hyprstack" "$config_dir/systemd/user"
-   cp --remove-destination distribution/defaults/hyprstack/hypr-user.lua "$config_dir/hyprstack/"
-   cp --remove-destination distribution/systemd/user/hyprstack-session.service "$config_dir/systemd/user/"
-   ```
-
-   `hypr-vars.lua`, `monitors.lua`, `local.lua`, JSON-настройки, тема и данные
-   пользователя сохраняются. Не копируйте весь каталог стандартных настроек
-   `distribution/defaults/hyprstack/` поверх существующего при обновлении.
-   Корневая ссылка `hypr`, если она была, переносится целиком: исходники вашего
-   менеджера dotfiles не перезаписываются.
-
-5. Если используется пользовательский systemd, выполните в TTY:
-
-   ```bash
-   if command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
-       systemctl --user daemon-reload
-   fi
-   ```
-
-   Войдите в новый сеанс Hyprland и проверьте результат:
+3. Снова войдите в Hyprland. Проверка после обновления:
 
    ```bash
    hyprstack-doctor
-   hyprctl configerrors
    ```
 
-   Список ошибок конфигурации должен быть пустым. Не удаляйте резервную копию
-   до проверки настроек и приложений. Для возврата к прежнему выпуску восстановите
-   его исходники (Git-ревизия сохранена в `source-revision`), пересоберите их под
-   совместимый Hyprland и верните конфигурацию из резервной копии.
+Скрипт сам получает исходники через `git pull --ff-only`, проверяет зависимости
+и ABI Hyprland, собирает проект, создаёт резервную копию и обновляет программу
+вместе с управляемой Lua-конфигурацией. Личные `hypr-vars.lua`, `monitors.lua`,
+`local.lua`, JSON-настройки и текущая тема сохраняются. Команда запускается
+**без sudo**; открытые приложения она не закрывает.
+
+Если в старом клоне ещё нет `update.sh`, один раз выполните `git pull --ff-only`.
+Для установки из ZIP скачайте новый архив и запустите `./update.sh` из
+распакованного каталога — шаг Git будет пропущен.
+
+Полезные опции: `--dry-run` показывает план без изменений, `--jobs 1` уменьшает
+расход памяти, `--no-pull` собирает текущие исходники. Если в Git-клоне есть
+свои правки, сохраните их коммитом или через `git stash` до обновления.
+
+Для отмены последнего автоматического обновления также завершите Hyprland
+и выполните из каталога исходников:
+
+```bash
+./update.sh --rollback
+```
+
+Резервные копии находятся в
+`${XDG_STATE_HOME:-$HOME/.local/state}/hyprstack-install/backups/`.
+При ошибке записи уже заменённые файлы восстанавливаются автоматически.
+Системные пакеты откат не меняет. После отката войдите в сеанс заново.
+
+Скрипт рассчитан на обычную установку в `~/.local` и учитывает XDG-пути.
+Если конфигурацией управляет менеджер dotfiles через ссылки на каталоги,
+обновляйте её этим менеджером; ручная сборка описана в [INSTALL.md](INSTALL.md).
+Hyprland должен оставаться версии **0.56.2** с соответствующими заголовками.
 
 ### NixOS и Home Manager
 
-В каталоге **своей конфигурации NixOS** обновите только вход Hyprstack и
-примените конфигурацию, заменив `YOUR_HOST` своим именем системы:
+В каталоге своей конфигурации NixOS выполните, заменив `YOUR_HOST`:
 
 ```bash
 nix flake update hyprstack
 sudo nixos-rebuild switch --flake .#YOUR_HOST
 ```
 
-Home Manager, встроенный в конфигурацию NixOS, применится вместе с системой.
-Если он используется отдельно, обновите вход `hyprstack` также в его flake
-и выполните `home-manager switch --flake .#YOUR_USER`. Пакет Hyprstack,
-Hyprland и Quickshell должны оставаться из одного совместимого набора.
+Затем войдите в новый сеанс. Home Manager, встроенный в конфигурацию NixOS,
+применится вместе с системой. Для отдельного Home Manager обновите тот же вход
+в его flake и выполните `home-manager switch --flake .#YOUR_USER`.
+`update.sh` на NixOS не используется.
 
-Завершите старый сеанс и войдите заново. При использовании Home Manager
-управляемая Lua-конфигурация обновится автоматически; не копируйте файлы
-поверх его ссылок. Без Home Manager обновите `hypr/` и `hypr-user.lua` по шагу 4
-выше, используя конфигурацию из нового пакета
-`$HYPRSTACK_DATA_DIR/shell/assets/hyprland/config/` и
-`$HYPRSTACK_DATA_DIR/defaults/hyprstack/hypr-user.lua`. Сначала сохраните
-резервную копию по шагу 1. Службу systemd предоставляет модуль NixOS,
-копировать её и выполнять CMake на NixOS не требуется.
-
-После входа выполните `hyprstack-doctor` и `hyprctl configerrors`.
+Home Manager обновляет управляемую Lua-конфигурацию автоматически. Если он не
+используется, разместите новую конфигурацию по шагу 5 [INSTALL.md](INSTALL.md),
+сохранив личные Lua/JSON-файлы. Сборку CMake и копирование службы пропустите:
+программу и службу предоставляет модуль NixOS.
 
 ## Диагностика
 

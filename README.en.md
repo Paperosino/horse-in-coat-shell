@@ -44,6 +44,12 @@ and scrolling tiling with `Super+Ctrl+Shift+M`.
   </tr>
 </table>
 
+![Touchpad gestures: scrolling columns and workspaces, opening and navigating the overview](docs/media/trackpad-swipes.gif)
+
+Three fingers scroll; four fingers open and close the overview.
+[MP4 video · 1280×800 · 60 fps](docs/media/trackpad-swipes.mp4).
+Recorded in a running Hyprstack session with emulated input; dots show contacts.
+
 ## Features
 
 - **Scrolling and stacking.** A keyboard-driven window strip and a floating mode
@@ -101,6 +107,10 @@ and openSUSE are outside the supported platforms.
 5. Run `hyprstack-doctor` and choose your preferred applications.
 
 **Follow the commands in [INSTALL.en.md](INSTALL.en.md), in order.**
+
+To update an Arch-based installation, log out of Hyprland and run `./update.sh`
+from the source directory in a TTY. It builds the project, backs up existing
+files and preserves your preferences. [Update guide (Russian)](MAINTENANCE.md#обновление).
 
 Fonts, Material Symbols and M3Shapes are included.  Weather, blur and the audio visualiser
 are disabled by default.

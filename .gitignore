@@ -10,11 +10,13 @@
 !/INSTALL.en.md
 !/CONFIGURATION.md
 !/MAINTENANCE.md
+!/update.sh
 !/THIRD_PARTY.md
 !/tests/
 /tests/*
 !/tests/gesture-input.cpp
 !/tests/trackpad-gestures.py
+!/tests/test_update.py
 !/flake.nix
 !/flake.lock
 !/nix/
@@ -27,6 +29,13 @@
 /distribution/*
 !/distribution/bin/
 !/distribution/check_headers.py
+!/distribution/update.py
+!/distribution/update_transaction.py
+!/tools/
+/tools/*
+!/tools/touchpad-visualizer.qml
+!/tools/record-gestures.py
+!/tools/hyprstack-touchpad-visualizer
 !/distribution/defaults/
 !/distribution/systemd/
 
@@ -87,6 +96,8 @@
 !/docs/media/panel-tools.gif
 !/docs/media/customization.gif
 !/docs/media/overview.gif
+!/docs/media/trackpad-swipes.gif
+!/docs/media/trackpad-swipes.mp4
 
 # Generated files and machine-local overrides are never source files.
 **/.*
