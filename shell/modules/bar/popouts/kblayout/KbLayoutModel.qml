@@ -5,6 +5,7 @@ import Quickshell.Io
 import Hyprstack
 import Hyprstack.Config
 import Hyprstack.I18n
+import qs.services
 
 // TODO: handle this better later
 
@@ -138,7 +139,7 @@ Item {
     Process {
         id: xkbXmlBase
 
-        command: ["xmllint", "--xpath", "//layout/configItem[name and description]", "/usr/share/X11/xkb/rules/base.xml"]
+        command: ["xmllint", "--xpath", "//layout/configItem[name and description]", `${Hypr.xkbRulesDir}/base.xml`]
         stdout: StdioCollector {
             onStreamFinished: model._buildXmlMap(text)
         }
@@ -149,7 +150,7 @@ Item {
     Process {
         id: xkbXmlEvdev
 
-        command: ["xmllint", "--xpath", "//layout/configItem[name and description]", "/usr/share/X11/xkb/rules/evdev.xml"]
+        command: ["xmllint", "--xpath", "//layout/configItem[name and description]", `${Hypr.xkbRulesDir}/evdev.xml`]
         stdout: StdioCollector {
             onStreamFinished: model._buildXmlMap(text)
         }

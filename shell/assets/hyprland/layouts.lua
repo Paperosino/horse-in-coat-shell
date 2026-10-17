@@ -798,6 +798,9 @@ local plugin_path = os.getenv("HYPRSTACK_TITLEBAR_PLUGIN") or read(config_dir ..
     (os.getenv("HYPRSTACK_DATA_DIR") or (os.getenv("XDG_DATA_HOME") or os.getenv("HOME") .. "/.local/share") .. "/hyprstack") .. "/native/hyprstack-bars.so"
 local plugin_file = io.open(plugin_path, "r")
 if plugin_file then plugin_file:close(); hl.plugin.load(plugin_path) end
+-- Loading is deferred until the config has been parsed. The plugin requests a
+-- reload after registering its effects; the first pass must use core rules only.
+local no_titlebar = hl.plugin.hyprbars and hl.plugin.hyprbars.clear_buttons and true or nil
 
 function layouts.theme(palette)
     palette = palette or {}
@@ -1683,17 +1686,17 @@ hl.window_rule({ name = "hyprstack-no-telegram-activation", match = {
 }, suppress_event = "activate activatefocus", focus_on_activate = false })
 hl.window_rule({ name = "hyprstack-telegram-media", match = {
     class = telegram_classes, initial_title = "(?i)^(" .. table.concat(telegram_media_titles, "|") .. ")$"
-}, float = true, center = true, suppress_event = "maximize", ["hyprbars:no_bar"] = true })
+}, float = true, center = true, suppress_event = "maximize", ["hyprbars:no_bar"] = no_titlebar })
 hl.window_rule({ name = "hyprstack-telegram-media-state", match = {
     class = telegram_classes, title = "(?i)^(" .. table.concat(telegram_media_titles, "|") .. ")$"
-}, suppress_event = "maximize", ["hyprbars:no_bar"] = true })
+}, suppress_event = "maximize", ["hyprbars:no_bar"] = no_titlebar })
 hl.window_rule({ name = "hyprstack-telegram-pip", match = {
     class = telegram_classes, initial_title = "(?i)^(" .. table.concat(telegram_pip_titles, "|") .. ")$"
 }, float = true, keep_aspect_ratio = true, pin = true, no_initial_focus = true,
-    suppress_event = "maximize", ["hyprbars:no_bar"] = true })
+    suppress_event = "maximize", ["hyprbars:no_bar"] = no_titlebar })
 hl.window_rule({ name = "hyprstack-telegram-auxiliary", match = {
     class = telegram_classes, initial_title = "(?i)^(" .. table.concat(telegram_auxiliary_titles, "|") .. ")$"
-}, float = true, center = true, suppress_event = "maximize", ["hyprbars:no_bar"] = true })
+}, float = true, center = true, suppress_event = "maximize", ["hyprbars:no_bar"] = no_titlebar })
 
 local function replace_binds(keys, action, description, options)
     if type(keys) == "table" then

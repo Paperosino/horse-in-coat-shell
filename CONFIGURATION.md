@@ -34,6 +34,16 @@
 hl.config({ input = { kb_layout = "us,ru", kb_options = "grp:alt_shift_toggle" } })
 ```
 
+С Home Manager Lua-настройки также можно задать декларативно:
+
+```nix
+programs.hyprstack.extraConfig = ''
+  hl.config({ input = { kb_layout = "us,ru", kb_options = "grp:alt_shift_toggle" } })
+'';
+```
+
+Они применяются после `local.lua`; управляемый `hypr-user.lua` редактировать не нужно.
+
 ## Горячие клавиши
 
 | Сочетание | Действие |

@@ -5,6 +5,11 @@ let
 in {
   options.programs.hyprstack = {
     enable = lib.mkEnableOption "Hyprstack user configuration";
+    extraConfig = lib.mkOption {
+      type = lib.types.lines;
+      default = "";
+      description = "Additional Hyprland Lua configuration applied after Hyprstack and local overrides.";
+    };
     package = lib.mkOption {
       type = lib.types.package;
       default = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
@@ -28,6 +33,7 @@ in {
       hl.env("HYPRSTACK_DATA_DIR", "${package}/share/hyprstack")
       hl.env("HYPRSTACK_SESSION_COMMAND", "${package}/bin/hyprstack-session")
       dofile("${package}/share/hyprstack/defaults/hyprstack/hypr-user.lua")
+      ${cfg.extraConfig}
     '';
 
     systemd.user.services.hyprstack-session = {

@@ -149,6 +149,8 @@ replacing `YOUR_USER` with your username:
 
 Both modules must use the same `hyprstack` input. Shell preferences remain
 editable through the interface.
+Custom Lua: [`programs.hyprstack.extraConfig`](CONFIGURATION.md#экраны-и-клавиатура)
+or `~/.config/hyprstack/local.lua`.
 
 **Without Home Manager:** skip this step; copy user configuration after
 applying the system configuration, as described below.

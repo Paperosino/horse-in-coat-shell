@@ -4,7 +4,7 @@
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
 , pipewire, wireplumber, polkit, hyprlock, hyprpicker, xdg-utils, xdg-user-dirs
-, libxml2, adwaita-icon-theme, src
+, libxml2, adwaita-icon-theme, xkeyboard_config, src
 }:
 let
   python = python3.withPackages (packages: [ packages.pillow ]);
@@ -44,6 +44,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
       wrapProgram "$out/bin/$program" \
         --set HYPRSTACK_DATA_DIR "$out/share/hyprstack" \
         --set HYPRSTACK_TITLEBAR_PLUGIN "$out/share/hyprstack/native/hyprstack-bars.so" \
+        --set HYPRSTACK_XKB_RULES_PATH "${xkeyboard_config}/share/X11/xkb/rules/base.lst" \
         --set-default HYPRSTACK_PAM_SERVICE hyprlock \
         --prefix PATH : "$out/bin:${lib.makeBinPath runtime}" \
         --prefix XDG_DATA_DIRS : "${adwaita-icon-theme}/share" \

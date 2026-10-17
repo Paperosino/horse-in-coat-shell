@@ -10,7 +10,7 @@ if [[ "$action" != stop && ( -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" || -z "${WAYL
     printf 'Run this command from a Hyprland session.\n' >&2
     exit 1
 fi
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$PATH:$HOME/.local/bin"
 export PYTHONDONTWRITEBYTECODE=1
 if command -v systemctl >/dev/null && systemctl --user show-environment >/dev/null 2>&1; then
     if [[ "$action" != stop ]]; then
