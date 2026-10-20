@@ -9,6 +9,23 @@ from gtk_theme import apply_palette
 
 
 class GtkPaletteTests(unittest.TestCase):
+    def test_migrates_leading_import_after_legacy_theme_overrides(self):
+        colours = dict.fromkeys(("surface", "onSurface", "surfaceContainer", "primary", "onPrimary", "outlineVariant"), "112233")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "gtk-3.0"
+            folder.mkdir()
+            main = folder / "gtk.css"
+            main.write_text("@import url('hyprstack.css');\n@import url(\"noctalia.css\");\nbutton { color: red; }\n")
+            apply_palette(colours, root)
+            result = main.read_text()
+            self.assertTrue(result.endswith('@import url("hyprstack.css");\n'))
+            self.assertIn('button { color: red; }', result)
+            self.assertEqual(result.count('hyprstack.css'), 1)
+            css = (folder / "hyprstack.css").read_text()
+            for name in ("theme_bg_color", "theme_text_color", "dialog_bg_color", "view_bg_color", "headerbar_bg_color"):
+                self.assertIn(f"@define-color {name} #112233;", css)
+
     def test_saving_a_shell_theme_also_updates_dialog_colours(self):
         import theme_manager
         with tempfile.TemporaryDirectory() as directory:
