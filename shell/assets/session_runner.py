@@ -60,6 +60,7 @@ def run_session():
         os.environ.update(session_environment())
         subprocess.run([sys.executable, str(Path(__file__).with_name('appearance_themes.py')), 'restore'],
                        stdout=subprocess.DEVNULL, timeout=35, check=False)
+    os.environ["QT_QPA_PLATFORMTHEME"] = "qt5ct:qt6ct"
     children = []
     event = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     event.connect(str(eventpath))

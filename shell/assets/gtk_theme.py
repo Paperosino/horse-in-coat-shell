@@ -1,4 +1,6 @@
-"""Apply the shell palette to GTK dialogs without replacing user stylesheets."""
+"""Install managed GTK and Qt palettes derived from the shell colour scheme."""
+import configparser
+import io
 import json
 import os
 from pathlib import Path
@@ -19,7 +21,21 @@ def atomic_text(path, text):
         Path(temporary).unlink(missing_ok=True)
 
 
-def apply_palette(colours, config_root):
+def update_settings(path, section, values):
+    settings = configparser.ConfigParser(interpolation=None, strict=False)
+    settings.optionxform = str
+    if path.exists():
+        settings.read(path)
+    if not settings.has_section(section):
+        settings.add_section(section)
+    for key, value in values.items():
+        settings.set(section, key, str(value))
+    stream = io.StringIO()
+    settings.write(stream, space_around_delimiters=False)
+    atomic_text(path, stream.getvalue())
+
+
+def apply_palette(colours, config_root, mode=None):
     names = ("surface", "onSurface", "surfaceContainer", "primary", "onPrimary", "outlineVariant")
     values = {}
     for name in names:
@@ -52,18 +68,50 @@ def apply_palette(colours, config_root):
         directory = Path(config_root) / ("gtk-" + version)
         atomic_text(directory / "hyprstack.css", css)
         main = directory / "gtk.css"
-        existing = main.read_text() if main.exists() else ""
-        include = '@import url("hyprstack.css");'
-        # User CSS has the same priority: later imports win. Migrate the old
-        # leading import as well as single-quoted variants without deleting styles.
-        existing = re.sub(r"@import\s+url\(\s*['\"]hyprstack\.css['\"]\s*\)\s*;[ \t]*\n?", "", existing)
-        updated = existing.rstrip() + ("\n" if existing.strip() else "") + include + "\n"
-        if not main.exists() or main.read_text() != updated:
-            atomic_text(main, updated)
+        # Hyprstack owns toolkit styling. Drop legacy imports (Noctalia,
+        # libadwaita overrides, etc.) instead of mixing unrelated palettes.
+        atomic_text(main, '@import url("hyprstack.css");\n')
+        # Replace old dark-theme symlinks as well; never write through them.
+        atomic_text(directory / "gtk-dark.css", '@import url("hyprstack.css");\n')
+        dark = mode == "dark" if mode else sum(int(colours["surface"][i:i+2], 16) * weight for i, weight in ((0,.2126),(2,.7152),(4,.0722))) < 128
+        update_settings(directory / "settings.ini", "Settings", {
+            "gtk-theme-name": "Adwaita",
+            "gtk-application-prefer-dark-theme": int(dark),
+        })
+    # QPalette colour-role order, used by both qt5ct and qt6ct. Preserve
+    # icon/font preferences while replacing the palette and widget style.
+    roles = ("onSurface", "surfaceContainer", "surfaceContainer", "surfaceContainer",
+             "outlineVariant", "outlineVariant", "onSurface", "onSurface",
+             "onSurface", "surface", "surface", "outlineVariant", "primary",
+             "onPrimary", "primary", "primary", "surfaceContainer", "onSurface",
+             "surfaceContainer", "onSurface", "outlineVariant", "primary")
+    palette = ", ".join("#ff" + colours[role] for role in roles)
+    disabled = list(roles)
+    for index in (0, 6, 8, 19):
+        disabled[index] = "outlineVariant"
+    disabled_palette = ", ".join("#ff" + colours[role] for role in disabled)
+    for version in (5, 6):
+        folder = Path(config_root) / f"qt{version}ct"
+        colour_file = folder / "colors/hyprstack.conf"
+        atomic_text(colour_file, "[ColorScheme]\n" +
+                    f"active_colors={palette}\ninactive_colors={palette}\ndisabled_colors={disabled_palette}\n")
+        update_settings(folder / f"qt{version}ct.conf", "Appearance", {
+            "color_scheme_path": str(colour_file), "custom_palette": "true", "style": "Fusion",
+        })
+
 
 
 def restore():
     state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hyprstack/scheme.json"
     if state.exists():
         scheme = json.loads(state.read_text())
-        apply_palette(scheme["colours"], Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")))
+        apply_palette(scheme["colours"], Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")), scheme.get("mode"))
+    else:
+        # Packages cannot configure an arbitrary user's home during root install.
+        # The shared session entry point installs defaults at the first login.
+        import theme_manager
+        theme_manager.apply_theme("catppuccin", "dark")
+
+
+if __name__ == "__main__":
+    restore()

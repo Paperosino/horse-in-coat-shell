@@ -216,6 +216,9 @@ def main(argv=None):
                     update.plan = lambda: iter(files)
                     subprocess.run(["sudo", "--", "/usr/bin/python3", str(ROOT / "distribution/install_system_helper.py"), str(update.staging)], check=True)
                     update.transaction("install")
+                    # The per-user installer can provision toolkit preferences
+                    # immediately; system packages use the same hook on login.
+                    subprocess.run([sys.executable, str(update.data / "hyprstack/shell/assets/gtk_theme.py")], check=True)
         if shutil.which("systemctl"):
             subprocess.run(["systemctl", "--user", "daemon-reload"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print("Готово. Войдите в Hyprland и выполните runhics-doctor.", flush=True)

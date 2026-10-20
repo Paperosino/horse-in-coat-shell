@@ -1,6 +1,7 @@
 local vars = require("variables")
 
 -- Themes
+hl.env("QT_QPA_PLATFORMTHEME", "qt5ct:qt6ct")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 hl.env("XCURSOR_THEME", vars.cursorTheme)
 hl.env("XCURSOR_SIZE", vars.cursorSize)
