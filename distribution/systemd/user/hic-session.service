@@ -7,7 +7,7 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/hyprstack-session-runner
+ExecStart=%h/.local/bin/runhics-session-runner
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=10

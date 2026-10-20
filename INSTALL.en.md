@@ -44,12 +44,12 @@ Run without `sudo`:
 
 ```bash
 git clone https://github.com/hase9awa/hyprstack-shell.git
-cd hyprstack-shell
+cd horse-in-coat-shell
 packaging/arch/build-package.sh --install
 ```
 
 The script installs any missing build dependencies and builds the
-`hyprstack-shell` package with a bundled runtime: its own Quickshell
+`hic-shell` package with a bundled runtime: its own Quickshell
 **v0.3.2** and private Qt libraries in `/usr/share/hyprstack/qs`. System
 updates of the `quickshell` and `qt6-*` packages no longer affect the shell;
 the system `quickshell` package is not needed (if the bundle is missing,
@@ -99,7 +99,7 @@ Move the previous configuration to a backup:
 ```bash
 config_dir=${XDG_CONFIG_HOME:-$HOME/.config}
 backup_dir=$(mktemp -d "$HOME/hyprstack-backup.XXXXXXXX")
-for name in hypr hyprstack systemd/user/hyprstack-session.service; do
+for name in hypr hyprstack systemd/user/hic-session.service; do
     if [ -e "$config_dir/$name" ] || [ -L "$config_dir/$name" ]; then
         mv "$config_dir/$name" "$backup_dir/"
     fi
@@ -114,7 +114,7 @@ mkdir -p "$config_dir/hypr" "$config_dir/hyprstack"
 cp -R shell/assets/hyprland/config/. "$config_dir/hypr/"
 cp -R distribution/defaults/hyprstack/. "$config_dir/hyprstack/"
 export PATH="$HOME/.local/bin:$PATH"
-hyprstack scheme set -n hyprstack-catppuccin -m dark
+runhics scheme set -n hyprstack-catppuccin -m dark
 ```
 
 **Only for option B (manual build):** install the user service.
@@ -124,7 +124,7 @@ On NixOS, the module provides it; skip this block.
 
 ```bash
 mkdir -p "$config_dir/systemd/user"
-cp distribution/systemd/user/hyprstack-session.service "$config_dir/systemd/user/"
+cp distribution/systemd/user/hic-session.service "$config_dir/systemd/user/"
 systemctl --user daemon-reload
 ```
 
@@ -137,7 +137,7 @@ Log into Hyprland through your display manager or run `start-hyprland` in a TTY.
 In a terminal, run:
 
 ```bash
-hyprstack-doctor
+runhics-doctor
 hyprctl configerrors
 ```
 
@@ -208,12 +208,12 @@ In a TTY, get the files and follow [Arch step 3](#config),
 
 ```bash
 git clone https://github.com/hase9awa/hyprstack-shell.git
-cd hyprstack-shell
+cd horse-in-coat-shell
 ```
 
 </details>
 
-Start a new Hyprland session and run `hyprstack-doctor`
+Start a new Hyprland session and run `runhics-doctor`
 and `hyprctl configerrors`.
 
 ## Services and optional packages

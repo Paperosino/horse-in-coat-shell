@@ -312,7 +312,7 @@ Singleton {
 
         const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=geocodejson&accept-language=${lang}`;
         const nominatimHeaders = {
-            "User-Agent": `hyprstack-shell/${CUtils.version}`
+            "User-Agent": `runhics-shell/${CUtils.version}`
         };
 
         Requests.get(nominatimUrl, text => {

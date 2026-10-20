@@ -10,7 +10,7 @@ if [[ -z $data_dir ]]; then
 fi
 action=${1:-start}
 if [[ "$action" != start && "$action" != stop && "$action" != restart ]]; then
-    printf 'Usage: hyprstack-session start|stop|restart\n' >&2
+    printf 'Usage: runhics-session start|stop|restart\n' >&2
     exit 2
 fi
 if [[ "$action" != stop && ( -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" || -z "${WAYLAND_DISPLAY:-}" ) ]]; then
@@ -33,10 +33,10 @@ if command -v systemctl >/dev/null && systemctl --user show-environment >/dev/nu
         systemctl --user daemon-reload
     fi
     if [[ "$action" == stop ]]; then
-        systemctl --user stop hyprstack-session.service 2>/dev/null || true
+        systemctl --user stop hic-session.service 2>/dev/null || true
         exec python3 "$data_dir/shell/assets/session_runner.py" stop
     fi
-    systemctl --user "$action" hyprstack-session.service
+    systemctl --user "$action" hic-session.service
     # The canvas plugin must be loaded outside the config: config-loaded
     # plugins are config-owned and get unloaded mid-parse on every reload.
     if [[ $action != stop ]]; then

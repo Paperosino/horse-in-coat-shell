@@ -44,12 +44,12 @@ sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
 
 ```bash
 git clone https://github.com/hase9awa/hyprstack-shell.git
-cd hyprstack-shell
+cd horse-in-coat-shell
 packaging/arch/build-package.sh --install
 ```
 
 Скрипт сам доустановит недостающие зависимости сборки и соберёт пакет
-`hyprstack-shell` со вложенным рантаймом: собственный Quickshell **v0.3.2**
+`hic-shell` со вложенным рантаймом: собственный Quickshell **v0.3.2**
 и приватные библиотеки Qt в `/usr/share/hyprstack/qs`. Обновления системных
 пакетов `quickshell` и `qt6-*` на оболочку не влияют; системный `quickshell`
 не нужен (при отсутствии бандла обёртка резервно использует системный `qs`).
@@ -98,7 +98,7 @@ sudo python3 distribution/install_system_helper.py "$HOME/.local"
 ```bash
 config_dir=${XDG_CONFIG_HOME:-$HOME/.config}
 backup_dir=$(mktemp -d "$HOME/hyprstack-backup.XXXXXXXX")
-for name in hypr hyprstack systemd/user/hyprstack-session.service; do
+for name in hypr hyprstack systemd/user/hic-session.service; do
     if [ -e "$config_dir/$name" ] || [ -L "$config_dir/$name" ]; then
         mv "$config_dir/$name" "$backup_dir/"
     fi
@@ -113,7 +113,7 @@ mkdir -p "$config_dir/hypr" "$config_dir/hyprstack"
 cp -R shell/assets/hyprland/config/. "$config_dir/hypr/"
 cp -R distribution/defaults/hyprstack/. "$config_dir/hyprstack/"
 export PATH="$HOME/.local/bin:$PATH"
-hyprstack scheme set -n hyprstack-catppuccin -m dark
+runhics scheme set -n hyprstack-catppuccin -m dark
 ```
 
 **Только для варианта Б (ручная сборка):** установите пользовательскую
@@ -123,7 +123,7 @@ hyprstack scheme set -n hyprstack-catppuccin -m dark
 
 ```bash
 mkdir -p "$config_dir/systemd/user"
-cp distribution/systemd/user/hyprstack-session.service "$config_dir/systemd/user/"
+cp distribution/systemd/user/hic-session.service "$config_dir/systemd/user/"
 systemctl --user daemon-reload
 ```
 
@@ -136,7 +136,7 @@ systemctl --user daemon-reload
 В терминале выполните:
 
 ```bash
-hyprstack-doctor
+runhics-doctor
 hyprctl configerrors
 ```
 
@@ -207,12 +207,12 @@ sudo nixos-rebuild switch --flake .#YOUR_HOST
 
 ```bash
 git clone https://github.com/hase9awa/hyprstack-shell.git
-cd hyprstack-shell
+cd horse-in-coat-shell
 ```
 
 </details>
 
-Войдите в новый сеанс Hyprland и выполните `hyprstack-doctor`
+Войдите в новый сеанс Hyprland и выполните `runhics-doctor`
 и `hyprctl configerrors`.
 
 ## Службы и дополнительные пакеты

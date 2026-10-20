@@ -51,5 +51,5 @@ API предоставляет `pluginId`, `pluginDir`, `pluginDataDir`, `plugin
 Схема настроек поддерживает bool, int, number, string, choice и json.
 Перетаскиваемые настольные виджеты сохраняют координаты через API настроек.
 
-IPC: `hyprstack-shell ipc call plugins list`, `plugins refresh`,
+IPC: `runhics-shell ipc call plugins list`, `plugins refresh`,
 `plugins enable ID`, `plugins disable ID`, `plugins reload`.

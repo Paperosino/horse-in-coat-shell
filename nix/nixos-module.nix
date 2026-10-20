@@ -24,20 +24,20 @@ in {
     environment.systemPackages = [ package ];
     environment.sessionVariables = {
       HYPRSTACK_DATA_DIR = "${package}/share/hyprstack";
-      HYPRSTACK_SESSION_COMMAND = "${package}/bin/hyprstack-session";
+      HYPRSTACK_SESSION_COMMAND = "${package}/bin/runhics-session";
     };
 
     services.dbus.packages = [ package ];
     security.polkit.enable = true;
     systemd.packages = [ package ];
 
-    systemd.user.services.hyprstack-session = {
+    systemd.user.services.hic-session = {
       description = "Hyprstack desktop session";
       partOf = [ "graphical-session.target" ];
       unitConfig.ConditionEnvironment = "HYPRLAND_INSTANCE_SIGNATURE";
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${package}/bin/hyprstack-session-runner";
+        ExecStart = "${package}/bin/runhics-session-runner";
         Restart = "on-failure";
         RestartSec = 3;
         TimeoutStopSec = 10;

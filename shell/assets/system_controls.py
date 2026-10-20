@@ -178,7 +178,7 @@ def main():
         else:
             action,unit=a.args[:2]
             if action not in ['start','stop','restart','enable','disable'] or not re.fullmatch(r'[A-Za-z0-9_@.:-]+\.(service|timer)',unit):raise ValueError('Invalid service action')
-            if unit=='hyprstack-session.service' and action in ('stop','disable'):raise ValueError('The shell cannot stop itself from this page')
+            if unit=='hic-session.service' and action in ('stop','disable'):raise ValueError('The shell cannot stop itself from this page')
             run(['systemctl','--user',action,unit]);v={'ok':True}
         output(v)
     except Exception as e:output({'error':str(e)});return 1

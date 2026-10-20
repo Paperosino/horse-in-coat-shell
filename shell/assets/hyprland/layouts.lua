@@ -814,7 +814,7 @@ if plugin_file then plugin_file:close(); hl.plugin.load(plugin_path) end
 -- The canvas plugin is loaded through the session (hyprctl plugin load), not
 -- here: plugins loaded during config parsing are treated as config-owned and
 -- get unloaded/reloaded by the config manager mid-parse, which corrupts the
--- lua state. See hyprstack-session.
+-- lua state. See runhics-session.
 local canvas_plugin_path = data_dir .. "/native/libspatialoverview.so"
 -- Loading is deferred until the config has been parsed. The plugin requests a
 -- reload after registering its effects; the first pass must use core rules only.

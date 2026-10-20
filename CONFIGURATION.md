@@ -178,11 +178,11 @@ Esc, клик или вращение колёсика останавливаю�
 Схема `dynamic` строит палитру по обоям.
 
 ```sh
-hyprstack scheme list -n
-hyprstack scheme list -a
-hyprstack scheme set -n hyprstack-catppuccin -a blue -m dark
-hyprstack wallpaper -f "$HOME/Pictures/Wallpapers/image.jpg"
-hyprstack scheme set -n dynamic -m dark
+runhics scheme list -n
+runhics scheme list -a
+runhics scheme set -n hyprstack-catppuccin -a blue -m dark
+runhics wallpaper -f "$HOME/Pictures/Wallpapers/image.jpg"
+runhics scheme set -n dynamic -m dark
 ```
 
 Выбор сохраняется в состоянии horse-in-coat-shell и `hypr/scheme/current.lua`.

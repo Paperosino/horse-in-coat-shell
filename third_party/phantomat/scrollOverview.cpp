@@ -5087,6 +5087,11 @@ bool CScrollOverview::forwardCanvasPointerButton(const IPointer::SButtonEvent& e
     if (!WINDOW || !WINDOW->wlSurface() || !WINDOW->wlSurface()->resource())
         return false;
 
+    // TODO(debug): remove after the decorated-window input investigation
+    if (event.state == WL_POINTER_BUTTON_STATE_PRESSED)
+        Log::logger->log(Log::WARN, "[hics-dbg] canvas press: class={} btn={} surf={} win=({},{})x({},{})", WINDOW->m_class, event.button,
+            (bool)canvasForwardedPointerSurface.lock(), WINDOW->m_position.x, WINDOW->m_position.y, WINDOW->m_size.x, WINDOW->m_size.y);
+
     if (event.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         canvasForwardedPointerButtons.emplace(event.button);
         size_t workspaceIdx = viewportCurrentWorkspace;

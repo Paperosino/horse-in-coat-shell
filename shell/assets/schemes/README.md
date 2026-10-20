@@ -10,9 +10,9 @@ GitHub, Ayu, Nightfox, Monokai, Horizon, Oxocarbon, PaperColor и Vesper.
 Выбор темы и акцента: **Обои и оформление → Цвета** или CLI:
 
 ```sh
-hyprstack scheme list -n
-hyprstack scheme list -a
-hyprstack scheme set -n hyprstack-kanagawa -a blue -m dark
+runhics scheme list -n
+runhics scheme list -a
+runhics scheme set -n hyprstack-kanagawa -a blue -m dark
 ```
 
 Встроенные палитры обновляются вместе с оболочкой; свои и динамические схемы

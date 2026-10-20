@@ -17,7 +17,7 @@ assert lib.assertMsg (hyprland.version == "0.56.2") "Hyprstack requires Hyprland
 assert lib.assertMsg (lib.versionAtLeast quickshell.version "0.3.1") "Hyprstack requires Quickshell >= 0.3.1";
 assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack requires Qt >= 6.9";
 (hyprland.stdenv or stdenv).mkDerivation {
-  pname = "hyprstack";
+  pname = "hic-shell";
   version = "1.1.1";
   inherit src;
 
@@ -40,7 +40,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   '';
 
   postInstall = ''
-    for program in hyprstack hyprstack-shell hyprstack-session hyprstack-session-runner hyprstack-doctor; do
+    for program in runhics-shell runhics-session runhics-session-runner runhics-doctor; do
       wrapProgram "$out/bin/$program" \
         --set HYPRSTACK_DATA_DIR "$out/share/hyprstack" \
         --set HYPRSTACK_TITLEBAR_PLUGIN "$out/share/hyprstack/native/hyprstack-bars.so" \
@@ -58,6 +58,6 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
     homepage = "https://github.com/hase9awa/hyprstack-shell";
     license = lib.licenses.gpl3Only;
     platforms = [ "x86_64-linux" "aarch64-linux" ];
-    mainProgram = "hyprstack-shell";
+    mainProgram = "runhics-shell";
   };
 }

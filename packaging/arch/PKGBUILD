@@ -1,12 +1,12 @@
-# Maintainer: Hyprstack contributors
+# Maintainer: horse-in-coat-shell contributors
 
-pkgname=horse-in-coat-shell
+pkgname=hic-shell
 pkgver=1.1.1
 pkgrel=1
 pkgdesc="Quickshell/QML desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
-install=hyprstack-shell.install
-url="https://github.com/hase9awa/hyprstack-shell"
+install=hic-shell.install
+url="https://github.com/Paperosino/horse-in-coat-shell"
 license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT)
 depends=(hyprland libqalculate lm_sensors pixman libdrm libinput systemd
     wayland libxkbcommon pango cairo libcups python python-pillow kitty firefox fuzzel
@@ -44,8 +44,8 @@ package() {
 
     # System-wide user unit; ExecStart must point at /usr/bin, unlike the
     # copy documented for user-local installs under ~/.config/systemd/user.
-    install -Dm644 distribution/systemd/user/hyprstack-session.service \
-        "$pkgdir/usr/lib/systemd/user/hyprstack-session.service"
-    sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/hyprstack-session-runner|' \
-        "$pkgdir/usr/lib/systemd/user/hyprstack-session.service"
+    install -Dm644 distribution/systemd/user/hic-session.service \
+        "$pkgdir/usr/lib/systemd/user/hic-session.service"
+    sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/runhics-session-runner|' \
+        "$pkgdir/usr/lib/systemd/user/hic-session.service"
 }

@@ -122,12 +122,12 @@ PageBase {
 
         InfoRow {
             first: true
-            label: Tr.trCtx("Shell", "the hyprstack shell itself, not a unix shell")
+            label: Tr.trCtx("Shell", "the runhics shell itself, not a unix shell")
             value: CUtils.version || "…"
         }
 
         InfoRow {
-            label: Tr.trCtx("CLI", "the hyprstack command line tool")
+            label: Tr.trCtx("CLI", "the runhics command line tool")
             value: root.cliVersion || "…"
         }
 

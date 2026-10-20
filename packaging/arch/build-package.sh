@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the hyprstack-shell Arch package from the repository tree.
+# Build the runhics-shell Arch package from the repository tree.
 # Usage: packaging/arch/build-package.sh [makepkg options, e.g. --install]
 set -euo pipefail
 
@@ -21,7 +21,7 @@ mkdir -p "$stage/src/hyprstack"
 rsync -a --exclude='/.git' --exclude='/build' --exclude='/pkg' --exclude='/src' \
     "$root"/ "$stage/src/hyprstack/"
 cp "$here/PKGBUILD" "$stage/PKGBUILD"
-cp "$here/hyprstack-shell.install" "$stage/hyprstack-shell.install"
+cp "$here/hic-shell.install" "$stage/hic-shell.install"
 
 # Report and install missing build dependencies non-interactively.
 mapfile -t makedepends < <(bash -c 'source "$1" >/dev/null 2>&1; printf "%s\n" "${makedepends[@]}"' _ "$stage/PKGBUILD")
@@ -79,7 +79,7 @@ if ! BUILDDIR="$stage/build" makepkg --cleanbuild "${args[@]}"; then
 fi
 
 shopt -s nullglob
-packages=("$stage"/hyprstack-shell-*.pkg.tar.*)
+packages=("$stage"/hic-shell-*.pkg.tar.*)
 if ((${#packages[@]} == 0)); then
     printf 'makepkg finished without producing a package.\n' >&2
     exit 1

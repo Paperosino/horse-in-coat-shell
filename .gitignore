@@ -109,7 +109,7 @@
 !/distribution/polkit/
 !/distribution/licenses/
 !/distribution/install_system_helper.py
-!/packaging/arch/hyprstack-shell.install
+!/packaging/arch/hic-shell.install
 !/tests/
 !/PLUGINS.md
 !/DESKTOP_FEATURES.md

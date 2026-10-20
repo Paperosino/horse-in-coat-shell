@@ -47,8 +47,8 @@ class Update(Installer):
         for file in self.tree(ROOT / "distribution/defaults/hyprstack", self.config / "hyprstack"):
             file.preserve = file.path.name != "hypr-user.lua"
             yield file
-        yield from self.tree(ROOT / "distribution/systemd/user/hyprstack-session.service",
-                             self.config / "systemd/user/hyprstack-session.service")
+        yield from self.tree(ROOT / "distribution/systemd/user/hic-session.service",
+                             self.config / "systemd/user/hic-session.service")
 
 
 def validate_destinations(update, files):
@@ -215,7 +215,7 @@ def main(argv=None):
                     update.transaction("install")
         if shutil.which("systemctl"):
             subprocess.run(["systemctl", "--user", "daemon-reload"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print("Готово. Войдите в Hyprland и выполните hyprstack-doctor.", flush=True)
+        print("Готово. Войдите в Hyprland и выполните runhics-doctor.", flush=True)
         return 0
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print("Обновление остановлено:", error, file=sys.stderr)

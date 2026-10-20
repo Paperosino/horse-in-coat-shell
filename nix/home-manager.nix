@@ -21,7 +21,7 @@ in {
     home.packages = [ package ];
     home.sessionVariables = {
       HYPRSTACK_DATA_DIR = "${package}/share/hyprstack";
-      HYPRSTACK_SESSION_COMMAND = "${package}/bin/hyprstack-session";
+      HYPRSTACK_SESSION_COMMAND = "${package}/bin/runhics-session";
     };
     xdg.configFile."hypr" = {
       source = "${package}/share/hyprstack/shell/assets/hyprland/config";
@@ -31,12 +31,12 @@ in {
     # from a display manager). Resolve its runtime from this generation directly.
     xdg.configFile."hyprstack/hypr-user.lua".text = ''
       hl.env("HYPRSTACK_DATA_DIR", "${package}/share/hyprstack")
-      hl.env("HYPRSTACK_SESSION_COMMAND", "${package}/bin/hyprstack-session")
+      hl.env("HYPRSTACK_SESSION_COMMAND", "${package}/bin/runhics-session")
       dofile("${package}/share/hyprstack/defaults/hyprstack/hypr-user.lua")
       ${cfg.extraConfig}
     '';
 
-    systemd.user.services.hyprstack-session = {
+    systemd.user.services.hic-session = {
       Unit = {
         Description = "Hyprstack desktop session";
         PartOf = [ "graphical-session.target" ];
@@ -44,7 +44,7 @@ in {
       };
       Service = {
         Type = "simple";
-        ExecStart = "${package}/bin/hyprstack-session-runner";
+        ExecStart = "${package}/bin/runhics-session-runner";
         Restart = "on-failure";
         RestartSec = 3;
         TimeoutStopSec = 10;

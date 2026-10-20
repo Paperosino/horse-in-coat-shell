@@ -1,7 +1,7 @@
 post_install() {
     if [ -d /run/systemd/system ]; then
         systemctl daemon-reload
-        systemctl try-restart hyprstack-system.service
+        systemctl --user try-restart hic-session.service 2>/dev/null || true
         systemctl reload dbus.service
     fi
 }

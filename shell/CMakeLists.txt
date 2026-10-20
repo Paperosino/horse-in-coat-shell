@@ -26,7 +26,7 @@ endif()
 
 string(REGEX REPLACE "^v" "" VERSION "${VERSION}")
 
-project(hyprstack-shell VERSION ${VERSION} LANGUAGES CXX)
+project(runhics-shell VERSION ${VERSION} LANGUAGES CXX)
 
 include(GNUInstallDirs)
 

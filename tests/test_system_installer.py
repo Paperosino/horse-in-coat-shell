@@ -19,10 +19,10 @@ class SystemInstaller(unittest.TestCase):
  def test_package_wires_system_service_post_install(self):
   pkg=(ROOT/'packaging/arch/PKGBUILD').read_text()
   script=(ROOT/'packaging/arch/build-package.sh').read_text()
-  self.assertIn('install=hyprstack-shell.install',pkg);self.assertIn('"$here/hyprstack-shell.install"',script)
+  self.assertIn('install=hic-shell.install',pkg);self.assertIn('"$here/hic-shell.install"',script)
 
  def test_fresh_checkout_includes_installer_dependencies(self):
   if not (ROOT/'.git').exists():self.skipTest('archive checkout')
-  required=['native/system/CMakeLists.txt','third_party/phantomat/main.cpp','distribution/install_system_helper.py','packaging/arch/hyprstack-shell.install','tests/fixtures/virtual-pointer.c']
+  required=['native/system/CMakeLists.txt','third_party/phantomat/main.cpp','distribution/install_system_helper.py','packaging/arch/hic-shell.install','tests/fixtures/virtual-pointer.c']
   result=subprocess.run(['git','check-ignore',*required],cwd=ROOT,text=True,capture_output=True)
   self.assertEqual(result.stdout,'',result.stdout)

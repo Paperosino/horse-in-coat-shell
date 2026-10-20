@@ -593,14 +593,14 @@ def main():
         elif args.command == "clipboard": clipboard_command(args)
         elif args.command == "emoji": emoji_command(args)
         elif args.command == "doctor":
-            return run(["hyprstack-doctor"]).returncode
+            return run(["runhics-doctor"]).returncode
         elif args.message:
             return ipc(*args.message).returncode
         else:
             if args.kill or args.restart:
                 run([qs_binary(), "-p", shell_path(), "kill"], timeout=10)
             if not args.kill:
-                command = ["hyprstack-shell"] + (["--daemonize"] if args.daemon else [])
+                command = ["runhics-shell"] + (["--daemonize"] if args.daemon else [])
                 os.execvp(command[0], command)
         return 0
     except (OSError, ValueError, KeyError, TypeError, ImportError, subprocess.SubprocessError) as error:

@@ -9,7 +9,7 @@
 Завершите Hyprland, войдите в TTY (**Ctrl+Alt+F3**) и выполните без `sudo`:
 
 ```bash
-cd /путь/к/hyprstack-shell
+cd /путь/к/horse-in-coat-shell
 ./update.sh
 ```
 
@@ -21,7 +21,7 @@ cd /путь/к/hyprstack-shell
 `--no-pull` — сборка текущих исходников. Свои изменения в Git сохраните
 коммитом или через `git stash`.
 
-После обновления войдите в Hyprland и выполните `hyprstack-doctor`.
+После обновления войдите в Hyprland и выполните `runhics-doctor`.
 Для отката снова завершите сеанс и запустите:
 
 ```bash
@@ -58,20 +58,20 @@ sudo nixos-rebuild switch --flake .#YOUR_HOST
 ## Диагностика
 
 ```bash
-hyprstack-doctor
+runhics-doctor
 hyprctl configerrors
-hyprstack-doctor --json
-journalctl --user -u hyprstack-session.service -b
+runhics-doctor --json
+journalctl --user -u hic-session.service -b
 ```
 
 Для запуска оболочки с выводом ошибок в терминал:
 
 ```bash
-hyprstack-session stop
-hyprstack-shell
+runhics-session stop
+runhics-shell
 ```
 
-- **QML:** проверьте совместимость Qt/Quickshell и наличие модулей `horse-in-coat-shell`
+- **QML:** проверьте совместимость Qt/Quickshell и наличие модулей `Hyprstack`
   и `M3Shapes`. После обновления Qt пересоберите horse-in-coat-shell и, если нужно, Quickshell.
 - **PAM:** проверьте пакет `hyprlock` и `/etc/pam.d/hyprlock`.
 - **Polkit:** остановите сторонний агент авторизации.
@@ -79,7 +79,7 @@ hyprstack-shell
   `/usr/share/hyprstack/qs`; проверка версии:
   `LD_LIBRARY_PATH=/usr/share/hyprstack/qs/lib /usr/share/hyprstack/qs/bin/hyprstack-qs --version`.
 
-Перезапуск оболочки: `hyprstack-session restart`.
+Перезапуск оболочки: `runhics-session restart`.
 
 ## Восстановление прежнего окружения
 
@@ -92,8 +92,8 @@ hyprstack-shell
 1. Найдите `hyprstack-backup.*`, выведенный при установке.
 2. Перенесите нынешние `hypr` и `hyprstack` из `${XDG_CONFIG_HOME:-$HOME/.config}`
    в отдельный каталог и верните туда прежние каталоги или ссылки из копии.
-3. Верните сохранённый `hyprstack-session.service` в `systemd/user/`.
-   Если прежней службы не было, удалите только установленную службу horse-in-coat-shell.
+3. Верните сохранённый `hic-session.service` в `systemd/user/`.
+   Если прежней службы не было, удалите только установленную службу hic-session.
 4. При наличии пользовательского systemd выполните `systemctl --user daemon-reload`
    и войдите в прежнее окружение.
 
