@@ -91,11 +91,19 @@ def run_session():
                 selector.register(event, selectors.EVENT_READ)
                 selector.register(readfd, selectors.EVENT_READ)
                 done = False
+                next_theme_sync = time.monotonic() + 30
                 while not done:
                     if shell.poll() is not None:
                         result = shell.returncode
                         break
-                    for key, mask in selector.select():
+                    if time.monotonic() >= next_theme_sync:
+                        from gtk_theme import sync_new_flatpaks
+                        try:
+                            sync_new_flatpaks()
+                        except (OSError, ValueError, KeyError) as error:
+                            print("Unable to sync new Flatpak themes:", error, file=sys.stderr)
+                        next_theme_sync = time.monotonic() + 30
+                    for key, mask in selector.select(timeout=max(0, next_theme_sync - time.monotonic())):
                         if key.fileobj is event:
                             if not event.recv(65536):
                                 done = True

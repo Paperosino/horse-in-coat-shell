@@ -13,12 +13,18 @@ class GtkPaletteTests(unittest.TestCase):
     def test_fresh_install_initialises_a_shared_default_palette(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            environment = dict(os.environ, XDG_CONFIG_HOME=str(root / "config"), XDG_DATA_HOME=str(root / "data"), XDG_STATE_HOME=str(root / "state"))
+            environment = dict(os.environ, HOME=str(root), XDG_CONFIG_HOME=str(root / "config"), XDG_DATA_HOME=str(root / "data"), XDG_STATE_HOME=str(root / "state"))
+            binary = root / "bin/flatpak"
+            binary.parent.mkdir()
+            binary.write_text("#!/bin/sh\nprintf '%s\\n' org.example.Installed\n")
+            binary.chmod(0o755)
+            environment["PATH"] = str(binary.parent) + os.pathsep + os.environ.get("PATH", "")
             helper = Path(__file__).resolve().parents[1] / "shell/assets/gtk_theme.py"
             subprocess.run([sys.executable, str(helper)], env=environment, check=True, capture_output=True)
             self.assertTrue((root / "state/hyprstack/scheme.json").is_file())
             self.assertTrue((root / "config/gtk-4.0/hyprstack.css").is_file())
             self.assertTrue((root / "config/qt6ct/colors/hyprstack.conf").is_file())
+            self.assertTrue((root / ".var/app/org.example.Installed/config/gtk-4.0/hyprstack.css").is_file())
 
     def test_replaces_dark_theme_symlink_without_modifying_its_target(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -56,7 +62,7 @@ class GtkPaletteTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             colours = theme_manager.palette({"background":"101018", "foreground":"e0e0e0", "accent":"aaccee"}, "dark")
-            with patch.object(theme_manager, "STATE", root / "state"), patch.dict(os.environ, {"XDG_CONFIG_HOME":str(root / "config")}):
+            with patch.object(theme_manager, "STATE", root / "state"), patch("gtk_theme.sync_flatpaks"), patch.dict(os.environ, {"XDG_CONFIG_HOME":str(root / "config")}):
                 theme_manager.save_current({"mode":"dark", "colours":colours})
             self.assertTrue((root / "state/scheme.json").exists())
             self.assertIn("#" + colours["primary"], (root / "config/gtk-3.0/hyprstack.css").read_text())

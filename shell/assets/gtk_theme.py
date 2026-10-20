@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 import re
 import tempfile
+import shutil
+import subprocess
+import sys
 
 
 def atomic_text(path, text):
@@ -99,13 +102,78 @@ def apply_palette(colours, config_root, mode=None):
             "color_scheme_path": str(colour_file), "custom_palette": "true", "style": "Fusion",
         })
 
+    # KDE runtimes usually use the KDE platform theme rather than qt*ct.
+    # Supply its native palette too; do not require host Qt plugins in a sandbox.
+    rgb = lambda role: ",".join(str(int(colours[role][i:i+2], 16)) for i in (0, 2, 4))
+    for group, background, foreground in (
+        ("Window", "surface", "onSurface"), ("View", "surface", "onSurface"),
+        ("Button", "surfaceContainer", "onSurface"), ("Selection", "primary", "onPrimary"),
+        ("Tooltip", "surfaceContainer", "onSurface"), ("Complementary", "surfaceContainer", "onSurface"),
+        ("Header", "surfaceContainer", "onSurface"),
+    ):
+        update_settings(Path(config_root) / "kdeglobals", "Colors:" + group, {
+            "BackgroundNormal": rgb(background), "BackgroundAlternate": rgb(background),
+            "ForegroundNormal": rgb(foreground), "ForegroundInactive": rgb("outlineVariant"),
+            "ForegroundLink": rgb("primary"), "DecorationFocus": rgb("primary"),
+            "DecorationHover": rgb("primary"),
+        })
+    update_settings(Path(config_root) / "kdeglobals", "General", {"ColorScheme": "Hyprstack"})
+
+
+_synced_flatpaks = set()
+
+
+def installed_flatpaks():
+    if not shutil.which("flatpak"):
+        return []
+    result = subprocess.run(["flatpak", "list", "--app", "--columns=application"],
+                            capture_output=True, text=True, timeout=15, check=True)
+    return sorted({app for app in result.stdout.splitlines()
+                   if re.fullmatch(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+){2,}", app)})
+
+
+def sync_flatpaks(colours, mode=None, only_new=False):
+    """Write each app's private XDG config without granting host filesystem access."""
+    try:
+        installed = set(installed_flatpaks())
+    except (OSError, subprocess.SubprocessError) as error:
+        print("Unable to list Flatpak applications:", error, file=sys.stderr)
+        return
+    _synced_flatpaks.intersection_update(installed)
+    for app in sorted(installed - _synced_flatpaks if only_new else installed):
+        base = Path.home() / ".var/app" / app / "config"
+        # Do not let configuration symlinks overwrite another application's
+        # settings (or a host theme) while synchronising private sandboxes.
+        managed = ("gtk-3.0", "gtk-4.0", "qt5ct", "qt6ct")
+        if any(parent.is_symlink() for parent in (base, base.parent, base.parent.parent, base.parent.parent.parent)) or any((base / name).is_symlink() for name in (*managed, "qt5ct/colors", "qt6ct/colors")):
+            print("Skipping symlinked Flatpak config:", app, file=sys.stderr)
+            continue
+        try:
+            apply_palette(colours, base, mode)
+        except (OSError, ValueError, configparser.Error) as error:
+            print("Unable to theme Flatpak application", app + ":", error, file=sys.stderr)
+        else:
+            _synced_flatpaks.add(app)
+
+
+def apply_desktop_palette(colours, config_root, mode=None):
+    apply_palette(colours, config_root, mode)
+    sync_flatpaks(colours, mode)
+
+
+def sync_new_flatpaks():
+    state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hyprstack/scheme.json"
+    if state.exists():
+        scheme = json.loads(state.read_text())
+        sync_flatpaks(scheme["colours"], scheme.get("mode"), only_new=True)
+
 
 
 def restore():
     state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hyprstack/scheme.json"
     if state.exists():
         scheme = json.loads(state.read_text())
-        apply_palette(scheme["colours"], Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")), scheme.get("mode"))
+        apply_desktop_palette(scheme["colours"], Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")), scheme.get("mode"))
     else:
         # Packages cannot configure an arbitrary user's home during root install.
         # The shared session entry point installs defaults at the first login.

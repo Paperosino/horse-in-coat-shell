@@ -341,8 +341,8 @@ def save_current(scheme: dict) -> None:
     # Keep GTK authentication/capture dialogs on the same palette.
     atomic_json(STATE / "scheme.json", scheme)
     config_root = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    from gtk_theme import apply_palette
-    apply_palette(values, config_root, scheme["mode"])
+    from gtk_theme import apply_desktop_palette
+    apply_desktop_palette(values, config_root, scheme["mode"])
     path = config_root / "hypr/scheme/current.lua"
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as stream:
