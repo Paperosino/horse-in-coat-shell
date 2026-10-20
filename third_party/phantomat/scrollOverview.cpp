@@ -5001,7 +5001,7 @@ std::optional<Vector2D> CScrollOverview::canvasDndPosition(SP<CWLSurfaceResource
     CBox box; Vector2D local;
     const auto window = canvasDesktopWindowAtPoint(getOverviewMousePosLocal(monitor), &box, &local);
     if (!window) return std::nullopt;
-    const auto world = window->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT).pos() + local;
+    const auto world = window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + local;
     if (window->m_isX11) return local * window->m_X11SurfaceScaledBy;
     return Desktop::viewState()->hitTest().surfaceLocalAt(world, window, surface);
 }
@@ -5033,7 +5033,11 @@ void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
         canvasClaimX11Window(WINDOW);
 
     if (WINDOW && WINDOW->wlSurface() && WINDOW->wlSurface()->resource()) {
-        const auto WORLDPOINT = WINDOW->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT).pos() + WINDOWLOCAL;
+        // windowSurfaceAt subtracts position(GOAL) internally; feeding it a
+        // CURRENT-space point misses the surface whenever a window's position
+        // animation was interrupted (goal != value), leaving the client with
+        // garbage local coordinates.
+        const auto WORLDPOINT = WINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + WINDOWLOCAL;
         // windowSurfaceAt is Wayland-only and aborts for XWayland windows.
         // X11 clients expose one surface; convert the canvas-local position to
         // its native coordinates, including Hyprland's force-zero scaling.
