@@ -23,6 +23,6 @@ class SystemInstaller(unittest.TestCase):
 
  def test_fresh_checkout_includes_installer_dependencies(self):
   if not (ROOT/'.git').exists():self.skipTest('archive checkout')
-  required=['native/system/CMakeLists.txt','third_party/phantomat/main.cpp','distribution/install_system_helper.py','distribution/native_plugins.py','packaging/arch/hic-shell.install','tests/fixtures/virtual-pointer.c']
+  required=['native/system/CMakeLists.txt','third_party/phantomat/main.cpp','distribution/install_system_helper.py','distribution/native_plugins.py','shell/assets/gtk_theme.py','packaging/arch/hic-shell.install','tests/fixtures/virtual-pointer.c']
   result=subprocess.run(['git','check-ignore',*required],cwd=ROOT,text=True,capture_output=True)
   self.assertEqual(result.stdout,'',result.stdout)

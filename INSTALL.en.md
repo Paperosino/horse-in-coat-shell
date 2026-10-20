@@ -43,7 +43,7 @@ sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
 Run without `sudo`:
 
 ```bash
-git clone https://github.com/hase9awa/hyprstack-shell.git
+git clone https://github.com/Paperosino/horse-in-coat-shell.git
 cd horse-in-coat-shell
 packaging/arch/build-package.sh --install
 ```
@@ -152,7 +152,7 @@ and modules. Replace `YOUR_HOST` with your configuration name:
 
 ```nix
 {
-  inputs.hyprstack.url = "github:hase9awa/hyprstack-shell";
+  inputs.hyprstack.url = "github:Paperosino/horse-in-coat-shell";
 
   outputs = { nixpkgs, hyprstack, ... }: {
     nixosConfigurations.YOUR_HOST = nixpkgs.lib.nixosSystem {
@@ -207,7 +207,7 @@ In a TTY, get the files and follow [Arch step 3](#config),
 **skipping the user service block**. No CMake build is needed.
 
 ```bash
-git clone https://github.com/hase9awa/hyprstack-shell.git
+git clone https://github.com/Paperosino/horse-in-coat-shell.git
 cd horse-in-coat-shell
 ```
 

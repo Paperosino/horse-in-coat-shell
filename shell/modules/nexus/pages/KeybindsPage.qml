@@ -17,7 +17,7 @@ PageBase {
     objectName: "keyboardShortcutsPage"
     property string query
     function translated(text: string): string { return Bindings.translateDescription(text, value => Tr.tr(value)); }
-    readonly property var filtered: Keybinds.bindings.filter(b => Bindings.matches(b, query, translated))
+    readonly property var filtered: Keybinds.bindings.filter(b => (b.category !== "Canvas" || LayoutModes.mode === "canvas") && Bindings.matches(b, query, translated))
 
     Component.onCompleted: Keybinds.reload()
 
@@ -27,9 +27,20 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall
 
+        WindowModeSelector { Layout.fillWidth: true }
+        FeatureError { error: LayoutModes.error }
+
         StyledText {
             Layout.fillWidth: true
             text: Tr.tr("Current Hyprland shortcuts, including your custom bindings. Super is the Windows/Meta key.")
+            wrapMode: Text.WordWrap
+            color: Colours.palette.m3onSurfaceVariant
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            visible: LayoutModes.mode === "canvas"
+            text: Tr.tr("Ctrl+wheel: zoom; Super+middle-drag: pan; Super+left/right drag: move/resize")
             wrapMode: Text.WordWrap
             color: Colours.palette.m3onSurfaceVariant
         }

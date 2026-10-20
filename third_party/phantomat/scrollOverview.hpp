@@ -20,11 +20,14 @@
 #include "Config.hpp"
 #include "DropIndicator.hpp"
 #include "IOverview.hpp"
+#include "StickyWindows.hpp"
 
 class CMonitor;
 struct wl_event_source;
 
 class CScrollOverview : public IOverview {
+    mutable CanvasSticky::State stickyDrag;
+    CBox stickyCanvasDragBox(const CBox& rendered) const;
   public:
     CScrollOverview(PHLWORKSPACE startedOn_, bool swipe = false, PHLMONITOR monitor = {});
     ~CScrollOverview() override;

@@ -28,6 +28,11 @@ Singleton {
         }
     }
 
+    Connections {
+        target: LayoutModes
+        function onModeChanged(): void { refreshTimer.restart(); }
+    }
+
     Timer {
         id: refreshTimer
         interval: 200

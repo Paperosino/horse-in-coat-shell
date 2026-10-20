@@ -4,9 +4,9 @@ import json,math,sys,os
 from pathlib import Path
 from feature_common import CONFIG,atomic_json,read_json,run,lua,output
 MODES=('tiling','scrolling','stacking','canvas')
-DEFAULT={'mode':'scrolling','canvasZoom':0.72,'canvasMinZoom':0.1,'canvasMaxZoom':2.5,'canvasZoomStep':0.12,'canvasPanSpeed':1.0,'canvasGap':40,'canvasGrid':True,'canvasSnap':False,'canvasSnapSize':40,'canvasMinimap':True,'canvasRemember':True,'canvasHoverFocus':False,'overviewDragMs':35,'overviewMotionMs':320}
+DEFAULT={'mode':'scrolling','canvasZoom':0.72,'canvasMinZoom':0.1,'canvasMaxZoom':2.5,'canvasZoomStep':0.12,'canvasPanSpeed':1.0,'canvasGap':40,'canvasGrid':True,'canvasSnap':False,'canvasSnapSize':40,'canvasMinimap':True,'canvasRemember':True,'canvasHoverFocus':False,'canvasSticky':False,'overviewDragMs':35,'overviewMotionMs':320}
 RANGES={'canvasZoom':(.1,2),'canvasMinZoom':(.05,1),'canvasMaxZoom':(1,5),'canvasZoomStep':(.01,.5),'canvasPanSpeed':(.1,5),'canvasGap':(0,300),'canvasSnapSize':(24,300),'overviewDragMs':(0,120),'overviewMotionMs':(120,700)}
-BOOLS={'canvasGrid','canvasSnap','canvasMinimap','canvasRemember','canvasHoverFocus'}
+BOOLS={'canvasSticky','canvasGrid','canvasSnap','canvasMinimap','canvasRemember','canvasHoverFocus'}
 FILE=CONFIG/'layouts.json'
 def config():
  c={**DEFAULT,**read_json(FILE)}

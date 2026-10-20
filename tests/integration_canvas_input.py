@@ -136,6 +136,32 @@ ShellRoot { PanelWindow { anchors {top:true;bottom:true;left:true;right:true} Wl
  subprocess.run(['grim',str(image)],env=appenv,check=True,capture_output=True)
  assert window()['at']==before,'Rendering changed native window geometry'
  print('PASS: offscreen canvas surfaces are visible and rendering does not move windows',flush=True)
+ if toolkit=='gtk' and os.environ.get('HYPRSTACK_TEST_WINDOW_BEHAVIOUR'):
+  def wait_client(title):
+   for _ in range(30):
+    found=next((c for c in json.loads(ctl('clients','-j')) if c['pid']==app.pid and c['title']==title),None)
+    if found:return found
+    time.sleep(.1)
+   raise AssertionError('Missing test client: '+title)
+  os.kill(app.pid,signal.SIGUSR2);other=wait_client('Canvas overlap regression')
+  ctl('repl','hl.dispatch(hl.dsp.window.move({window=hl.get_window("address:'+other['address']+'"),x=2580,y=370,relative=false}))')
+  ctl('repl','return hyprstack_layouts.canvas_action("viewport 2180 140")');time.sleep(.3)
+  cam=state();w=window();click=screen(30,w['size'][1]*.65)
+  send('move',*click);send('button',272,1);send('button',272,0)
+  owned=[c for c in json.loads(ctl('clients','-j')) if c['pid']==app.pid]
+  assert owned[-1]['address']==address,('Click did not raise the covered window',owned)
+  print('PASS: clicking an uncovered area raises a partially covered canvas window',flush=True)
+  time.sleep(5)
+  dialog_view=state()['view']
+  os.kill(app.pid,signal.SIGUSR1);dialog=wait_client('Canvas transient regression');time.sleep(.3)
+  dialog=wait_client('Canvas transient regression')
+  assert dialog['pinned'] and dialog['floating'],dialog
+  assert state()['view']==dialog_view,'A modal dialog moved the canvas camera'
+  mx,my=monitor['x'],monitor['y']
+  assert abs(dialog['at'][0]+dialog['size'][0]/2-(mx+width/2))<32,dialog
+  assert abs(dialog['at'][1]+dialog['size'][1]/2-(my+height/2))<32,dialog
+  print('PASS: a transient modal dialog is centred on screen above the translated canvas',flush=True)
+  time.sleep(5)
  if os.environ.get('HYPRSTACK_SOAK'):
   import re
   for iteration in range(8):

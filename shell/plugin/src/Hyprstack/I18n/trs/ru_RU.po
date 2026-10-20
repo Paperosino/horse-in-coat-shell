@@ -7727,3 +7727,45 @@ msgstr "Перетаскивание"
 #: modules/nexus/pages/AppearanceThemesPage.qml
 msgid "Resize"
 msgstr "Размер"
+
+msgid "Canvas"
+msgstr "Холст"
+
+msgid "Sticky windows"
+msgstr "Липкие окна"
+
+msgid "Keep the window spacing at neighbouring edges. Drag further to detach and overlap."
+msgstr "Окна прилипают к соседним граням с учётом отступов. Потяните дальше, чтобы отлепить окно и наложить его на другое."
+
+msgid "Super+F1: shortcut help and window modes"
+msgstr "Super+F1: подсказка сочетаний и выбор режима окон"
+
+msgid "Centre focused window"
+msgstr "Показать выбранное окно по центру"
+
+msgid "Return to previous view"
+msgstr "Вернуться к предыдущему виду"
+
+msgid "Resize window %1"
+msgstr "Изменить размер окна: %1"
+
+msgid "Focus column %1"
+msgstr "Перейти к колонке: %1"
+
+msgid "Switch workspace %1"
+msgstr "Переключить рабочий стол: %1"
+
+msgid "Navigate %1"
+msgstr "Перейти: %1"
+
+msgid "Pan %1"
+msgstr "Сдвинуть холст: %1"
+
+msgid "Ctrl+wheel: zoom; middle-drag: pan; Super+left/right drag: move/resize"
+msgstr "Ctrl+колесо: масштаб; средняя кнопка: движение холста; Super+ЛКМ/ПКМ: перемещение/размер окна"
+
+msgid "Ctrl+wheel: zoom; Super+middle-drag: pan; Super+left/right drag: move/resize"
+msgstr "Ctrl+колесо: масштаб; Super+средняя кнопка: движение холста; Super+ЛКМ/ПКМ: перемещение/размер окна"
+
+msgid "Super+O: overview; Super+middle-drag: pan; Ctrl+wheel: zoom"
+msgstr "Super+O: обзор; Super+средняя кнопка: движение холста; Ctrl+колесо: масштаб"

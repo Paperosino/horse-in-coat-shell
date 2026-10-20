@@ -15,6 +15,8 @@
   <a href="#demo">Demo</a>
 </p>
 
+horse-in-coat-shell is developed as an independent project with its own direction. Current source and updates: [Paperosino/horse-in-coat-shell](https://github.com/Paperosino/horse-in-coat-shell).
+
 horse-in-coat-shell is a shell for Hyprland with four window modes:
 **scrolling** — an infinitely scrollable strip of columns; **stacking** —
 floating windows with title bars; **tiling** — classic tiling; **canvas** —
@@ -22,6 +24,8 @@ an infinite spatial canvas with zoom, panning and a minimap. Modes switch with
 a single key binding and preserve window placement.
 Russian is the default language; English and the system language are available
 in the settings.
+
+**Tip:** press **Super+F1** to open keyboard shortcuts for the current window mode. You can also switch modes in this window; the shortcut list updates automatically. Super is usually the Windows key.
 
 <a id="demo"></a>
 

@@ -81,7 +81,7 @@ if("shell" IN_LIST ENABLE_MODULES)
         PATTERN "README.md" EXCLUDE)
     install(FILES
         assets/diagnostics.py assets/hyprstack_cli.py assets/i18n.py
-        assets/notification_tools.py assets/session_runner.py assets/theme_manager.py
+        assets/notification_tools.py assets/session_runner.py assets/theme_manager.py assets/gtk_theme.py
         assets/feature_common.py assets/system_controls.py assets/live_wallpapers.py
         assets/plugin_manager.py assets/assistant_backend.py assets/clipboard_helper.py
         assets/default_apps_helper.py assets/layout_controls.py assets/appearance_themes.py

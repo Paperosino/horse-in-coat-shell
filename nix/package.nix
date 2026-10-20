@@ -57,7 +57,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   passthru = { inherit hyprland quickshell; };
   meta = {
     description = "Hyprstack desktop shell for Hyprland 0.56.2";
-    homepage = "https://github.com/hase9awa/hyprstack-shell";
+    homepage = "https://github.com/Paperosino/horse-in-coat-shell";
     license = lib.licenses.gpl3Only;
     platforms = [ "x86_64-linux" "aarch64-linux" ];
     mainProgram = "runhics-shell";

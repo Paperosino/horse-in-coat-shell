@@ -43,7 +43,7 @@ sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
 Выполняйте без `sudo`:
 
 ```bash
-git clone https://github.com/hase9awa/hyprstack-shell.git
+git clone https://github.com/Paperosino/horse-in-coat-shell.git
 cd horse-in-coat-shell
 packaging/arch/build-package.sh --install
 ```
@@ -151,7 +151,7 @@ hyprctl configerrors
 
 ```nix
 {
-  inputs.hyprstack.url = "github:hase9awa/hyprstack-shell";
+  inputs.hyprstack.url = "github:Paperosino/horse-in-coat-shell";
 
   outputs = { nixpkgs, hyprstack, ... }: {
     nixosConfigurations.YOUR_HOST = nixpkgs.lib.nixosSystem {
@@ -206,7 +206,7 @@ sudo nixos-rebuild switch --flake .#YOUR_HOST
 **пропустив блок пользовательской службы**. Сборка CMake не нужна.
 
 ```bash
-git clone https://github.com/hase9awa/hyprstack-shell.git
+git clone https://github.com/Paperosino/horse-in-coat-shell.git
 cd horse-in-coat-shell
 ```
 

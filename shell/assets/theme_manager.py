@@ -338,9 +338,11 @@ def save_current(scheme: dict) -> None:
     values = validate_colours(scheme["colours"], scheme["mode"])
     scheme = {**scheme, "colours": values}
     # The shell observes this file and applies native decoration colours live.
-    # Themes own only Hyprstack files, never unrelated application settings.
+    # Keep GTK authentication/capture dialogs on the same palette.
     atomic_json(STATE / "scheme.json", scheme)
     config_root = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    from gtk_theme import apply_palette
+    apply_palette(values, config_root)
     path = config_root / "hypr/scheme/current.lua"
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as stream:

@@ -450,6 +450,8 @@ static void registerConfigValues() {
         SCROLLOVERVIEW_HANDLE,
         makeShared<CBoolValue>("plugin:spatialoverview:canvas:commit_viewport_on_close", "make the freely panned viewport the normal desktop view when overview closes", true));
     HyprlandAPI::addConfigValueV2(SCROLLOVERVIEW_HANDLE,
+        makeShared<CBoolValue>("plugin:spatialoverview:canvas:sticky_windows", "magnetic window edges with drag-through release", false));
+    HyprlandAPI::addConfigValueV2(SCROLLOVERVIEW_HANDLE,
                                   makeShared<CBoolValue>("plugin:spatialoverview:canvas:snap_enabled", "snap canvas window positions to the world grid", true));
     HyprlandAPI::addConfigValueV2(SCROLLOVERVIEW_HANDLE,
                                   makeShared<CIntValue>("plugin:spatialoverview:canvas:snap_size", "canvas window position snap interval", 40,
@@ -638,6 +640,10 @@ float getWorkspaceOutlineDropOpacity() {
 
 float getWorkspaceOutlineDropFillOpacity() {
     return std::clamp(getValue<float>("plugin:spatialoverview:workspace_outline:drop_fill_opacity"), 0.F, 0.5F);
+}
+
+bool getCanvasStickyWindows() {
+    return getValue<bool>("plugin:spatialoverview:canvas:sticky_windows");
 }
 
 bool getCanvasEnabled() {

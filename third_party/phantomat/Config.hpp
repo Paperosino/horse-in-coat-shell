@@ -109,6 +109,7 @@ float         getWorkspaceOutlineActiveOpacity();
 float         getWorkspaceOutlineDropOpacity();
 float         getWorkspaceOutlineDropFillOpacity();
 bool          getCanvasEnabled();
+bool          getCanvasStickyWindows();
 bool          getCanvasDesktopMode();
 bool          getCanvasPersistent();
 bool          getCanvasLinkedScreens();

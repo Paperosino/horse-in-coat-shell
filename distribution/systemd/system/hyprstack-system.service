@@ -1,6 +1,6 @@
 [Unit]
 Description=Hyprstack system settings service
-Documentation=https://github.com/hase9awa/hyprstack-shell
+Documentation=https://github.com/Paperosino/horse-in-coat-shell
 
 [Service]
 Type=dbus

@@ -34,7 +34,7 @@ function fromHyprland(values) {
         var entry = groups.get(identity);
         if (!entry.shortcuts.includes(shortcut)) entry.shortcuts.push(shortcut);
     }
-    var order = ["Shell","Applications","Windows","Workspaces","Capture","Clipboard","Media","Session","Custom"];
+    var order = ["Shell","Applications","Windows","Canvas","Workspaces","Capture","Clipboard","Media","Session","Custom"];
     return Array.from(groups.values()).sort((a,b) => {
         var ai = order.indexOf(a.category), bi = order.indexOf(b.category);
         return (ai < 0 ? order.length : ai) - (bi < 0 ? order.length : bi)

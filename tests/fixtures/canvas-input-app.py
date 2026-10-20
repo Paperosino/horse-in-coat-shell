@@ -1,13 +1,23 @@
 import os
 import gi
 gi.require_version('Gtk','4.0')
-from gi.repository import Gtk,Gdk,Gio
+from gi.repository import Gtk,Gdk,Gio,GLib
 app=Gtk.Application(application_id='org.hyprstack.CanvasInputTest',flags=Gio.ApplicationFlags.NON_UNIQUE)
 def activate(app):
  window=Gtk.ApplicationWindow(application=app,title='Canvas input regression');window.set_default_size(640,400)
  # Force client decorations/shadow margins: these exercise the bars motion
  # hook that must preserve the canvas's surface-local coordinates.
  window.set_titlebar(Gtk.HeaderBar())
+ if os.environ.get('HYPRSTACK_TEST_WINDOW_BEHAVIOUR'):
+  import signal
+  def utility(modal):
+   child=Gtk.ApplicationWindow(application=app,title='Canvas transient regression' if modal else 'Canvas overlap regression')
+   if modal:child.set_transient_for(window);child.set_modal(True)
+   child.set_default_size(320,200);child.set_child(Gtk.Label(label='Canvas window behaviour test'));child.present()
+   GLib.timeout_add(5000,lambda:(child.close(),False)[1])
+   return True
+  GLib.unix_signal_add(GLib.PRIORITY_DEFAULT,signal.SIGUSR1,lambda:utility(True))
+  GLib.unix_signal_add(GLib.PRIORITY_DEFAULT,signal.SIGUSR2,lambda:utility(False))
  motion=Gtk.EventControllerMotion()
  motion.connect('motion',lambda controller,x,y:print('MOTION',round(x),round(y),window.get_width(),window.get_height(),flush=True))
  window.add_controller(motion)

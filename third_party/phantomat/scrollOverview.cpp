@@ -112,6 +112,7 @@ struct SCanvasSavedWindow {
     CBox box;
     bool floating;
     Fullscreen::SFullscreenMode fullscreen;
+    bool pinned = false;
 };
 static std::unordered_map<uint64_t, SCanvasSavedWindow> g_canvasNativeLayout;
 static std::unordered_map<uint64_t, CBox> g_canvasSpatialLayout;
@@ -176,7 +177,7 @@ extern void requestFlightDeckNative(PHLWINDOW window, Fullscreen::eFullscreenMod
 void        canvasReleaseX11Windows();
 
 static SCanvasSavedWindow saveCanvasWindow(PHLWINDOW w) {
-    return {w, w->m_workspace, w->layoutTarget()->position(), w->layoutTarget()->floating(), Fullscreen::controller()->getFullscreenModes(w)};
+    return {w, w->m_workspace, w->layoutTarget()->position(), w->layoutTarget()->floating(), Fullscreen::controller()->getFullscreenModes(w), w->m_pinned};
 }
 
 // A window and its layout target can disagree about where they live: the
@@ -221,6 +222,8 @@ static void restoreCanvasNativeLayout() {
     for (auto& [id, saved] : g_canvasNativeLayout) {
         const auto w = saved.window.lock();
         if (!validMapped(w) || !w->layoutTarget()) continue;
+        if (w->m_pinned != saved.pinned)
+            (void)Config::Actions::pinWindow(saved.pinned ? Config::Actions::TOGGLE_ACTION_ENABLE : Config::Actions::TOGGLE_ACTION_DISABLE, w);
         g_canvasSpatialLayout[id] = w->layoutTarget()->position();
         Fullscreen::controller()->setFullscreenMode(w, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE);
         if (const auto ws = saved.workspace.lock(); ws && w->m_workspace != ws) moveCanvasWindowToWorkspace(w, ws);
@@ -1927,6 +1930,7 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_, PHLMONITO
             if (isCanvasDesktop()) {
                 size_t workspaceIdx = 0;
                 const auto WINDOW = windowAtOverviewCursor(&workspaceIdx);
+                if (WINDOW) Desktop::windowState()->raise(WINDOW);
                 if (WINDOW && navigatorOwnsPointer() && button == MAIN_BUTTON)
                     landOnWindow(WINDOW);
                 else if (WINDOW)
@@ -4583,9 +4587,9 @@ void CScrollOverview::ensureCanvasKeyboardFocus(PHLWINDOW window) {
         return;
 
     window = getOverviewWindowToShow(window ? window : Desktop::focusState()->window());
-    if (!shouldShowOverviewWindow(window))
+    if (!shouldShowOverviewWindow(window) && !canvasScreenFixedWindow(window))
         window = getOverviewWindowToShow(closeOnWindow.lock());
-    if (!shouldShowOverviewWindow(window) || !window->wlSurface() || !window->wlSurface()->resource())
+    if ((!shouldShowOverviewWindow(window) && !canvasScreenFixedWindow(window)) || !window->wlSurface() || !window->wlSurface()->resource())
         return;
 
     const auto SURFACE = window->wlSurface()->resource();
@@ -4643,6 +4647,26 @@ bool CScrollOverview::manageCanvasWindow(PHLWINDOW window, bool placeNew) {
         return false;
 
     if (window->m_workspace && window->m_workspace->m_isSpecialWorkspace) return false;
+    // Transient/modal requests belong to the visible screen, not the camera's
+    // world coordinates. Save their original state for leaving canvas mode.
+    if (window->isModal() || window->parent()) {
+        if (!g_canvasNativeLayout.contains(window->m_stableID))
+            g_canvasNativeLayout.emplace(window->m_stableID, saveCanvasWindow(window));
+        const auto monitor = Desktop::focusState()->monitor() ? Desktop::focusState()->monitor() : pMonitor.lock();
+        if (monitor && setCanvasFloating(window, true)) {
+            moveCanvasWindowToWorkspace(window, monitor->m_activeWorkspace);
+            const auto work = monitor->logicalBoxMinusReserved();
+            const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).clamp(Vector2D{1, 1}, work.size() * .9);
+            TARGET = window->layoutTarget();
+            TARGET->setPositionGlobal(CBox{work.middle() - size / 2.0, size});
+            TARGET->warpPositionSize();
+            (void)Config::Actions::pinWindow(Config::Actions::TOGGLE_ACTION_ENABLE, window);
+            Desktop::windowState()->raise(window);
+            Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_KEYBIND);
+            ensureCanvasKeyboardFocus(window);
+            return true;
+        }
+    }
     if (!g_canvasNativeLayout.contains(window->m_stableID))
         g_canvasNativeLayout.emplace(window->m_stableID, saveCanvasWindow(window));
 
@@ -5140,6 +5164,7 @@ bool CScrollOverview::forwardCanvasPointerButton(const IPointer::SButtonEvent& e
 
 
     if (event.state == WL_POINTER_BUTTON_STATE_PRESSED) {
+        Desktop::windowState()->raise(WINDOW);
         canvasForwardedPointerButtons.emplace(event.button);
         size_t workspaceIdx = viewportCurrentWorkspace;
         for (size_t i = 0; i < images.size(); ++i) {
@@ -5149,6 +5174,8 @@ bool CScrollOverview::forwardCanvasPointerButton(const IPointer::SButtonEvent& e
             }
         }
         selectOverviewWindow(WINDOW, workspaceIdx, true);
+        if (canvasScreenFixedWindow(WINDOW))
+            Desktop::focusState()->fullWindowFocus(WINDOW, Desktop::FOCUS_REASON_KEYBIND);
         ensureCanvasKeyboardFocus(WINDOW);
     } else
         canvasForwardedPointerButtons.erase(event.button);
@@ -5225,6 +5252,7 @@ Vector2D CScrollOverview::canvasCellAtOverviewPoint(const Vector2D& point) const
 }
 
 CBox CScrollOverview::snapCanvasWindowBox(const CBox& box, PHLMONITOR monitor) const {
+    if (dragActiveWindow && (stickyDrag.x.held || stickyDrag.y.held)) return box;
     if (!ScrollOverview::Config::getCanvasEnabled() || !ScrollOverview::Config::getCanvasSnapEnabled() || !monitor)
         return box;
 
@@ -5400,6 +5428,28 @@ Vector2D CScrollOverview::overviewPointToGlobal(size_t workspaceIdx, const Vecto
         VIEWPORT_CENTER_LOGICAL + MONITOR->m_position;
 }
 
+CBox CScrollOverview::stickyCanvasDragBox(const CBox& rendered) const {
+    const auto monitor = pMonitor.lock();
+    const auto dragged = getOverviewWindowToShow(dragActiveWindow.lock());
+    if (!isCanvasDesktop() || !monitor || !dragged || !ScrollOverview::Config::getCanvasStickyWindows())
+        return rendered;
+    const double factor = std::max(.01, double(scale->value() * monitor->m_scale));
+    const auto origin = overviewPointToGlobal(viewportCurrentWorkspace, rendered.pos());
+    const auto size = rendered.size() / factor;
+    std::vector<CanvasSticky::Rect> peers;
+    for (const auto& window : Desktop::windowState()->windows()) {
+        if (window == dragged || !canvasDrawsWindow(window) || canvasScreenFixedWindow(window)) continue;
+        const auto box = window->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        peers.push_back({box.x, box.y, box.w, box.h});
+    }
+    const auto snapped = stickyDrag.apply({origin.x, origin.y, size.x, size.y}, peers,
+        ScrollOverview::Config::getCanvasPlacementGap(), 12.0 / factor, 36.0 / factor);
+    auto result = rendered;
+    result.x += (snapped.x - origin.x) * factor;
+    result.y += (snapped.y - origin.y) * factor;
+    return result;
+}
+
 CBox CScrollOverview::draggedWindowBox(size_t workspaceIdx) const {
     const auto WINDOW  = getOverviewWindowToShow(dragActiveWindow.lock());
     const auto MONITOR = pMonitor.lock();
@@ -5411,7 +5461,7 @@ CBox CScrollOverview::draggedWindowBox(size_t workspaceIdx) const {
     box.x = lastMousePosLocal.x - dragGrabOffsetLocal.x;
     box.y = lastMousePosLocal.y - dragGrabOffsetLocal.y;
 
-    return box;
+    return stickyCanvasDragBox(box);
 }
 
 CBox CScrollOverview::draggedWindowBoxFor(PHLWINDOW window, size_t workspaceIdx, const Vector2D& pointLocal, const Vector2D& grabRatio) const {
@@ -5424,7 +5474,7 @@ CBox CScrollOverview::draggedWindowBoxFor(PHLWINDOW window, size_t workspaceIdx,
     auto       box             = getOverviewDragWindowBox(window, MONITOR, scale->value(), viewOffset->value(), WORKSPACEOFFSET, layout);
     box.x = pointLocal.x - box.width * std::clamp(grabRatio.x, 0.0, 1.0);
     box.y = pointLocal.y - box.height * std::clamp(grabRatio.y, 0.0, 1.0);
-    return box;
+    return stickyCanvasDragBox(box);
 }
 
 CBox CScrollOverview::draggedWindowGlobalBox() const {
@@ -5432,6 +5482,11 @@ CBox CScrollOverview::draggedWindowGlobalBox() const {
     const auto MONITOR = pMonitor.lock();
     if (!WINDOW || !MONITOR)
         return {};
+
+    if (isCanvasDesktop() && ScrollOverview::Config::getCanvasStickyWindows()) {
+        const auto box = draggedWindowBox(dragWorkspaceIndex(WINDOW));
+        return {MONITOR->m_position + box.pos() / MONITOR->m_scale, box.size() / MONITOR->m_scale};
+    }
 
     const auto WORKSPACEIDX = dragWorkspaceIndex(WINDOW);
     if (WORKSPACEIDX >= images.size())
@@ -5648,6 +5703,7 @@ bool canvasTakeClientWindowGesture(const PHLWINDOW& window, std::optional<Layout
 }
 
 void CScrollOverview::beginWindowDrag(PHLWINDOW window) {
+    stickyDrag = {};
     checkpointCanvas();
     const auto WINDOW = getOverviewWindowToShow(window);
     if (!shouldShowOverviewWindow(WINDOW) || !WINDOW->layoutTarget())
@@ -5783,6 +5839,7 @@ void CScrollOverview::updateWindowResize() {
 void CScrollOverview::clearDragPending() {
     dragPendingPrimary          = false;
     dragActiveWindow.reset();
+    stickyDrag = {};
     dragOriginalWorkspace.reset();
     dragStartedTiled            = false;
     dragOriginalFloatSize       = Vector2D{};

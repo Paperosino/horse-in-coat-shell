@@ -48,6 +48,11 @@ def stop_child_groups(children):
 
 def run_session():
     lockpath, eventpath = paths()
+    from gtk_theme import restore as restore_gtk_theme
+    try:
+        restore_gtk_theme()
+    except (OSError, ValueError, KeyError) as error:
+        print("Unable to restore GTK dialog colours:", error, file=sys.stderr)
     # Appearance is a user-session preference. Preserve it across sign-ins
     # for shell-launched GTK/Qt clients as well as compositor-launched clients.
     from appearance_themes import STATE, session_environment

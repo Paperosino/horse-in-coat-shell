@@ -34,7 +34,7 @@ ShellRoot {
     GSFLoader {}
     ServiceLoader {}
     PluginHost {}
-    PolkitModule.Polkit {}
+    PolkitModule.Polkit { id: authentication }
 
     Background {}
     Drawers {}
@@ -44,6 +44,7 @@ ShellRoot {
     }
 
     Shortcuts {}
+    ShortcutHelp { authenticationActive: authentication.active }
     OverviewModule.OverviewWindows {}
     SwitcherModule.WindowSwitcher {}
     BatteryMonitor {}

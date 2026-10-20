@@ -14,6 +14,10 @@ class LayoutSettings(unittest.TestCase):
    with self.assertRaises(ValueError,msg=str(value)):layouts.validate(value)
  def test_unknown_mode_never_reaches_compositor(self):
   with patch.object(sys,'argv',['layout_controls.py','mode','canvas;exit']),patch.object(layouts,'run') as run,contextlib.redirect_stdout(io.StringIO()):self.assertEqual(layouts.main(),1);run.assert_not_called()
+ def test_sticky_setting_is_typed_and_preserves_spacing(self):
+  value=layouts.validate({'canvasSticky':True,'canvasGap':24})
+  self.assertTrue(value['canvasSticky']);self.assertEqual(value['canvasGap'],24)
+  with self.assertRaises(ValueError):layouts.validate({'canvasSticky':'yes'})
  def test_compositor_error_is_reported(self):
   with patch.object(layouts,'run',return_value='error: rejected'):
    with self.assertRaisesRegex(ValueError,'rejected'):layouts.execute('return true')

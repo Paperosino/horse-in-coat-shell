@@ -1,4 +1,5 @@
 local json = require("utils.json")
+local refresh_mode_bindings = function() end
 local config_dir = (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/hyprstack"
 local runtime_path = os.getenv("XDG_RUNTIME_DIR") .. "/hyprstack-layouts-" .. os.getenv("HYPRLAND_INSTANCE_SIGNATURE") .. ".json"
 
@@ -1413,10 +1414,17 @@ local function configure_canvas()
         navigator = {accent = "auto", uppercase = false, corner_labels = false},
         chrome_animation = {enabled = false}, parallax = {enabled = false}
     })
+    -- A live session may still have the previous native library mapped while
+    -- updated shell files are being installed. Enable new options when present.
+    local supported, value = pcall(hl.get_config, "plugin.spatialoverview.canvas.sticky_windows")
+    if supported and value ~= nil then
+        hl.plugin.spatialoverview.configure({canvas = {sticky_windows = preferences.canvasSticky == true}})
+    end
+
 end
 
 function layouts.configure(value)
-    for _, key in ipairs({"canvasZoom", "canvasMinZoom", "canvasMaxZoom", "canvasZoomStep", "canvasPanSpeed", "canvasGap", "canvasGrid", "canvasSnap", "canvasSnapSize", "canvasMinimap", "canvasRemember", "canvasHoverFocus", "overviewDragMs", "overviewMotionMs"}) do
+    for _, key in ipairs({"canvasSticky", "canvasZoom", "canvasMinZoom", "canvasMaxZoom", "canvasZoomStep", "canvasPanSpeed", "canvasGap", "canvasGrid", "canvasSnap", "canvasSnapSize", "canvasMinimap", "canvasRemember", "canvasHoverFocus", "overviewDragMs", "overviewMotionMs"}) do
         if value[key] ~= nil then preferences[key] = value[key] end
     end
     configure_canvas()
@@ -1528,6 +1536,7 @@ function layouts.set_mode(mode, reopen)
     end
     refresh_decorations(false)
     workspace_animation()
+    refresh_mode_bindings()
     save()
     return true
 end
@@ -1949,6 +1958,14 @@ hl.window_rule({ name = "hyprstack-telegram-auxiliary", match = {
     class = telegram_classes, initial_title = "(?i)^(" .. table.concat(telegram_auxiliary_titles, "|") .. ")$"
 }, float = true, center = true, suppress_event = "maximize", ["hyprbars:no_bar"] = no_titlebar })
 
+-- Authentication and capture tools are screen utilities, never canvas objects.
+hl.window_rule({ name = "hyprstack-screen-dialogs", match = {
+    class = "(?i)^(gcr-prompter|gcr-system-prompter|org\\.gnome\\.keyring\\.SystemPrompter|polkit-gnome-authentication-agent-1|polkit-kde-authentication-agent-1|swappy|org\\.gnome\\.NautilusPreviewer)$"
+}, float = true, center = true, pin = true, ["hyprbars:no_bar"] = no_titlebar })
+hl.on("window.active", function(window)
+    if window and window.mapped and (layouts.mode() == "tiling" or layouts.mode() == "stacking") then raise(window) end
+end)
+
 local function replace_binds(keys, action, description, options)
     if type(keys) == "table" then
         for _, value in pairs(keys) do replace_binds(value, action, description, options) end
@@ -2127,6 +2144,74 @@ for _, direction in ipairs({{"Left", "left", "l"}, {"Right", "right", "r"}, {"Up
         hl.dispatch(hl.dsp.window.move({direction = direction[2]}))
     end, {repeating = true, description = "Windows: Move window " .. direction[2]})
 end
+-- Keep callbacks and their descriptions in sync with the current layout.
+-- The shortcut help reads hyprctl binds, so it sees the same active actions.
+local mode_bindings = {}
+local function mode_bind(keys, callback, label, repeating)
+    mode_bindings[#mode_bindings + 1] = {keys=keys, callback=callback, label=label, repeating=repeating}
+end
+refresh_mode_bindings = function()
+    for _, bind in ipairs(mode_bindings) do
+        hl.unbind(bind.keys)
+        hl.bind(bind.keys, bind.callback, {description=bind.label(layouts.mode()), repeating=bind.repeating == true})
+    end
+end
+for _, dir in ipairs({{"Left","H","left","l",-1},{"Right","L","right","r",1},{"Up","K","up","u",-1},{"Down","J","down","d",1}}) do
+    local direction, native, step = dir[3], dir[4], dir[5]
+    for _, key in ipairs({dir[1], dir[2]}) do
+        mode_bind("SUPER + " .. key, function()
+            if overview_active and #key == 1 then return hl.dispatch(hl.dsp.global("hyprstack:overview" .. key)) end
+            if layouts.mode() == "canvas" then return plugin_action("navigate", direction) end
+            if layouts.mode() == "scrolling" and #key == 1 then
+                if direction == "left" or direction == "right" then return layouts.focus_column(step) end
+                return layouts.step(step)
+            end
+            hl.dispatch(hl.dsp.focus({direction=native}))
+        end, function(mode)
+            if mode == "scrolling" and #key == 1 then return "Workspaces: " .. ((direction == "left" or direction == "right") and "Focus column " or "Switch workspace ") .. direction end
+            return "Windows: Focus " .. direction
+        end, true)
+        mode_bind("SUPER + SHIFT + " .. key, function()
+            if layouts.mode() == "canvas" then return layouts.canvas_action("nudge " .. direction) end
+            hl.dispatch(hl.dsp.window.move({direction=direction}))
+        end, function(mode) return (mode == "canvas" and "Canvas: Move window " or "Windows: Move window ") .. direction end, true)
+    end
+    mode_bind("SUPER + CTRL + " .. dir[1], function()
+        if layouts.mode() == "canvas" then return layouts.canvas_action("pan " .. direction) end
+        if direction == "left" or direction == "right" then return layouts.step(step) end
+        hl.dispatch(hl.dsp.focus({direction=native}))
+    end, function(mode)
+        if mode == "canvas" then return "Canvas: Pan " .. direction end
+        if direction == "left" or direction == "right" then return "Workspaces: " .. (step < 0 and "Previous workspace" or "Next workspace") end
+        return "Windows: Focus " .. direction
+    end, true)
+    mode_bind("SUPER + CTRL + SHIFT + " .. dir[1], function()
+        hl.dispatch(hl.dsp.window.resize({x=(direction == "left" or direction == "right") and step * 32 or 0,
+            y=(direction == "up" or direction == "down") and step * 32 or 0, relative=true}))
+    end, function() return "Windows: Resize window " .. direction end, true)
+end
+for _, bind in ipairs({{"F","fit","Fit all windows"},{"Return","frame","Centre focused window"},
+    {"A","arrange","Arrange canvas windows"},{"Z","undo","Undo canvas action"},
+    {"SHIFT + Z","redo","Redo canvas action"},{"BackSpace","back","Return to previous view"}}) do
+    local action, label = bind[2], bind[3]
+    mode_bind("SUPER + CTRL + " .. bind[1], function()
+        if layouts.mode() == "canvas" then layouts.canvas_action(action)
+        elseif action == "fit" then layouts.toggle_width() end
+    end, function(mode) return mode == "scrolling" and action == "fit" and "Windows: Toggle column width" or "Canvas: " .. label end)
+end
+for _, zoom in ipairs({{"equal","zoom in","Zoom in"},{"minus","zoom out","Zoom out"},{"0","zoom reset","Reset zoom"},{"SHIFT + equal","zoom in","Zoom in"}}) do
+    local key, action, label = zoom[1], zoom[2], zoom[3]
+    mode_bind("SUPER + CTRL + " .. key, function()
+        if layouts.mode() == "canvas" then layouts.canvas_action(action)
+        elseif key == "0" then layouts.focus(10) end
+    end, function(mode)
+        return mode ~= "canvas" and key == "0" and "Workspaces: Go to workspace 10" or "Canvas: " .. label
+    end, true)
+end
+mode_bind("SUPER + F1", function() hl.dispatch(hl.dsp.global("hyprstack:shortcutHelp")) end,
+    function() return "Shell: Keyboard shortcuts" end)
+refresh_mode_bindings()
+
 hl.on("window.open", function(window)
     if layouts.mode() == "canvas" then return end
     place_telegram_webview(window)
