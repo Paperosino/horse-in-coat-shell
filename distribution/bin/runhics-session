@@ -45,6 +45,9 @@ if command -v systemctl >/dev/null && systemctl --user show-environment >/dev/nu
     if [[ $action != stop ]]; then
         canvas_plugin="$data_dir/native/libspatialoverview.so"
         if [[ -f $canvas_plugin ]] && command -v hyprctl >/dev/null 2>&1; then
+            # Skip the no-op-in-canvas-desktop monitor damage hooks: their
+            # trampolines intermittently fault in Hyprland 0.56.2 at startup.
+            export HYPRSTACK_HICS_NO_DAMAGE_HOOKS=1
             sleep 3
             for _ in $(seq 1 15); do
                 hyprctl plugin load "$canvas_plugin" >/dev/null 2>&1 && break
