@@ -2284,7 +2284,7 @@ if requested_mode == "canvas" then
         if hl.plugin.spatialoverview and hl.plugin.hyprbars then
             local ok, err = pcall(function() layouts.set_mode("canvas", true) end)
             if not ok then preferences.mode = preferences.canvasReturnMode or "scrolling"; save(); print("Hyprstack canvas: " .. tostring(err)) end
-        elseif attempts < 40 then
+        elseif attempts < 80 then
             attempts = attempts + 1
             hl.timer(try_canvas, {timeout = 250, type = "oneshot"})
         else

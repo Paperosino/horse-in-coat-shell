@@ -95,6 +95,7 @@ static constexpr auto        POST_DROP_PSEUDO_FOCUS_DURATION = std::chrono::mill
 static CScrollOverview*             g_pointerGrabOverview = nullptr;
 
 
+
 static std::unordered_set<uint32_t> g_topLayerPointerButtons;
 static PHLWINDOWREF                 g_pseudoFocusedWindow;
 static Time::steady_tp              g_pseudoFocusUntil = {};
@@ -1837,8 +1838,32 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_, PHLMONITO
                 else
                     clientGestureHeldButtons.erase(event.button);
                 const bool PRIMARYUP = event.state == WL_POINTER_BUTTON_STATE_RELEASED && event.button == clientGestureButton;
-                if (PRIMARYUP || clientGestureHeldButtons.empty())
-                    finishClientWindowGesture(event.timeMs);
+                if (PRIMARYUP || clientGestureHeldButtons.empty()) {
+                    // End the canvas-side gesture first, then forward the real
+                    // release to the client. Clients (Qt especially) learn that
+                    // an interactive move/resize finished from the button
+                    // release; swallowing it leaves them treating the button
+                    // as held and turning every later press into a resize.
+                    if (dragActiveWindow)
+                        endWindowDrag();
+                    if (resizeActiveWindow)
+                        endWindowResize();
+                    resizePointerDown = false;
+                    resizePendingWindow.reset();
+                    const auto SURFACE = clientGestureSurface;
+                    const auto LOCAL   = clientGestureLocal;
+                    clientGestureButton       = 0;
+                    clientGestureHeldButtons.clear();
+                    clientGestureKnownButtons.clear();
+                    clientGestureSurface.reset();
+                    g_pInputManager->releaseAllMouseButtons();
+                    if (event.state == WL_POINTER_BUTTON_STATE_RELEASED && SURFACE) {
+                        g_pSeatManager->setPointerFocus(SURFACE, LOCAL);
+                        g_pSeatManager->sendPointerMotion(event.timeMs, LOCAL);
+                        g_pSeatManager->sendPointerButton(event.timeMs, event.button, WL_POINTER_BUTTON_STATE_RELEASED);
+                        g_pSeatManager->sendPointerFrame();
+                    }
+                }
                 requestInputFrame();
                 return;
             }

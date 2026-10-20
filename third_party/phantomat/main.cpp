@@ -50,6 +50,7 @@ static CFunctionHook* g_pScrollElementDrawTexHook  = nullptr;
 static CFunctionHook* g_pCanvasDndMotionHook = nullptr;
 static CFunctionHook* g_pPopupRepositionHook       = nullptr;
 static CFunctionHook* g_pBeginDragTargetHook       = nullptr;
+
 static CFunctionHook* g_pX11ConfigureHook          = nullptr;
 static CFunctionHook* g_pX11ConfigureRequestHook   = nullptr;
 static CFunctionHook* g_pX11ClientMessageHook      = nullptr;
@@ -332,8 +333,9 @@ static void hkBeginDragTarget(void* thisptr, SP<Layout::ITarget> target, eMouseB
     if (target && target->window()) {
         const bool MOVE   = mode == MBIND_MOVE;
         const bool RESIZE = mode == MBIND_RESIZE && edge && *edge != Layout::CORNER_NONE;
-        if ((MOVE || RESIZE) && canvasTakeClientWindowGesture(target->window(), RESIZE ? edge : std::nullopt))
+        if ((MOVE || RESIZE) && canvasTakeClientWindowGesture(target->window(), RESIZE ? edge : std::nullopt)) {
             return;
+        }
     }
     rc<origBeginDragTarget>(g_pBeginDragTargetHook->m_original)(thisptr, target, mode, edge, exclusiveGrab);
 }
