@@ -9,6 +9,8 @@
 #include <hyprland/src/config/values/types/FontWeightValue.hpp>
 
 inline HANDLE PHANDLE = nullptr;
+// Canvas forwarding already supplies coordinates on the chosen surface.
+inline bool g_canvasOwnsPointer = false;
 
 struct SHyprButton {
     std::string          cmd     = "";

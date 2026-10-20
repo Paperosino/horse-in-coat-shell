@@ -51,6 +51,7 @@
 #include <hyprland/src/desktop/view/WLSurface.hpp>
 #include <hyprland/src/desktop/view/LayerSurface.hpp>
 #include <hyprland/src/desktop/view/Popup.hpp>
+#include <hyprland/src/protocols/XDGShell.hpp>
 #include <hyprland/src/xwayland/XSurface.hpp>
 #include <hyprland/src/managers/XWaylandManager.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
@@ -1854,13 +1855,15 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_, PHLMONITO
                     const auto LOCAL   = clientGestureLocal;
                     clientGestureButton       = 0;
                     clientGestureHeldButtons.clear();
+                    const auto RELEASES = clientGestureKnownButtons;
                     clientGestureKnownButtons.clear();
                     clientGestureSurface.reset();
                     g_pInputManager->releaseAllMouseButtons();
                     if (event.state == WL_POINTER_BUTTON_STATE_RELEASED && SURFACE) {
                         g_pSeatManager->setPointerFocus(SURFACE, LOCAL);
                         g_pSeatManager->sendPointerMotion(event.timeMs, LOCAL);
-                        g_pSeatManager->sendPointerButton(event.timeMs, event.button, WL_POINTER_BUTTON_STATE_RELEASED);
+                        for (const auto button : RELEASES)
+                            g_pSeatManager->sendPointerButton(event.timeMs, button, WL_POINTER_BUTTON_STATE_RELEASED);
                         g_pSeatManager->sendPointerFrame();
                     }
                 }
@@ -4511,7 +4514,7 @@ PHLWINDOW CScrollOverview::canvasDesktopWindowAtPoint(const Vector2D& point, CBo
         if (BOX.empty())
             continue;
         const Vector2D LOCAL = (point - BOX.pos()) * (1.F / FACTOR);
-        if (!WINDOW->m_popupHead->at(WINDOW->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT).pos() + LOCAL))
+        if (!WINDOW->m_popupHead->at(WINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + LOCAL))
             continue;
         if (renderedBox)
             *renderedBox = BOX;
@@ -5033,10 +5036,8 @@ void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
         canvasClaimX11Window(WINDOW);
 
     if (WINDOW && WINDOW->wlSurface() && WINDOW->wlSurface()->resource()) {
-        // windowSurfaceAt subtracts position(GOAL) internally; feeding it a
-        // CURRENT-space point misses the surface whenever a window's position
-        // animation was interrupted (goal != value), leaving the client with
-        // garbage local coordinates.
+        // WINDOWLOCAL comes from the rendered window. Translate it to the
+        // goal-space origin expected by Hyprland's window surface hit tester.
         const auto WORLDPOINT = WINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + WINDOWLOCAL;
         // windowSurfaceAt is Wayland-only and aborts for XWayland windows.
         // X11 clients expose one surface; convert the canvas-local position to
@@ -5044,9 +5045,22 @@ void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
         if (WINDOW->m_isX11) {
             SURFACE      = WINDOW->wlSurface()->resource();
             SURFACELOCAL = WINDOWLOCAL * WINDOW->m_X11SurfaceScaledBy;
-        } else if (!implicitGrab)
-            SURFACE = Desktop::viewState()->hitTest().windowSurfaceAt(WORLDPOINT, WINDOW, SURFACELOCAL);
-        else if (SURFACE)
+        } else if (!implicitGrab) {
+            // Own the window-to-surface conversion. A CSD client places its
+            // content inside a larger shadow surface via set_window_geometry;
+            // the canvas box represents that content, not the surface origin.
+            // This must also work without hyprbars' global hit-test hook.
+            const auto POPUP = WINDOW->m_popupHead ? WINDOW->m_popupHead->at(WORLDPOINT) : nullptr;
+            if (POPUP) {
+                SURFACE = POPUP->wlSurface()->resource();
+                SURFACELOCAL = WORLDPOINT - POPUP->coordsGlobal();
+            } else {
+                const auto GEOMETRY = WINDOW->m_xdgSurface ? WINDOW->m_xdgSurface->m_current.geometry : CBox{};
+                const auto [recipient, local] = WINDOW->wlSurface()->resource()->at(WINDOWLOCAL + GEOMETRY.pos(), true);
+                SURFACE = recipient;
+                SURFACELOCAL = local;
+            }
+        } else if (SURFACE)
             SURFACELOCAL = Desktop::viewState()->hitTest().surfaceLocalAt(WORLDPOINT, WINDOW, SURFACE);
 
         // Keep a top-level fallback for clients with an unusual or temporarily
@@ -5085,6 +5099,7 @@ void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
 
     canvasForwardedPointerWindow  = WINDOW;
     canvasForwardedPointerSurface = SURFACE;
+    canvasForwardedPointerLocal   = SURFACELOCAL;
     if (dnd) {
         // Normal pointer focus remains grabbed by the drag origin. DnD focus
         // must still move, including when returning to that origin surface.
@@ -5518,9 +5533,7 @@ void CScrollOverview::finishClientWindowGesture(uint32_t timeMs) {
     if (timeMs && !clientGestureKnownButtons.empty()) {
         const auto SURFACE = clientGestureSurface;
         if (SURFACE) {
-            // Qt clients discard a release that arrives without its enter+motion
-            // pair; replay the last forwarded position first so the button state
-            // actually unlatches.
+            // Restore the exact surface and position that received the press.
             g_pSeatManager->setPointerFocus(SURFACE, clientGestureLocal);
             g_pSeatManager->sendPointerMotion(timeMs, clientGestureLocal);
             for (const auto button : clientGestureKnownButtons)
@@ -5555,9 +5568,8 @@ bool CScrollOverview::beginClientWindowGesture(PHLWINDOW window, std::optional<L
     // The client already saw these presses; the gesture swallows the matching
     // releases, so they must be synthesized when the gesture ends.
     clientGestureKnownButtons = canvasForwardedPointerButtons;
-    clientGestureLocal        = {};
-    if (const auto FORWARDED = canvasForwardedPointerWindow.lock(); FORWARDED && FORWARDED->wlSurface() && FORWARDED->wlSurface()->resource())
-        clientGestureSurface = FORWARDED->wlSurface()->resource();
+    clientGestureLocal        = canvasForwardedPointerLocal;
+    clientGestureSurface      = canvasForwardedPointerSurface.lock();
     // The app sees the pointer leave, as it would under a compositor grab.
     g_pSeatManager->setPointerFocus(nullptr, {});
     g_pointerGrabOverview = this;

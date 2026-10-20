@@ -5,6 +5,12 @@ from gi.repository import Gtk,Gdk,Gio
 app=Gtk.Application(application_id='org.hyprstack.CanvasInputTest',flags=Gio.ApplicationFlags.NON_UNIQUE)
 def activate(app):
  window=Gtk.ApplicationWindow(application=app,title='Canvas input regression');window.set_default_size(640,400)
+ # Force client decorations/shadow margins: these exercise the bars motion
+ # hook that must preserve the canvas's surface-local coordinates.
+ window.set_titlebar(Gtk.HeaderBar())
+ motion=Gtk.EventControllerMotion()
+ motion.connect('motion',lambda controller,x,y:print('MOTION',round(x),round(y),window.get_width(),window.get_height(),flush=True))
+ window.add_controller(motion)
  row=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,homogeneous=True)
  provider=Gtk.CssProvider();provider.load_from_string('.source {background:#00ee00;} .target {background:#ee0000;}')
  Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)

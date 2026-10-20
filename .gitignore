@@ -37,6 +37,7 @@
 !/distribution/bin/
 !/distribution/bundle-qt.sh
 !/distribution/check_headers.py
+!/distribution/native_plugins.py
 !/distribution/update.py
 !/distribution/update_transaction.py
 !/distribution/defaults/

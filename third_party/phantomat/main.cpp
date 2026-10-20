@@ -97,10 +97,15 @@ bool ensureScrollOverviewHooks() {
     success      = success && g_pScrollDamageSurfaceHook->hook();
     success      = success && g_pScrollSendFrameEventsHook->hook();
     success      = success && g_pScrollSurfaceFrameHook->hook();
-    if (g_pScrollAddDamageHookA)
-        success = success && g_pScrollAddDamageHookA->hook();
-    if (g_pScrollAddDamageHookB)
-        success = success && g_pScrollAddDamageHookB->hook();
+    // Desktop canvas does not suppress monitor damage. Select this in the
+    // compositor, where the configuration lives: exporting an environment
+    // variable in the hyprctl loader cannot change this process's environment.
+    if (!ScrollOverview::Config::getCanvasDesktopMode()) {
+        if (g_pScrollAddDamageHookA)
+            success = success && g_pScrollAddDamageHookA->hook();
+        if (g_pScrollAddDamageHookB)
+            success = success && g_pScrollAddDamageHookB->hook();
+    }
     success      = success && g_pScrollDrawTexHook->hook();
     success      = success && g_pScrollElementDrawTexHook->hook();
     success = success && g_pCanvasDndMotionHook->hook();
@@ -882,11 +887,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         findFnOrThrow("_ZN18CWLSurfaceResource5frameERKNSt6chrono10time_pointINS0_3_V212steady_clockENS0_8durationIlSt5ratioILl1ELl1000000000EEEEEE", {""}),
         rc<void*>(hkSurfaceFrame));
 
-    // The monitor addDamage hooks are pure pass-throughs while a canvas is the
-    // desktop (shouldSuppressRenderDamage() is always false there and
-    // onDamageReported() is a no-op), yet their CFunctionHook trampolines are
-    // the ones Hyprland 0.56.2 intermittently faults on at startup. Allow
-    // canvas-desktop-only setups to skip installing them.
+    // Preserve the legacy override for non-desktop overview setups. Desktop
+    // canvas skips enabling these pass-through hooks in ensureScrollOverviewHooks
+    // without requiring an environment variable in the compositor process.
     const bool NOADDDAMAGE = getenv("HYPRSTACK_HICS_NO_DAMAGE_HOOKS") != nullptr;
     if (!NOADDDAMAGE) {
         g_pScrollAddDamageHookB = HyprlandAPI::createFunctionHook(

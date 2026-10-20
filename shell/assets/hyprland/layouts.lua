@@ -1204,6 +1204,7 @@ end
 function layouts.overview_scene(action, value)
     if action == "show" and not overview_active then return end
     local renderer = hl.plugin.hyprbars and hl.plugin.hyprbars.overview_scene
+    if not renderer and action == "reset" then return true end
     if not renderer then error("Hyprstack overview requires the current native shell module") end
     return renderer(action, value)
 end
@@ -1441,10 +1442,15 @@ local function restore_canvas_workspaces()
     end
 end
 
+local function set_native_overview_hooks(enabled)
+    local plugin = hl.plugin.hyprbars
+    if plugin and plugin.overview_hooks then plugin.overview_hooks(enabled) end
+end
+
 function layouts.set_mode(mode, reopen)
     if mode ~= "tiling" and mode ~= "scrolling" and mode ~= "stacking" and mode ~= "canvas" then error("Unknown layout mode") end
     if mode == preferences.mode and not reopen then return true end
-    if mode == "canvas" and (not hl.plugin.spatialoverview or not hl.plugin.hyprbars or not hl.plugin.hyprbars.overview_hooks) then
+    if mode == "canvas" and (not hl.plugin.spatialoverview or (hl.plugin.hyprbars and not hl.plugin.hyprbars.overview_hooks)) then
         error("Canvas plugin is not loaded; install the matching native modules and reload Hyprland")
     end
     layouts.end_switcher("Cancel")
@@ -1459,7 +1465,7 @@ function layouts.set_mode(mode, reopen)
             hl.plugin.spatialoverview.hyprstack_close()
             preferences.mode = preferences.canvasReturnMode or "scrolling"
             if preferences.mode == "canvas" then preferences.mode = "scrolling" end
-            hl.plugin.hyprbars.overview_hooks(true)
+            set_native_overview_hooks(true)
             preserve_focus(function()
                 restore_canvas_workspaces()
                 if preferences.mode == "scrolling" then
@@ -1494,7 +1500,7 @@ function layouts.set_mode(mode, reopen)
             settle_animation()
             refresh_decorations(false)
             configure_canvas()
-            hl.plugin.hyprbars.overview_hooks(false)
+            set_native_overview_hooks(false)
             plugin_action("overview", "open all")
             changing = false
         elseif mode == "stacking" then
@@ -1512,7 +1518,7 @@ function layouts.set_mode(mode, reopen)
     if not ok then
         if mode == "canvas" then
             hl.plugin.spatialoverview.hyprstack_close()
-            hl.plugin.hyprbars.overview_hooks(true)
+            set_native_overview_hooks(true)
             preferences.mode = preferences.canvasReturnMode or (previous ~= "canvas" and previous or "scrolling")
         end
         refresh_decorations(false)
@@ -2281,7 +2287,7 @@ layouts.shadows()
 if requested_mode == "canvas" then
     local attempts = 0
     local function try_canvas()
-        if hl.plugin.spatialoverview and hl.plugin.hyprbars then
+        if hl.plugin.spatialoverview then
             local ok, err = pcall(function() layouts.set_mode("canvas", true) end)
             if not ok then preferences.mode = preferences.canvasReturnMode or "scrolling"; save(); print("Hyprstack canvas: " .. tostring(err)) end
         elseif attempts < 80 then

@@ -50,6 +50,10 @@ static CBox clientGeometry(PHLWINDOW window, SP<CWLSurfaceResource> surface) {
 using PointerMotionFunction = void (*)(CSeatManager*, uint32_t, const Vector2D&);
 static void clientPointerMotion(CSeatManager* seat, uint32_t time, const Vector2D& local) {
     const auto original = reinterpret_cast<PointerMotionFunction>(clientPointerMotionHook->m_original);
+    // Reconstructing from the physical cursor loses the canvas camera/zoom.
+    // Keep the surface coordinates supplied by its direct-input forwarding.
+    if (g_canvasOwnsPointer)
+        return original(seat, time, local);
     const auto surface = seat->m_state.pointerFocus.lock();
     const auto wlSurface = Desktop::View::CWLSurface::fromResource(surface);
     const auto window = wlSurface ? Desktop::View::CWindow::fromView(wlSurface->view()) : nullptr;

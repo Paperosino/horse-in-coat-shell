@@ -424,6 +424,28 @@ APICALL EXPORT void PLUGIN_EXIT() {
 
     g_pHyprRenderer->m_renderPass.removeAllOfType("CBarPassElement");
 
+    // Hyprland defers decoration removal for hidden/unmapped windows. Their
+    // unique_ptr deleters live in this library, so leaving one behind until
+    // after dlclose makes the eventual CWindow destructor jump into unmapped
+    // code. Include closing windows reachable through our decoration registry.
+    const auto bars = g_pGlobalState->bars;
+    for (const auto& bar : bars) {
+        if (!bar)
+            continue;
+        const auto window = bar->getOwner();
+        auto* decoration = bar.get();
+        if (!window)
+            continue;
+        HyprlandAPI::removeWindowDecoration(PHANDLE, decoration);
+        const auto remaining = std::ranges::find_if(window->m_windowDecorations,
+            [decoration](const auto& item) { return item.get() == decoration; });
+        if (remaining != window->m_windowDecorations.end()) {
+            g_pDecorationPositioner->uncacheDecoration(decoration);
+            std::erase(window->m_decosToRemove, decoration);
+            window->m_windowDecorations.erase(remaining);
+        }
+    }
+
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->barColorRuleIdx);
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->titleColorRuleIdx);
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->nobarRuleIdx);

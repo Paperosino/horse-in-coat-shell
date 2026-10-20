@@ -432,6 +432,7 @@ class CScrollOverview : public IOverview {
     PHLWINDOWREF                     hoverFocusSettleWindow;
     PHLWINDOWREF                     canvasForwardedPointerWindow;
     WP<CWLSurfaceResource>           canvasForwardedPointerSurface;
+    Vector2D                         canvasForwardedPointerLocal = {};
     std::unordered_set<uint32_t>     canvasForwardedPointerButtons;
     uint32_t                         clientGestureButton = 0; // held button of a move/resize the app asked for
     std::unordered_set<uint32_t>     clientGestureHeldButtons; // every button held while the gesture runs (ends it when empty)

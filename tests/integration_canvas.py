@@ -3,9 +3,11 @@
 Use --pointer to include real Ctrl-wheel input via /dev/uinput. Isolates all
 configuration/state from the user's session and always closes its own clients.
 """
-import subprocess,os,json,time,traceback
+import subprocess,os,json,time,traceback,shutil,signal
 from pathlib import Path
 import tempfile,sys
+from integration_support import require_wayland_session
+require_wayland_session()
 repo=Path(__file__).resolve().parents[1]
 workspace=tempfile.TemporaryDirectory(prefix='hyprstack-canvas-test-')
 base=Path(workspace.name)
@@ -15,7 +17,7 @@ for plugin in ['hyprstack-bars.so','libspatialoverview.so']:
  candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hyprstack/native')/plugin]
  source=next((p for p in candidates if p.is_file()),None)
  if source is None:raise RuntimeError('Build native modules before running this integration test')
- (base/'data/native'/plugin).symlink_to(source)
+ shutil.copy2(source,base/'data/native'/plugin)
 config=repo/'shell/assets/hyprland/config'
 (base/'test.lua').write_text('package.path = '+json.dumps(str(config/'?.lua')+';')+' .. package.path\n'+
     'dofile('+json.dumps(str(config/'hyprland/animations.lua'))+')\n'+
@@ -121,4 +123,6 @@ finally:
  if p and p.poll() is None:
   p.terminate()
   try:p.wait(timeout=5)
-  except subprocess.TimeoutExpired:p.kill()
+  except subprocess.TimeoutExpired:p.kill();p.wait()
+ if p and p.returncode not in (0,-signal.SIGTERM):
+  raise RuntimeError(f'Nested compositor exited with {p.returncode}, including during cleanup')

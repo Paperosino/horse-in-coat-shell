@@ -899,6 +899,7 @@ static int luaOverviewHooks(lua_State* L) {
     if (!enable) {
         for (auto* hook : {fadeoutHook, rectHook, textureHook, renderHook}) if (hook) hook->unhook();
         canvasSuspended = true;
+        g_canvasOwnsPointer = true;
     } else {
         for (auto* hook : {renderHook, textureHook, rectHook, fadeoutHook}) {
             if (hook && !hook->hook()) {
@@ -907,6 +908,7 @@ static int luaOverviewHooks(lua_State* L) {
             }
         }
         canvasSuspended = false;
+        g_canvasOwnsPointer = false;
     }
     lua_pushboolean(L, true); return 1;
 }
@@ -915,6 +917,7 @@ static void remove(HANDLE handle) {
     g_pHyprRenderer->m_renderPass.removeAllOfType("HyprstackOverviewBackground");
     scene.reset();
     canvasSuspended = false;
+    g_canvasOwnsPointer = false;
     HyprstackCamera::remove();
     if (fadeoutHook) HyprlandAPI::removeFunctionHook(handle,fadeoutHook);
     fadeoutHook=nullptr;

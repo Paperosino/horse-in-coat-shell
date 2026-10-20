@@ -16,6 +16,7 @@ import sys
 import tempfile
 
 from update_transaction import Installer, read_json
+from native_plugins import validate as validate_native_plugins
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -145,7 +146,8 @@ def build(update, jobs, hypr):
     directory = Path(os.environ.get("XDG_CACHE_HOME", str(update.home / ".cache"))) / "hyprstack-build" / key
     subprocess.run(["cmake", "-S", str(ROOT), "-B", str(directory), "-G", "Ninja",
         "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_INSTALL_PREFIX=" + str(update.home / ".local"),
-        "-DCMAKE_INSTALL_BINDIR=bin", "-DCMAKE_INSTALL_DATADIR=share", "-DHYPRSTACK_AUDIO_VISUALIZER=OFF"], check=True)
+        "-DCMAKE_INSTALL_BINDIR=bin", "-DCMAKE_INSTALL_DATADIR=share", "-DHYPRSTACK_AUDIO_VISUALIZER=OFF",
+        "-DHYPRSTACK_BUILD_NATIVE=ON", "-DHYPRSTACK_BUILD_CANVAS=ON"], check=True)
     subprocess.run(["cmake", "--build", str(directory), "--parallel", str(jobs)], check=True)
     return directory
 
@@ -207,6 +209,7 @@ def main(argv=None):
                 with tempfile.TemporaryDirectory(prefix="hyprstack-stage-") as stage:
                     subprocess.run(["cmake", "--install", str(directory)], check=True, env=dict(os.environ, DESTDIR=stage))
                     update.staging = Path(stage) / str(update.home / ".local").lstrip("/")
+                    validate_native_plugins(update.staging / "share/hyprstack/native", directory, hypr["abiHash"])
                     files = list(update.plan())
                     validate_destinations(update, files)
                     require_logged_out(update)

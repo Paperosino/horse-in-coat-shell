@@ -3,10 +3,15 @@
 Use --pointer to include real Ctrl-wheel input via /dev/uinput. Isolates all
 configuration/state from the user's session and always closes its own clients.
 """
-import subprocess,os,json,time,traceback
+import subprocess,os,json,time,traceback,shutil,signal,re
 from pathlib import Path
 import tempfile,sys
+from integration_support import require_wayland_session
+require_wayland_session()
 repo=Path(__file__).resolve().parents[1]
+withoutBars=bool(os.environ.get('HYPRSTACK_TEST_WITHOUT_BARS'))
+toolkit=os.environ.get('HYPRSTACK_INPUT_TOOLKIT','gtk')
+if toolkit not in ('gtk','qt'):raise ValueError('HYPRSTACK_INPUT_TOOLKIT must be gtk or qt')
 workspace=tempfile.TemporaryDirectory(prefix='hyprstack-canvas-test-')
 base=Path(workspace.name)
 (base/'config/hyprstack').mkdir(parents=True)
@@ -15,7 +20,8 @@ for plugin in ['hyprstack-bars.so','libspatialoverview.so']:
  candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hyprstack/native')/plugin]
  source=next((p for p in candidates if p.is_file()),None)
  if source is None:raise RuntimeError('Build native modules before running this integration test')
- (base/'data/native'/plugin).symlink_to(source)
+ # Snapshot plugins: rebuilding must never change a running test's mappings.
+ shutil.copy2(source,base/'data/native'/plugin)
 config=repo/'shell/assets/hyprland/config'
 (base/'test.lua').write_text('package.path = '+json.dumps(str(config/'?.lua')+';')+' .. package.path\n'+
     'dofile('+json.dumps(str(config/'hyprland/animations.lua'))+')\n'+
@@ -24,6 +30,7 @@ config=repo/'shell/assets/hyprland/config'
     'dofile('+json.dumps(str(config/'hyprland/gestures.lua'))+')\n'+
     'dofile('+json.dumps(str(repo/'shell/assets/hyprland/layouts.lua'))+')\n')
 env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),HYPRSTACK_DATA_DIR=str(base/'data'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'user-data'));env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
+if withoutBars:env['HYPRSTACK_TITLEBAR_PLUGIN']=str(base/'missing-bars.so')
 (base/'config/hyprstack/layouts.json').write_text(json.dumps({'mode':'scrolling'}))
 # This test injects into the nested compositor through its virtual pointer.
 # It never moves the host cursor or touches files in the user's applications.
@@ -49,6 +56,7 @@ try:
   if r.returncode or r.stdout.strip().startswith('error:'):raise RuntimeError(r.stdout+r.stderr)
   return r.stdout.strip()
  assert not ctl('configerrors'),ctl('configerrors')
+ if withoutBars:assert 'hyprbars' not in ctl('plugin','list')
  canvas_plugin=str(base/'data/native/libspatialoverview.so')
  if 'spatialoverview' not in ctl('plugin','list'):
   ctl('plugin','load',canvas_plugin);time.sleep(1)
@@ -69,7 +77,8 @@ ShellRoot { PanelWindow { anchors {top:true;bottom:true;left:true;right:true} Wl
    time.sleep(2)
    assert engine.poll() is None,'Wallpaper Engine exited during startup'
  appLog=base/'app.log';out=appLog.open('w')
- app=subprocess.Popen(['python3',str(fixtures/'canvas-input-app.py')],env=appenv,stdout=out,stderr=subprocess.STDOUT)
+ fixture='canvas-qt-input-app.py' if toolkit=='qt' else 'canvas-input-app.py'
+ app=subprocess.Popen(['python3',str(fixtures/fixture)],env=appenv,stdout=out,stderr=subprocess.STDOUT)
  time.sleep(2)
  window=next(c for c in json.loads(ctl('clients','-j')) if c['pid']==app.pid);address=window['address']
  ctl('repl','return hyprstack_layouts.set_mode("canvas")');time.sleep(1)
@@ -111,8 +120,12 @@ ShellRoot { PanelWindow { anchors {top:true;bottom:true;left:true;right:true} Wl
  time.sleep(.3);send('button',272,0);time.sleep(.5)
  print(appLog.read_text(),flush=True)
  assert 'DROP hyprstack-test' in appLog.read_text(),appLog.read_text()
+ motions=re.findall(r'^MOTION (-?\d+) (-?\d+) (\d+) (\d+)$',appLog.read_text(),re.MULTILINE)
+ assert motions,'No client pointer coordinates recorded'
+ assert all(-32<=int(x)<=int(w)+32 and -32<=int(y)<=int(h)+32 for x,y,w,h in motions),('Non-local pointer coordinates',motions)
+ print('PASS: decorated client receives surface-local motion under a translated canvas camera',flush=True)
  assert state()['view']==cam['view'],'File DnD changed camera'
- print('PASS: GTK file-style drag and drop reaches the target through a translated canvas camera',flush=True)
+ print(f'PASS: {toolkit} file-style drag and drop reaches the target through a translated canvas camera',flush=True)
  # A window originally outside the output must retain all of its surface.
  from PIL import Image
  image=base/'canvas.png';subprocess.run(['grim',str(image)],env=appenv,check=True,capture_output=True)
@@ -143,49 +156,57 @@ ShellRoot { PanelWindow { anchors {top:true;bottom:true;left:true;right:true} Wl
     print('PASS: mode switch restores canvas without replacing the client',flush=True)
 
  ctl('repl','return hyprstack_layouts.set_mode("scrolling")');time.sleep(1)
- snap=json.loads(ctl('repl','return hyprstack_layouts.overview_snapshot("WAYLAND-1")'))
- entry=next(item for item in snap['windows'] if item['address']==address)
- rect={'x':0,'y':0,'width':entry['width'],'height':entry['height']}
- entry.update(world=rect,frame=dict(rect,x=100,y=100,width=rect['width']*.5,height=rect['height']*.5))
- scene={'monitor':'WAYLAND-1','mode':'scrolling','workspace':entry['workspace'],'originalWorkspace':entry['workspace'],'camera':{'x':100,'y':100,'zoom':.5},'originCamera':{'x':100,'y':100,'zoom':.5},'colour':[.5,.3,.8],'windows':[entry],'worldRows':[]}
- ctl('repl','hyprstack_layouts.set_overview(true);return hyprstack_layouts.overview_scene("show",'+json.dumps(json.dumps(scene))+')');time.sleep(.4)
- # Move the cursor between two empty regions: software cursors are included
- # even without grim -c, so compare positions rather than capture flags.
- # A hidden cursor inherited from a client must not survive overview ownership.
- send('move',round(width*.65),round(height*.8));time.sleep(.1)
- plain=base/'overview-no-cursor.png';cursor=base/'overview-cursor.png'
- subprocess.run(['grim',str(plain)],env=appenv,check=True,capture_output=True)
- send('move',round(width*.8),round(height*.8));time.sleep(.1)
- subprocess.run(['grim','-c',str(cursor)],env=appenv,check=True,capture_output=True)
- from PIL import ImageChops
- delta=ImageChops.difference(Image.open(plain).convert('RGB'),Image.open(cursor).convert('RGB'))
- # The parent compositor can resize this nested output while the test runs.
- cursorX,cursorY=map(int,ctl('cursorpos').split(','))
- region=(cursorX-4,cursorY-4,min(delta.width,cursorX+64),min(delta.height,cursorY+64))
- assert delta.crop(region).getbbox(),('Cursor is missing from the overview',ctl('cursorpos'),delta.getbbox(),region)
- print('PASS: overview renders its cursor even when the client hides it',flush=True)
- native=base/'native-overview.png';subprocess.run(['grim',str(native)],env=appenv,check=True,capture_output=True)
- pixels=Image.open(native).convert('RGB')
- for ratio,channel in [(.25,1),(.75,0)]:
-  point=(round(100+entry['width']*.5*ratio),round(100+entry['height']*.25))
-  colour=pixels.getpixel(point);assert colour[channel]>150 and colour[2]<80,(point,colour)
- ctl('repl','hyprstack_layouts.overview_scene("reset");hyprstack_layouts.set_overview(false)')
- print('PASS: shell overview uses the same complete surface mask',flush=True)
- if os.environ.get('HYPRSTACK_RELOAD_PLUGIN'):
-  plugin=str(base/'data/native/libspatialoverview.so')
-  print('Plugin unload:',ctl('plugin','unload',plugin),flush=True)
-  time.sleep(.8)
-  print('After unload:',ctl('-j','plugin','list'),flush=True)
-  bars=str(base/'data/native/hyprstack-bars.so')
-  print('Bars unload:',ctl('plugin','unload',bars),flush=True)
-  print('Bars load:',ctl('plugin','load',bars),flush=True)
-  print('Plugin load:',ctl('plugin','load',plugin),flush=True)
-  time.sleep(.8)
-  ctl('repl','return hyprstack_layouts.set_mode("canvas",true)');time.sleep(1)
-  assert json.loads(ctl('spatialoverview'))['screens'],'No canvas after plugin reload'
+ if withoutBars:
+  ctl('repl','return hyprstack_layouts.set_mode("canvas")');time.sleep(.5)
+  assert state(),'Standalone canvas did not reopen'
   ctl('repl','return hyprstack_layouts.set_mode("scrolling")')
-  print('PASS: plugin reload preserves the running compositor and clients',flush=True)
-
+  print('PASS: canvas opens and closes without loading hyprbars',flush=True)
+ else:
+  snap=json.loads(ctl('repl','return hyprstack_layouts.overview_snapshot("WAYLAND-1")'))
+  entry=next(item for item in snap['windows'] if item['address']==address)
+  rect={'x':0,'y':0,'width':entry['width'],'height':entry['height']}
+  entry.update(world=rect,frame=dict(rect,x=100,y=100,width=rect['width']*.5,height=rect['height']*.5))
+  scene={'monitor':'WAYLAND-1','mode':'scrolling','workspace':entry['workspace'],'originalWorkspace':entry['workspace'],'camera':{'x':100,'y':100,'zoom':.5},'originCamera':{'x':100,'y':100,'zoom':.5},'colour':[.5,.3,.8],'windows':[entry],'worldRows':[]}
+  ctl('repl','hyprstack_layouts.set_overview(true);return hyprstack_layouts.overview_scene("show",'+json.dumps(json.dumps(scene))+')');time.sleep(.4)
+  # Move the cursor between two empty regions: software cursors are included
+  # even without grim -c, so compare positions rather than capture flags.
+  # A hidden cursor inherited from a client must not survive overview ownership.
+  send('move',round(width*.65),round(height*.8));time.sleep(.1)
+  plain=base/'overview-no-cursor.png';cursor=base/'overview-cursor.png'
+  subprocess.run(['grim',str(plain)],env=appenv,check=True,capture_output=True)
+  send('move',round(width*.8),round(height*.8));time.sleep(.1)
+  subprocess.run(['grim','-c',str(cursor)],env=appenv,check=True,capture_output=True)
+  from PIL import ImageChops
+  delta=ImageChops.difference(Image.open(plain).convert('RGB'),Image.open(cursor).convert('RGB'))
+  # The parent compositor can resize this nested output while the test runs.
+  cursorX,cursorY=map(int,ctl('cursorpos').split(','))
+  region=(cursorX-4,cursorY-4,min(delta.width,cursorX+64),min(delta.height,cursorY+64))
+  assert delta.crop(region).getbbox(),('Cursor is missing from the overview',ctl('cursorpos'),delta.getbbox(),region)
+  print('PASS: overview renders its cursor even when the client hides it',flush=True)
+  native=base/'native-overview.png';subprocess.run(['grim',str(native)],env=appenv,check=True,capture_output=True)
+  pixels=Image.open(native).convert('RGB')
+  for ratio,channel in [(.25,1),(.75,0)]:
+   point=(round(100+entry['width']*.5*ratio),round(100+entry['height']*.25))
+   colour=pixels.getpixel(point);assert colour[channel]>150 and colour[2]<80,(point,colour)
+  ctl('repl','hyprstack_layouts.overview_scene("reset");hyprstack_layouts.set_overview(false)')
+  print('PASS: shell overview uses the same complete surface mask',flush=True)
+  if os.environ.get('HYPRSTACK_RELOAD_PLUGIN'):
+   # Leave a closing/fading window when the plugins unload. Its decoration
+   # must be destroyed before the library containing its deleter is unmapped.
+   app.terminate();app.wait(timeout=3);time.sleep(.05)
+   plugin=str(base/'data/native/libspatialoverview.so')
+   print('Plugin unload:',ctl('plugin','unload',plugin),flush=True)
+   time.sleep(.8)
+   print('After unload:',ctl('-j','plugin','list'),flush=True)
+   bars=str(base/'data/native/hyprstack-bars.so')
+   print('Bars unload:',ctl('plugin','unload',bars),flush=True)
+   print('Bars load:',ctl('plugin','load',bars),flush=True)
+   print('Plugin load:',ctl('plugin','load',plugin),flush=True)
+   time.sleep(.8)
+   ctl('repl','return hyprstack_layouts.set_mode("canvas",true)');time.sleep(1)
+   assert json.loads(ctl('spatialoverview'))['screens'],'No canvas after plugin reload'
+   ctl('repl','return hyprstack_layouts.set_mode("scrolling")')
+   print('PASS: plugin reload after client close preserves the running compositor',flush=True)
  assert not ctl('configerrors'),ctl('configerrors')
 except Exception:
  if 'appLog' in globals() and appLog.exists():print(appLog.read_text(),flush=True)
@@ -206,3 +227,5 @@ finally:
   try:p.wait(timeout=5)
   except subprocess.TimeoutExpired:p.kill();p.wait()
  if log:log.close()
+ if p and p.returncode not in (0,-signal.SIGTERM):
+  raise RuntimeError(f'Nested compositor exited with {p.returncode}, including during cleanup')
