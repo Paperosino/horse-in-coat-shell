@@ -40,8 +40,12 @@ def shell_path():
     return Path(os.environ.get("HYPRSTACK_SHELL_DIR", ASSETS.parent))
 
 
+def qs_binary():
+    return os.environ.get("HYPRSTACK_QS") or "qs"
+
+
 def ipc(*args):
-    return run(["qs", "-p", shell_path(), "ipc", "call", *args], timeout=10)
+    return run([qs_binary(), "-p", shell_path(), "ipc", "call", *args], timeout=10)
 
 
 def xdg_directory(kind):
@@ -196,16 +200,34 @@ def screenshot_command(args):
     print(target)
 
 
+def _dispatch_global(name):
+    for cmd in [["hyprctl", "dispatch", f'hl.dsp.global("{name}")'],
+                ["hyprctl", "dispatch", "global", name]]:
+        try:
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=2)
+            if res.returncode == 0 and b"error:" not in res.stdout:
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def clipboard_command(args):
-    history = subprocess.check_output(["cliphist", "list"], timeout=10)
-    selected = subprocess.run(["fuzzel", "--dmenu"], input=history, stdout=subprocess.PIPE)
-    if selected.returncode != 0 or not selected.stdout.strip():
+    action = "hyprstack:clipboardDelete" if getattr(args, "delete", False) else "hyprstack:clipboard"
+    if _dispatch_global(action):
         return
-    if args.delete:
-        run(["cliphist", "delete"], input=selected.stdout, timeout=10)
-    else:
-        data = subprocess.check_output(["cliphist", "decode"], input=selected.stdout, timeout=10)
-        run(["wl-copy"], input=data, timeout=10)
+    try:
+        history = subprocess.check_output(["cliphist", "list"], timeout=10)
+        selected = subprocess.run(["fuzzel", "--dmenu"], input=history, stdout=subprocess.PIPE)
+        if selected.returncode != 0 or not selected.stdout.strip():
+            return
+        if getattr(args, "delete", False):
+            run(["cliphist", "delete"], input=selected.stdout, timeout=10)
+        else:
+            data = subprocess.check_output(["cliphist", "decode"], input=selected.stdout, timeout=10)
+            run(["wl-copy"], input=data, timeout=10)
+    except Exception:
+        pass
 
 
 def emoji_command(args):
@@ -576,7 +598,7 @@ def main():
             return ipc(*args.message).returncode
         else:
             if args.kill or args.restart:
-                run(["qs", "-p", shell_path(), "kill"], timeout=10)
+                run([qs_binary(), "-p", shell_path(), "kill"], timeout=10)
             if not args.kill:
                 command = ["hyprstack-shell"] + (["--daemonize"] if args.daemon else [])
                 os.execvp(command[0], command)

@@ -65,6 +65,31 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
+        name: "clipboard"
+        description: "Toggle clipboard history"
+        onPressed: {
+            if (root.hasFullscreen)
+                return;
+            const screenState = ShellState.forActive();
+            if (screenState)
+                ShellState.toggleClipboard(screenState);
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "clipboardDelete"
+        description: "Delete latest clipboard entry"
+        onPressed: {
+            if (Clipboard.entries.length > 0)
+                Clipboard.deleteEntry(Clipboard.entries[0]);
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
         name: "launcher"
         description: "Toggle launcher"
         onPressed: {
@@ -120,6 +145,8 @@ Scope {
                 const screenState = ShellState.forActive();
                 if (drawer === "launcher")
                     ShellState.setLauncher(screenState, !screenState.launcher);
+                else if (drawer === "clipboard")
+                    ShellState.toggleClipboard(screenState);
                 else
                     screenState[drawer] = !screenState[drawer];
             } else {
@@ -146,6 +173,8 @@ Scope {
         function open(): void {
             WindowFactory.create();
         }
+
+        function page(id: string): void { if (PageRegistry.indexOf(id) >= 0) WindowFactory.openPage(id); }
 
         target: "nexus"
     }

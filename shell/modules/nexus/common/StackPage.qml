@@ -114,7 +114,7 @@ StackView {
                 console.log(logCat, "Attempted to close page while depth < stack depth. Ignoring.");
                 return;
             }
-            root.pop();
+            if (root.depth > 1) root.pop();
         }
 
         target: root.nState

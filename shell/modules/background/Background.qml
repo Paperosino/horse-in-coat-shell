@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import Hyprstack.Config
 import qs.components
 import qs.components.containers
+import qs.modules.extensions
 import qs.services
 
 Variants {
@@ -20,7 +21,7 @@ Variants {
         name: "background"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
-        color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
+        color: contentItem.Config.background.wallpaperEnabled && LiveWallpapers.forScreen(screen.name).kind !== "engine" ? "black" : "transparent"
         surfaceFormat.opaque: false
 
         anchors.top: true
@@ -45,10 +46,18 @@ Variants {
                 asynchronous: true
 
                 anchors.fill: parent
-                active: Config.background.wallpaperEnabled
+                active: Config.background.wallpaperEnabled && (LiveWallpapers.forScreen(win.screen.name).kind === "static" || LiveWallpapers.forScreen(win.screen.name).kind === "engine" && !LiveWallpapers.engineRunning[win.screen.name])
 
                 sourceComponent: Wallpaper {}
             }
+
+            LiveWallpaper {
+                anchors.fill: parent
+                screen: win.screen
+                visible: Config.background.wallpaperEnabled
+            }
+
+            PluginDesktop { anchors.fill: parent; screen: win.screen }
 
             Visualiser {
                 anchors.fill: parent

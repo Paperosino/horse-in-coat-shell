@@ -28,7 +28,7 @@ StyledClippingRect {
         const ignoredTags = GlobalConfig.bar.workspaces.ignoredTags;
         const occupied = Hypr.workspaces.values.filter(w => w.id > 0 && (allMonitors || w.monitor === root.monitor)
             && w.toplevels.values.some(t => !Hypr.isToplevelIgnored(t, ignoredTags))).map(w => w.id);
-        return PanelLayout.workspaceIds(groupOffset, shown, activeWsId, occupied, Config.bar.workspaces.showUnoccupied);
+        return PanelLayout.workspaceIds(groupOffset, shown, activeWsId, occupied, Config.bar.workspaces.showUnoccupied, Config.bar.workspaces.hideEmpty);
     }
 
     readonly property var workspaces: {
@@ -45,7 +45,7 @@ StyledClippingRect {
     property real blur: onSpecial ? 1 : 0
 
     function workspaceIndex(id: int): int {
-        if (!Config.bar.workspaces.showUnoccupied)
+        if (!Config.bar.workspaces.showUnoccupied || Config.bar.workspaces.hideEmpty)
             return wsIds.indexOf(id);
 
         let index = id - 1;

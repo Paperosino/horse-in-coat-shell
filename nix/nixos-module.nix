@@ -27,6 +27,10 @@ in {
       HYPRSTACK_SESSION_COMMAND = "${package}/bin/hyprstack-session";
     };
 
+    services.dbus.packages = [ package ];
+    security.polkit.enable = true;
+    systemd.packages = [ package ];
+
     systemd.user.services.hyprstack-session = {
       description = "Hyprstack desktop session";
       partOf = [ "graphical-session.target" ];

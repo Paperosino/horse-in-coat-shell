@@ -51,6 +51,9 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
+        SectionHeader { first: true; text: Tr.tr("Session") }
+        NavRow { first: true; last: true; text: Tr.tr("User services and timers"); icon: "settings_applications"; subtext: Tr.tr("Manage background services for your session"); onClicked: root.nState.openSubPage(2) }
+
         // Detected running players, used as default-player options
         Variants {
             id: playerVariants

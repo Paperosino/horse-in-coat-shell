@@ -41,6 +41,38 @@ Region {
     }
 
     R {
+        panel: root.panels.clipboard
+        x: root.panels.x + panel.x
+        width: panel.width
+        y: root.panels.clipboard.atBottom ? root.win.height - height : 0
+        height: panel.height * (1 - root.panels.clipboard.offsetScale)
+            + (root.panels.clipboard.atBottom ? root.bar.bottomInset : root.bar.topInset)
+    }
+
+    R {
+        panel: root.panels.dock
+        width: panel.visible ? panel.width : 0
+    }
+
+    Region {
+        readonly property var surface: root.panels.dock.listSurface
+        x: root.panels.x + root.panels.dock.x + surface.x
+        y: root.panels.y + root.panels.dock.y + surface.y
+        width: root.panels.dock.visible ? surface.width : 0
+        height: surface.height
+        intersection: Intersection.Subtract
+    }
+
+    Region {
+        readonly property var surface: root.panels.dock.menuSurface
+        x: root.panels.x + root.panels.dock.x + surface.x
+        y: root.panels.y + root.panels.dock.y + surface.y
+        width: root.panels.dock.visible ? surface.width : 0
+        height: surface.height
+        intersection: Intersection.Subtract
+    }
+
+    R {
         panel: root.panels.launcher
         y: root.win.height - height
         height: panel.height * (1 - root.panels.launcher.offsetScale) + root.bar.bottomInset

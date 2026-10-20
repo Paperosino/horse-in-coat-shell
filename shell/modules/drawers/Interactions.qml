@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell
 import Hyprstack.Config
 import qs.components
+import qs.services
 import qs.components.controls
 import qs.modules.bar as Bar
 import qs.modules.bar.popouts as BarPopouts
@@ -38,6 +39,22 @@ CustomMouseArea {
         return x >= Math.min(start.x, end.x) - (Config.border.rounding * Tokens.scale) && x <= Math.max(start.x, end.x) + (Config.border.rounding * Tokens.scale);
     }
 
+    function inDock(x: real, y: real): bool {
+        const dock = panels.dock;
+        if (!dock.visible) return false;
+        for (const item of [dock, dock.listSurface, dock.menuSurface]) {
+            if (!item.visible) continue;
+            const pos = item.mapToItem(root, 0, 0);
+            if (x >= pos.x && x <= pos.x + item.width && y >= pos.y && y <= pos.y + item.height) return true;
+        }
+        return false;
+    }
+
+    function inDashboardDock(x: real, y: real): bool {
+        return panels.dashboard.visible && DockConf.enabled
+            && DockConf.position === (panels.dashboard.atBottom ? "bottom" : "top") && inDock(x, y);
+    }
+
     function inBar(x: real, y: real, includeHidden = false): bool {
         const thickness = includeHidden ? bar.clampedThickness : bar.height;
         return bar.atBottom ? y >= height - thickness : y <= thickness;
@@ -58,10 +75,12 @@ CustomMouseArea {
     }
 
     function inDashboard(x: real, y: real): bool {
+        if (inDashboardDock(x, y)) return true;
         return panels.dashboard.atBottom ? inBottomPanel(panels.dashboard, x, y) : inTopPanel(panels.dashboard, x, y);
     }
 
     function inDashboardInteraction(x: real, y: real): bool {
+        if (inDashboardDock(x, y)) return true;
         const panel = panels.dashboard;
         const extraWidth = (panel.interactionWidth - panel.width) / 2;
         const start = panel.mapToItem(root, -extraWidth, 0);
@@ -143,7 +162,7 @@ CustomMouseArea {
 
         if (panels.sidebar.offsetScale === 1) {
             // Show osd on hover
-            const showOsd = inRightPanel(panels.osdWrapper, x, y);
+            const showOsd = !inDock(x, y) && inRightPanel(panels.osdWrapper, x, y);
 
             // Always update visibility based on hover if not in shortcut mode
             if (!osdShortcutActive) {
@@ -182,7 +201,7 @@ CustomMouseArea {
         } else {
             const outOfSidebar = x < width - panels.sidebar.width * (1 - panels.sidebar.offsetScale);
             // Show osd on hover
-            const showOsd = outOfSidebar && inRightPanel(panels.osdWrapper, x, y);
+            const showOsd = !inDock(x, y) && outOfSidebar && inRightPanel(panels.osdWrapper, x, y);
 
             // Always update visibility based on hover if not in shortcut mode
             if (!osdShortcutActive) {

@@ -6,6 +6,17 @@ QtObject {
     property ShellScreen screen
     property bool isWindow
     property bool animatingContainer
+    property var pageHistory: []
+    property int previousPageIdx: 0
+    property bool returning: false
+    readonly property bool canGoBack: subPageIdxStack.length > 0 || pageHistory.length > 0
+    function goBack(): void {
+        if (subPageIdxStack.length) { closeSubPage(); return; }
+        if (!pageHistory.length) return;
+        const destination = pageHistory[pageHistory.length - 1];
+        pageHistory = pageHistory.slice(0, -1);
+        returning = true; currentPageIdx = destination; returning = false;
+    }
     property int currentPageIdx
     property list<int> subPageIdxStack
     property string searchQuery
@@ -40,6 +51,8 @@ QtObject {
     }
 
     onCurrentPageIdxChanged: {
+        if (!returning && previousPageIdx !== currentPageIdx) pageHistory = [...pageHistory.slice(-31), previousPageIdx];
+        previousPageIdx = currentPageIdx;
         subPageIdxStack.length = 0;
         searchTarget = searchTargetText = "";
     }

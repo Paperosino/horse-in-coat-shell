@@ -1,0 +1,51 @@
+# Maintainer: Hyprstack contributors
+
+pkgname=horse-in-coat-shell
+pkgver=1.1.1
+pkgrel=1
+pkgdesc="Quickshell/QML desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
+arch=(x86_64)
+install=hyprstack-shell.install
+url="https://github.com/hase9awa/hyprstack-shell"
+license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT)
+depends=(hyprland libqalculate lm_sensors pixman libdrm libinput systemd
+    wayland libxkbcommon pango cairo libcups python python-pillow kitty firefox fuzzel
+    btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
+    libnotify brightnessctl networkmanager pipewire pipewire-pulse wireplumber
+    polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2
+    adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb)
+makedepends=(base-devel git cmake ninja pkgconf python gettext nlohmann-json
+    qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-svg
+    qt6-imageformats qt6-multimedia spirv-tools wayland wayland-protocols mesa vulkan-headers
+    libpipewire pam polkit glib2 cli11 hyprland lua hyprgraphics)
+# The package is self-contained: the pinned quickshell v0.3.2 and the Qt
+# runtime it needs are built from source and bundled, so system quickshell and
+# qt6-* updates can never break the running shell.
+optdepends=('linux-wallpaperengine: Wallpaper Engine scenes' 'ollama: local AI models' 'hyprsunset: night-light extension' 'ffmpeg: wallpaper previews' 'cups: printer queues and IPP printing' 'e2fsprogs: ext4 defragmentation' 'util-linux: SSD TRIM' 'power-profiles-daemon: hardware power profiles')
+conflicts=()
+provides=()
+source=()
+
+build() {
+    # build-package.sh stages the repository tree here (source=()).
+    cd "$startdir/src/hyprstack"
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_INSTALL_DATADIR=share \
+        -DHYPRSTACK_BUNDLE_RUNTIME=ON
+    cmake --build build
+}
+
+package() {
+    # build-package.sh stages the repository tree here (source=()).
+    cd "$startdir/src/hyprstack"
+    DESTDIR="$pkgdir" cmake --install build
+
+    # System-wide user unit; ExecStart must point at /usr/bin, unlike the
+    # copy documented for user-local installs under ~/.config/systemd/user.
+    install -Dm644 distribution/systemd/user/hyprstack-session.service \
+        "$pkgdir/usr/lib/systemd/user/hyprstack-session.service"
+    sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/hyprstack-session-runner|' \
+        "$pkgdir/usr/lib/systemd/user/hyprstack-session.service"
+}

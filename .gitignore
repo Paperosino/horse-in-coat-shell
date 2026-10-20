@@ -20,9 +20,22 @@
 !/nix/nixos-module.nix
 !/nix/home-manager.nix
 
+!/cmake/
+/cmake/*
+!/cmake/*.cmake
+
+!/packaging/
+/packaging/*
+!/packaging/arch/
+/packaging/arch/*
+!/packaging/arch/PKGBUILD
+!/packaging/arch/build-package.sh
+!/packaging/arch/README.md
+
 !/distribution/
 /distribution/*
 !/distribution/bin/
+!/distribution/bundle-qt.sh
 !/distribution/check_headers.py
 !/distribution/update.py
 !/distribution/update_transaction.py
@@ -66,6 +79,7 @@
 !/shell/assets/notification_tools.py
 !/shell/assets/session_runner.py
 !/shell/assets/theme_manager.py
+!/shell/assets/clipboard_helper.py
 !/shell/assets/wrap_term_launch.sh
 !/shell/assets/logo.svg
 !/shell/assets/bongocat.gif
@@ -87,6 +101,19 @@
 !/docs/media/customization.gif
 !/docs/media/overview.gif
 !/docs/media/trackpad-swipes.gif
+
+# Native helpers and bundled canvas are required by fresh source installations.
+!/native/system/
+!/third_party/phantomat/
+!/distribution/dbus/
+!/distribution/polkit/
+!/distribution/licenses/
+!/distribution/install_system_helper.py
+!/packaging/arch/hyprstack-shell.install
+!/tests/
+!/PLUGINS.md
+!/DESKTOP_FEATURES.md
+!/shell/assets/*.py
 
 # Generated files and machine-local overrides are never source files.
 **/.*

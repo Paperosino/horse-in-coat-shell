@@ -69,6 +69,13 @@ PageBase {
         }
 
         ToggleRow {
+            text: Tr.tr("Hide all empty workspace indicators")
+            subtext: Tr.tr("Keep occupied workspaces and the current workspace, including gaps between them")
+            checked: Config.bar.workspaces.hideEmpty
+            onToggled: GlobalConfig.bar.workspaces.hideEmpty = checked
+        }
+
+        ToggleRow {
             text: Tr.trCtx("Per monitor", "bar workspaces")
             subtext: Tr.tr("Hide workspaces not on the current monitor")
             checked: Config.bar.workspaces.perMonitor

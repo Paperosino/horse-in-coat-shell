@@ -11,6 +11,7 @@ import qs.modules.nexus.pages
 import qs.modules.nexus.pages.apps
 import qs.modules.nexus.pages.audio
 import qs.modules.nexus.pages.bluetooth
+import qs.modules.nexus.pages.keyboard
 import qs.modules.nexus.pages.network
 import qs.modules.nexus.pages.panels
 import qs.modules.nexus.pages.services
@@ -34,13 +35,25 @@ QtObject {
                 Component {
                     WallpaperCategory {}
                 }
-                Component {
-                    ColourSelect {}
-                }
+                Component { ColourSelect {} }
+                Component { ThemeCenterPage {} }
+                Component { LiveWallpapersPage {} }
+                Component { AppearanceThemesPage {} }
+                Component { AppearanceThemesPage { cursorThemes:true } }
+                Component { ShellStylePage {} }
             }
         },
 
         // Connectivity
+        Component {
+            // Display
+            StackPage {
+                Component {
+                    DisplayPage {}
+                }
+            }
+        },
+        Component { StackPage { Component { SystemControlsPage {} } Component { CanvasPage {} } } },
         Component {
             // Network
             StackPage {
@@ -93,6 +106,21 @@ QtObject {
             }
         },
 
+        Component {
+            // Keyboard
+            StackPage {
+                Component {
+                    KeyboardPage {}
+                }
+                Component { LayoutPicker {} }
+                Component { InputDevicePage { title: Tr.tr("Mouse"); groups: ["Mouse"] } }
+                Component { InputDevicePage { title: Tr.tr("Touchpad"); groups: ["Touchpad"] } }
+                Component { InputDevicePage { title: Tr.tr("Cursor"); groups: ["Cursor"] } }
+                Component { InputDevicePage { title: Tr.tr("Gestures"); groups: ["Gestures"] } }
+                Component { KeybindsPage {} }
+            }
+        },
+
         // Shell
         Component {
             // Panels
@@ -132,6 +160,16 @@ QtObject {
                 Component {
                     BarClock {}
                 }
+                Component { DockPage {} }
+                Component { StatusbarLayoutPage {} }
+            }
+        },
+        Component {
+            // Dock
+            StackPage {
+                Component {
+                    DockPage {}
+                }
             }
         },
         Component {
@@ -143,9 +181,11 @@ QtObject {
                 Component {
                     AllApps {}
                 }
-                Component {
-                    AppInfo {}
-                }
+                Component { AppInfo {} }
+                Component { SessionServicesPage { autostartOnly: true } }
+                Component { PluginsPage {} }
+                Component { AssistantPage {} }
+                Component { DefaultAppsPage {} }
             }
         },
         Component {
@@ -154,8 +194,15 @@ QtObject {
                 Component {
                     ServicesPage {}
                 }
+                Component { NotificationsPage {} }
+                Component { SessionServicesPage {} }
+            }
+        },
+        Component {
+            // Power & lock
+            StackPage {
                 Component {
-                    NotificationsPage {}
+                    PowerPage {}
                 }
             }
         },
@@ -165,6 +212,7 @@ QtObject {
                 Component {
                     LanguageAndRegion {}
                 }
+                Component { DateTimePage {} }
             }
         },
 
@@ -176,6 +224,9 @@ QtObject {
             }
         },
 
+        Component { StackPage { Component { PluginsPage {} } } },
+        Component { StackPage { Component { AssistantPage {} } } },
+
         // About
         Component {
             StackPage {
@@ -183,7 +234,8 @@ QtObject {
                     AboutPage {}
                 }
             }
-        }
+        },
+        Component { StackPage { Component { DevicesPage {} } Component { PrintersPage {} } Component { StoragePage {} } } }
     ]
 
     readonly property Component placeholderComp: Component {

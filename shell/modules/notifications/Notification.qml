@@ -17,10 +17,13 @@ StyledRect {
 
     required property NotifData modelData
     // Releasing the last UI lock can destroy the data before its child items.
+    readonly property bool isScreenshot: root.modelData?.screenshot ?? false
     readonly property bool hasImage: (modelData?.image.length ?? 0) > 0
     readonly property bool hasAppIcon: (modelData?.appIcon.length ?? 0) > 0
     readonly property int bodyTextFormat: /[<*_`#\[\]]/.test(modelData?.body ?? "") ? Text.MarkdownText : Text.PlainText
-    readonly property int nonAnimHeight: summary.implicitHeight + (root.expanded ? Tokens.spacing.extraSmall * 2 + appName.height + body.height + actions.height + actions.anchors.topMargin : bodyPreview.height) + inner.anchors.margins * 2
+    readonly property int nonAnimHeight: root.isScreenshot
+        ? (TokenConfig.sizes.notifs.image + Tokens.spacing.small + screenshotCard.implicitHeight + Tokens.spacing.small + screenshotActions.implicitHeight + inner.anchors.margins * 2)
+        : (summary.implicitHeight + (root.expanded ? Tokens.spacing.extraSmall * 2 + appName.height + body.height + actions.height + actions.anchors.topMargin : bodyPreview.height) + inner.anchors.margins * 2)
     property bool expanded: Config.notifs.openExpanded
 
     color: root.modelData?.urgency === NotificationUrgency.Critical ? Colours.palette.m3secondaryContainer : Colours.tPalette.m3surfaceContainer
@@ -108,13 +111,13 @@ StyledRect {
                 id: image
 
                 asynchronous: true
-                active: root.hasImage
+                active: !root.isScreenshot && root.hasImage
 
                 anchors.left: parent.left
                 anchors.top: parent.top
                 width: TokenConfig.sizes.notifs.image
                 height: TokenConfig.sizes.notifs.image
-                visible: root.hasImage || root.hasAppIcon
+                visible: (!root.isScreenshot && root.hasImage) || root.hasAppIcon
 
                 sourceComponent: StyledClippingRect {
                     radius: Tokens.rounding.full
@@ -140,24 +143,24 @@ StyledRect {
                 id: appIcon
 
                 asynchronous: true
-                active: root.hasAppIcon || !root.hasImage
+                active: root.isScreenshot || root.hasAppIcon || !root.hasImage
 
-                anchors.horizontalCenter: root.hasImage ? undefined : image.horizontalCenter
-                anchors.verticalCenter: root.hasImage ? undefined : image.verticalCenter
-                anchors.right: root.hasImage ? image.right : undefined
-                anchors.bottom: root.hasImage ? image.bottom : undefined
+                anchors.horizontalCenter: (root.hasImage && !root.isScreenshot) ? undefined : image.horizontalCenter
+                anchors.verticalCenter: (root.hasImage && !root.isScreenshot) ? undefined : image.verticalCenter
+                anchors.right: (root.hasImage && !root.isScreenshot) ? image.right : undefined
+                anchors.bottom: (root.hasImage && !root.isScreenshot) ? image.bottom : undefined
 
                 sourceComponent: StyledRect {
                     radius: Tokens.rounding.full
                     color: root.modelData?.urgency === NotificationUrgency.Critical ? Colours.palette.m3error : root.modelData?.urgency === NotificationUrgency.Low ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) : Colours.palette.m3secondaryContainer
-                    implicitWidth: root.hasImage ? Tokens.sizes.notifs.badge : TokenConfig.sizes.notifs.image
-                    implicitHeight: root.hasImage ? Tokens.sizes.notifs.badge : TokenConfig.sizes.notifs.image
+                    implicitWidth: (root.hasImage && !root.isScreenshot) ? Tokens.sizes.notifs.badge : TokenConfig.sizes.notifs.image
+                    implicitHeight: (root.hasImage && !root.isScreenshot) ? Tokens.sizes.notifs.badge : TokenConfig.sizes.notifs.image
 
                     Loader {
                         id: icon
 
                         asynchronous: true
-                        active: root.hasAppIcon
+                        active: !root.isScreenshot && root.hasAppIcon
 
                         anchors.centerIn: parent
 
@@ -174,12 +177,12 @@ StyledRect {
 
                     Loader {
                         asynchronous: true
-                        active: !root.hasAppIcon
+                        active: root.isScreenshot || !root.hasAppIcon
                         anchors.centerIn: parent
                         anchors.verticalCenterOffset: 1
 
                         sourceComponent: MaterialIcon {
-                            text: Icons.getNotifIcon(root.modelData?.summary ?? "", root.modelData?.urgency ?? NotificationUrgency.Normal)
+                            text: root.isScreenshot ? "screenshot_monitor" : Icons.getNotifIcon(root.modelData?.summary ?? "", root.modelData?.urgency ?? NotificationUrgency.Normal)
                             color: root.modelData?.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.modelData?.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
                             fontStyle: Tokens.font.icon.medium
                         }
@@ -189,6 +192,8 @@ StyledRect {
 
             Shape {
                 id: progressIndicator
+
+                visible: !root.isScreenshot
 
                 anchors.centerIn: appIcon
                 width: appIcon.implicitWidth + progressShape.strokeWidth * 2
@@ -236,7 +241,7 @@ StyledRect {
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.label.medium
 
-                opacity: root.expanded ? 1 : 0
+                opacity: (root.expanded || root.isScreenshot) ? 1 : 0
 
                 Behavior on opacity {
                     Anim {
@@ -268,7 +273,7 @@ StyledRect {
 
                 states: State {
                     name: "expanded"
-                    when: root.expanded
+                    when: root.expanded || root.isScreenshot
 
                     PropertyChanges {
                         summary.maximumLineCount: undefined
@@ -321,7 +326,7 @@ StyledRect {
 
                 states: State {
                     name: "expanded"
-                    when: root.expanded
+                    when: root.expanded || root.isScreenshot
 
                     AnchorChanges {
                         target: timeSep
@@ -361,17 +366,23 @@ StyledRect {
                 StateLayer {
                     radius: Tokens.rounding.full
                     color: root.modelData?.urgency === NotificationUrgency.Critical ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                    onClicked: root.expanded = !root.expanded
+                    onClicked: {
+                        if (root.isScreenshot) {
+                            root.modelData?.close();
+                        } else {
+                            root.expanded = !root.expanded;
+                        }
+                    }
                 }
 
                 MaterialIcon {
                     id: expandIcon
 
                     anchors.centerIn: parent
-                    anchors.verticalCenterOffset: root.expanded ? -1 : 1
-                    text: "expand_more"
+                    anchors.verticalCenterOffset: root.isScreenshot ? 0 : (root.expanded ? -1 : 1)
+                    text: root.isScreenshot ? "close" : "expand_more"
                     fontStyle: Tokens.font.icon.medium
-                    rotation: root.expanded ? 180 : 0
+                    rotation: root.isScreenshot ? 0 : (root.expanded ? 180 : 0)
 
                     Behavior on anchors.verticalCenterOffset {
                         Anim {}
@@ -386,6 +397,7 @@ StyledRect {
             StyledText {
                 id: bodyPreview
 
+                visible: !root.isScreenshot
                 anchors.left: summary.left
                 anchors.right: expandBtn.left
                 anchors.top: summary.bottom
@@ -418,6 +430,7 @@ StyledRect {
             StyledText {
                 id: body
 
+                visible: !root.isScreenshot
                 anchors.left: summary.left
                 anchors.right: expandBtn.left
                 anchors.top: summary.bottom
@@ -449,8 +462,79 @@ StyledRect {
                 }
             }
 
+            StyledRect {
+                id: screenshotCard
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: (summary.y + summary.height > image.height) ? summary.bottom : image.bottom
+                anchors.topMargin: Tokens.spacing.small
+
+                visible: root.isScreenshot
+                implicitHeight: root.isScreenshot ? Math.min(200 * Tokens.scale, (parent ? parent.width : 360) * 0.5625) : 0
+                radius: Tokens.rounding.medium
+                color: Colours.palette.m3surfaceContainerLowest
+                clip: true
+
+                Image {
+                    id: screenshotImage
+                    anchors.fill: parent
+                    anchors.margins: 4 * Tokens.scale
+                    source: Paths.fileUrl(root.modelData?.image ?? "")
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    cache: false
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    visible: screenshotImage.status === Image.Error
+                    text: "broken_image"
+                    fontStyle: Tokens.font.icon.large
+                    color: Colours.palette.m3onSurfaceVariant
+                }
+
+                StateLayer {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    color: Colours.palette.m3primary
+                    onClicked: root.modelData?.imageAction("open")
+                }
+            }
+
+            Flow {
+                id: screenshotActions
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: screenshotCard.bottom
+                anchors.topMargin: Tokens.spacing.small
+
+                visible: root.isScreenshot
+                spacing: Tokens.spacing.extraSmall
+
+                Repeater {
+                    model: root.isScreenshot ? (root.modelData?.actions ?? []) : []
+
+                    IconTextButton {
+                        required property var modelData
+
+                        isRound: true
+                        shapeMorph: true
+                        font: Tokens.font.label.medium
+                        inactiveColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+                        inactiveOnColour: Colours.palette.m3onSurfaceVariant
+                        icon: ({open: "open_in_new", copy: "content_copy", save: "save", reveal: "folder_open"})[modelData.identifier] ?? ""
+                        text: modelData?.text ?? ""
+                        onClicked: modelData?.invoke()
+                    }
+                }
+            }
+
             ButtonRow {
                 id: actions
+
+                visible: !root.isScreenshot
 
                 anchors.left: body.left
                 anchors.right: body.right

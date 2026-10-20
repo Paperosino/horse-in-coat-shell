@@ -4,9 +4,13 @@
 
 [Arch Linux and derivatives](#arch) · [NixOS](#nixos)
 
-Requires **Hyprland 0.56.2**, **Quickshell ≥ 0.3.1** with Hyprland, PAM and
-Polkit modules, and **Qt ≥ 6.9**. Build requirements: C++23, CMake ≥ 3.22,
-Python ≥ 3.10. Hyprland headers must match the installed compositor's ABI.
+Requires **Hyprland 0.56.2**; headers must match the installed compositor's
+ABI. Build requirements: C++23, CMake ≥ 3.27, Python ≥ 3.11.
+
+**Option A (package, recommended)** does not depend on the system Quickshell
+and Qt packages — the package bundles its own runtime.
+**Option B (manual build)** requires the system **Quickshell ≥ 0.3.1** with
+Hyprland, PAM and Polkit modules, and **Qt ≥ 6.9**.
 
 <a id="arch"></a>
 
@@ -14,37 +18,68 @@ Python ≥ 3.10. Hyprland headers must match the installed compositor's ABI.
 
 ### 1. Dependencies
 
-Check repository versions. Continue only if Hyprland **0.56.2** is available
-and the requirements above are met:
+Check the Hyprland version in the repositories. Continue only if Hyprland
+**0.56.2** is available:
 
 ```bash
-pacman -Si hyprland quickshell qt6-base
+pacman -Si hyprland
 ```
+
+Common dependencies and applications:
 
 ```bash
 sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
-  hyprland quickshell nlohmann-json qt6-base qt6-declarative qt6-shadertools \
-  qt6-svg qt6-imageformats qt6-wayland libqalculate lm_sensors \
-  pixman libdrm libinput systemd-libs wayland libxkbcommon pango cairo \
-  python python-pillow kitty firefox fuzzel btop pavucontrol \
-  wl-clipboard cliphist grim slurp wf-recorder swappy libnotify \
-  brightnessctl networkmanager pipewire pipewire-pulse wireplumber \
-  polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2 adwaita-icon-theme dbus
+  hyprland libqalculate lm_sensors libcups python python-pillow kitty firefox \
+  fuzzel btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder \
+  swappy libnotify brightnessctl networkmanager pipewire pipewire-pulse \
+  wireplumber polkit hyprlock hyprpicker xdg-utils xdg-user-dirs \
+  libxml2 adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb
 ```
 
-### 2. Build
+### 2. Installation
+
+#### Option A: package (recommended)
 
 Run without `sudo`:
 
 ```bash
 git clone https://github.com/hase9awa/hyprstack-shell.git
 cd hyprstack-shell
+packaging/arch/build-package.sh --install
+```
+
+The script installs any missing build dependencies and builds the
+`hyprstack-shell` package with a bundled runtime: its own Quickshell
+**v0.3.2** and private Qt libraries in `/usr/share/hyprstack/qs`. System
+updates of the `quickshell` and `qt6-*` packages no longer affect the shell;
+the system `quickshell` package is not needed (if the bundle is missing,
+the wrapper falls back to the system `qs`). The session service is
+installed straight into `/usr/lib/systemd/user`. Update the package by
+running the same script: it rebuilds the bundled runtime against the
+current system Qt and re-bundles it.
+
+If the shell was previously installed into `$HOME/.local`, remove
+`~/.local/share/hyprstack` so the packaged install takes priority
+(`HYPRSTACK_DATA_DIR` still overrides the selection).
+
+#### Option B: manual build into `$HOME/.local`
+
+Additionally install the system Quickshell and Qt:
+
+```bash
+sudo pacman -S --needed quickshell nlohmann-json qt6-base qt6-declarative \
+  qt6-shadertools qt6-svg qt6-imageformats qt6-wayland pixman libdrm \
+  libinput systemd-libs wayland libxkbcommon pango cairo
+```
+
+```bash
 cmake -S . -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
   -DCMAKE_INSTALL_DATADIR="${XDG_DATA_HOME:-$HOME/.local/share}"
 cmake --build build --parallel 2
 cmake --install build
+sudo python3 distribution/install_system_helper.py "$HOME/.local"
 ```
 
 Use `--parallel 1` instead of `--parallel 2` if memory is limited.
@@ -82,7 +117,9 @@ export PATH="$HOME/.local/bin:$PATH"
 hyprstack scheme set -n hyprstack-catppuccin -m dark
 ```
 
-**Arch-based systems only:** install the user service.
+**Only for option B (manual build):** install the user service.
+With the package install (option A) the unit is already installed into
+`/usr/lib/systemd/user` — skip this block.
 On NixOS, the module provides it; skip this block.
 
 ```bash
@@ -191,3 +228,11 @@ brightness and `wtype` for emoji typing. Install a file manager of your choice.
 
 [Configuration and shortcuts (Russian)](CONFIGURATION.md) ·
 [Updates and diagnostics (Russian)](MAINTENANCE.md)
+
+Native system settings use the packaged C++ `hyprstack-system.service`, activated
+on the system D-Bus with Polkit authorization. Printing requires CUPS, volumes
+use UDisks2, and hardware profiles require power-profiles-daemon. A user-local
+installation does not register the privileged service; install the system package
+to use these pages.
+
+The package installs the system helper, client, systemd, D-Bus and Polkit files automatically. The user updater also installs the helper through sudo into `/usr/local/bin`; the system service never runs files from the user home.

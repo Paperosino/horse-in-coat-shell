@@ -69,7 +69,7 @@ PageBase {
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: Tokens.spacing.small
-                    text: "Hyprstack"
+                    text: "Horse-in-coat shell"
                     font: Tokens.font.headline.builders.large.width(110).build()
                 }
 

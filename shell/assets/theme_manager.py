@@ -250,7 +250,35 @@ def catalogue() -> dict:
     return {"themes": themes, "errors": errors}
 
 
+def adapt_external_theme(data: dict) -> dict:
+    """Translate Noctalia mColor roles and AngelOS/simple palettes into our M3 roles."""
+    if not isinstance(data, dict):
+        raise ValueError(_("Theme file must contain an object"))
+    modes = data.get("modes", data.get("colors", data))
+    if isinstance(modes, dict) and "mPrimary" in modes:
+        modes = {data.get("mode", "dark"): modes}
+    converted = {}
+    if isinstance(modes, dict):
+        for mode in MODES:
+            values = modes.get(mode)
+            if not isinstance(values, dict): continue
+            values = values.get("colors", values.get("colours", values))
+            if "mPrimary" in values:
+                mapped = {(k[1].lower() + k[2:]) if k.startswith("m") and len(k) > 1 and k[1].isupper() else k: v for k, v in values.items()}
+                bg = mapped.get("surface", mapped.get("background", "181825"))
+                fg = mapped.get("onSurface", mapped.get("onBackground", "cdd6f4"))
+                seed = {"background": bg, "foreground": fg, "accent": mapped["primary"]}
+                colours = palette(seed, mode)
+                for key, value in mapped.items():
+                    if key in REQUIRED: colours[key] = colour(value)
+                converted[mode] = colours
+            elif {"bg", "fg", "accent"} <= values.keys():
+                converted[mode] = {"background": values["bg"], "foreground": values["fg"], "accent": values["accent"]}
+    return {"name": data.get("name", "Imported theme"), "modes": converted} if converted else data
+
+
 def import_theme(data: dict) -> dict:
+    data = adapt_external_theme(data)
     # Names are display text, never paths. The content hash also avoids silently
     # replacing an existing theme when an import has the same display name.
     digest = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]

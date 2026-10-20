@@ -23,13 +23,14 @@ Singleton {
     readonly property bool stacking: snapshot.mode === "stacking"
     readonly property var screen: Screens.screens.find(s => s.name === monitorName) ?? null
     readonly property var layout: stacking
-        ? {frames: Layout.grid(snapshot.windows ?? [], screen?.width ?? 1280, screen?.height ?? 720), rows: []}
+        ? Layout.stacking(snapshot, screen?.width ?? 1280, screen?.height ?? 720, selectedWorkspace)
         : Layout.scrolling(snapshot, screen?.width ?? 1280, screen?.height ?? 720, selectedAddress, selectedWorkspace)
     readonly property var frames: layout.frames
     readonly property var rows: layout.rows
     readonly property var selected: snapshot.windows?.find(w => w.address === selectedAddress) ?? null
 
     function toggle(): void {
+        if (Hypr.layoutMode === "canvas") { Hypr.extras.message('eval hyprstack_layouts.canvas_action("overview")'); return; }
         if (active) {
             close(true);
             return;
@@ -46,15 +47,23 @@ Singleton {
         error = "";
         ShellState.closeDrawers();
         active = true;
+        Hypr.extras.message("eval hyprstack_layouts.set_overview(true)");
         refresh();
     }
 
+    property bool refreshPending: false
+
     function refresh(): void {
-        if (active && !query.running) {
-            query.generation = generation;
-            query.command = ["hyprctl", "repl", `hyprstack_layouts.set_overview(true); return hyprstack_layouts.overview_snapshot(${JSON.stringify(monitorName)})`];
-            query.running = true;
+        if (!active)
+            return;
+        if (query.running) {
+            refreshPending = true;
+            return;
         }
+        refreshPending = false;
+        query.generation = generation;
+        query.command = ["hyprctl", "repl", `return hyprstack_layouts.overview_snapshot(${JSON.stringify(monitorName)})`];
+        query.running = true;
     }
 
     function applyScene(): void {
@@ -62,7 +71,7 @@ Singleton {
             return;
         const world = stacking ? frames : layout.worldFrames;
         const colour = Colours.palette.m3primary;
-        const scene = {monitor: monitorName, mode: snapshot.mode, selected: selectedAddress,
+        const scene = {dragMs: LayoutModes.config.overviewDragMs ?? 35, motionMs: LayoutModes.config.overviewMotionMs ?? 320, monitor: monitorName, mode: snapshot.mode, selected: selectedAddress,
             workspace: selectedWorkspace, originalWorkspace: originalWorkspace,
             camera: layout.camera ?? {zoom: 1, x: 0, y: 0}, originCamera: layout.originCamera ?? {zoom: 1, x: 0, y: 0},
             worldRows: layout.worldRows ?? [], colour: [colour.r, colour.g, colour.b], wallpaper: Wallpapers.current,
@@ -124,6 +133,14 @@ Singleton {
         Hypr.extras.message(`eval hyprstack_layouts.overview_close(${JSON.stringify(selectedAddress)}, ${JSON.stringify(selected.identity)}, ${JSON.stringify(monitorName)})`);
     }
 
+    function handleDragDrop(input: var): void {
+        const source = input.source;
+        const target = input.target ?? "";
+        const ws = input.workspace;
+        Hypr.extras.message(`eval if hyprstack_layouts and hyprstack_layouts.overview_drag_drop then hyprstack_layouts.overview_drag_drop(${JSON.stringify(source)}, ${JSON.stringify(target)}, ${JSON.stringify(ws)}, ${JSON.stringify(monitorName)}) end`);
+        refresh();
+    }
+
     Component.onCompleted: Hypr.extras.message('eval hyprstack_layouts.overview_scene("reset"); hyprstack_layouts.set_overview(false)')
     onScreenChanged: if (active && !screen) close(false)
 
@@ -161,12 +178,23 @@ Singleton {
                             root.selectedWorkspace = state.input.workspace ?? root.selectedWorkspace;
                             root.applyScene();
                             root.close(true);
+                        } else if (state.input.action === "drag_drop") {
+                            if (state.input.applied) {
+                                root.selectedAddress = state.input.source ?? root.selectedAddress;
+                                root.selectedWorkspace = state.input.workspace ?? root.selectedWorkspace;
+                            }
+                            root.applyScene();
                         } else root.close(false);
                     } else root.applyScene();
                 } catch (e) {
                     root.error = String(e);
                     console.warn("Overview snapshot:", text.trim(), e);
                     root.close(false);
+                } finally {
+                    if (root.refreshPending) {
+                        root.refreshPending = false;
+                        root.refresh();
+                    }
                 }
             }
         }

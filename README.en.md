@@ -1,10 +1,10 @@
 [Русский](README.md)
 
 <p align="center">
-  <img src="shell/assets/logo.svg" width="104" alt="Hyprstack logo">
+  <img src="shell/assets/logo.svg" width="104" alt="horse-in-coat-shell logo">
 </p>
 
-<h1 align="center">Hyprstack</h1>
+<h1 align="center">horse-in-coat-shell</h1>
 
 <p align="center">Two ways to work with windows. One desktop shell for Hyprland.</p>
 
@@ -15,7 +15,7 @@
   <a href="#demo">Demo</a>
 </p>
 
-Hyprstack is a Hyprland shell with scrolling tiling and floating windows.
+horse-in-coat-shell is a Hyprland shell with scrolling tiling and floating windows.
 Switch modes with a single shortcut; each mode remembers your window layout.
 Russian is the default language; English and the system language are available
 in settings.
@@ -100,8 +100,10 @@ swipe down to activate the selection and close it.
 
 ## Credits and licence
 
-The interface builds on [Caelestia shell](https://github.com/caelestia-dots/shell).
-The project uses [Quickshell](https://quickshell.org/),
+The project is based on [hyprstack-shell](https://github.com/hase9awa/hyprstack-shell)
+and [Caelestia shell](https://github.com/caelestia-dots/shell) — many thanks to
+their authors for the thoughtful architecture, code and inspiration.
+It also uses [Quickshell](https://quickshell.org/),
 [Hyprland](https://hypr.land/), a modified hyprbars and
 [M3Shapes](https://github.com/soramanew/m3shapes).
 

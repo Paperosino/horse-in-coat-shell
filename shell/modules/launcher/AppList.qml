@@ -16,17 +16,22 @@ StyledListView {
     required property SearchBar search
     required property ScreenState screenState
 
+    property bool active: screenState.launcher
+    property bool appsOnly: false
+    signal appLaunched()
+
     property string displayText
 
     readonly property string requestedState: stateForText(search.text)
     readonly property string displayState: stateForText(displayText)
 
     function syncDisplayText(): void {
-        if (screenState.launcher && requestedState === displayState)
+        if (active && requestedState === displayState)
             displayText = search.text;
     }
 
     function stateForText(text: string): string {
+        if (appsOnly) return "apps";
         const prefix = GlobalConfig.launcher.actionPrefix;
         if (text.startsWith(prefix)) {
             for (const action of ["calc", "scheme", "variant"])
@@ -82,13 +87,14 @@ StyledListView {
         }
     }
 
-    state: screenState.launcher ? requestedState : displayState
+    state: active ? requestedState : displayState
 
     onStateChanged: {
         if (state === "scheme" || state === "variant")
             Schemes.reload();
     }
 
+    onActiveChanged: if (active) displayText = search.text
     Component.onCompleted: displayText = search.text
 
     states: [
@@ -252,6 +258,7 @@ StyledListView {
 
         AppItem {
             screenState: root.screenState
+            onLaunched: root.appLaunched()
         }
     }
 

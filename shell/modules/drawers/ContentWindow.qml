@@ -79,13 +79,14 @@ StyledWindow {
         screenState.launcher = false;
         screenState.session = false;
         screenState.dashboard = false;
+        screenState.clipboard = false;
         panels.popouts.close();
     }
 
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
-    WlrLayershell.keyboardFocus: screenState.sidebar || screenState.launcher || screenState.session
+    WlrLayershell.keyboardFocus: screenState.sidebar || screenState.launcher || screenState.session || screenState.clipboard || panels.dock.listOpen || panels.dock.menuOpen
         ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen && !(contentItem.Config.general.showOverFullscreen && focusGrab.active)
@@ -132,9 +133,10 @@ StyledWindow {
         id: focusGrab
 
         active: {
+            if (panels.dock.listOpen || panels.dock.menuOpen) return true;
             const s = root.screenState;
             const conf = root.contentItem.Config;
-            if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || (s.sidebar && conf.sidebar.enabled))
+            if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || (s.sidebar && conf.sidebar.enabled) || s.clipboard)
                 return true;
             if ((Hypr.stacking || !conf.dashboard.showOnHover) && s.dashboard && conf.dashboard.enabled)
                 return true;
@@ -144,10 +146,12 @@ StyledWindow {
         }
         windows: [root]
         onCleared: {
+            panels.dock.closePopups();
             root.screenState.launcher = false;
             root.screenState.session = false;
             root.screenState.sidebar = false;
             root.screenState.dashboard = false;
+            root.screenState.clipboard = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -191,11 +195,35 @@ StyledWindow {
             borderBottom: bar.bottomInset - anchors.margins - root.sdfBorderOffset
         }
 
+        BlobRect {
+            deformScale: 0
+            readonly property var dock: panels.dock
+            readonly property bool joined: dock.unifiedSurface
+            visible: dock.visible
+            group: visible ? blobGroup : null
+            x: panels.x + dock.x
+            y: panels.y + dock.y + (joined && dock.atBottom ? dock.openSurface.y : 0)
+            implicitWidth: dock.width
+            implicitHeight: dock.height + (joined ? dock.openSurface.height : 0)
+            radius: Tokens.rounding.extraLarge
+        }
+
+        DockPopupBg { surface: panels.dock.listSurface }
+        DockPopupBg { surface: panels.dock.menuSurface }
+
         PanelBg {
             id: dashBg
             objectName: "dashboardBackground"
 
             panel: panels.dashboard
+            deformAmount: 0.1
+        }
+
+        PanelBg {
+            id: clipboardBg
+            objectName: "clipboardBackground"
+
+            panel: panels.clipboard
             deformAmount: 0.1
         }
 
@@ -302,6 +330,9 @@ StyledWindow {
             dashboard.transform: Matrix4x4 {
                 matrix: dashBg.deformMatrix
             }
+            clipboard.transform: Matrix4x4 {
+                matrix: clipboardBg.deformMatrix
+            }
             launcher.transform: Matrix4x4 {
                 matrix: launcherBg.deformMatrix
             }
@@ -358,6 +389,19 @@ StyledWindow {
         screen: root.screen
         slot: "panels"
         component: panels
+    }
+
+    component DockPopupBg: BlobRect {
+        deformScale: 0
+        required property Item surface
+        visible: panels.dock.visible && !panels.dock.unifiedSurface && surface.visible && surface.width > 0 && surface.height > 0
+        group: visible ? blobGroup : null
+        readonly property real joinDepth: Math.min(Tokens.rounding.extraLarge, (panels.dock.vertical ? panels.dock.width : panels.dock.height) / 2)
+        x: panels.x + panels.dock.x + surface.x - (DockConf.position === "left" ? joinDepth : 0)
+        y: panels.y + panels.dock.y + surface.y - (DockConf.position === "top" ? joinDepth : 0)
+        implicitWidth: surface.width + (panels.dock.vertical ? joinDepth : 0)
+        implicitHeight: surface.height + (panels.dock.vertical ? 0 : joinDepth)
+        radius: Tokens.rounding.extraLarge
     }
 
     component PanelBg: BlobRect {

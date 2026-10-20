@@ -40,12 +40,38 @@ function grid(windows, width, height) {
     });
 }
 
+// Float-mode workspaces keep their own grids, including an empty neighbour
+// that can receive a drop. They share the same vertical ribbon interaction.
+function stacking(snapshot, width, height, workspace) {
+    var ids = snapshot.workspaces || [workspace];
+    var selected = Math.max(0, ids.indexOf(workspace));
+    var stride = height * 0.72, frames = [], rows = [];
+    ids.forEach(function(id, index) {
+        var y = (height - stride) / 2 + (index - selected) * stride;
+        var local = grid((snapshot.windows || []).filter(w => w.workspace === id), width, stride);
+        local.forEach(function(frame) { frames.push(Object.assign({}, frame, {y: frame.y + y})); });
+        rows.push({workspace:id, x:16, y:y+8, width:width-32, height:stride-16, originX:0, originY:y});
+    });
+    return {frames:frames, rows:rows, worldFrames:frames, worldRows:rows, camera:{x:0,y:0,zoom:1}};
+}
+
 // Trim only the empty ends. Empty workspaces inside the occupied range remain
 // part of the ribbon, including when more than one separates two occupied ones.
 function workspaceIds(snapshot) {
     var ids = snapshot.workspaces || [], windows = snapshot.windows || [];
     var occupied = ids.filter(function(id) { return windows.some(function(w) { return w.workspace === id; }); });
-    return occupied.length ? ids.slice(ids.indexOf(occupied[0]), ids.indexOf(occupied[occupied.length - 1]) + 1) : [];
+    if (!occupied.length) return ids.slice(0, Math.min(2, ids.length));
+    var firstIdx = ids.indexOf(occupied[0]);
+    var lastIdx = ids.indexOf(occupied[occupied.length - 1]);
+    if (snapshot.workspace && ids.includes(snapshot.workspace)) {
+        var curIdx = ids.indexOf(snapshot.workspace);
+        firstIdx = Math.min(firstIdx, curIdx);
+        lastIdx = Math.max(lastIdx, curIdx);
+    }
+    if (lastIdx + 1 < ids.length) {
+        lastIdx = lastIdx + 1;
+    }
+    return ids.slice(firstIdx, lastIdx + 1);
 }
 
 function scrolling(snapshot, width, height, selected, workspace) {
@@ -113,6 +139,13 @@ function neighbor(frames, index, dx, dy) {
 function navigate(snapshot, selected, workspace, direction, frames) {
     var windows = snapshot.windows || [];
     if (snapshot.mode === "stacking") {
+        if (direction === "J" || direction === "K") {
+            var bank = snapshot.workspaces || [workspace], i = bank.indexOf(workspace);
+            var destination = bank[i + (direction === "J" ? 1 : -1)];
+            if (destination === undefined) return {address:selected, workspace:workspace};
+            return {address:windows.find(w => w.workspace === destination)?.address ?? "", workspace:destination};
+        }
+        frames = frames.filter(f => windows.some(w => w.address === f.address && w.workspace === workspace));
         var vectors = {H: [-1, 0], L: [1, 0], K: [0, -1], J: [0, 1]};
         var vector = vectors[direction];
         if (!vector) return {address: selected, workspace: workspace};

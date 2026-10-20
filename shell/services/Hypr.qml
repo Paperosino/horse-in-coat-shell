@@ -273,7 +273,7 @@ Singleton {
         onFileChanged: reload()
         onLoaded: {
             const state = JSON.parse(text());
-            root.layoutMode = (state.mode ?? state.default_mode) === "stacking" ? "stacking" : "scrolling";
+            root.layoutMode = ["tiling","scrolling","stacking","canvas"].includes(state.mode ?? state.default_mode) ? (state.mode ?? state.default_mode) : "scrolling";
         }
     }
 
@@ -311,7 +311,8 @@ Singleton {
         }
 
         function toggleLayoutAll(): void {
-            extras.message("eval hyprstack_layouts.toggle()");
+            const modes = ["tiling", "scrolling", "stacking", "canvas"];
+            LayoutModes.select(modes[(modes.indexOf(root.layoutMode) + 1) % modes.length]);
         }
 
         target: "hypr"

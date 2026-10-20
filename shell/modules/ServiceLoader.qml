@@ -7,12 +7,17 @@ Scope {
     Component.onCompleted: {
         // Force certain singletons to load on shell init instead of lazily
 
+        LayoutModes;
+        Plugins;
+        LiveWallpapers;
+        ThemeAutomation;
         IdleInhibitor;
         GameMode;
         Notifs;
         Players;
         WindowSwitcher;
         Brightness;
+        DefaultApps;
         Weather.reload();
 
         if (GlobalConfig.utilities.vpn.enabled)

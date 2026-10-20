@@ -1,18 +1,22 @@
+pragma ComponentBehavior: Bound
+import QtQuick
 import QtQuick.Layouts
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.modules.nexus.common
-
 PageBase {
-    id: root
-
-    title: Tr.tr("Panels")
-
+    id:root
+    title:Tr.tr("Panels")
     ColumnLayout {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        width:root.cappedWidth;anchors.horizontalCenter:parent.horizontalCenter;spacing:Tokens.spacing.small
+        SettingsGuide { icon:"dock_to_bottom";title:Tr.tr("Everything within reach");description:Tr.tr("Arrange the statusbar, then choose how your dock and panels appear.");badges:[Tr.tr("Widgets"),Tr.tr("Dock"),Tr.tr("Panels")] }
+        SectionHeader { text:Tr.tr("Statusbar & dock") }
+        NavRow { first:true;text:Tr.tr("Statusbar layout");subtext:Tr.tr("Widgets and their order: left, centre and right");icon:"view_quilt";onClicked:root.nState.openSubPage(12) }
+        NavRow { last:true;text:Tr.tr("Dock");subtext:Tr.tr("Position, pinned applications and app menu");icon:"dock_to_bottom";onClicked:root.nState.openSubPage(11) }
+        // Additional Panel Settings Navigation
+        SectionHeader {
+            text: Tr.tr("Panel settings")
+        }
 
         NavRow {
             first: true
@@ -24,7 +28,7 @@ PageBase {
 
         NavRow {
             icon: "dock_to_bottom"
-            text: Tr.tr("Taskbar")
+            text: Tr.tr("Taskbar options")
             subtext: Config.bar.persistent ? Tr.tr("Always visible") : Config.bar.showOnHover ? Tr.tr("Reveal on hover") : Tr.tr("Reveal on drag")
             onClicked: root.nState.openSubPage(2)
         }

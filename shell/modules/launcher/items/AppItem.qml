@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Widgets
+import Hyprstack.I18n
+import qs.components.controls
 import Hyprstack.Config
 import qs.components
 import qs.services
@@ -13,17 +15,60 @@ Item {
     required property DesktopEntry modelData
     required property ScreenState screenState
 
+    property bool selectionOnly: false
+    signal chosen(var entry)
+    signal launched()
+    function dock(): var { return ShellState.componentsFor(screenState.modelData)?.panels?.dock ?? null; }
+
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
     anchors.left: parent?.left
     anchors.right: parent?.right
 
     StateLayer {
+        id: appMouse
+        property point pressPoint
+        property bool dragged: false
+        preventStealing: DockConf.enabled && !root.selectionOnly
+        onPressed: event => { pressPoint = Qt.point(event.x, event.y); dragged = false; }
+        onPositionChanged: event => {
+            if (root.selectionOnly || !DockConf.enabled || !(pressedButtons & Qt.LeftButton)) return;
+            if (!dragged && Math.hypot(event.x - pressPoint.x, event.y - pressPoint.y) > 8 * Tokens.scale)
+                dragged = true;
+            const target = root.dock();
+            if (dragged && target?.visible)
+                target.dragApplication(root.modelData, appMouse.mapToItem(target, event.x, event.y));
+        }
+        onReleased: if (dragged) root.dock()?.dropApplication(root.modelData)
+        onCanceled: root.dock()?.cancelDrag()
         radius: Tokens.rounding.large
-        onClicked: {
+        acceptedButtons: DockConf.enabled && !root.selectionOnly ? Qt.LeftButton | Qt.RightButton : Qt.LeftButton
+        onClicked: event => {
+            if (dragged) return;
+            if (event.button === Qt.RightButton) {
+                pinMenu.expanded = true;
+                return;
+            }
+            if (root.selectionOnly) { root.chosen(root.modelData); return; }
             Apps.launch(root.modelData);
+            root.launched();
             root.screenState.launcher = false;
         }
+    }
+
+    Menu {
+        id: pinMenu
+        attachTo: root
+        updateActiveOnSelection: false
+        items: [MenuItem {
+            text: Taskbar.pinned.includes(root.modelData?.id) ? Tr.tr("Unpin from dock") : Tr.tr("Pin to dock")
+            icon: Taskbar.pinned.includes(root.modelData?.id) ? "keep_off" : "keep"
+            onClicked: if (DockConf.enabled && root.modelData) Taskbar.togglePin(root.modelData.id)
+        }]
+    }
+    Connections {
+        target: DockConf
+        function onEnabledChanged() { if (!DockConf.enabled) pinMenu.expanded = false; }
     }
 
     Item {

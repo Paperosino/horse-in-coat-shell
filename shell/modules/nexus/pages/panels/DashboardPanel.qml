@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Hyprstack.Config
 import Hyprstack.I18n
+import qs.modules.nexus
 import qs.modules.nexus.common
 
 PageBase {
@@ -86,7 +87,7 @@ PageBase {
             text: Tr.tr("Weather settings")
             subtext: Tr.tr("City, automatic IP location and weather provider")
             onClicked: {
-                root.nState.currentPageIdx = 7;
+                root.nState.currentPageIdx = PageRegistry.indexOf("region");
                 root.nState.searchTarget = "weatherProvider";
                 root.nState.searchRequested();
             }

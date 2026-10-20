@@ -19,14 +19,14 @@ Item {
 
     readonly property bool disabled: Strings.testRegexList(Config.bar.excludedScreens, screen.name)
 
-    readonly property bool atBottom: Hypr.stacking
+    readonly property bool atBottom: false
     readonly property var activeWorkspace: Hypr.monitorFor(screen)?.activeWorkspace
     readonly property int clampedThickness: Math.max((Config.border.minThickness * Tokens.scale), implicitHeight)
     readonly property real frameThickness: (Tiling.desktopFrame ? (Config.border.thickness * Tokens.scale) : 0) * (1 - Hypr.stackingProgress)
-    readonly property real topInset: implicitHeight * (1 - Hypr.stackingProgress) + (fullscreen ? 0 : frameThickness) * Hypr.stackingProgress
-    readonly property real bottomInset: implicitHeight * Hypr.stackingProgress + (fullscreen ? 0 : frameThickness) * (1 - Hypr.stackingProgress)
+    readonly property real topInset: implicitHeight
+    readonly property real bottomInset: fullscreen ? 0 : frameThickness
     readonly property int padding: Math.max(Tokens.padding.small, (Config.border.thickness * Tokens.scale))
-    readonly property int contentWidth: Hypr.stacking ? 40 * Tokens.scale : Tokens.sizes.bar.innerWidth + padding * 2
+    readonly property int contentWidth: Tokens.sizes.bar.innerWidth + padding * 2
     readonly property int exclusiveZone: !disabled && (Config.bar.persistent || screenState.bar) ? contentWidth : frameThickness
     readonly property bool shouldBeVisible: !fullscreen && !disabled && (Config.bar.persistent || screenState.bar || isHovered)
     property bool isHovered
@@ -69,8 +69,7 @@ Item {
     visible: height > frameThickness
     implicitWidth: parent?.width ?? 0
     implicitHeight: fullscreen ? 0 : frameThickness
-    // Slide the new bar in from its edge while the frame changes shape.
-    y: atBottom ? (parent?.height ?? 0) - height * Hypr.stackingProgress : -height * Hypr.stackingProgress
+    y: 0
 
     states: State {
         name: "visible"
@@ -109,10 +108,10 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         height: root.contentWidth
-        y: root.atBottom ? 0 : root.height - height
+        y: root.height - height
 
         visible: root.shouldBeVisible
-        opacity: root.atBottom ? Hypr.stackingProgress : 1 - Hypr.stackingProgress
+        opacity: 1
         screen: root.screen
         screenState: root.screenState
         popouts: root.popouts // qmllint disable incompatible-type

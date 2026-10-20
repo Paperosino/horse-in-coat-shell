@@ -36,6 +36,7 @@ class BarWorkspaces : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, activeIndicator, true)
     CONFIG_PROPERTY(bool, occupiedBg, false)
     CONFIG_PROPERTY(bool, showUnoccupied, true)
+    CONFIG_PROPERTY(bool, hideEmpty, false)
     CONFIG_PROPERTY(bool, perMonitor, true)
     CONFIG_PROPERTY(bool, showWindows, true)
     CONFIG_PROPERTY(bool, showWindowsOnSpecialWorkspaces, true)
@@ -105,6 +106,7 @@ class BarClock : public settings::ObjectNode {
 class BarConfig : public settings::ObjectNode {
     CONFIG_NODE(BarConfig, settings::ObjectNode)
 
+    CONFIG_PROPERTY(bool, layoutSwitcherConfigured, false)
     CONFIG_PROPERTY(bool, persistent, true)
     CONFIG_PROPERTY(bool, showOnHover, true)
     CONFIG_PROPERTY(int, dragThreshold, 20)
@@ -134,6 +136,7 @@ class BarConfig : public settings::ObjectNode {
             LIST_ENTRY(activeWindow, true),
             LIST_ENTRY(spacer, true),
             LIST_ENTRY(tray, true),
+            LIST_ENTRY(layoutSwitcher, true),
             LIST_ENTRY(clock, true),
             LIST_ENTRY(statusIcons, true),
             LIST_ENTRY(power, true),

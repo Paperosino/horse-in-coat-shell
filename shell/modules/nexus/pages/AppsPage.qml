@@ -1,175 +1,21 @@
 pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
-import Quickshell.Widgets
-import Hyprstack
 import Hyprstack.Config
 import Hyprstack.I18n
-import qs.components
-import qs.components.containers
-import qs.services
-import qs.utils
 import qs.modules.nexus.common
-
 PageBase {
-    id: root
-
-    title: Tr.tr("Apps")
-
+    id:root
+    title:Tr.tr("Apps")
     ColumnLayout {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
-
-        // Default applications
-        SectionHeader {
-            first: true
-            text: Tr.tr("Default applications")
-        }
-
-        DefaultRow {
-            first: true
-            icon: "terminal"
-            label: Tr.trCtx("Terminal", "default app category")
-            status: GlobalConfig.general.apps.terminal.join(" ")
-            onSelected: app => GlobalConfig.general.apps.terminal = app.command
-        }
-
-        DefaultRow {
-            icon: "volume_up"
-            label: Tr.trCtx("Audio", "default app category")
-            status: GlobalConfig.general.apps.audio.join(" ")
-            onSelected: app => GlobalConfig.general.apps.audio = app.command
-        }
-
-        DefaultRow {
-            icon: "play_circle"
-            label: Tr.trCtx("Media playback", "default app category")
-            status: GlobalConfig.general.apps.playback.join(" ")
-            onSelected: app => GlobalConfig.general.apps.playback = app.command
-        }
-
-        DefaultRow {
-            last: true
-            icon: "folder"
-            label: Tr.trCtx("File manager", "default app category")
-            status: GlobalConfig.general.apps.explorer.join(" ")
-            onSelected: app => GlobalConfig.general.apps.explorer = app.command
-        }
-
-        // Library
-        SectionHeader {
-            text: Tr.trCtx("Library", "app library")
-        }
-
-        NavRow {
-            first: true
-            last: true
-            icon: "apps"
-            text: Tr.tr("All apps")
-            subtext: Tr.tr("Browse installed apps, set favourites and hidden")
-            onClicked: root.nState.openSubPage(1)
-        }
-    }
-
-    component DefaultRow: PopupRow {
-        id: row
-
-        readonly property int popupHeight: root.flickable.height - y + root.flickable.contentY - Tokens.padding.large - Tokens.padding.extraExtraLarge
-
-        signal selected(app: DesktopEntry)
-
-        keepPopupAsChild: {
-            if (root.nState.animatingContainer || root.opacity < 1)
-                return true;
-
-            let p = root.parent;
-            while (p && p.objectName !== "PageContainer")
-                p = p.parent;
-            return p?.opacity < 1;
-        }
-        popup.topMovement: Math.max(Tokens.sizes.nexus.minPopupHeight - popupHeight, Tokens.padding.large)
-
-        Loader {
-            anchors.centerIn: parent
-            active: row.popup.animDriver > 0
-
-            sourceComponent: VerticalFadeListView {
-                id: list
-
-                implicitWidth: Tokens.sizes.nexus.popupWidth
-                implicitHeight: CUtils.clamp(row.popupHeight, Tokens.sizes.nexus.minPopupHeight, Tokens.sizes.nexus.maxPopupHeight)
-
-                model: {
-                    const apps = [...DesktopEntries.applications.values];
-                    const favourited = new Set(apps.filter(a => Strings.testRegexList(GlobalConfig.launcher.favouriteApps, a.id)));
-                    return apps.sort((a, b) => (favourited.has(b) - favourited.has(a)) || a.name.localeCompare(b.name));
-                }
-
-                delegate: StateLayer {
-                    id: appItem
-
-                    required property DesktopEntry modelData
-                    required property int index
-
-                    anchors.fill: undefined
-                    anchors.left: list.contentItem.left
-                    anchors.right: list.contentItem.right
-                    implicitHeight: itemLayout.implicitHeight + itemLayout.anchors.margins * 2
-                    radius: Tokens.rounding.small
-
-                    onClicked: {
-                        row.popup.open = false;
-                        row.selected(modelData);
-                    }
-
-                    RowLayout {
-                        id: itemLayout
-
-                        anchors.fill: parent
-                        anchors.margins: Tokens.padding.medium
-                        spacing: Tokens.spacing.medium
-
-                        IconImage {
-                            asynchronous: true
-                            implicitSize: Math.round(Tokens.font.icon.large.pointSize * 1.8)
-                            source: Quickshell.iconPath(appItem.modelData.icon, "image-missing")
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: appItem.modelData.name
-                                font: Tokens.font.body.small
-                                elide: Text.ElideRight
-                            }
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                visible: text
-                                text: (appItem.modelData.comment || appItem.modelData.genericName) ?? ""
-                                color: Colours.palette.m3outline
-                                font: Tokens.font.label.small
-                                elide: Text.ElideRight
-                            }
-                        }
-
-                        MaterialIcon {
-                            visible: Strings.testRegexList(GlobalConfig.launcher.favouriteApps, appItem.modelData.id)
-                            text: "favorite"
-                            fill: 1
-                            color: Colours.palette.m3primary
-                            fontStyle: Tokens.font.icon.small
-                        }
-                    }
-                }
-            }
-        }
+        width:root.cappedWidth;anchors.horizontalCenter:parent.horizontalCenter;spacing:Tokens.spacing.small
+        SettingsGuide { icon:"apps";title:Tr.tr("Choose how your applications work");description:Tr.tr("Browse apps, choose what opens your files, and add new features.");badges:[Tr.tr("Library"),Tr.tr("Defaults"),Tr.tr("Extensions")] }
+        SectionHeader { text:Tr.tr("Applications & files") }
+        NavRow { first:true;text:Tr.tr("All apps");subtext:Tr.tr("Browse installed apps, set favourites and hidden");icon:"apps";onClicked:root.nState.openSubPage(1) }
+        NavRow { text:Tr.tr("Default applications");subtext:Tr.tr("Browser, documents, media and file formats");icon:"open_in_new";onClicked:root.nState.openSubPage(6) }
+        NavRow { last:true;text:Tr.tr("Autostart");subtext:Tr.tr("Applications started when signing in");icon:"rocket_launch";onClicked:root.nState.openSubPage(3) }
+        SectionHeader { text:Tr.tr("Extensions & tools") }
+        NavRow { first:true;text:Tr.tr("Plugins");subtext:Tr.tr("Add features and manage extensions");icon:"extension";onClicked:root.nState.openSubPage(4) }
+        NavRow { last:true;text:Tr.tr("AI assistant");subtext:Tr.tr("Models, providers and conversation settings");icon:"smart_toy";onClicked:root.nState.openSubPage(5) }
     }
 }

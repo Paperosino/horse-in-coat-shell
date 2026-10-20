@@ -17,8 +17,17 @@ local function write(path, value)
     assert(os.rename(path .. ".tmp", path))
 end
 
+local function file_exists(path)
+    local file = io.open(path, "r")
+    if not file then return false end
+    file:close()
+    return true
+end
+
 local preferences = read(config_dir .. "/layouts.json")
-preferences = { mode = (preferences.mode or preferences.default_mode) == "stacking" and "stacking" or "scrolling" }
+local requested_mode = preferences.mode or preferences.default_mode or "scrolling"
+if requested_mode ~= "tiling" and requested_mode ~= "scrolling" and requested_mode ~= "stacking" and requested_mode ~= "canvas" then requested_mode = "scrolling" end
+preferences.mode = requested_mode
 local workspace_config = read(config_dir .. "/workspaces.json")
 local per_monitor = workspace_config.per_monitor == true
 local workspace_count = math.max(1, math.floor(tonumber(workspace_config.count) or 10))
@@ -27,6 +36,7 @@ workspace_config.monitor_bases = workspace_config.monitor_bases or {}
 local runtime = read(runtime_path)
 local records = runtime.windows or runtime
 local tiled_views = runtime.tiled_views or {}
+local canvas_snapshot = runtime.canvas_snapshot or {}
 local changing = false
 local navigation_since_reload = false
 local animation_timer
@@ -157,7 +167,7 @@ function layouts.workspace_base(monitor)
 end
 
 function layouts.focus(number, monitor)
-    if layouts.mode() ~= "scrolling" then return end
+    if layouts.mode() == "canvas" then return end
     monitor = monitor_for(monitor)
     if not monitor then return end
     if per_monitor and (number < 1 or number > workspace_count) then return end
@@ -167,7 +177,7 @@ function layouts.focus(number, monitor)
 end
 
 function layouts.step(direction, monitor)
-    if layouts.mode() ~= "scrolling" then return end
+    if layouts.mode() == "canvas" then return end
     monitor = monitor_for(monitor)
     if not monitor or not monitor.active_workspace then return end
     if not per_monitor then
@@ -236,7 +246,7 @@ end
 
 local function save()
     write(config_dir .. "/layouts.json", preferences)
-    write(runtime_path, { windows = records, tiled_views = tiled_views, tiled_no_warps = tiled_no_warps,
+    write(runtime_path, { windows = records, tiled_views = tiled_views, canvas_snapshot = canvas_snapshot, tiled_no_warps = tiled_no_warps,
         tiled_resize_on_border = tiled_resize_on_border, tiled_border_grab = tiled_border_grab, tiled_focus = tiled_focus })
 end
 
@@ -497,8 +507,8 @@ local function maximized_geometry(window)
     local monitor = window.monitor
     local width, height = monitor_size(monitor)
     local reserved = monitor.reserved
-    local top = changing and 0 or reserved.top
-    local bottom = changing and 40 or reserved.bottom
+    local top = changing and 40 or reserved.top
+    local bottom = changing and 0 or reserved.bottom
     local bar = client_decorated(window) and 0 or titlebar_height
     return { x = monitor.x + reserved.left, y = monitor.y + top + bar,
         width = width - reserved.left - reserved.right,
@@ -541,8 +551,8 @@ local function task_target(window)
     local monitor = window.monitor
     local width, height = monitor_size(monitor)
     return { x = monitor.x + width / 2 - 90,
-        y = monitor.y + height - 36, w = 180, h = 32,
-        bar_top = monitor.y + height - 40 }
+        y = monitor.y + 8, w = 180, h = 32,
+        bar_top = monitor.y + 40 }
 end
 
 local function cancel_minimize(window)
@@ -670,7 +680,7 @@ local function workspace_animation()
     local camera = hl.plugin.hyprbars and hl.plugin.hyprbars.workspace_camera
     if camera then
         local vars = require("variables")
-        camera("gestures", vars.gestureFingers, vars.workspaceSwipeFingers)
+        camera("gestures", tonumber(vars.gestureFingers) or 3, tonumber(vars.workspaceSwipeFingers) or 3)
         camera("enable", scrolling)
     end
     hl.animation({ leaf = "workspaces", enabled = scrolling and not camera, speed = 5,
@@ -794,10 +804,18 @@ function layouts.toggle_gaps()
 end
 
 local script_dir = debug.getinfo(1, "S").source:sub(2):match("(.*/)")
+local data_dir = os.getenv("HYPRSTACK_DATA_DIR")
+    or (file_exists("/usr/share/hyprstack/native/hyprstack-bars.so") and "/usr/share/hyprstack")
+    or ((os.getenv("XDG_DATA_HOME") or os.getenv("HOME") .. "/.local/share") .. "/hyprstack")
 local plugin_path = os.getenv("HYPRSTACK_TITLEBAR_PLUGIN") or read(config_dir .. "/titlebars.json").path or
-    (os.getenv("HYPRSTACK_DATA_DIR") or (os.getenv("XDG_DATA_HOME") or os.getenv("HOME") .. "/.local/share") .. "/hyprstack") .. "/native/hyprstack-bars.so"
+    (data_dir .. "/native/hyprstack-bars.so")
 local plugin_file = io.open(plugin_path, "r")
 if plugin_file then plugin_file:close(); hl.plugin.load(plugin_path) end
+-- The canvas plugin is loaded through the session (hyprctl plugin load), not
+-- here: plugins loaded during config parsing are treated as config-owned and
+-- get unloaded/reloaded by the config manager mid-parse, which corrupts the
+-- lua state. See hyprstack-session.
+local canvas_plugin_path = data_dir .. "/native/libspatialoverview.so"
 -- Loading is deferred until the config has been parsed. The plugin requests a
 -- reload after registering its effects; the first pass must use core rules only.
 local no_titlebar = hl.plugin.hyprbars and hl.plugin.hyprbars.clear_buttons and true or nil
@@ -891,6 +909,7 @@ local function change(action, views, transition)
 end
 
 function layouts.toggle_floating(window)
+    if layouts.mode() == "canvas" then return layouts.canvas_action("fill") end
     window = window or hl.get_active_window()
     if layouts.mode() ~= "scrolling" or not window or not eligible(window) then return end
     change(function()
@@ -922,6 +941,7 @@ function layouts.end_switcher(action)
 end
 
 function layouts.window_cycle(direction)
+    if layouts.mode() == "canvas" then return layouts.canvas_action(direction > 0 and "switch next" or "switch prev") end
     if layouts.mode() ~= "stacking" then
         hl.dispatch(hl.dsp.window.cycle_next({ next = direction > 0 }))
         return
@@ -1030,6 +1050,7 @@ local function remember_stacking()
 end
 
 function layouts.move_monitor(direction)
+    if layouts.mode() == "canvas" then return layouts.canvas_action("nudge " .. direction) end
     local window = hl.get_active_window()
     local source = window and window.monitor
     if not source or not eligible(window) then return end
@@ -1181,30 +1202,33 @@ function layouts.set_overview(active)
 end
 
 function layouts.overview_scene(action, value)
+    if action == "show" and not overview_active then return end
     local renderer = hl.plugin.hyprbars and hl.plugin.hyprbars.overview_scene
     if not renderer then error("Hyprstack overview requires the current native shell module") end
     return renderer(action, value)
 end
 
 function layouts.overview_snapshot(name)
+    -- Renew the watchdog only for the live session; a late IPC response must
+    -- never reactivate an overview that has already been closed.
+    if overview_active then layouts.set_overview(true) end
     local monitor = hl.get_monitor(name)
     if not monitor or not monitor.active_workspace then return json.encode({}) end
     local width, height = monitor_size(monitor)
+    local input = json.decode(layouts.overview_scene("input"))
+    if input and input.action == "drag_drop" then
+        input.applied = layouts.overview_drag_drop(input.source, input.target, input.workspace, name, input.sourceIdentity, input.targetIdentity)
+    end
+    layouts.overview_scene("heartbeat")
+    local visible_geometry = json.decode(layouts.overview_scene("geometry"))
+    local active = hl.get_active_window()
     local result = { mode = layouts.mode(), monitor = name, x = monitor.x, y = monitor.y,
         width = width, height = height, workspace = monitor.active_workspace.id,
         workspaces = {}, windows = {},
         renderer = json.decode(layouts.overview_scene("status")),
-        input = json.decode(layouts.overview_scene("input")) }
-    layouts.overview_scene("heartbeat")
-    local visible_geometry = json.decode(layouts.overview_scene("geometry"))
-    local active = hl.get_active_window()
-    result.active = active and active.address or ""
-    if layouts.mode() == "scrolling" then
-        local base = layouts.workspace_base(monitor)
-        for index = 1, workspace_count do result.workspaces[#result.workspaces + 1] = base + index end
-    else
-        result.workspaces = { monitor.active_workspace.id }
-    end
+        input = input }
+    local base = layouts.workspace_base(monitor)
+    for index = 1, workspace_count do result.workspaces[#result.workspaces + 1] = base + index end
     for _, window in ipairs(hl.get_windows()) do
         local record = record_for(window)
         local hidden = record and record.minimized
@@ -1218,6 +1242,7 @@ function layouts.overview_snapshot(name)
                 appId = window.class, workspace = hidden and (tonumber(hidden.workspace) or monitor.active_workspace.id) or window.workspace.id,
                 minimized = hidden ~= nil, floating = window.floating,
                 column = scroll.column, row = scroll.row, columnWidth = scroll.width,
+                overviewOrder = record and record.overview_order or window.stable_id,
                 extents = visible_geometry[window.address] and visible_geometry[window.address].extents or nil,
                 x = box.x - monitor.x, y = box.y - monitor.y,
                 width = math.max(1, box.width), height = math.max(1, box.height) }
@@ -1225,6 +1250,7 @@ function layouts.overview_snapshot(name)
     end
     table.sort(result.windows, function(a, b)
         if a.workspace ~= b.workspace then return a.workspace < b.workspace end
+        if layouts.mode() == "stacking" and a.overviewOrder ~= b.overviewOrder then return a.overviewOrder < b.overviewOrder end
         if (a.column or 100000) ~= (b.column or 100000) then return (a.column or 100000) < (b.column or 100000) end
         if (a.row or 0) ~= (b.row or 0) then return (a.row or 0) < (b.row or 0) end
         return a.identity < b.identity
@@ -1258,6 +1284,9 @@ function layouts.overview_activate(address, identity, workspace, name)
     local window = address ~= "" and hl.get_window("address:" .. address) or nil
     if window and window.mapped and tonumber(identity, 16) == window.stable_id then
         if layouts.mode() == "stacking" then
+            local record = record_for(window)
+            local destination = record and record.minimized and tonumber(record.minimized.workspace) or (window.workspace and window.workspace.id)
+            if destination and destination > 0 then hl.dispatch(hl.dsp.focus({ workspace = tostring(destination) })) end
             layouts.action("activate", address, identity)
         else
             hl.dispatch(hl.dsp.focus({ window = window }))
@@ -1265,13 +1294,72 @@ function layouts.overview_activate(address, identity, workspace, name)
     else
         local monitor = hl.get_monitor(name)
         if monitor then hl.dispatch(hl.dsp.focus({ monitor = monitor })) end
-        if layouts.mode() == "scrolling" and tonumber(workspace) then
+        if tonumber(workspace) then
             hl.dispatch(hl.dsp.focus({ workspace = tostring(workspace) }))
         end
     end
 end
 
+local function window_by_address(addr)
+    if not addr or addr == "" then return nil end
+    if not addr:match("^address:") then addr = "address:" .. addr end
+    return hl.get_window(addr)
+end
+
+function layouts.overview_drag_drop(source_address, target_address, target_workspace, name, source_identity, target_identity)
+    if not overview_active then return false end
+    local source, target = window_by_address(source_address), window_by_address(target_address)
+    local monitor = hl.get_monitor(name)
+    if not source or not source.mapped or not monitor or source.pinned then return false end
+    local source_record = record_for(source)
+    if source.monitor ~= monitor and not (source_record and source_record.minimized and source_record.minimized.monitor == name) then return false end
+    if source_identity and tonumber(source_identity, 16) ~= source.stable_id then return false end
+    if target == source then target = nil end
+    if target and (not target.mapped or target.monitor ~= monitor or target.pinned
+        or (target_identity and tonumber(target_identity, 16) ~= target.stable_id)) then return false end
+    local ws_id = tonumber(target_workspace) or (target and target.workspace and target.workspace.id)
+    if not ws_id or ws_id < 1 or ws_id ~= math.floor(ws_id) then return false end
+    local base = layouts.workspace_base(monitor)
+    local valid_destination = ws_id > base and ws_id <= base + workspace_count
+    for _, window in ipairs(hl.get_windows()) do
+        if window.monitor == monitor and window.workspace and not window.workspace.special and window.workspace.id == ws_id then valid_destination = true end
+    end
+    if not valid_destination then return false end
+    if target and (not target.workspace or target.workspace.id ~= ws_id) then return false end
+    change(function()
+        if source_record and source_record.minimized then layouts.restore_window(source, false) end
+        local same_workspace = source.workspace and source.workspace.id == ws_id
+        if not same_workspace then move_to_workspace(source, tostring(ws_id)) end
+        if target then
+            if not source.floating and not target.floating then
+                hl.dispatch(hl.dsp.window.swap({ window = source, target = target }))
+            elseif source.floating and target.floating then
+                local s_geo, t_geo = geometry(source), geometry(target)
+                set_geometry(source, fit_geometry(source, t_geo, 0))
+                if same_workspace then
+                    set_geometry(target, fit_geometry(target, s_geo, 0))
+                    local sr = record_for(source) or {id = source.stable_id}
+                    local tr = record_for(target) or {id = target.stable_id}
+                    sr.overview_order, tr.overview_order = tr.overview_order or target.stable_id, sr.overview_order or source.stable_id
+                    records[source.address], records[target.address] = sr, tr
+                end
+            end
+        end
+        for _, window in ipairs({source, target}) do
+            local record = record_for(window)
+            if record then
+                record.workspace = key(window.workspace)
+                record.scroll = scroll_position(window)
+                if layouts.mode() == "stacking" then record.origin = {workspace = key(window.workspace), monitor = monitor.name}; record.geometry = geometry(window) end
+            end
+        end
+    end)
+    return true
+end
+
 function layouts.toggle()
+    if preferences.mode == "canvas" then return layouts.set_mode("scrolling") end
+    if preferences.mode == "tiling" then return layouts.set_mode("stacking") end
     layouts.end_switcher("Cancel")
     local monitor = hl.get_active_monitor()
     local workspace = monitor and monitor.active_workspace
@@ -1293,8 +1381,153 @@ function layouts.toggle()
     end
 end
 
+local function plugin_action(name, value)
+    local plugin = hl.plugin.spatialoverview
+    if not plugin or not plugin[name] then error("Canvas plugin is unavailable") end
+    local action = plugin[name](value)
+    if type(action) == "function" then return action() end
+    return action
+end
+
+function layouts.canvas_action(action)
+    if layouts.mode() ~= "canvas" then error("Switch to canvas mode first") end
+    if action == "overview" then return plugin_action("overview", "toggle all") end
+    return plugin_action("canvas", action)
+end
+
+local function configure_canvas()
+    if not hl.plugin.spatialoverview then return end
+    hl.plugin.spatialoverview.configure({
+        animation = {enabled = true, speed = 8.0},
+        distortion = {enabled = false},
+        canvas = {enabled = true, desktop_mode = true, persistent = true,
+            initial_zoom = preferences.canvasZoom or .72, min_zoom = preferences.canvasMinZoom or .1,
+            max_zoom = preferences.canvasMaxZoom or 2.5, zoom_step = preferences.canvasZoomStep or .12,
+            auto_float = true, auto_place = true, direct_input = true,
+            hover_focus = preferences.canvasHoverFocus == true, space_pan = false, places = false, placement_gap = preferences.canvasGap or 40,
+            grid_enabled = preferences.canvasGrid ~= false, grid_style = 1,
+            snap_enabled = preferences.canvasSnap == true, grid_size = preferences.canvasSnapSize or 40, snap_size = preferences.canvasSnapSize or 40,
+            minimap_enabled = preferences.canvasMinimap ~= false, remember_layout = preferences.canvasRemember ~= false},
+        input = {pan_sensitivity = preferences.canvasPanSpeed or 1.0},
+        navigator = {accent = "auto", uppercase = false, corner_labels = false},
+        chrome_animation = {enabled = false}, parallax = {enabled = false}
+    })
+end
+
+function layouts.configure(value)
+    for _, key in ipairs({"canvasZoom", "canvasMinZoom", "canvasMaxZoom", "canvasZoomStep", "canvasPanSpeed", "canvasGap", "canvasGrid", "canvasSnap", "canvasSnapSize", "canvasMinimap", "canvasRemember", "canvasHoverFocus", "overviewDragMs", "overviewMotionMs"}) do
+        if value[key] ~= nil then preferences[key] = value[key] end
+    end
+    configure_canvas()
+    save()
+end
+
+local function restore_canvas_workspaces()
+    -- Keep workspace IDs independently of the plugin's weak workspace refs.
+    -- Native workspace objects can disappear while the shared canvas is active.
+    for address, saved in pairs(canvas_snapshot.windows or {}) do
+        local window = hl.get_window("address:" .. address)
+        if window and window.mapped and window.stable_id == saved.id then
+            if not window.workspace or key(window.workspace) ~= saved.workspace then
+                move_to_workspace(window, saved.workspace)
+            end
+            if window.floating ~= saved.floating then float(window, saved.floating) end
+            if saved.floating and saved.geometry and window.fullscreen == 0 then
+                set_geometry(window, saved.geometry)
+            end
+            local record = record_for(window)
+            if record then record.workspace = saved.workspace end
+        end
+    end
+end
+
+function layouts.set_mode(mode, reopen)
+    if mode ~= "tiling" and mode ~= "scrolling" and mode ~= "stacking" and mode ~= "canvas" then error("Unknown layout mode") end
+    if mode == preferences.mode and not reopen then return true end
+    if mode == "canvas" and (not hl.plugin.spatialoverview or not hl.plugin.hyprbars or not hl.plugin.hyprbars.overview_hooks) then
+        error("Canvas plugin is not loaded; install the matching native modules and reload Hyprland")
+    end
+    layouts.end_switcher("Cancel")
+    layouts.set_overview(false)
+    layouts.overview_scene("reset")
+    local previous = preferences.mode
+    local ok, err = pcall(function()
+        if previous == "canvas" and mode ~= "canvas" then
+            -- Phantomat owns a separate native-layout snapshot. Closing restores
+            -- floating state, workspaces, fullscreen and geometry itself.
+            changing = true
+            hl.plugin.spatialoverview.hyprstack_close()
+            preferences.mode = preferences.canvasReturnMode or "scrolling"
+            if preferences.mode == "canvas" then preferences.mode = "scrolling" end
+            hl.plugin.hyprbars.overview_hooks(true)
+            preserve_focus(function()
+                restore_canvas_workspaces()
+                if preferences.mode == "scrolling" then
+                    for _, workspace in ipairs(hl.get_workspaces()) do
+                        if not workspace.special then tile(workspace, true) end
+                    end
+                end
+            end, canvas_snapshot.views)
+            canvas_snapshot = {}
+            changing = false
+        end
+        if mode == "canvas" then
+            if previous ~= "canvas" then
+                preferences.canvasReturnMode = previous
+                canvas_snapshot = {windows = {}, views = capture_views()}
+                for _, window in ipairs(hl.get_windows()) do
+                    if eligible(window) then
+                        canvas_snapshot.windows[window.address] = {id = window.stable_id, workspace = key(window.workspace),
+                            floating = window.floating, geometry = window.floating and geometry(window) or nil}
+                    end
+                    if eligible(window) and not window.floating then
+                        local record = record_for(window) or {id = window.stable_id}
+                        record.scroll = scroll_position(window)
+                        records[window.address] = record
+                    end
+                end
+            end
+            -- Never run the stacking migration: the plugin alone manages its
+            -- canvas positions, keeping the underlying layout independent.
+            preferences.mode = "canvas"
+            changing = true
+            settle_animation()
+            refresh_decorations(false)
+            configure_canvas()
+            hl.plugin.hyprbars.overview_hooks(false)
+            plugin_action("overview", "open all")
+            changing = false
+        elseif mode == "stacking" then
+            if preferences.mode ~= "stacking" then preferences.mode = "scrolling"; layouts.toggle() end
+        else
+            if preferences.mode == "stacking" then
+                hl.config({general = {layout = "scrolling"}})
+                layouts.toggle()
+            end
+            preferences.mode = mode
+            hl.config({general = {layout = mode == "tiling" and "dwindle" or "scrolling"}})
+        end
+    end)
+    changing = false
+    if not ok then
+        if mode == "canvas" then
+            hl.plugin.spatialoverview.hyprstack_close()
+            hl.plugin.hyprbars.overview_hooks(true)
+            preferences.mode = preferences.canvasReturnMode or (previous ~= "canvas" and previous or "scrolling")
+        end
+        refresh_decorations(false)
+        workspace_animation()
+        save()
+        error(err)
+    end
+    refresh_decorations(false)
+    workspace_animation()
+    save()
+    return true
+end
+
 function layouts.move(number, follow)
-    if layouts.mode() ~= "scrolling" then return end
+    if layouts.mode() == "canvas" then return end
     local window = hl.get_active_window()
     local monitor = window and window.monitor or hl.get_active_monitor()
     if not window or (per_monitor and (number < 1 or number > workspace_count)) then return end
@@ -1350,6 +1583,16 @@ function layouts.action(operation, address, stable_id)
     local window = address and hl.get_window("address:" .. address) or hl.get_active_window()
     if not window or not window.mapped then return end
     if stable_id and tonumber(stable_id, 16) ~= window.stable_id then return end
+    if operation == "dock-activate" then
+        local record = record_for(window)
+        if record and record.minimized then
+            layouts.restore_window(window)
+        else
+            raise(window)
+            hl.dispatch(hl.dsp.focus({ window = window }))
+        end
+        return
+    end
     if operation == "toggle-floating" then layouts.toggle_floating(window); return end
     if layouts.mode() ~= "stacking" then return end
     local record = record_for(window) or { id = window.stable_id, workspace = key(window.workspace) }
@@ -1528,7 +1771,7 @@ function layouts.enforce_workspace_banks()
 end
 
 local function sync_window(window)
-    if changing or not window or not window.mapped or not window.workspace or window.workspace.special then return end
+    if changing or layouts.mode() == "canvas" or not window or not window.mapped or not window.workspace or window.workspace.special then return end
     local record = record_for(window)
     if layouts.mode() == "stacking" and (not record or not record.origin) then
         record = record or { id = window.stable_id }
@@ -1556,6 +1799,7 @@ local function sync_window(window)
 end
 
 local function place_telegram_webview(window)
+    if layouts.mode() == "canvas" then return end
     if not window or not window.mapped or not telegram_class_names[window.class:lower()] then return end
     local record = record_for(window)
     if record and record.webview then return end
@@ -1590,6 +1834,7 @@ end
 
 local media_placing = {}
 local function place_telegram_media(window)
+    if layouts.mode() == "canvas" then return end
     if not window or not window.mapped or not telegram_media(window) then return end
     if media_placing[window.address] then return end
     media_placing[window.address] = true
@@ -1650,7 +1895,7 @@ end
 local function schedule_float_center(window)
     -- Capture floating state before stacking converts an ordinary new tile.
     -- Placement runs once after mapping; later drags and resizes stay intact.
-    if not window.floating or telegram_media(window) or window.pinned then return end
+    if layouts.mode() == "canvas" or not window.floating or telegram_media(window) or window.pinned then return end
     hl.timer(function()
         local plugin = hl.plugin.hyprbars
         if window.mapped and window.floating and plugin and plugin.animate_window then
@@ -1669,7 +1914,7 @@ local function schedule_float_center(window)
     end, { timeout = 1, type = "oneshot" })
 end
 
-hl.config({ general = { layout = "scrolling" }, scrolling = { fullscreen_on_one_column = false, column_width = 0.5 } })
+hl.config({ general = { layout = (preferences.mode == "tiling" or (preferences.mode == "canvas" and preferences.canvasReturnMode == "tiling")) and "dwindle" or "scrolling" }, scrolling = { fullscreen_on_one_column = false, column_width = 0.5 } })
 hl.window_rule({ name = "hyprstack-default-column", match = {
     class = "negative:(?i)^(thorium.*|chromium.*|google-chrome.*|firefox|librewolf|zen(-browser)?)$"
 }, scrolling_width = 0.5 })
@@ -1740,7 +1985,10 @@ for _, direction in ipairs({ "Left", "Right", "Up", "Down" }) do
     hl.bind(shortcut, function() layouts.move_monitor(direction:lower()) end,
         { description = "Windows: Move window to monitor " .. direction:lower() })
 end
-hl.bind("SUPER + CTRL + SHIFT + M", layouts.toggle, { description = "Windows: Toggle scrolling or stacking" })
+hl.bind("SUPER + CTRL + SHIFT + M", function()
+    local modes = {"tiling", "scrolling", "stacking", "canvas"}
+    for i, mode in ipairs(modes) do if mode == layouts.mode() then layouts.set_mode(modes[i % #modes + 1]); return end end
+end, { description = "Windows: Cycle layout modes" })
 for workspace = 1, 10 do
     local shortcut = "SUPER + SHIFT + " .. tostring(workspace % 10)
     hl.unbind(shortcut)
@@ -1767,7 +2015,13 @@ for _, direction in ipairs({ { "J", "r+1" }, { "K", "r-1" }, { "H", "left" }, { 
             hl.dispatch(hl.dsp.global("hyprstack:overview" .. direction[1]))
             return
         end
-        if layouts.mode() ~= "scrolling" then return end
+        if layouts.mode() == "canvas" then
+            return plugin_action("navigate", ({H="left",L="right",J="down",K="up"})[direction[1]])
+        end
+        if layouts.mode() == "tiling" or layouts.mode() == "stacking" then
+            hl.dispatch(hl.dsp.focus({direction = ({H="left",L="right",J="down",K="up"})[direction[1]]}))
+            return
+        end
         if target == "left" or target == "right" then
             layouts.focus_column(target == "left" and -1 or 1)
         else
@@ -1780,6 +2034,7 @@ for _, direction in ipairs({ { "H", "l" }, { "L", "r" } }) do
     local shortcut = "SUPER + SHIFT + " .. direction[1]
     hl.unbind(shortcut)
     hl.bind(shortcut, function()
+        if layouts.mode() == "canvas" then return layouts.canvas_action("nudge " .. (direction[1] == "H" and "left" or "right")) end
         if layouts.mode() == "scrolling" then hl.dispatch(hl.dsp.layout("swapcol " .. direction[2])) end
     end, { repeating = true, description = "Windows: Swap column " .. direction[2] })
 end
@@ -1787,6 +2042,7 @@ for _, direction in ipairs({ { "J", 1 }, { "K", -1 } }) do
     local shortcut = "SUPER + SHIFT + " .. direction[1]
     hl.unbind(shortcut)
     hl.bind(shortcut, function()
+        if layouts.mode() == "canvas" then return layouts.canvas_action("nudge " .. (direction[1] == "J" and "down" or "up")) end
         local monitor = hl.get_active_monitor()
         if monitor and monitor.active_workspace then
             layouts.move(monitor.active_workspace.id - layouts.workspace_base(monitor) + direction[2], true)
@@ -1836,7 +2092,37 @@ if per_monitor then
         end, { timeout = 100, type = "oneshot" })
     end)
 end
+-- Explicit camera controls also work before opening the navigator.
+for _, binding in ipairs({{"equal", "zoom in"}, {"minus", "zoom out"}, {"0", "zoom reset"}}) do
+    local keys = "SUPER + CTRL + " .. binding[1]
+    hl.unbind(keys)
+    hl.bind(keys, function()
+        if layouts.mode() == "canvas" then layouts.canvas_action(binding[2])
+        elseif binding[1] == "0" then layouts.focus(10) end
+    end, {repeating = true, description = "Canvas: " .. binding[2]})
+end
+for _, direction in ipairs({{"Left", "left", -1}, {"Right", "right", 1}, {"Up", "up", 0}, {"Down", "down", 0}}) do
+    hl.unbind("SUPER + CTRL + " .. direction[1])
+    hl.bind("SUPER + CTRL + " .. direction[1], function()
+        if layouts.mode() == "canvas" then return layouts.canvas_action("pan " .. direction[2]) end
+        if direction[3] ~= 0 then layouts.step(direction[3]) end
+    end, {repeating = true, description = "Canvas: Pan " .. direction[2]})
+end
+-- DriftWM-style directional focus, explicit camera pan and window nudge.
+for _, direction in ipairs({{"Left", "left", "l"}, {"Right", "right", "r"}, {"Up", "up", "u"}, {"Down", "down", "d"}}) do
+    hl.unbind("SUPER + " .. direction[1])
+    hl.bind("SUPER + " .. direction[1], function()
+        if layouts.mode() == "canvas" then return plugin_action("navigate", direction[2]) end
+        hl.dispatch(hl.dsp.focus({direction = direction[3]}))
+    end, {repeating = true, description = "Windows: Focus " .. direction[2]})
+    hl.unbind("SUPER + SHIFT + " .. direction[1])
+    hl.bind("SUPER + SHIFT + " .. direction[1], function()
+        if layouts.mode() == "canvas" then return layouts.canvas_action("nudge " .. direction[2]) end
+        hl.dispatch(hl.dsp.window.move({direction = direction[2]}))
+    end, {repeating = true, description = "Windows: Move window " .. direction[2]})
+end
 hl.on("window.open", function(window)
+    if layouts.mode() == "canvas" then return end
     place_telegram_webview(window)
     schedule_float_center(window)
     place_telegram_media(window)
@@ -1954,7 +2240,7 @@ change(function()
     for _, workspace in ipairs(hl.get_workspaces()) do
         if not workspace.special and layouts.mode() == "stacking" then
             stack(workspace)
-        else
+        elseif layouts.mode() ~= "canvas" then
             for _, window in ipairs(workspace:get_windows()) do
                 local record = record_for(window)
                 if record and record.stacked then tile(workspace); break end
@@ -1987,5 +2273,28 @@ if normalized_columns then save() end
 layouts.effects()
 layouts.tiling()
 layouts.shadows()
+
+
+-- A canvas is opt-in; a normal session keeps its existing layout and windows.
+-- The plugin arrives through the session start, so retry for a while instead
+-- of assuming it is present at config time.
+if requested_mode == "canvas" then
+    local attempts = 0
+    local function try_canvas()
+        if hl.plugin.spatialoverview and hl.plugin.hyprbars then
+            local ok, err = pcall(function() layouts.set_mode("canvas", true) end)
+            if not ok then preferences.mode = preferences.canvasReturnMode or "scrolling"; save(); print("Hyprstack canvas: " .. tostring(err)) end
+        elseif attempts < 40 then
+            attempts = attempts + 1
+            hl.timer(try_canvas, {timeout = 250, type = "oneshot"})
+        else
+            preferences.mode = preferences.canvasReturnMode or "scrolling"; save()
+            print("Hyprstack canvas: canvas plugin did not load; staying in " .. preferences.mode)
+        end
+    end
+    hl.timer(try_canvas, {timeout = 150, type = "oneshot"})
+elseif hl.plugin.hyprbars and hl.plugin.hyprbars.overview_hooks then
+    hl.plugin.hyprbars.overview_hooks(true)
+end
 
 return layouts

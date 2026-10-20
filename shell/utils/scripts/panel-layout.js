@@ -4,7 +4,12 @@ function centeredWidth(width, left, right, gap) {
     return Math.max(0, width - 2 * (Math.max(left, right) + gap));
 }
 
-function workspaceIds(offset, count, activeId, occupiedIds, showUnoccupied) {
+function workspaceIds(offset, count, activeId, occupiedIds, showUnoccupied, hideEmpty) {
+    if (hideEmpty) {
+        const visible = new Set(occupiedIds.filter(id => id > offset && id <= offset + count));
+        if (activeId > 0) visible.add(activeId);
+        return [...visible].sort((a,b) => a-b);
+    }
     let last = showUnoccupied ? count : Math.max(1, activeId - offset);
     if (!showUnoccupied) {
         for (const id of occupiedIds) {

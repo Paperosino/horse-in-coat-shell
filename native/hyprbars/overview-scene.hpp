@@ -22,6 +22,7 @@
 #include <hyprland/src/managers/SeatManager.hpp>
 #include <hyprland/src/managers/KeybindManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/pointer/cursor/CursorShapeOverrideController.hpp>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/render/decorations/DecorationPositioner.hpp>
 #include <hyprland/src/plugins/PluginAPI.hpp>
@@ -46,6 +47,7 @@ static CFunctionHook* renderHook = nullptr;
 static CFunctionHook* textureHook = nullptr;
 static CFunctionHook* rectHook = nullptr;
 static CFunctionHook* fadeoutHook = nullptr;
+static bool canvasSuspended = false;
 static LayerRender renderLayer = nullptr;
 static BackgroundRender renderBackground = nullptr;
 
@@ -137,30 +139,150 @@ class Scene {
             if (!action.empty()) dispatch(action);
         });
         m_move = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D point, Event::SCallbackInfo& info) {
-            if (!acceptsInput() || !contains(point)) return;
+            if (!acceptsInput()) return;
+            if (!m_dragActive && !contains(point)) return;
             // Pointer motion belongs to the overview, never to an underlying
             // titlebar or client. Cursor movement itself is unaffected.
             info.cancelled = true;
+            if (m_dragActive && !m_dragAddress.empty()) {
+                m_dragCurrent = point;
+                if (!m_dragMoved && (point - m_dragStart).size() > 8) {
+                    m_dragMoved = true;
+                }
+                if (m_dragMoved) {
+                    if (const auto monitor = m_monitor.lock()) g_pHyprRenderer->damageMonitor(monitor);
+                }
+            }
         });
         m_button = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent event, Event::SCallbackInfo& info) {
-            if (event.state == WL_POINTER_BUTTON_STATE_RELEASED && m_buttons.erase(event.button)) { info.cancelled = true; return; }
             const auto point = g_pInputManager->getMouseCoordsInternal();
-            if (!acceptsInput() || !contains(point)) return;
+            if (!acceptsInput() || (!m_dragActive && !contains(point))) {
+                if (m_dragActive) {
+                    m_dragActive = m_dragMoved = false;
+                    m_dragAddress.clear();
+                    if (const auto monitor = m_monitor.lock()) g_pHyprRenderer->damageMonitor(monitor);
+                }
+                return;
+            }
             info.cancelled = true;
-            if (event.state != WL_POINTER_BUTTON_STATE_PRESSED) return;
-            m_buttons.insert(event.button);
-            if (event.button != 272) { m_input = {{"action", "cancel"}}; dispatch("overviewPointer"); return; }
             const auto monitor = m_monitor.lock();
             const auto local = point - monitor->m_position;
-            // Match the actual animated geometry, rather than final grid cells.
+
+            if (event.state == WL_POINTER_BUTTON_STATE_RELEASED) {
+                m_buttons.erase(event.button);
+                if (event.button == 272 && m_dragActive) {
+                    const bool wasDrag = m_dragMoved;
+                    const auto draggedAddr = m_dragAddress;
+                    const auto draggedWs = m_dragWorkspace;
+                    const auto draggedIdentity = m_dragIdentity;
+                    if (wasDrag) {
+                        const auto state = std::ranges::find_if(m_windows, [&](const auto& w) { return w.address == draggedAddr; });
+                        if (state != m_windows.end()) {
+                            auto dropped = m_dragFrame;
+                            dropped.x += m_dragDrawn.x-m_dragStart.x;
+                            dropped.y += m_dragDrawn.y-m_dragStart.y;
+                            const auto cam = currentCamera();
+                            state->world = state->worldFrom = {{(dropped.x-cam.x)/cam.zoom, (dropped.y-cam.y)/cam.zoom}, dropped.size()/cam.zoom};
+                            state->from = state->to = dropped;
+                            state->start = state->worldStart = Clock::now();
+                        }
+                    }
+                    m_dragActive = false;
+                    m_dragMoved = false;
+                    m_dragAddress.clear();
+                    if (monitor) g_pHyprRenderer->damageMonitor(monitor);
+
+                    if (wasDrag) {
+                        std::string targetAddress = "";
+                        int64_t targetWorkspace = draggedWs;
+                        std::string targetIdentity;
+                        if (!contains(point)) { dispatch("overviewPointer"); return; }
+                        const auto& order = Desktop::windowState()->windows();
+                        for (auto it = order.rbegin(); it != order.rend(); ++it) {
+                            const auto state = std::ranges::find_if(m_windows, [&](const auto& w) { return w.window == *it; });
+                            if (state == m_windows.end() || !valid(*state) || state->address == draggedAddr) continue;
+                            if (visualFrame(*state).containsPoint(local)) {
+                                targetAddress = state->address;
+                                targetWorkspace = state->workspace;
+                                targetIdentity = state->identity;
+                                break;
+                            }
+                        }
+                        if (targetAddress.empty()) {
+                            const auto cam = currentCamera();
+                            const bool portrait = monitor && monitor->m_size.y > monitor->m_size.x;
+                            for (const auto& row : m_rows) {
+                                const auto proj = project(row.world, &cam);
+                                if (proj.containsPoint(local)) {
+                                    targetWorkspace = row.workspace;
+                                    break;
+                                }
+                                if (m_stacking) continue;
+                                if (portrait) {
+                                    const double startX = cam.x + row.origin.x * cam.zoom;
+                                    const double endX = startX + (monitor ? monitor->m_size.x : proj.w) * cam.zoom;
+                                    if (local.x >= startX && local.x <= endX) {
+                                        targetWorkspace = row.workspace;
+                                        break;
+                                    }
+                                } else {
+                                    const double startY = cam.y + row.origin.y * cam.zoom;
+                                    const double endY = startY + (monitor ? monitor->m_size.y : proj.h) * cam.zoom;
+                                    if (local.y >= startY && local.y <= endY) {
+                                        targetWorkspace = row.workspace;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        m_input = {
+                            {"action", "drag_drop"},
+                            {"source", draggedAddr},
+                            {"sourceWorkspace", draggedWs},
+                            {"sourceIdentity", draggedIdentity},
+                            {"targetIdentity", targetIdentity.empty() ? Json(nullptr) : Json(targetIdentity)},
+                            {"target", targetAddress},
+                            {"workspace", targetWorkspace},
+                            {"x", local.x},
+                            {"y", local.y}
+                        };
+                        dispatch("overviewPointer");
+                        return;
+                    } else {
+                        m_input = {{"action", "accept"}, {"address", draggedAddr}, {"workspace", draggedWs}};
+                        dispatch("overviewPointer");
+                        return;
+                    }
+                }
+                return;
+            }
+
+            if (event.state != WL_POINTER_BUTTON_STATE_PRESSED) return;
+            m_buttons.insert(event.button);
+            if (event.button != 272) {
+                m_dragActive = m_dragMoved = false;
+                m_dragAddress.clear();
+                m_input = {{"action", "cancel"}};
+                dispatch("overviewPointer");
+                return;
+            }
+
             const auto& order = Desktop::windowState()->windows();
             for (auto it = order.rbegin(); it != order.rend(); ++it) {
                 const auto state = std::ranges::find_if(m_windows, [&](const auto& w) { return w.window == *it; });
                 if (state == m_windows.end() || !valid(*state) || !visualFrame(*state).containsPoint(local)) continue;
-                m_input = {{"action", "accept"}, {"address", state->address}, {"workspace", state->workspace}};
-                dispatch("overviewPointer"); return;
+                m_dragActive = true;
+                m_dragMoved = false;
+                m_dragAddress = state->address;
+                m_dragWorkspace = state->workspace;
+                m_dragIdentity = state->identity;
+                m_dragFrame = frame(*state);
+                m_dragStart = point;
+                m_dragCurrent = m_dragDrawn = point;
+                m_dragRendered = Clock::now();
+                return;
             }
-            if (!m_stacking) for (const auto& row : m_rows) {
+            for (const auto& row : m_rows) {
                 if (project(row.world).containsPoint(local)) {
                     m_input = {{"action", "accept"}, {"address", ""}, {"workspace", row.workspace}};
                     dispatch("overviewPointer"); return;
@@ -171,7 +293,7 @@ class Scene {
         m_axis = Event::bus()->m_events.input.mouse.axis.listen([this](IPointer::SAxisEvent event, Event::SCallbackInfo& info) {
             if (!acceptsInput() || !contains(g_pInputManager->getMouseCoordsInternal())) return;
             info.cancelled = true;
-            if (!m_stacking && event.delta != 0) dispatch(event.delta > 0 ? "overviewJ" : "overviewK");
+            if (event.delta != 0) dispatch(event.delta > 0 ? "overviewJ" : "overviewK");
         });
         // Navigation while overview is open belongs to the scene. Letting the
         // same swipe reach scroll_move/workspace would move the hidden desktop.
@@ -190,7 +312,7 @@ class Scene {
             info.cancelled = true;
             if (!acceptsInput() || event.cancelled || std::max(std::abs(m_swipeDelta.x), std::abs(m_swipeDelta.y)) < 40) return;
             if (std::abs(m_swipeDelta.x) > std::abs(m_swipeDelta.y)) dispatch(m_swipeDelta.x < 0 ? "overviewL" : "overviewH");
-            else if (!m_stacking) dispatch(m_swipeDelta.y < 0 ? "overviewJ" : "overviewK");
+            else dispatch(m_swipeDelta.y < 0 ? "overviewJ" : "overviewK");
         });
         m_timer = makeShared<CEventLoopTimer>(std::nullopt, [this](SP<CEventLoopTimer> timer, void*) {
             const auto monitor = m_monitor.lock();
@@ -207,8 +329,13 @@ class Scene {
 
     void reset() {
         if (const auto monitor = m_monitor.lock()) g_pHyprRenderer->damageMonitor(monitor);
-        if (m_running) g_pHyprRenderer->m_directScanoutBlocked = m_previousScanout;
+        if (m_running) {
+            Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
+            g_pHyprRenderer->m_directScanoutBlocked = m_previousScanout;
+        }
         m_running = m_closing = false;
+        m_dragActive = m_dragMoved = false;
+        m_dragAddress.clear();
         m_windows.clear(); m_closed.clear(); m_rows.clear(); m_input = Json::object();
         m_backgroundDirty = true;
         m_backgroundCommits.clear(); m_backgroundSources.clear();
@@ -240,6 +367,8 @@ class Scene {
         if (fresh) reset();
         m_monitor = monitor;
         m_stacking = data.value("mode", "scrolling") == "stacking";
+        m_dragSmoothing = std::clamp(data.value("dragMs", 35.0), 0.0, 120.0) / 1000.0;
+        m_duration = std::clamp(data.value("motionMs", 320.0), 120.0, 700.0) / 1000.0;
         m_selected = data.value("selected", ""); m_workspace = data.value("workspace", int64_t{1});
         const auto wallpaper = data.value("wallpaper", "");
         if (wallpaper != m_wallpaper) { m_wallpaper = wallpaper; m_backgroundDirty = true; }
@@ -248,10 +377,13 @@ class Scene {
         if (fresh) {
             m_home = camera(data.value("originCamera", Json::object()));
             m_cameraFrom = m_cameraTo = m_home;
-            m_started = m_cameraStarted = Clock::now(); m_duration = .28;
+            m_started = m_cameraStarted = Clock::now();
             m_originalWorkspace = data.value("originalWorkspace", m_workspace);
             m_previousScanout = g_pHyprRenderer->m_directScanoutBlocked;
             g_pHyprRenderer->m_directScanoutBlocked = true;
+            // Overview owns pointer input, so it must also own its image.
+            // The previously focused client may have supplied a hidden cursor.
+            Pointer::Cursor::overrideController->setOverride("left_ptr", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
             m_running = true; m_closing = false;
         }
         heartbeat();
@@ -368,6 +500,12 @@ class Scene {
     void render(Render::IHyprRenderer* renderer, PHLMONITOR monitor, const Time::steady_tp& now) {
         renderer->m_renderData.noSimplify = true;
         const auto renderCamera = currentCamera();
+        if (m_dragActive && m_dragMoved) {
+            const double dt = std::clamp(std::chrono::duration<double>(Clock::now()-m_dragRendered).count(), 0.0, .05);
+            const double follow = m_dragSmoothing > 0 ? 1-std::exp(-dt/m_dragSmoothing) : 1;
+            m_dragDrawn += (m_dragCurrent-m_dragDrawn)*follow;
+            m_dragRendered = Clock::now();
+        }
         watchBackground(monitor);
         renderBackground(renderer, monitor);
         const auto layers = [&](int layer) {
@@ -381,14 +519,47 @@ class Scene {
         std::erase_if(m_closed, [&](const auto& w) { return closedAlpha(w) <= 0; });
         // Preserve native stacking order during the transition. Grid windows
         // do not overlap once settled, and tiled columns share one camera.
+        if (acceptsInput() && (m_stacking || (m_dragActive && m_dragMoved))) {
+            const auto pointer = g_pInputManager->getMouseCoordsInternal() - monitor->m_position;
+            for (const auto& row : m_rows) {
+                const auto area = project(row.world, &renderCamera);
+                auto colour = m_colour;
+                colour.a = phase() * ((m_dragMoved && area.containsPoint(pointer)) ? .85f : .18f);
+                CBorderPassElement::SBorderData border;
+                border.box = area.copy().scale(monitor->m_scale);
+                border.grad1 = Config::CGradientValueData(colour);
+                border.borderSize = m_dragMoved && area.containsPoint(pointer) ? 3 : 1;
+                border.round = std::round(18 * monitor->m_scale);
+                border.roundingPower = 2;
+                renderer->addPassElement(makeUnique<CBorderPassElement>(border));
+            }
+        }
         size_t zIndex = 0, closedIndex = 0;
+        const Window* draggedState = nullptr;
+        std::string targetAddress = "";
+        if (m_dragActive && m_dragMoved) {
+            const auto local = m_dragCurrent - monitor->m_position;
+            const auto& order = Desktop::windowState()->windows();
+            for (auto it = order.rbegin(); it != order.rend(); ++it) {
+                const auto state = std::ranges::find_if(m_windows, [&](const auto& w) { return w.window == *it; });
+                if (state == m_windows.end() || !valid(*state) || state->address == m_dragAddress) continue;
+                if (visualFrame(*state).containsPoint(local)) {
+                    targetAddress = state->address;
+                    break;
+                }
+            }
+        }
         for (const auto& real : Desktop::windowState()->windows()) {
             while (closedIndex < m_closed.size() && m_closed[closedIndex].zIndex <= zIndex)
                 closedPass(renderer, m_closed[closedIndex++], renderCamera, monitor);
             ++zIndex;
             const auto state = std::ranges::find_if(m_windows, [&](const auto& w) { return w.window == real; });
             if (state == m_windows.end() || !valid(*state)) continue;
-            const auto destination = frame(*state, &renderCamera), source = nativeBox(real, false);
+            if (m_dragActive && m_dragMoved && state->address == m_dragAddress) {
+                draggedState = &(*state);
+                continue;
+            }
+            auto destination = frame(*state, &renderCamera), source = nativeBox(real, false);
             if (destination.x+destination.w < 0 || destination.y+destination.h < 0 || destination.x > monitor->m_size.x || destination.y > monitor->m_size.y) continue;
             const double scale = destination.w / std::max(1.0, source.w);
             const auto wsOffset = real->m_workspace && !real->m_pinned ? real->m_workspace->m_renderOffset->value() : Vector2D{};
@@ -396,9 +567,26 @@ class Scene {
             const float opacity = m_closing && !state->original ? 1-phase() : m_stacking && !state->original ? phase() : 1;
             windowPass(renderer, real, monitor, now, opacity);
             hints(renderer, 1, {}, monitor);
-            if (state->address == m_selected && acceptsInput()) outline(renderer, *state, renderCamera, monitor);
+            if (state->address == targetAddress && acceptsInput())
+                targetOutline(renderer, *state, renderCamera, monitor);
+            else if (state->address == m_selected && acceptsInput())
+                outline(renderer, *state, renderCamera, monitor);
         }
         while (closedIndex < m_closed.size()) closedPass(renderer, m_closed[closedIndex++], renderCamera, monitor);
+        if (draggedState && acceptsInput()) {
+            const auto real = draggedState->window.lock();
+            if (real) {
+                auto destination = m_dragFrame, source = nativeBox(real, false);
+                destination.x += (m_dragDrawn.x - m_dragStart.x);
+                destination.y += (m_dragDrawn.y - m_dragStart.y);
+                const double scale = destination.w / std::max(1.0, source.w);
+                const auto wsOffset = real->m_workspace && !real->m_pinned ? real->m_workspace->m_renderOffset->value() : Vector2D{};
+                hints(renderer, scale, destination.pos() - (source.pos()+wsOffset)*scale, monitor);
+                windowPass(renderer, real, monitor, now, 0.95f);
+                hints(renderer, 1, {}, monitor);
+                outline(renderer, *draggedState, renderCamera, monitor);
+            }
+        }
         layers(ZWLR_LAYER_SHELL_V1_LAYER_TOP); layers(ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     }
 
@@ -529,9 +717,27 @@ class Scene {
         elements.push_back(makeUnique<CTexPassElement>(texture));
         return elements;
     }
+    void targetOutline(Render::IHyprRenderer* r, const Window& state, const Camera& cam, PHLMONITOR monitor) const {
+        const auto window = state.window.lock();
+        auto b = visualFrame(state, &cam);
+        const double scale = frame(state, &cam).w / std::max(1.0, nativeBox(window, false).w);
+        auto colour = m_colour; colour.a = 0.95f;
+        CBorderPassElement::SBorderData border;
+        border.box = b.copy().scale(monitor->m_scale);
+        border.grad1 = Config::CGradientValueData(colour);
+        border.borderSize = 4;
+        border.round = std::round(std::max(12.0, static_cast<double>(window->rounding())) * scale * monitor->m_scale);
+        border.roundingPower = window->roundingPower();
+        r->addPassElement(makeUnique<CBorderPassElement>(border));
+    }
     void outline(Render::IHyprRenderer* r, const Window& state, const Camera& cam, PHLMONITOR monitor) const {
         const auto window = state.window.lock();
-        const auto b = visualFrame(state, &cam);
+        auto b = visualFrame(state, &cam);
+        if (m_dragActive && m_dragMoved && state.address == m_dragAddress) {
+            b = m_dragFrame;
+            b.x += (m_dragDrawn.x - m_dragStart.x);
+            b.y += (m_dragDrawn.y - m_dragStart.y);
+        }
         const double scale = frame(state, &cam).w / std::max(1.0, nativeBox(window, false).w);
         const double p = m_stacking ? phase() : std::clamp((1-currentCamera().zoom)/.6,0.0,1.0);
         auto colour=m_colour; colour.a=static_cast<float>(p*.8);
@@ -596,6 +802,15 @@ class Scene {
     CHyprSignalListener m_key,m_move,m_button,m_axis,m_render,m_unmap,m_swipeBegin,m_swipeUpdate,m_swipeEnd;
     bool m_swipeOwned = false;
     Vector2D m_swipeDelta;
+    bool m_dragActive = false;
+    bool m_dragMoved = false;
+    std::string m_dragAddress, m_dragIdentity;
+    CBox m_dragFrame;
+    int64_t m_dragWorkspace = 0;
+    Vector2D m_dragStart;
+    Vector2D m_dragCurrent, m_dragDrawn;
+    Clock::time_point m_dragRendered;
+    double m_dragSmoothing = .035;
 };
 static UP<Scene> scene;
 using RectDraw = void (*)(Render::GL::CHyprOpenGLImpl*, const CBox&, const CHyprColor&, Render::GL::CHyprOpenGLImpl::SRectRenderData);
@@ -640,7 +855,10 @@ static void drawSceneTexture(Render::IElementRenderer* renderer, WP<CTexPassElem
         element->m_data = saved;
     });
     render.renderModif.applyToBox(element->m_data.box);
-    render.renderModif.applyToRegion(element->m_data.clipRegion);
+    if (element->m_data.surface && render.currentWindow)
+        element->m_data.clipRegion = CRegion{element->m_data.box};
+    else
+        render.renderModif.applyToRegion(element->m_data.clipRegion);
     element->m_data.round = std::round(element->m_data.round * render.renderModif.combinedScale());
     element->m_data.damage = render.damage;
     if (!render.clipBox.empty()) render.renderModif.applyToBox(render.clipBox);
@@ -673,10 +891,30 @@ static int luaScene(lua_State* L) {
         lua_pushboolean(L,true); return 1;
     } catch (const std::exception& e) { return luaL_error(L,"Hyprstack overview: %s",e.what()); }
 }
+// Canvas and overview share drawTex. Only one owner may patch it at a time.
+static int luaOverviewHooks(lua_State* L) {
+    const bool enable = lua_toboolean(L, 1);
+    if (enable == !canvasSuspended) { lua_pushboolean(L, true); return 1; }
+    if (scene) scene->reset();
+    if (!enable) {
+        for (auto* hook : {fadeoutHook, rectHook, textureHook, renderHook}) if (hook) hook->unhook();
+        canvasSuspended = true;
+    } else {
+        for (auto* hook : {renderHook, textureHook, rectHook, fadeoutHook}) {
+            if (hook && !hook->hook()) {
+                for (auto* previous : {fadeoutHook, rectHook, textureHook, renderHook}) if (previous) previous->unhook();
+                return luaL_error(L, "Cannot restore overview renderer while canvas hooks are still active");
+            }
+        }
+        canvasSuspended = false;
+    }
+    lua_pushboolean(L, true); return 1;
+}
 static void remove(HANDLE handle) {
     HyprstackTileFrame::remove(handle);
     g_pHyprRenderer->m_renderPass.removeAllOfType("HyprstackOverviewBackground");
     scene.reset();
+    canvasSuspended = false;
     HyprstackCamera::remove();
     if (fadeoutHook) HyprlandAPI::removeFunctionHook(handle,fadeoutHook);
     fadeoutHook=nullptr;
@@ -709,6 +947,7 @@ static void install(HANDLE handle) {
         HyprstackCamera::install(handle);
         HyprstackTileFrame::install(handle);
         HyprlandAPI::addLuaFunction(handle,"hyprbars","overview_scene",luaScene);
+        HyprlandAPI::addLuaFunction(handle,"hyprbars","overview_hooks",luaOverviewHooks);
     } catch (...) { remove(handle); throw; }
 }
 } // namespace HyprstackOverview

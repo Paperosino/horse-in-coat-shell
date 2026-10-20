@@ -1,0 +1,27 @@
+[Unit]
+Description=Hyprstack system settings service
+Documentation=https://github.com/hase9awa/hyprstack-shell
+
+[Service]
+Type=dbus
+BusName=org.hyprstack.System1
+ExecStart=/usr/bin/hyprstack-systemd
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=
+MemoryMax=192M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target

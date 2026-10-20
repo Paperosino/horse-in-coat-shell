@@ -68,7 +68,7 @@ StyledClippingRect {
     }
 
     function reportTargets(): void {
-        if (!Hypr.stacking || !visible || !QsWindow.window) return;
+        if (!Hypr.stacking || !visible || !screen || !QsWindow.window) return;
         const targets = [];
         const monitor = Hypr.monitorFor(screen)?.lastIpcObject;
         const originX = monitor?.x ?? screen.x, originY = monitor?.y ?? screen.y;
@@ -93,14 +93,14 @@ StyledClippingRect {
         if (popupTask)
             popupTask.popupOpen = false;
         popupTask = null;
-        if (popouts.currentName === "tasks")
+        if (popouts?.currentName === "tasks")
             popouts.close();
     }
 
     onVisibleChanged: {
         if (!visible) {
             closePopup(); draggedKey = dropKey = "";
-            Hypr.setTaskTargets(screen.name, []);
+            if (screen) Hypr.setTaskTargets(screen.name, []);
         }
         lastTargets = "";
     }
@@ -108,7 +108,7 @@ StyledClippingRect {
     onWidthChanged: Qt.callLater(reportTargets)
     readonly property var groups: {
         const groups = new Map();
-        const windows = Hypr.taskWindows(screen).slice().sort((a, b) =>
+        const windows = (screen ? Hypr.taskWindows(screen) : []).slice().sort((a, b) =>
             a.lastIpcObject.stableId.localeCompare(b.lastIpcObject.stableId));
         for (const window of windows) {
             const app = window.lastIpcObject.class;
@@ -219,7 +219,7 @@ StyledClippingRect {
                     readonly property string iconSource: entry?.icon ? Quickshell.iconPath(entry.icon, true) : ""
                     property bool popupOpen
                     property bool menuMode
-                    readonly property bool previewOpen: root.popouts.hasCurrent && root.popouts.currentName === "tasks" && root.popouts.taskButton === task
+                    readonly property bool previewOpen: !!root.popouts && root.popouts.hasCurrent && root.popouts.currentName === "tasks" && root.popouts.taskButton === task
                     readonly property bool hovered: mouse.containsMouse || popupOpen || previewOpen
                     readonly property alias pinControl: pinButton
                     onPopupOpenChanged: if (!popupOpen && root.popupTask === task) root.popupTask = null
@@ -241,7 +241,7 @@ StyledClippingRect {
                     }
 
                     function showPopup(menu: bool): void {
-                        if (root.draggedKey || (!menu && windows.length === 0)) return;
+                        if (root.draggedKey || !root.popouts || !root.screen || (!menu && windows.length === 0)) return;
                         hoverTimer.stop();
                         closeTimer.stop();
                         if (!menu) {
@@ -432,7 +432,7 @@ StyledClippingRect {
                         interval: 250
                         onTriggered: {
                             if (!popupHover.hovered && !mouse.containsMouse) task.popupOpen = false;
-                            if (task.previewOpen && !root.popouts.parent.hovered && !mouse.containsMouse) root.popouts.close();
+                            if (task.previewOpen && root.popouts && !root.popouts.parent?.hovered && !mouse.containsMouse) root.popouts.close();
                         }
                     }
 

@@ -4368,5 +4368,183 @@
       "white",
       "grey"
     ]
+  },
+  {
+    "id": "angelos-bubblegum",
+    "name": "AngelOS · Bubblegum",
+    "aliases": [],
+    "modes": {
+      "dark": {
+        "label": "Dark",
+        "flavour": "dark",
+        "background": "241432",
+        "foreground": "ffe1f1",
+        "accent": "ff5cad",
+        "secondary": "4fe3ff",
+        "palette": {
+          "accent": "ff5cad",
+          "secondary": "4fe3ff"
+        }
+      },
+      "light": {
+        "label": "Light",
+        "flavour": "light",
+        "background": "fbf5e6",
+        "foreground": "17141f",
+        "accent": "c92a7a",
+        "secondary": "4fe3ff",
+        "palette": {
+          "accent": "c92a7a",
+          "secondary": "4fe3ff"
+        }
+      }
+    }
+  },
+  {
+    "id": "angelos-overdose",
+    "name": "AngelOS · Overdose",
+    "aliases": [],
+    "modes": {
+      "dark": {
+        "label": "Dark",
+        "flavour": "dark",
+        "background": "241432",
+        "foreground": "ffe1f1",
+        "accent": "ff2e7e",
+        "secondary": "b36bff",
+        "palette": {
+          "accent": "ff2e7e",
+          "secondary": "b36bff"
+        }
+      },
+      "light": {
+        "label": "Light",
+        "flavour": "light",
+        "background": "fbf5e6",
+        "foreground": "17141f",
+        "accent": "fb407f",
+        "secondary": "b36bff",
+        "palette": {
+          "accent": "fb407f",
+          "secondary": "b36bff"
+        }
+      }
+    }
+  },
+  {
+    "id": "angelos-cyberangel",
+    "name": "AngelOS · Cyber Angel",
+    "aliases": [],
+    "modes": {
+      "dark": {
+        "label": "Dark",
+        "flavour": "dark",
+        "background": "241432",
+        "foreground": "ffe1f1",
+        "accent": "ff6ec2",
+        "secondary": "3ff0ff",
+        "palette": {
+          "accent": "ff6ec2",
+          "secondary": "3ff0ff"
+        }
+      },
+      "light": {
+        "label": "Light",
+        "flavour": "light",
+        "background": "fbf5e6",
+        "foreground": "17141f",
+        "accent": "c41f72",
+        "secondary": "3ff0ff",
+        "palette": {
+          "accent": "c41f72",
+          "secondary": "3ff0ff"
+        }
+      }
+    }
+  },
+  {
+    "id": "angelos-dusk",
+    "name": "AngelOS · Dusk",
+    "aliases": [],
+    "modes": {
+      "dark": {
+        "label": "Dark",
+        "flavour": "dark",
+        "background": "3d4457",
+        "foreground": "eef1f8",
+        "accent": "8fb4ff",
+        "palette": {
+          "accent": "8fb4ff"
+        }
+      }
+    }
+  },
+  {
+    "id": "angelos-sage",
+    "name": "AngelOS · Sage",
+    "aliases": [],
+    "modes": {
+      "light": {
+        "label": "Light",
+        "flavour": "light",
+        "background": "c5cfbd",
+        "foreground": "1c2a22",
+        "accent": "2f6b4f",
+        "palette": {
+          "accent": "2f6b4f"
+        }
+      }
+    }
+  },
+  {
+    "id": "angelos-lavender",
+    "name": "AngelOS · Lavender",
+    "aliases": [],
+    "modes": {
+      "dark": {
+        "label": "Dark",
+        "flavour": "dark",
+        "background": "5b5478",
+        "foreground": "f4efff",
+        "accent": "ffb3e0",
+        "palette": {
+          "accent": "ffb3e0"
+        }
+      }
+    }
+  },
+  {
+    "id": "angelos-olive",
+    "name": "AngelOS · Olive",
+    "aliases": [],
+    "modes": {
+      "dark": {
+        "label": "Dark",
+        "flavour": "dark",
+        "background": "5d6540",
+        "foreground": "f3f5e0",
+        "accent": "e8d86a",
+        "palette": {
+          "accent": "e8d86a"
+        }
+      }
+    }
+  },
+  {
+    "id": "angelos-amber",
+    "name": "AngelOS · Amber",
+    "aliases": [],
+    "modes": {
+      "dark": {
+        "label": "Dark",
+        "flavour": "dark",
+        "background": "1a1206",
+        "foreground": "ffb000",
+        "accent": "ffb000",
+        "palette": {
+          "accent": "ffb000"
+        }
+      }
+    }
   }
 ]

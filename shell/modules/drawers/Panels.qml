@@ -2,6 +2,8 @@ import QtQuick
 import Quickshell
 import Hyprstack.Config
 import qs.components
+import qs.services
+import qs.modules.dock as Dock
 import qs.modules.bar as Bar
 import qs.modules.dashboard as Dashboard
 import qs.modules.launcher as Launcher
@@ -12,6 +14,7 @@ import qs.modules.sidebar as Sidebar
 import qs.modules.utilities as Utilities
 import qs.modules.bar.popouts as BarPopouts
 import qs.modules.utilities.toasts as Toasts
+import qs.modules.clipboard as ClipboardDrawer
 
 Item {
     id: root
@@ -21,6 +24,7 @@ Item {
     required property Bar.BarWrapper bar
     required property real borderThickness
 
+    readonly property alias dock: dock
     readonly property alias osd: osd
     readonly property alias osdWrapper: osdWrapper
     readonly property alias notifications: notifications
@@ -28,6 +32,7 @@ Item {
     readonly property alias sessionWrapper: sessionWrapper
     readonly property alias launcher: launcher
     readonly property alias dashboard: dashboard
+    readonly property alias clipboard: clipboard
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
     readonly property alias utilities: utilities
@@ -99,6 +104,29 @@ Item {
         }
     }
 
+    Dock.DockContent {
+        id: dock
+        screen: root.screen
+        screenState: root.screenState
+        panelVisible: !root.bar.fullscreen && !root.bar.disabled
+        readonly property real dashboardDepth: dashboard.visible ? Math.max(0, Math.min(dashboard.height, dashboard.atBottom ? root.height - dashboard.y : dashboard.y + dashboard.height)) : 0
+        readonly property real rightDepth: Math.max(sidebar.visible ? sidebar.width * (1 - sidebar.offsetScale) : 0,
+            session.visible ? sessionWrapper.width : 0, osd.visible ? osdWrapper.width : 0)
+        readonly property real bottomLift: DockConf.position === "bottom" && dashboard.atBottom ? dashboardDepth : 0
+        readonly property real topLift: DockConf.position === "top" && !dashboard.atBottom ? dashboardDepth : 0
+        property real horizontalAnchor: DockConf.position === "left" ? 0 : DockConf.position === "right" ? 1 : 0.5
+        property real verticalAnchor: DockConf.position === "top" ? 0 : DockConf.position === "bottom" ? 1 : 0.5
+        Behavior on horizontalAnchor { Anim {} }
+        Behavior on verticalAnchor { Anim {} }
+        readonly property real baseX: (root.width - width) * horizontalAnchor
+        readonly property real baseY: (root.height - height) * verticalAnchor
+        maxWidth: root.width
+        viewportHeight: root.height
+        maxHeight: Math.max(0, root.height - bottomLift - topLift)
+        x: baseX - (DockConf.position === "right" ? rightDepth : 0)
+        y: baseY - bottomLift + topLift
+    }
+
     Launcher.Wrapper {
         id: launcher
 
@@ -115,6 +143,15 @@ Item {
 
         screenState: root.screenState
         atBottom: !root.bar.atBottom
+
+        anchors.horizontalCenter: parent.horizontalCenter
+    }
+
+    ClipboardDrawer.Wrapper {
+        id: clipboard
+
+        screenState: root.screenState
+        atBottom: root.bar.atBottom
 
         anchors.horizontalCenter: parent.horizontalCenter
     }

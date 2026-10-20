@@ -1,5 +1,5 @@
 [Unit]
-Description=Hyprstack desktop session
+Description=Horse-in-coat shell desktop session
 PartOf=graphical-session.target
 ConditionEnvironment=HYPRLAND_INSTANCE_SIGNATURE
 StartLimitIntervalSec=60

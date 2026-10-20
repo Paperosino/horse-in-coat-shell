@@ -1,12 +1,16 @@
 [English](INSTALL.en.md) · [На главную](README.md)
 
-# Установка Hyprstack
+# Установка horse-in-coat-shell
 
 [Arch Linux и производные](#arch) · [NixOS](#nixos)
 
-Требуются **Hyprland 0.56.2**, **Quickshell ≥ 0.3.1** с модулями Hyprland,
-PAM и Polkit, **Qt ≥ 6.9**. Для сборки: C++23, CMake ≥ 3.22, Python ≥ 3.10.
-Заголовки Hyprland должны совпадать с установленным композитором по ABI.
+Требуется **Hyprland 0.56.2**; заголовки должны совпадать с установленным
+композитором по ABI. Для сборки: C++23, CMake ≥ 3.27, Python ≥ 3.11.
+
+**Вариант А (пакет, рекомендуется)** не зависит от системных пакетов
+Quickshell и Qt — пакет вкладывает собственный рантайм.
+**Вариант Б (ручная сборка)** требует системный **Quickshell ≥ 0.3.1**
+(модули Hyprland, PAM и Polkit) и **Qt ≥ 6.9**.
 
 <a id="arch"></a>
 
@@ -14,37 +18,67 @@ PAM и Polkit, **Qt ≥ 6.9**. Для сборки: C++23, CMake ≥ 3.22, Pytho
 
 ### 1. Зависимости
 
-Проверьте версии в репозиториях. Продолжайте, только если доступен Hyprland
-**0.56.2** и выполнены требования выше:
+Проверьте версию Hyprland в репозиториях. Продолжайте, только если доступен
+Hyprland **0.56.2**:
 
 ```bash
-pacman -Si hyprland quickshell qt6-base
+pacman -Si hyprland
 ```
+
+Общие зависимости и приложения:
 
 ```bash
 sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
-  hyprland quickshell nlohmann-json qt6-base qt6-declarative qt6-shadertools \
-  qt6-svg qt6-imageformats qt6-wayland libqalculate lm_sensors \
-  pixman libdrm libinput systemd-libs wayland libxkbcommon pango cairo \
-  python python-pillow kitty firefox fuzzel btop pavucontrol \
-  wl-clipboard cliphist grim slurp wf-recorder swappy libnotify \
-  brightnessctl networkmanager pipewire pipewire-pulse wireplumber \
-  polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2 adwaita-icon-theme dbus
+  hyprland libqalculate lm_sensors libcups python python-pillow kitty firefox \
+  fuzzel btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder \
+  swappy libnotify brightnessctl networkmanager pipewire pipewire-pulse \
+  wireplumber polkit hyprlock hyprpicker xdg-utils xdg-user-dirs \
+  libxml2 adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb
 ```
 
-### 2. Сборка
+### 2. Установка
+
+#### Вариант А: пакет (рекомендуется)
 
 Выполняйте без `sudo`:
 
 ```bash
 git clone https://github.com/hase9awa/hyprstack-shell.git
 cd hyprstack-shell
+packaging/arch/build-package.sh --install
+```
+
+Скрипт сам доустановит недостающие зависимости сборки и соберёт пакет
+`hyprstack-shell` со вложенным рантаймом: собственный Quickshell **v0.3.2**
+и приватные библиотеки Qt в `/usr/share/hyprstack/qs`. Обновления системных
+пакетов `quickshell` и `qt6-*` на оболочку не влияют; системный `quickshell`
+не нужен (при отсутствии бандла обёртка резервно использует системный `qs`).
+Служба сеанса сразу ставится в `/usr/lib/systemd/user`. Обновление пакета
+выполняется тем же сценарием: он пересобирает рантайм под текущую системную
+Qt и упаковывает его заново.
+
+Если оболочка раньше была установлена в `$HOME/.local`, удалите каталог
+`~/.local/share/hyprstack`, чтобы приоритет данных отдал пакетной
+установке (`HYPRSTACK_DATA_DIR` по-прежнему переопределяет выбор).
+
+#### Вариант Б: ручная сборка в `$HOME/.local`
+
+Дополнительно установите системный Quickshell и Qt:
+
+```bash
+sudo pacman -S --needed quickshell nlohmann-json qt6-base qt6-declarative \
+  qt6-shadertools qt6-svg qt6-imageformats qt6-wayland pixman libdrm \
+  libinput systemd-libs wayland libxkbcommon pango cairo
+```
+
+```bash
 cmake -S . -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
   -DCMAKE_INSTALL_DATADIR="${XDG_DATA_HOME:-$HOME/.local/share}"
 cmake --build build --parallel 2
 cmake --install build
+sudo python3 distribution/install_system_helper.py "$HOME/.local"
 ```
 
 При нехватке памяти замените `--parallel 2` на `--parallel 1`.
@@ -82,7 +116,9 @@ export PATH="$HOME/.local/bin:$PATH"
 hyprstack scheme set -n hyprstack-catppuccin -m dark
 ```
 
-**Только для Arch-based систем:** установите пользовательскую службу.
+**Только для варианта Б (ручная сборка):** установите пользовательскую
+службу. При пакетной установке (вариант А) юнит уже установлен в
+`/usr/lib/systemd/user` — этот блок пропустите.
 На NixOS её предоставляет модуль — этот блок пропустите.
 
 ```bash
@@ -190,3 +226,11 @@ cd hyprstack-shell
 `wtype` — ввод emoji. Файловый менеджер выберите самостоятельно.
 
 [Настройки и клавиши](CONFIGURATION.md) · [Обновление и диагностика](MAINTENANCE.md)
+
+Системные настройки используют C++-службу `hyprstack-system.service`, включённую
+в пакет. Она активируется по D-Bus; права подтверждаются через Polkit. Для печати
+нужен CUPS, для накопителей — UDisks2, для профилей — power-profiles-daemon.
+Пользовательская установка в `~/.local` не регистрирует системную службу:
+для этих страниц установите системный пакет оболочки.
+
+Пакет устанавливает демон, клиент, systemd, D-Bus и Polkit автоматически. Пользовательский `./update.sh` также устанавливает системный хелпер через sudo в `/usr/local/bin`; системная служба не запускает файлы из домашнего каталога.

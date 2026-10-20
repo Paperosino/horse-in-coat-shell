@@ -11,6 +11,8 @@ import qs.modules.nexus
 Singleton {
     id: root
 
+    function openPage(id: string): void { create(null, {pageId: id}); }
+
     function create(parent: Item, props: var): void {
         nexusComp.createObject(parent ?? dummy, props);
     }
@@ -24,6 +26,8 @@ Singleton {
 
         FloatingWindow {
             id: win
+
+            property string pageId: ""
 
             color: Colours.tPalette.m3surface
             surfaceFormat.opaque: false
@@ -50,6 +54,11 @@ Singleton {
                 anchors.fill: parent
                 nState.screen: win.screen
                 nState.isWindow: true
+                Component.onCompleted: if (win.pageId) {
+                    const route = PageRegistry.route(win.pageId);
+                    nState.currentPageIdx = Math.max(0, PageRegistry.indexOf(route.id));
+                    if (route.subPage !== undefined) nState.subPageIdxStack = [route.subPage];
+                }
                 onClose: win.destroy()
             }
 

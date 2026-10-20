@@ -6,9 +6,9 @@ var catalogue = [
     "page": 0,
     "subpages": [],
     "path": [
-      "Wallpaper & style"
+      "Customisation"
     ],
-    "label": "Wallpaper & style",
+    "label": "Customisation",
     "context": "",
     "target": "",
     "match": "",
@@ -16,9 +16,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Display wallpaper",
     "context": "",
@@ -28,9 +31,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Transparency",
     "context": "",
@@ -40,9 +46,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Opacity",
     "context": "",
@@ -52,9 +61,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Blur",
     "context": "",
@@ -64,9 +76,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Desktop frame in tiling mode",
     "context": "",
@@ -76,9 +91,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Gaps in tiling mode",
     "context": "",
@@ -87,22 +105,25 @@ var catalogue = [
     "keywords": "Toggle with Win+G"
   },
   {
-    "page": 0,
+    "page": 2,
     "subpages": [],
     "path": [
-      "Wallpaper & style"
+      "Windows & workspaces"
     ],
     "label": "Switch windows on hover in tiling mode",
     "context": "",
-    "target": "appearanceTilingFocusOnHover",
+    "target": "",
     "match": "Switch windows on hover in tiling mode",
     "keywords": "When disabled, hover a partly hidden window or the screen edge, then click the arrow to switch."
   },
   {
-    "page": 0,
-    "subpages": [],
+    "page": 6,
+    "subpages": [
+      2
+    ],
     "path": [
-      "Wallpaper & style"
+      "Keyboard & mouse",
+      "Mouse"
     ],
     "label": "Middle-click autoscroll",
     "context": "",
@@ -112,9 +133,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Window border width",
     "context": "",
@@ -124,9 +148,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Window border colour",
     "context": "",
@@ -136,9 +163,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Window corner rounding",
     "context": "",
@@ -148,9 +178,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Dark theme",
     "context": "",
@@ -160,9 +193,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Inner gaps",
     "context": "",
@@ -172,9 +208,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Outer gaps",
     "context": "",
@@ -184,9 +223,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Window shadows",
     "context": "",
@@ -196,9 +238,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Interface shadows",
     "context": "",
@@ -208,9 +253,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Shadow size",
     "context": "",
@@ -220,9 +268,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Shadow intensity",
     "context": "",
@@ -232,9 +283,12 @@ var catalogue = [
   },
   {
     "page": 0,
-    "subpages": [],
+    "subpages": [
+      8
+    ],
     "path": [
-      "Wallpaper & style"
+      "Customisation",
+      "Shell appearance"
     ],
     "label": "Shell scale",
     "context": "",
@@ -273,7 +327,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [],
     "path": [
       "Network"
@@ -285,7 +339,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [],
     "path": [
       "Network"
@@ -297,7 +351,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [
       5
     ],
@@ -312,7 +366,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [
       6
     ],
@@ -327,7 +381,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [
       2
     ],
@@ -342,7 +396,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [],
     "path": [
       "Network"
@@ -354,7 +408,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [],
     "path": [
       "Network"
@@ -366,7 +420,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [
       5
     ],
@@ -381,7 +435,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 1,
+    "page": 3,
     "subpages": [
       4
     ],
@@ -396,7 +450,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 2,
+    "page": 4,
     "subpages": [],
     "path": [
       "Connected devices"
@@ -408,7 +462,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 2,
+    "page": 4,
     "subpages": [],
     "path": [
       "Connected devices"
@@ -420,7 +474,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 2,
+    "page": 4,
     "subpages": [
       2
     ],
@@ -435,7 +489,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 2,
+    "page": 4,
     "subpages": [],
     "path": [
       "Connected devices"
@@ -447,7 +501,7 @@ var catalogue = [
     "keywords": "Allow nearby devices to find this one"
   },
   {
-    "page": 2,
+    "page": 4,
     "subpages": [],
     "path": [
       "Connected devices"
@@ -459,7 +513,7 @@ var catalogue = [
     "keywords": "Allow nearby devices to pair with this one"
   },
   {
-    "page": 2,
+    "page": 4,
     "subpages": [
       2
     ],
@@ -474,7 +528,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 3,
+    "page": 5,
     "subpages": [],
     "path": [
       "Audio"
@@ -486,7 +540,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 3,
+    "page": 5,
     "subpages": [],
     "path": [
       "Audio"
@@ -498,7 +552,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 3,
+    "page": 5,
     "subpages": [],
     "path": [
       "Audio"
@@ -510,7 +564,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 3,
+    "page": 5,
     "subpages": [],
     "path": [
       "Audio"
@@ -522,7 +576,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 3,
+    "page": 5,
     "subpages": [
       1
     ],
@@ -537,7 +591,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [],
     "path": [
       "Panels"
@@ -549,7 +603,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -564,7 +618,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -579,7 +633,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -594,7 +648,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       4
     ],
@@ -609,7 +663,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -624,7 +678,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -639,7 +693,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -654,7 +708,7 @@ var catalogue = [
     "keywords": "Reveal when the cursor reaches the screen edge"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -669,7 +723,7 @@ var catalogue = [
     "keywords": "Display seconds for the clock in the main panel"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -684,7 +738,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -699,7 +753,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -714,7 +768,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -729,7 +783,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -744,7 +798,7 @@ var catalogue = [
     "keywords": "City, automatic IP location and weather provider"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -759,7 +813,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -774,7 +828,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -789,7 +843,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -804,7 +858,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -819,7 +873,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -834,7 +888,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       1
     ],
@@ -849,7 +903,7 @@ var catalogue = [
     "keywords": "Pixels dragged before the dashboard opens"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -864,7 +918,7 @@ var catalogue = [
     "keywords": "Keep the bar visible at all times"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -879,7 +933,7 @@ var catalogue = [
     "keywords": "Reveal the bar when the cursor reaches the screen edge"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -894,7 +948,7 @@ var catalogue = [
     "keywords": "Pixels dragged before the bar reveals"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -909,7 +963,7 @@ var catalogue = [
     "keywords": "Choose a screen to hide individual panel elements"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -924,7 +978,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -939,7 +993,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -956,7 +1010,7 @@ var catalogue = [
     "keywords": "Indicators, window icons"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       7
@@ -973,7 +1027,7 @@ var catalogue = [
     "keywords": "Title display, popout"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       8
@@ -990,7 +1044,7 @@ var catalogue = [
     "keywords": "System tray icons"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       9
@@ -1007,7 +1061,7 @@ var catalogue = [
     "keywords": "Visible indicators"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       10
@@ -1024,7 +1078,7 @@ var catalogue = [
     "keywords": "Date, icon, background"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -1039,7 +1093,7 @@ var catalogue = [
     "keywords": "Scroll over the workspace indicator to switch workspaces"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -1054,7 +1108,7 @@ var catalogue = [
     "keywords": "Screen element visibility monitor hide"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -1069,7 +1123,7 @@ var catalogue = [
     "keywords": "Screen element visibility monitor hide"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -1084,7 +1138,7 @@ var catalogue = [
     "keywords": "Screen element visibility monitor hide"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -1099,7 +1153,7 @@ var catalogue = [
     "keywords": "Screen element visibility monitor hide"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -1114,7 +1168,7 @@ var catalogue = [
     "keywords": "Screen element visibility monitor hide"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -1129,7 +1183,7 @@ var catalogue = [
     "keywords": "Screen element visibility monitor hide"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2
     ],
@@ -1144,7 +1198,7 @@ var catalogue = [
     "keywords": "Screen element visibility monitor hide"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1159,7 +1213,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1174,7 +1228,7 @@ var catalogue = [
     "keywords": "Reveal when the cursor reaches the screen edge"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1189,7 +1243,7 @@ var catalogue = [
     "keywords": "Prefix used to run actions in the launcher"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1204,7 +1258,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1219,7 +1273,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1234,7 +1288,7 @@ var catalogue = [
     "keywords": "Pixels dragged before the launcher opens"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1249,7 +1303,7 @@ var catalogue = [
     "keywords": "Navigate results with Ctrl+hjkl"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1264,7 +1318,7 @@ var catalogue = [
     "keywords": "Allow actions that shut down or log out"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1279,7 +1333,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1294,7 +1348,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1309,7 +1363,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1324,7 +1378,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       3
     ],
@@ -1339,7 +1393,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       4
     ],
@@ -1354,7 +1408,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       4
     ],
@@ -1369,7 +1423,7 @@ var catalogue = [
     "keywords": "Pixels dragged before the sidebar opens"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1384,7 +1438,7 @@ var catalogue = [
     "keywords": "Show the utilities panel"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1399,7 +1453,7 @@ var catalogue = [
     "keywords": "Show the idle inhibitor card"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1414,7 +1468,7 @@ var catalogue = [
     "keywords": "Show the screen recorder card"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1429,7 +1483,7 @@ var catalogue = [
     "keywords": "Show the quick toggles card"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1444,7 +1498,7 @@ var catalogue = [
     "keywords": "Toggle wireless networking"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1459,7 +1513,7 @@ var catalogue = [
     "keywords": "Toggle the Bluetooth adapter"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1474,7 +1528,7 @@ var catalogue = [
     "keywords": "Mute or unmute the default source"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1489,7 +1543,7 @@ var catalogue = [
     "keywords": "Open the settings window"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1504,7 +1558,7 @@ var catalogue = [
     "keywords": "Toggle game mode"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1519,7 +1573,7 @@ var catalogue = [
     "keywords": "Silence notifications"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       5
     ],
@@ -1534,7 +1588,7 @@ var catalogue = [
     "keywords": "Connect or disconnect the VPN"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1551,7 +1605,7 @@ var catalogue = [
     "keywords": "Number of workspaces displayed"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1568,7 +1622,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1585,7 +1639,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1602,7 +1656,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1619,7 +1673,7 @@ var catalogue = [
     "keywords": "When disabled, hide only empty workspaces after the last occupied or active workspace"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1636,7 +1690,7 @@ var catalogue = [
     "keywords": "Hide workspaces not on the current monitor"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1653,7 +1707,7 @@ var catalogue = [
     "keywords": "Show icons of open windows on each workspace"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1670,7 +1724,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1687,7 +1741,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1704,7 +1758,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1721,7 +1775,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1738,7 +1792,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1755,7 +1809,7 @@ var catalogue = [
     "keywords": "Tinted icons and symbols; choose a colour from the current scheme"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       6
@@ -1772,7 +1826,7 @@ var catalogue = [
     "keywords": "Tinted icons and symbols; choose a colour from the current scheme"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       7
@@ -1789,7 +1843,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       7
@@ -1806,7 +1860,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       7
@@ -1823,7 +1877,7 @@ var catalogue = [
     "keywords": "Only show the active window title while hovering"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       7
@@ -1840,7 +1894,7 @@ var catalogue = [
     "keywords": "Show a window details popout when hovering"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       8
@@ -1857,7 +1911,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       8
@@ -1874,7 +1928,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       8
@@ -1891,7 +1945,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       8
@@ -1908,7 +1962,7 @@ var catalogue = [
     "keywords": "Show the tray menu popout when hovering"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       9
@@ -1925,7 +1979,7 @@ var catalogue = [
     "keywords": "Show a details popout when hovering the status icons"
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       10
@@ -1942,7 +1996,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       10
@@ -1959,7 +2013,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       10
@@ -1976,7 +2030,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 4,
+    "page": 7,
     "subpages": [
       2,
       10
@@ -1993,7 +2047,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 5,
+    "page": 9,
     "subpages": [],
     "path": [
       "Apps"
@@ -2005,7 +2059,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 5,
+    "page": 9,
     "subpages": [
       1
     ],
@@ -2020,7 +2074,7 @@ var catalogue = [
     "keywords": "Browse installed apps, set favourites and hidden"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2032,7 +2086,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2047,7 +2101,7 @@ var catalogue = [
     "keywords": "Notifications, toasts, timeouts"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2059,7 +2113,7 @@ var catalogue = [
     "keywords": "How often the media position updates (ms)"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2071,7 +2125,7 @@ var catalogue = [
     "keywords": "CPU, memory and GPU update interval (seconds)"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2083,7 +2137,7 @@ var catalogue = [
     "keywords": "How often available networks are rescanned (seconds)"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2095,7 +2149,7 @@ var catalogue = [
     "keywords": "Source used to fetch synced lyrics"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2107,7 +2161,7 @@ var catalogue = [
     "keywords": "Preferred media player when several are open"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2119,7 +2173,7 @@ var catalogue = [
     "keywords": "Amount the volume changes per scroll (%)"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2131,7 +2185,7 @@ var catalogue = [
     "keywords": "Amount the brightness changes per scroll (%)"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2143,7 +2197,7 @@ var catalogue = [
     "keywords": "Upper limit for output volume (%)"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2155,7 +2209,7 @@ var catalogue = [
     "keywords": "Number of bars in the audio visualisers"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2167,7 +2221,7 @@ var catalogue = [
     "keywords": "Derive theme mode and variant from the wallpaper"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [],
     "path": [
       "Services"
@@ -2179,7 +2233,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2194,7 +2248,7 @@ var catalogue = [
     "keywords": "Whether notifications appear over fullscreen apps"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2209,7 +2263,7 @@ var catalogue = [
     "keywords": "Dismiss notifications after their timeout"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2224,7 +2278,7 @@ var catalogue = [
     "keywords": "Show notifications expanded by default"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2239,7 +2293,7 @@ var catalogue = [
     "keywords": "Time before a notification dismisses (ms)"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2254,7 +2308,7 @@ var catalogue = [
     "keywords": "Notifications shown per group before collapsing"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2269,7 +2323,7 @@ var catalogue = [
     "keywords": "Maximum number of toasts shown at once"
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2284,7 +2338,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2299,7 +2353,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2314,7 +2368,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2329,7 +2383,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2344,7 +2398,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2359,7 +2413,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2374,7 +2428,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2389,7 +2443,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2404,7 +2458,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 6,
+    "page": 10,
     "subpages": [
       1
     ],
@@ -2419,7 +2473,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2431,7 +2485,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2443,7 +2497,7 @@ var catalogue = [
     "keywords": "The language used in the shell UI"
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2455,7 +2509,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2467,7 +2521,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2479,7 +2533,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2491,7 +2545,7 @@ var catalogue = [
     "keywords": "Enter a name and select a city from the results"
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2503,7 +2557,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2515,7 +2569,7 @@ var catalogue = [
     "keywords": "Units for weather temperatures"
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2527,7 +2581,7 @@ var catalogue = [
     "keywords": "Units for CPU and GPU temperatures"
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2539,7 +2593,7 @@ var catalogue = [
     "keywords": "Units for data sizes and network speeds"
   },
   {
-    "page": 7,
+    "page": 12,
     "subpages": [],
     "path": [
       "Language & region"
@@ -2551,8 +2605,10 @@ var catalogue = [
     "keywords": "How times are shown across the shell"
   },
   {
-    "page": 8,
-    "subpages": [],
+    "page": 6,
+    "subpages": [
+      6
+    ],
     "path": [
       "Keyboard shortcuts"
     ],
@@ -2563,7 +2619,7 @@ var catalogue = [
     "keywords": ""
   },
   {
-    "page": 9,
+    "page": 16,
     "subpages": [],
     "path": [
       "About"
@@ -2573,8 +2629,983 @@ var catalogue = [
     "target": "",
     "match": "",
     "keywords": ""
+  },
+  {
+    "page": 1,
+    "subpages": [],
+    "path": [
+      "Display"
+    ],
+    "label": "Display",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Windows & workspaces",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 7,
+    "subpages": [
+      11
+    ],
+    "path": [
+      "Dock"
+    ],
+    "label": "Dock",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 11,
+    "subpages": [],
+    "path": [
+      "Power & lock"
+    ],
+    "label": "Power & lock",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 6,
+    "subpages": [],
+    "path": [
+      "Keyboard & mouse"
+    ],
+    "label": "Keyboard & mouse",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 9,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Plugins"
+    ],
+    "label": "Plugins",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 9,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "AI assistant"
+    ],
+    "label": "AI assistant",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Pointer sensitivity",
+    "context": "",
+    "target": "system_input.sensitivity",
+    "match": "Pointer sensitivity",
+    "keywords": "input.sensitivity"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Acceleration profile",
+    "context": "",
+    "target": "system_input.accel_profile",
+    "match": "Acceleration profile",
+    "keywords": "input.accel_profile"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Natural scrolling",
+    "context": "",
+    "target": "system_input.natural_scroll",
+    "match": "Natural scrolling",
+    "keywords": "input.natural_scroll"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Left-handed mouse",
+    "context": "",
+    "target": "system_input.left_handed",
+    "match": "Left-handed mouse",
+    "keywords": "input.left_handed"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Mouse scroll speed",
+    "context": "",
+    "target": "system_input.scroll_factor",
+    "match": "Mouse scroll speed",
+    "keywords": "input.scroll_factor"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Scroll method",
+    "context": "",
+    "target": "system_input.scroll_method",
+    "match": "Scroll method",
+    "keywords": "input.scroll_method"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Scroll button code",
+    "context": "",
+    "target": "system_input.scroll_button",
+    "match": "Scroll button code",
+    "keywords": "input.scroll_button"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Lock scroll button",
+    "context": "",
+    "target": "system_input.scroll_button_lock",
+    "match": "Lock scroll button",
+    "keywords": "input.scroll_button_lock"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Natural touchpad scrolling",
+    "context": "",
+    "target": "system_input.touchpad.natural_scroll",
+    "match": "Natural touchpad scrolling",
+    "keywords": "input.touchpad.natural_scroll"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Tap to click",
+    "context": "",
+    "target": "system_input.touchpad.tap-to-click",
+    "match": "Tap to click",
+    "keywords": "input.touchpad.tap-to-click"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Tap and drag",
+    "context": "",
+    "target": "system_input.touchpad.tap-and-drag",
+    "match": "Tap and drag",
+    "keywords": "input.touchpad.tap-and-drag"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Drag lock",
+    "context": "",
+    "target": "system_input.touchpad.drag_lock",
+    "match": "Drag lock",
+    "keywords": "input.touchpad.drag_lock"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Disable while typing",
+    "context": "",
+    "target": "system_input.touchpad.disable_while_typing",
+    "match": "Disable while typing",
+    "keywords": "input.touchpad.disable_while_typing"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Touchpad scroll speed",
+    "context": "",
+    "target": "system_input.touchpad.scroll_factor",
+    "match": "Touchpad scroll speed",
+    "keywords": "input.touchpad.scroll_factor"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Click with two or three fingers",
+    "context": "",
+    "target": "system_input.touchpad.clickfinger_behavior",
+    "match": "Click with two or three fingers",
+    "keywords": "input.touchpad.clickfinger_behavior"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Middle button emulation",
+    "context": "",
+    "target": "system_input.touchpad.middle_button_emulation",
+    "match": "Middle button emulation",
+    "keywords": "input.touchpad.middle_button_emulation"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Tap button mapping",
+    "context": "",
+    "target": "system_input.touchpad.tap_button_map",
+    "match": "Tap button mapping",
+    "keywords": "input.touchpad.tap_button_map"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Reverse horizontal movement",
+    "context": "",
+    "target": "system_input.touchpad.flip_x",
+    "match": "Reverse horizontal movement",
+    "keywords": "input.touchpad.flip_x"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Reverse vertical movement",
+    "context": "",
+    "target": "system_input.touchpad.flip_y",
+    "match": "Reverse vertical movement",
+    "keywords": "input.touchpad.flip_y"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Focus floating windows on hover",
+    "context": "",
+    "target": "system_input.float_switch_override_focus",
+    "match": "Focus floating windows on hover",
+    "keywords": "input.float_switch_override_focus"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Focus requested windows",
+    "context": "",
+    "target": "system_misc.focus_on_activate",
+    "match": "Focus requested windows",
+    "keywords": "misc.focus_on_activate"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "New windows over fullscreen",
+    "context": "",
+    "target": "system_misc.new_window_takes_over_fullscreen",
+    "match": "New windows over fullscreen",
+    "keywords": "misc.new_window_takes_over_fullscreen"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Focus monitor under pointer",
+    "context": "",
+    "target": "system_misc.mouse_move_focuses_monitor",
+    "match": "Focus monitor under pointer",
+    "keywords": "misc.mouse_move_focuses_monitor"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Close empty special workspace",
+    "context": "",
+    "target": "system_misc.close_special_on_empty",
+    "match": "Close empty special workspace",
+    "keywords": "misc.close_special_on_empty"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Resize from window borders",
+    "context": "",
+    "target": "system_general.resize_on_border",
+    "match": "Resize from window borders",
+    "keywords": "general.resize_on_border"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Border resize grab area",
+    "context": "",
+    "target": "system_general.extend_border_grab_area",
+    "match": "Border resize grab area",
+    "keywords": "general.extend_border_grab_area"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Resize cursor on borders",
+    "context": "",
+    "target": "system_general.hover_icon_on_border",
+    "match": "Resize cursor on borders",
+    "keywords": "general.hover_icon_on_border"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Allow workspace cycles",
+    "context": "",
+    "target": "system_binds.allow_workspace_cycles",
+    "match": "Allow workspace cycles",
+    "keywords": "binds.allow_workspace_cycles"
+  },
+  {
+    "page": 2,
+    "subpages": [],
+    "path": [
+      "Windows & workspaces"
+    ],
+    "label": "Return to previous workspace",
+    "context": "",
+    "target": "system_binds.workspace_back_and_forth",
+    "match": "Return to previous workspace",
+    "keywords": "binds.workspace_back_and_forth"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Keep cursor position on focus change",
+    "context": "",
+    "target": "system_cursor.no_warps",
+    "match": "Keep cursor position on focus change",
+    "keywords": "cursor.no_warps"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Hide cursor after seconds (0 disables)",
+    "context": "",
+    "target": "system_cursor.inactive_timeout",
+    "match": "Hide cursor after seconds (0 disables)",
+    "keywords": "cursor.inactive_timeout"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Hide cursor while typing",
+    "context": "",
+    "target": "system_cursor.hide_on_key_press",
+    "match": "Hide cursor while typing",
+    "keywords": "cursor.hide_on_key_press"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Hide cursor for touch input",
+    "context": "",
+    "target": "system_cursor.hide_on_touch",
+    "match": "Hide cursor for touch input",
+    "keywords": "cursor.hide_on_touch"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Cursor zoom",
+    "context": "",
+    "target": "system_cursor.zoom_factor",
+    "match": "Cursor zoom",
+    "keywords": "cursor.zoom_factor"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Rigid cursor zoom",
+    "context": "",
+    "target": "system_cursor.zoom_rigid",
+    "match": "Rigid cursor zoom",
+    "keywords": "cursor.zoom_rigid"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Warp on workspace change",
+    "context": "",
+    "target": "system_cursor.warp_on_change_workspace",
+    "match": "Warp on workspace change",
+    "keywords": "cursor.warp_on_change_workspace"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Cursor edge padding",
+    "context": "",
+    "target": "system_cursor.hotspot_padding",
+    "match": "Cursor edge padding",
+    "keywords": "cursor.hotspot_padding"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Gestures"
+    ],
+    "label": "Workspace swipe distance",
+    "context": "",
+    "target": "system_gestures.workspace_swipe_distance",
+    "match": "Workspace swipe distance",
+    "keywords": "gestures.workspace_swipe_distance"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Gestures"
+    ],
+    "label": "Invert workspace swipe",
+    "context": "",
+    "target": "system_gestures.workspace_swipe_invert",
+    "match": "Invert workspace swipe",
+    "keywords": "gestures.workspace_swipe_invert"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Gestures"
+    ],
+    "label": "Continuous workspace swipe",
+    "context": "",
+    "target": "system_gestures.workspace_swipe_forever",
+    "match": "Continuous workspace swipe",
+    "keywords": "gestures.workspace_swipe_forever"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Gestures"
+    ],
+    "label": "Create workspaces by swipe",
+    "context": "",
+    "target": "system_gestures.workspace_swipe_create_new",
+    "match": "Create workspaces by swipe",
+    "keywords": "gestures.workspace_swipe_create_new"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Gestures"
+    ],
+    "label": "Swipe cancel ratio",
+    "context": "",
+    "target": "system_gestures.workspace_swipe_cancel_ratio",
+    "match": "Swipe cancel ratio",
+    "keywords": "gestures.workspace_swipe_cancel_ratio"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Gestures"
+    ],
+    "label": "Forced swipe speed",
+    "context": "",
+    "target": "system_gestures.workspace_swipe_min_speed_to_force",
+    "match": "Forced swipe speed",
+    "keywords": "gestures.workspace_swipe_min_speed_to_force"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Gestures"
+    ],
+    "label": "Touchscreen workspace swipe",
+    "context": "",
+    "target": "system_gestures.workspace_swipe_touch",
+    "match": "Touchscreen workspace swipe",
+    "keywords": "gestures.workspace_swipe_touch"
+  },
+  {
+    "page": 1,
+    "subpages": [],
+    "path": [
+      "Display"
+    ],
+    "label": "Unscaled XWayland applications",
+    "context": "",
+    "target": "system_xwayland.force_zero_scaling",
+    "match": "Unscaled XWayland applications",
+    "keywords": "xwayland.force_zero_scaling"
+  },
+  {
+    "page": 1,
+    "subpages": [],
+    "path": [
+      "Display"
+    ],
+    "label": "Variable frame rendering",
+    "context": "",
+    "target": "system_misc.vfr",
+    "match": "Variable frame rendering",
+    "keywords": "misc.vfr"
+  },
+  {
+    "page": 6,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Mouse"
+    ],
+    "label": "Mouse",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 6,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Touchpad"
+    ],
+    "label": "Touchpad",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 6,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Cursor"
+    ],
+    "label": "Cursor",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 6,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Keyboard & mouse",
+      "Gestures"
+    ],
+    "label": "Gestures",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 0,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Wallpaper & style",
+      "Themes & automation"
+    ],
+    "label": "Themes & automation",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 0,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Wallpaper & style",
+      "Live wallpapers"
+    ],
+    "label": "Live wallpapers",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 0,
+    "subpages": [
+      4
+    ],
+    "path": [
+      "Wallpaper & style",
+      "Theme schedule"
+    ],
+    "label": "Theme schedule",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 0,
+    "subpages": [
+      5
+    ],
+    "path": [
+      "Wallpaper & style",
+      "Wallpaper rotation"
+    ],
+    "label": "Wallpaper rotation",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 9,
+    "subpages": [
+      3
+    ],
+    "path": [
+      "Apps",
+      "Autostart"
+    ],
+    "label": "Autostart",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 10,
+    "subpages": [
+      2
+    ],
+    "path": [
+      "Services",
+      "User services and timers"
+    ],
+    "label": "User services and timers",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 0,
+    "subpages": [
+      6
+    ],
+    "path": [
+      "Customisation",
+      "Application icons"
+    ],
+    "label": "Application icons",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": "GTK Qt5 Qt6 Flatpak icon theme значки иконки"
+  },
+  {
+    "page": 0,
+    "subpages": [
+      7
+    ],
+    "path": [
+      "Customisation",
+      "Cursor appearance"
+    ],
+    "label": "Cursor appearance",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": "GTK Qt5 Qt6 Flatpak X11 Wayland cursor mouse курсор указатель"
+  },
+  {
+    "page": 0,
+    "subpages": [
+      8
+    ],
+    "path": [
+      "Customisation",
+      "Shell appearance"
+    ],
+    "label": "Shell appearance",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": "blur opacity borders shadows scale"
+  },
+  {
+    "page": 7,
+    "subpages": [
+      12
+    ],
+    "path": [
+      "Panels",
+      "Statusbar layout"
+    ],
+    "label": "Statusbar layout",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
+  },
+  {
+    "page": 9,
+    "subpages": [
+      6
+    ],
+    "path": [
+      "Apps",
+      "Default applications"
+    ],
+    "label": "Default applications",
+    "context": "",
+    "target": "",
+    "match": "",
+    "keywords": ""
   }
 ];
+catalogue = catalogue.concat([{"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Infinite canvas", "context": "", "target": "", "match": "Infinite canvas", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Overview zoom", "context": "", "target": "", "match": "Overview zoom", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Minimum zoom", "context": "", "target": "", "match": "Minimum zoom", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Maximum zoom", "context": "", "target": "", "match": "Maximum zoom", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Zoom step", "context": "", "target": "", "match": "Zoom step", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Pan sensitivity", "context": "", "target": "", "match": "Pan sensitivity", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "New window spacing", "context": "", "target": "", "match": "New window spacing", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Show canvas grid", "context": "", "target": "", "match": "Show canvas grid", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Snap windows to grid", "context": "", "target": "", "match": "Snap windows to grid", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Grid step", "context": "", "target": "", "match": "Grid step", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Show canvas minimap", "context": "", "target": "", "match": "Show canvas minimap", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Remember canvas positions", "context": "", "target": "", "match": "Remember canvas positions", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Fit all windows", "context": "", "target": "", "match": "Fit all windows", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Arrange canvas windows", "context": "", "target": "", "match": "Arrange canvas windows", "keywords": "canvas холст"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Undo canvas action", "context": "", "target": "", "match": "Undo canvas action", "keywords": "canvas холст"}, {"page": 2, "subpages": [], "path": ["Windows & workspaces"], "label": "Layout mode", "context": "", "target": "", "match": "Layout mode", "keywords": "tiling scrolling stacking canvas тайлинг скроллинг стакинг холст"}, {"page": 2, "subpages": [], "path": ["Windows & workspaces"], "label": "Drag smoothing (ms)", "context": "", "target": "", "match": "Drag smoothing (ms)", "keywords": "tiling scrolling stacking canvas тайлинг скроллинг стакинг холст"}, {"page": 2, "subpages": [], "path": ["Windows & workspaces"], "label": "Overview animation duration (ms)", "context": "", "target": "", "match": "Overview animation duration (ms)", "keywords": "tiling scrolling stacking canvas тайлинг скроллинг стакинг холст"}, {"page": 7, "subpages": [2, 6], "path": ["Panels", "Taskbar", "Workspaces"], "label": "Hide all empty workspace indicators", "context": "", "target": "", "match": "Hide all empty workspace indicators", "keywords": "unused dots пустые точки"}]);
+
+catalogue = catalogue.concat([{"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Focus canvas windows on hover", "context": "", "target": "", "match": "Focus canvas windows on hover", "keywords": "canvas холст масштаб фокус"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Zoom in", "context": "", "target": "", "match": "Zoom in", "keywords": "canvas холст масштаб фокус"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Zoom out", "context": "", "target": "", "match": "Zoom out", "keywords": "canvas холст масштаб фокус"}, {"page": 2, "subpages": [1], "path": ["Windows & workspaces", "Infinite canvas"], "label": "Reset zoom", "context": "", "target": "", "match": "Reset zoom", "keywords": "canvas холст масштаб фокус"}]);
+
+catalogue = catalogue.concat([{"page": 17, "subpages": [1], "path": ["Printers & storage", "Printers"], "label": "Printers", "context": "", "target": "", "match": "Printers", "keywords": "cups ipp очередь печать принтер"}, {"page": 17, "subpages": [1], "path": ["Printers & storage", "Printers"], "label": "Add IPP printer", "context": "", "target": "", "match": "Add IPP printer", "keywords": "ip адрес добавить принтер драйвер"}, {"page": 17, "subpages": [1], "path": ["Printers & storage", "Printers"], "label": "Your print jobs", "context": "", "target": "", "match": "Your print jobs", "keywords": "задания очередь отмена печать"}, {"page": 17, "subpages": [2], "path": ["Printers & storage", "Storage"], "label": "Storage", "context": "", "target": "", "match": "Storage", "keywords": "disk usb filesystem накопитель диск том подключить"}, {"page": 17, "subpages": [2], "path": ["Printers & storage", "Storage"], "label": "Mount volume", "context": "", "target": "", "match": "Mount volume", "keywords": "disk usb filesystem накопитель диск том подключить"}, {"page": 17, "subpages": [2], "path": ["Printers & storage", "Storage"], "label": "Unmount volume", "context": "", "target": "", "match": "Unmount volume", "keywords": "disk usb filesystem накопитель диск том подключить"}, {"page": 17, "subpages": [2], "path": ["Printers & storage", "Storage"], "label": "Available space", "context": "", "target": "", "match": "Available space", "keywords": "disk usb filesystem накопитель диск том подключить"}, {"page": 12, "subpages": [1], "path": ["Language & region", "Date & time"], "label": "Date & time", "context": "", "target": "", "match": "Date & time", "keywords": "clock timezone ntp время часы пояс дата"}, {"page": 12, "subpages": [1], "path": ["Language & region", "Date & time"], "label": "Time zone", "context": "", "target": "", "match": "Time zone", "keywords": "clock timezone ntp время часы пояс дата"}, {"page": 12, "subpages": [1], "path": ["Language & region", "Date & time"], "label": "Automatic network time", "context": "", "target": "", "match": "Automatic network time", "keywords": "clock timezone ntp время часы пояс дата"}, {"page": 12, "subpages": [1], "path": ["Language & region", "Date & time"], "label": "Set time manually", "context": "", "target": "", "match": "Set time manually", "keywords": "clock timezone ntp время часы пояс дата"}, {"page": 11, "subpages": [], "path": ["Power & lock"], "label": "Power profile", "context": "", "target": "", "match": "Power profile", "keywords": "performance balanced saver энергопотребление производительность"}]);
+
 // End catalogue
 
 var aliases = [
@@ -2623,3 +3654,5 @@ function find(query, translate) {
     result.sort((a, b) => a.score - b.score || a.page - b.page);
     return result.slice(0, 60);
 }
+
+catalogue = catalogue.concat([{"page": 17, "subpages": [2], "path": ["Printers & storage", "Storage"], "label": "Settings, health & maintenance", "context": "", "target": "", "match": "Settings, health & maintenance", "keywords": "SMART S.M.A.R.T. trim defragment mount startup автомонтирование загрузка диск дефрагментация температура износ readonly noexec nosuid"}]);

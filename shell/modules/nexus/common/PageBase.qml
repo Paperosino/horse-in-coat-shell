@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Hyprstack.Config
+import Hyprstack.I18n
 import qs.components
 import qs.components.containers
 import qs.components.controls
@@ -14,7 +15,7 @@ ColumnLayout {
 
     required property string title
     required property NexusState nState
-    property bool isSubPage
+    property bool isSubPage: nState.subPageIdxStack.length > 0
     readonly property int cappedWidth: Math.min(Tokens.sizes.nexus.maxContentWidth, width)
     readonly property alias flickable: flickable
 
@@ -84,7 +85,7 @@ ColumnLayout {
 
             Loader {
                 visible: active
-                active: root.isSubPage
+                active: root.isSubPage || root.nState.canGoBack
                 asynchronous: true
                 sourceComponent: IconButton {
                     icon: "arrow_back"
@@ -93,7 +94,8 @@ ColumnLayout {
                     isRound: true
                     inactiveColour: Colours.tPalette.m3surfaceContainerHigh
                     inactiveOnColour: Colours.palette.m3onSurfaceVariant
-                    onClicked: root.nState.closeSubPage()
+                    Accessible.name: Tr.tr("Back")
+                    onClicked: root.nState.goBack()
                 }
             }
 

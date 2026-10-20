@@ -30,6 +30,11 @@ Item {
         anchors.margins: Tokens.padding.large
 
         Popout {
+            name: "layouts"
+            sourceComponent: LayoutModesPopout { popouts: root.popouts }
+        }
+
+        Popout {
             name: "activewindow"
             sourceComponent: ActiveWindow {
                 popouts: root.popouts

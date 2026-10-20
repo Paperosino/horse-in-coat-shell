@@ -1,6 +1,6 @@
 { lib, stdenv, cmake, ninja, pkg-config, gettext, makeWrapper, qt6
 , hyprland, quickshell, python3, libqalculate, lm_sensors, pixman, libdrm
-, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
+, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
 , pipewire, wireplumber, polkit, hyprlock, hyprpicker, xdg-utils, xdg-user-dirs
@@ -23,7 +23,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
 
   nativeBuildInputs = [ cmake ninja pkg-config gettext makeWrapper qt6.wrapQtAppsHook python hyprland ];
   buildInputs = [ qt6.qtbase qt6.qtdeclarative qt6.qtshadertools libqalculate lm_sensors
-    hyprland.dev pixman libdrm libinput systemd wayland libxkbcommon pango cairo nlohmann_json ]
+    hyprland.dev cups util-linux e2fsprogs lua5_4 hyprgraphics pixman libdrm libinput systemd wayland libxkbcommon pango cairo nlohmann_json ]
     ++ (hyprland.buildInputs or []);
 
   cmakeBuildType = "Release";

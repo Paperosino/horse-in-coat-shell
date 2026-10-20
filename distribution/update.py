@@ -34,8 +34,13 @@ class Update(Installer):
     def plan(self):
         if self.staging is None:
             raise ValueError("No staged build")
-        yield from self.tree(self.staging / "bin", self.bin)
-        yield from self.tree(self.staging / "share", self.data)
+        # The privileged broker belongs only in root-owned installation paths.
+        for file in self.tree(self.staging / "bin", self.bin):
+            if file.path.name != "hyprstack-systemd":
+                yield file
+        for file in self.tree(self.staging / "share", self.data):
+            if not any(file.path.is_relative_to(self.data / name) for name in ("dbus-1", "polkit-1")):
+                yield file
         for file in self.tree(ROOT / "shell/assets/hyprland/config", self.config / "hypr"):
             file.preserve = file.path == self.config / "hypr/scheme/current.lua"
             yield file
@@ -181,7 +186,8 @@ def main(argv=None):
                 rollback(update, True)
             else:
                 print("План: git pull --ff-only" if not args.no_pull and (ROOT / ".git").exists() else "План: текущие исходники")
-                print("Проверка зависимостей → сборка → резервная копия → обновление файлов")
+                print("Проверка зависимостей → сборка → системный демон через sudo → резервная копия → обновление файлов")
+                print("Демон: /usr/local/bin/hyprstack-systemd; systemd, D-Bus и Polkit устанавливаются системно.")
                 print("Программы:", update.bin)
                 print("Данные:", update.data / "hyprstack")
                 print("Конфигурация:", update.config / "hypr")
@@ -205,6 +211,7 @@ def main(argv=None):
                     validate_destinations(update, files)
                     require_logged_out(update)
                     update.plan = lambda: iter(files)
+                    subprocess.run(["sudo", "--", "/usr/bin/python3", str(ROOT / "distribution/install_system_helper.py"), str(update.staging)], check=True)
                     update.transaction("install")
         if shutil.which("systemctl"):
             subprocess.run(["systemctl", "--user", "daemon-reload"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

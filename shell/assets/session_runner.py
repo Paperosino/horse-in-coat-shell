@@ -48,6 +48,13 @@ def stop_child_groups(children):
 
 def run_session():
     lockpath, eventpath = paths()
+    # Appearance is a user-session preference. Preserve it across sign-ins
+    # for shell-launched GTK/Qt clients as well as compositor-launched clients.
+    from appearance_themes import STATE, session_environment
+    if STATE.is_file():
+        os.environ.update(session_environment())
+        subprocess.run([sys.executable, str(Path(__file__).with_name('appearance_themes.py')), 'restore'],
+                       stdout=subprocess.DEVNULL, timeout=35, check=False)
     children = []
     event = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     event.connect(str(eventpath))

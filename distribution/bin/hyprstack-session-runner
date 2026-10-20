@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-data_dir=${HYPRSTACK_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/hyprstack}
+data_dir=${HYPRSTACK_DATA_DIR:-}
+if [[ -z $data_dir ]]; then
+    if [[ -d /usr/share/hyprstack ]]; then
+        data_dir=/usr/share/hyprstack
+    else
+        data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/hyprstack
+    fi
+fi
 export PYTHONDONTWRITEBYTECODE=1
 exec python3 "$data_dir/shell/assets/session_runner.py" run

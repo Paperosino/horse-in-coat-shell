@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import qs.modules.extensions
 import "popouts" as BarPopouts
 import "components"
 import "components/workspaces"
@@ -18,19 +19,30 @@ Item {
     required property ScreenState screenState
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
-    readonly property int hPadding: Hypr.stacking ? 12 * Tokens.scale : Tokens.padding.large
+    readonly property int hPadding: Tokens.padding.large
     readonly property real spacing: Tokens.spacing.medium
     readonly property var rowEntries: layout.children.filter(c => c.entryId && c.visible)
     readonly property var entryItems: centeredTitle.visible ? [...rowEntries, centeredTitle] : rowEntries
     readonly property real titleWidth: {
         let left = hPadding, right = hPadding;
         const firstSpacer = rowEntries.findIndex(c => c.entryId === "spacer");
+        let lastSpacer = -1;
+        for (let i = rowEntries.length - 1; i >= 0; --i) {
+            if (rowEntries[i].entryId === "spacer") {
+                lastSpacer = i;
+                break;
+            }
+        }
         for (let i = 0; i < rowEntries.length; ++i) {
             const item = rowEntries[i];
             if (item.entryId === "spacer") continue;
-            if ((firstSpacer < 0 && ["logo", "workspaces"].includes(item.entryId)) || i < firstSpacer)
+            if (firstSpacer >= 0 && i < firstSpacer)
                 left += item.width + spacing;
-            else
+            else if (lastSpacer >= 0 && i > lastSpacer)
+                right += item.width + spacing;
+            else if (firstSpacer < 0 && ["logo", "workspaces"].includes(item.entryId))
+                left += item.width + spacing;
+            else if (firstSpacer < 0)
                 right += item.width + spacing;
         }
         return PanelLayout.centeredWidth(width, left, right, spacing);
@@ -108,6 +120,10 @@ Item {
                 popouts.hasCurrent = false;
                 tray.expanded = true;
             }
+        } else if (id === "layoutSwitcher") {
+            popouts.currentName = "layouts";
+            popouts.currentCenter = Qt.binding(() => ch.mapToItem(root, ch.width / 2, 0).x);
+            popouts.hasCurrent = true;
         } else if (id === "activeWindow" && Config.bar.popouts.activeWindow && Config.bar.activeWindow.showOnHover) {
             popouts.currentName = id.toLowerCase();
             popouts.currentCenter = (ch.item as Item).mapToItem(root, (ch.item as Item).width / 2, 0).x ?? 0;
@@ -119,7 +135,7 @@ Item {
 
     function handleWheel(x: real, angleDelta: point): void {
         const ch = entryAt(x) as EntryWrapper;
-        if (!Hypr.stacking && ch?.entryId === "workspaces" && Config.bar.scrollActions.workspaces) {
+        if (ch?.entryId === "workspaces" && Config.bar.scrollActions.workspaces) {
             // Workspace scroll
             const mon = Hypr.monitorFor(screen);
             const specialWs = mon?.lastIpcObject.specialWorkspace.name;
@@ -140,12 +156,16 @@ Item {
 
             model: ScriptModel {
                 values: {
-                    const entries = root.Config.bar.entries.values.filter(e => e.enabled
-                        && !["notifications", "activeWindow"].includes(e.id) && (!Hypr.stacking || e.id !== "workspaces"));
-                    // Also covers configurations saved before this entry existed.
-                    const power = entries.findIndex(e => e.id === "power");
-                    if (root.Config.sidebar.enabled && root.Config.bar.showNotifications)
+                    const raw = root.Config.bar.entries.values || [];
+                    const entries = raw.filter(e => e.enabled);
+                    if (!entries.some(e => e.id === "plugins") && Plugins.enabled.some(p => !!p.entryPoints.barWidget)) {
+                        const tray = entries.findIndex(e => e.id === "tray");
+                        entries.splice(tray < 0 ? entries.length : tray, 0, {id: "plugins", enabled: true});
+                    }
+                    if (!entries.some(e => e.id === "notifications") && root.Config.sidebar.enabled && root.Config.bar.showNotifications) {
+                        const power = entries.findIndex(e => e.id === "power");
                         entries.splice(power < 0 ? entries.length : power, 0, {id: "notifications", enabled: true});
+                    }
                     return entries;
                 }
             }
@@ -157,6 +177,19 @@ Item {
                     roleValue: "spacer"
                     delegate: EntryWrapper {
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 8 * Tokens.scale
+                    }
+                }
+                DelegateChoice {
+                    roleValue: "activeWindow"
+                    delegate: EntryWrapper {
+                        visible: !DockConf.enabled
+                        Layout.maximumWidth: root.titleWidth
+                        ActiveWindow {
+                            objectName: "taskbarActiveWindow"
+                            bar: root
+                            monitor: Brightness.getMonitorForScreen(root.screen)
+                        }
                     }
                 }
                 DelegateChoice {
@@ -178,13 +211,21 @@ Item {
                                 objectName: "taskbarWorkspaces"
                                 screen: root.screen
                                 fullscreen: root.fullscreen
-                                visible: !Hypr.stacking
+                                visible: true
                                 y: implicitWidth
                                 rotation: -90
                                 transformOrigin: Item.TopLeft
                             }
                         }
                     }
+                }
+                DelegateChoice {
+                    roleValue: "layoutSwitcher"
+                    delegate: EntryWrapper { LayoutSwitcher { bar: root } }
+                }
+                DelegateChoice {
+                    roleValue: "plugins"
+                    delegate: EntryWrapper { PluginBar { screen: root.screen } }
                 }
                 DelegateChoice {
                     roleValue: "tray"
@@ -240,8 +281,7 @@ Item {
         index: -1
         x: (root.width - width) / 2
         y: (root.height - height) / 2
-        visible: !Hypr.stacking && root.titleWidth > 0
-            && root.Config.bar.entries.values.some(e => e.id === "activeWindow" && e.enabled)
+        visible: false
 
         ActiveWindow {
             objectName: "taskbarActiveWindow"
@@ -257,7 +297,7 @@ Item {
         screen: root.screen
         popouts: root.popouts
         maxWidth: Math.max(0, root.width - 2 * Math.max(root.sideWidth, root.hPadding + 40 * Tokens.scale) - 24 * Tokens.scale)
-        visible: Hypr.stacking && Config.bar.showTasks && maxWidth > 0
+        visible: false
     }
 
     component EntryWrapper: Item {

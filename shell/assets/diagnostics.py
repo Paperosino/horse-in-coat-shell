@@ -27,7 +27,7 @@ def checks():
     try: version = json.loads(version_text or "{}")
     except ValueError: version = {}
     result = [{"check": "Hyprland 0.56.2", "ok": version.get("version") == "0.56.2", "value": version.get("version", "missing")}]
-    qs = capture(["qs", "--version"]) or ""
+    qs = capture([os.environ.get("HYPRSTACK_QS", "qs"), "--version"]) or ""
     match = re.search(r"Quickshell (\d+)\.(\d+)\.(\d+)", qs)
     result.append({"check": "Quickshell >= 0.3.1", "ok": bool(match and tuple(map(int, match.groups())) >= (0, 3, 1)), "value": qs or "missing"})
     for name in ("kitty", "wl-paste", "cliphist", "wpctl", "xdg-open"):

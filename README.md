@@ -1,10 +1,10 @@
 [English](README.en.md)
 
 <p align="center">
-  <img src="shell/assets/logo.svg" width="104" alt="Логотип Hyprstack">
+  <img src="shell/assets/logo.svg" width="104" alt="Логотип horse-in-coat-shell">
 </p>
 
-<h1 align="center">Hyprstack</h1>
+<h1 align="center">horse-in-coat-shell</h1>
 
 <p align="center">Два способа работать с окнами. Одно рабочее окружение для Hyprland.</p>
 
@@ -15,7 +15,7 @@
   <a href="#demo">Демонстрация</a>
 </p>
 
-Hyprstack — оболочка для Hyprland с прокручиваемым тайлингом и плавающими окнами.
+horse-in-coat-shell — оболочка для Hyprland с прокручиваемым тайлингом и плавающими окнами.
 Режимы переключаются одним сочетанием клавиш и сохраняют расположение окон.
 Русский язык включён по умолчанию; английский и язык системы доступны в настройках.
 
@@ -96,8 +96,10 @@ Hyprstack — оболочка для Hyprland с прокручиваемым �
 
 ## Благодарности и лицензия
 
-Интерфейс развивается на основе [Caelestia shell](https://github.com/caelestia-dots/shell).
-Проект использует [Quickshell](https://quickshell.org/),
+Проект основан на [hyprstack-shell](https://github.com/hase9awa/hyprstack-shell)
+и [Caelestia shell](https://github.com/caelestia-dots/shell) — большое спасибо
+их авторам за продуманную архитектуру, код и вдохновение.
+Также используются [Quickshell](https://quickshell.org/),
 [Hyprland](https://hypr.land/), изменённый hyprbars и
 [M3Shapes](https://github.com/soramanew/m3shapes).
 

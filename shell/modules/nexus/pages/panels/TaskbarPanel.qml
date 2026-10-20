@@ -33,6 +33,7 @@ PageBase {
         {id: "activeWindow", label: Tr.tr("Active window")},
         {id: "tray", label: Tr.tr("Tray")},
         {id: "clock", label: Tr.tr("Clock")},
+        {id: "layoutSwitcher", label: Tr.tr("Window layout")},
         {id: "statusIcons", label: Tr.tr("Status icons")},
         {id: "power", label: Tr.tr("Power button")}
     ]
@@ -111,7 +112,7 @@ PageBase {
                 required property var modelData
                 objectName: "taskbarElement_" + modelData.id
                 text: modelData.label
-                checked: root.targetConfig.bar.entries.values.find(entry => entry.id === modelData.id)?.enabled ?? false
+                checked: root.targetConfig.bar.entries.values.find(entry => entry.id === modelData.id)?.enabled ?? (modelData.id === "layoutSwitcher")
                 onToggled: {
                     const entries = root.targetConfig.bar.entries;
                     const entry = entries.values.find(entry => entry.id === modelData.id);

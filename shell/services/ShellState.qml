@@ -17,7 +17,7 @@ Singleton {
             if (other !== state)
                 other.launcher = false;
         if (open) {
-            state.dashboard = state.sidebar = state.session = false;
+            state.dashboard = state.sidebar = state.session = state.clipboard = false;
             const components = componentsFor(state.modelData);
             if (components?.interactionWrapper)
                 components.interactionWrapper.dashboardHoverBlocked = true;
@@ -26,9 +26,27 @@ Singleton {
         state.launcher = open;
     }
 
+    function toggleClipboard(state: ScreenState): void {
+        if (!state) return;
+        Overview.close(false);
+        const open = !state.clipboard;
+        for (const other of states.instances)
+            other.clipboard = false;
+        if (open) {
+            state.launcher = state.dashboard = state.sidebar = state.session = false;
+            const components = componentsFor(state.modelData);
+            components?.panels?.popouts.close();
+            Clipboard.query = "";
+            Clipboard.reload();
+            state.clipboard = true;
+        } else {
+            state.clipboard = false;
+        }
+    }
+
     function closeDrawers(): void {
         for (const state of states.instances) {
-            state.launcher = state.dashboard = state.sidebar = state.session = false;
+            state.launcher = state.dashboard = state.sidebar = state.session = state.clipboard = false;
             componentsFor(state.modelData)?.panels?.popouts.close();
         }
     }
@@ -39,7 +57,7 @@ Singleton {
         for (const other of states.instances)
             other.sidebar = false;
         if (open) {
-            state.launcher = state.dashboard = state.session = false;
+            state.launcher = state.dashboard = state.session = state.clipboard = false;
             const components = componentsFor(state.modelData);
             components?.panels?.popouts.close();
             state.sidebar = true;
