@@ -5051,6 +5051,9 @@ void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
         return;
     }
 
+    if (clientGestureButton && SURFACE && SURFACE == clientGestureSurface)
+        clientGestureLocal = SURFACELOCAL;
+
     canvasForwardedPointerWindow  = WINDOW;
     canvasForwardedPointerSurface = SURFACE;
     if (dnd) {
@@ -5486,7 +5489,11 @@ void CScrollOverview::finishClientWindowGesture(uint32_t timeMs) {
     if (timeMs && !clientGestureKnownButtons.empty()) {
         const auto SURFACE = clientGestureSurface;
         if (SURFACE) {
-            g_pSeatManager->setPointerFocus(SURFACE, {});
+            // Qt clients discard a release that arrives without its enter+motion
+            // pair; replay the last forwarded position first so the button state
+            // actually unlatches.
+            g_pSeatManager->setPointerFocus(SURFACE, clientGestureLocal);
+            g_pSeatManager->sendPointerMotion(timeMs, clientGestureLocal);
             for (const auto button : clientGestureKnownButtons)
                 g_pSeatManager->sendPointerButton(timeMs, button, WL_POINTER_BUTTON_STATE_RELEASED);
             g_pSeatManager->sendPointerFrame();
@@ -5519,6 +5526,7 @@ bool CScrollOverview::beginClientWindowGesture(PHLWINDOW window, std::optional<L
     // The client already saw these presses; the gesture swallows the matching
     // releases, so they must be synthesized when the gesture ends.
     clientGestureKnownButtons = canvasForwardedPointerButtons;
+    clientGestureLocal        = {};
     if (const auto FORWARDED = canvasForwardedPointerWindow.lock(); FORWARDED && FORWARDED->wlSurface() && FORWARDED->wlSurface()->resource())
         clientGestureSurface = FORWARDED->wlSurface()->resource();
     // The app sees the pointer leave, as it would under a compositor grab.

@@ -437,6 +437,7 @@ class CScrollOverview : public IOverview {
     std::unordered_set<uint32_t>     clientGestureHeldButtons; // every button held while the gesture runs (ends it when empty)
     std::unordered_set<uint32_t>     clientGestureKnownButtons; // buttons forwarded to the client before the takeover (owe it a release)
     SP<CWLSurfaceResource>           clientGestureSurface; // client surface the gesture belongs to (for the synthetic release)
+    Vector2D                         clientGestureLocal; // last forwarded local position on that surface
     // Leftover high-resolution wheel units, in 1/120 of a notch.
     int32_t                          canvasWheelValue120Accum = 0;
     wl_pointer_axis                  canvasWheelAccumAxis    = WL_POINTER_AXIS_VERTICAL_SCROLL;
