@@ -14,10 +14,10 @@ toolkit=os.environ.get('HYPRSTACK_INPUT_TOOLKIT','gtk')
 if toolkit not in ('gtk','qt'):raise ValueError('HYPRSTACK_INPUT_TOOLKIT must be gtk or qt')
 workspace=tempfile.TemporaryDirectory(prefix='hyprstack-canvas-test-')
 base=Path(workspace.name)
-(base/'config/hyprstack').mkdir(parents=True)
+(base/'config/hics').mkdir(parents=True)
 (base/'data/native').mkdir(parents=True)
-for plugin in ['hyprstack-bars.so','libspatialoverview.so']:
- candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hyprstack/native')/plugin]
+for plugin in ['hics-bars.so','libspatialoverview.so']:
+ candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hics/native')/plugin]
  source=next((p for p in candidates if p.is_file()),None)
  if source is None:raise RuntimeError('Build native modules before running this integration test')
  # Snapshot plugins: rebuilding must never change a running test's mappings.
@@ -31,7 +31,7 @@ config=repo/'shell/assets/hyprland/config'
     'dofile('+json.dumps(str(repo/'shell/assets/hyprland/layouts.lua'))+')\n')
 env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),HYPRSTACK_DATA_DIR=str(base/'data'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'user-data'));env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
 if withoutBars:env['HYPRSTACK_TITLEBAR_PLUGIN']=str(base/'missing-bars.so')
-(base/'config/hyprstack/layouts.json').write_text(json.dumps({'mode':'scrolling'}))
+(base/'config/hics/layouts.json').write_text(json.dumps({'mode':'scrolling'}))
 # This test injects into the nested compositor through its virtual pointer.
 # It never moves the host cursor or touches files in the user's applications.
 p=None;app=None;pointer=None;log=None;wallpaper=None;wallpaperLog=None;engine=None;engineLog=None
@@ -89,6 +89,62 @@ ShellRoot { PanelWindow { anchors {top:true;bottom:true;left:true;right:true} Wl
  ctl('repl','return hyprstack_layouts.canvas_action("viewport 2180 140")');time.sleep(.5)
  state=lambda:json.loads(ctl('spatialoverview'))['screens'][0]
  window=lambda:next(c for c in json.loads(ctl('clients','-j')) if c['address']==address)
+ # Notifications use the dock's activation path, including an already-focused
+ # window that the user has panned out of the visible canvas.
+ ctl('repl','return hyprstack_layouts.canvas_action("viewport 8000 6000")');time.sleep(.4)
+ ctl('repl','hyprstack_layouts.action("dock-activate",'+json.dumps(address)+')');time.sleep(.7)
+ revealed=state();revealed_window=window()
+ cx=(revealed_window['at'][0]+revealed_window['size'][0]/2-revealed['view'][0])*revealed['zoom']
+ cy=(revealed_window['at'][1]+revealed_window['size'][1]/2-revealed['view'][1])*revealed['zoom']
+ assert 0<cx<width and 0<cy<height,('Notification activation did not reveal canvas window',revealed)
+ print('NOTIFICATION_CANVAS_REVEAL_OK',flush=True)
+ # Reproduce a default action changing focus while the shell closes its drawer.
+ # The notification coordinator must still bring the sender back into view.
+ other=None
+ try:
+  other=subprocess.Popen(['python3',str(fixtures/'canvas-input-app.py')],env=dict(appenv,HICS_TEST_APPLICATION_ID='org.hics.OtherNotificationTest'),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  time.sleep(1)
+  other_window=next(c for c in json.loads(ctl('clients','-j')) if c['pid']==other.pid)
+  ctl('repl','hl.dispatch(hl.dsp.window.move({window=hl.get_window("address:'+other_window['address']+'"),x=7000,y=5000,relative=false}))')
+  ctl('repl','hyprstack_layouts.action("dock-activate",'+json.dumps(address)+')');time.sleep(.3)
+  probe_shell=base/'notification-shell'
+  shutil.copytree(repo/'shell',probe_shell,ignore=shutil.ignore_patterns('plugin','extras','__pycache__'))
+  (probe_shell/'shell.qml').write_text('''import QtQuick
+import Quickshell
+import qs.services
+ShellRoot {
+ id:root
+ property string target: TARGET
+ property string other: OTHER
+ property bool wrongFocusObserved:false
+ property NotifData notification: NotifData {
+  appName: APPCLASS
+  liveActions: [{identifier:"default",invoke:() => Hypr.windowAction("dock-activate", Hypr.toplevels.values.find(w => w.lastIpcObject.address === root.other))}]
+ }
+ Timer { interval:1000; running:true; onTriggered:root.notification.activate() }
+ Timer { interval:1300; running:true; onTriggered:root.wrongFocusObserved = Hypr.activeToplevel?.lastIpcObject.address === root.other }
+ Timer { interval:3200; running:true; onTriggered: {
+  if (root.wrongFocusObserved && Hypr.activeToplevel?.lastIpcObject.address === root.target && !NotificationActivation.pending)
+   console.log("NOTIFICATION_FOCUS_RACE_OK");
+  else console.error("NOTIFICATION_FOCUS_RACE_FAILED", Hypr.activeToplevel?.lastIpcObject.address);
+  Qt.quit();
+ } }
+}'''.replace('TARGET',json.dumps(address)).replace('OTHER',json.dumps(other_window['address'])).replace('APPCLASS',json.dumps(window()['class'])))
+  runner=base/'notification-runner.py'
+  runner.write_text('import os,sys\nos.environ["DBUS_SYSTEM_BUS_ADDRESS"]=os.environ["DBUS_SESSION_BUS_ADDRESS"]\nos.execvp(sys.argv[1],sys.argv[1:])\n')
+  probe_env=dict(appenv,QML_IMPORT_PATH=str(repo/'build/qml'),QML2_IMPORT_PATH=str(repo/'build/qml'),QT_QPA_PLATFORM='wayland')
+  result=subprocess.run(['dbus-run-session','--','python3',str(runner),'/usr/share/hics/qs/bin/hics-qs','-p',str(probe_shell)],env=probe_env,capture_output=True,text=True,timeout=10)
+  output=result.stdout+result.stderr
+  assert result.returncode==0 and 'NOTIFICATION_FOCUS_RACE_OK' in output,output[-6000:]
+  revealed=state();revealed_window=window()
+  cx=(revealed_window['at'][0]+revealed_window['size'][0]/2-revealed['view'][0])*revealed['zoom']
+  cy=(revealed_window['at'][1]+revealed_window['size'][1]/2-revealed['view'][1])*revealed['zoom']
+  assert 0<cx<width and 0<cy<height,('Notification action focused sender but did not reveal it',revealed)
+  print('NOTIFICATION_FOCUS_RACE_OK',flush=True)
+ finally:
+  if other and other.poll() is None:other.terminate();other.wait(timeout=5)
+
+ ctl('repl','return hyprstack_layouts.canvas_action("viewport 2180 140")');time.sleep(.5)
  w=window();cam=state();print('Window and camera:',w['at'],w['size'],cam,flush=True)
  def screen(x,y):return [round((w['at'][0]+x-cam['view'][0])*cam['zoom']),round((w['at'][1]+y-cam['view'][1])*cam['zoom'])]
  source=screen(w['size'][0]*.25,w['size'][1]*.5);target=screen(w['size'][0]*.75,w['size'][1]*.5)
@@ -224,7 +280,7 @@ ShellRoot { PanelWindow { anchors {top:true;bottom:true;left:true;right:true} Wl
    print('Plugin unload:',ctl('plugin','unload',plugin),flush=True)
    time.sleep(.8)
    print('After unload:',ctl('-j','plugin','list'),flush=True)
-   bars=str(base/'data/native/hyprstack-bars.so')
+   bars=str(base/'data/native/hics-bars.so')
    print('Bars unload:',ctl('plugin','unload',bars),flush=True)
    print('Bars load:',ctl('plugin','load',bars),flush=True)
    print('Plugin load:',ctl('plugin','load',plugin),flush=True)

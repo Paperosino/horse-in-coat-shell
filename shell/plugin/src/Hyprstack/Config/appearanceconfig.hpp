@@ -298,6 +298,8 @@ class AppearanceConfig : public settings::ObjectNode {
 
     CONFIG_PROPERTY(qreal, scale, 1)
     CONFIG_PROPERTY(qreal, deformScale, 1)
+    CONFIG_GLOBAL_PROPERTY(bool, reducedMotion, false)
+    CONFIG_GLOBAL_PROPERTY(bool, highContrast, false)
     CONFIG_SUBOBJECT(AppearanceRounding, rounding)
     CONFIG_SUBOBJECT(AppearanceSpacing, spacing)
     CONFIG_SUBOBJECT(AppearancePadding, padding)

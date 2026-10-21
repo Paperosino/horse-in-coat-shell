@@ -19,12 +19,26 @@ Singleton {
     readonly property bool light: showPreview ? previewLight : currentLight
     property bool currentLight
     property bool previewLight
-    readonly property M3Palette palette: showPreview ? preview : current
+    readonly property M3Palette palette: GlobalConfig.appearance.highContrast ? contrast : showPreview ? preview : current
     readonly property M3TPalette tPalette: M3TPalette {}
     readonly property M3Palette current: M3Palette {}
     readonly property M3Palette preview: M3Palette {}
     readonly property Transparency transparency: Transparency {}
     readonly property alias wallLuminance: analyser.luminance
+
+    readonly property M3Palette contrast: M3Palette {
+        m3background: "#000000"; m3onBackground: "#ffffff"
+        m3surface: "#000000"; m3surfaceDim: "#000000"; m3surfaceBright: "#202020"
+        m3surfaceContainerLowest: "#000000"; m3surfaceContainerLow: "#101010"
+        m3surfaceContainer: "#151515"; m3surfaceContainerHigh: "#202020"; m3surfaceContainerHighest: "#282828"
+        m3onSurface: "#ffffff"; m3surfaceVariant: "#202020"; m3onSurfaceVariant: "#ffffff"
+        m3outline: "#ffffff"; m3outlineVariant: "#bfbfbf"
+        m3primary: "#ffff00"; m3onPrimary: "#000000"; m3primaryContainer: "#ffff00"; m3onPrimaryContainer: "#000000"
+        m3secondary: "#00ffff"; m3onSecondary: "#000000"; m3secondaryContainer: "#00ffff"; m3onSecondaryContainer: "#000000"
+        m3tertiary: "#ffffff"; m3onTertiary: "#000000"; m3tertiaryContainer: "#ffffff"; m3onTertiaryContainer: "#000000"
+        m3error: "#ffb4ab"; m3onError: "#000000"; m3errorContainer: "#ffb4ab"; m3onErrorContainer: "#000000"
+        m3inverseSurface: "#ffffff"; m3inverseOnSurface: "#000000"; m3inversePrimary: "#000000"
+    }
 
     property bool cooldownPending
     property real lastBaseTransparency
@@ -194,7 +208,7 @@ Singleton {
     }
 
     component Transparency: QtObject {
-        readonly property bool enabled: Tokens.transparency.enabled
+        readonly property bool enabled: !GlobalConfig.appearance.highContrast && Tokens.transparency.enabled
         readonly property real base: Math.max(0, Math.min(1, Tokens.transparency.base - (root.light ? 0.1 : 0)))
         readonly property real layers: Math.max(0, Math.min(1, Tokens.transparency.layers))
 

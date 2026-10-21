@@ -55,7 +55,7 @@ ShellRoot {
  Timer { interval:16000;running:true;onTriggered:Qt.quit() }
 }
 ''')
-env=dict(os.environ,HYPRSTACK_DATA_DIR=str(base),QML_IMPORT_PATH=str(repo/'build/qml') if (repo/'build/qml/Hyprstack').is_dir() else '/usr/share/hyprstack/qml',QML2_IMPORT_PATH=str(repo/'build/qml') if (repo/'build/qml/Hyprstack').is_dir() else '/usr/share/hyprstack/qml',LD_LIBRARY_PATH='/usr/share/hyprstack/qs/lib',QT_QPA_PLATFORM='offscreen',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'))
+env=dict(os.environ,HYPRSTACK_DATA_DIR=str(base),QML_IMPORT_PATH=str(repo/'build/qml') if (repo/'build/qml/Hyprstack').is_dir() else '/usr/share/hics/qml',QML2_IMPORT_PATH=str(repo/'build/qml') if (repo/'build/qml/Hyprstack').is_dir() else '/usr/share/hics/qml',LD_LIBRARY_PATH='/usr/share/hics/qs/lib',QT_QPA_PLATFORM='offscreen',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'))
 # Probe only UI construction; helper processes see an isolated user config.
 (base/'nested.lua').write_text('hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})\n')
 nestedenv=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'));nestedenv.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
@@ -68,15 +68,15 @@ with open(base/'nested.log','w') as nestedlog:
    time.sleep(.1)
   assert instance
   env.update(QT_QPA_PLATFORM='wayland',WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'])
-  with open('/tmp/hyprstack-appearance-smoke.log','w') as out:
-   child=subprocess.Popen(['/usr/share/hyprstack/qs/bin/hyprstack-qs','-p',str(shell)],env=env,stdout=out,stderr=subprocess.STDOUT)
+  with open('/tmp/hics-appearance-smoke.log','w') as out:
+   child=subprocess.Popen(['/usr/share/hics/qs/bin/hics-qs','-p',str(shell)],env=env,stdout=out,stderr=subprocess.STDOUT)
    time.sleep(14)
    subprocess.run(['grim',str(base/'preview.png')],env=env,check=True,capture_output=True)
    result=child.wait(timeout=15)
  finally:
   nested.terminate();nested.wait(timeout=5)
 print('Smoke root:',base,'exit:',result)
-log=Path('/tmp/hyprstack-appearance-smoke.log').read_text()
+log=Path('/tmp/hics-appearance-smoke.log').read_text()
 print(log[-6500:])
 assert result==0, 'Settings process failed'
 assert 'ERROR:' not in log and 'TypeError:' not in log and 'Unable to assign' not in log, 'QML errors in settings'

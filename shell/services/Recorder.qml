@@ -49,12 +49,12 @@ Singleton {
         root.commandError = "";
         root.startArgs = extraArgs;
         props.state = extraArgs.includes("-r") || extraArgs.includes("-sr") ? "selecting" : "starting";
-        startProc.exec(["hyprstack", "record", ...extraArgs]);
+        startProc.exec(["hics", "record", ...extraArgs]);
     }
 
     function finishStop(): void {
         if (!controlProc.running)
-            controlProc.exec(["hyprstack", "record", "--stop"]);
+            controlProc.exec(["hics", "record", "--stop"]);
     }
 
     function stop(): void {
@@ -72,7 +72,7 @@ Singleton {
         if (!props.running || root.controlBusy)
             return;
         root.commandError = "";
-        controlProc.exec(["hyprstack", "record", "--pause"]);
+        controlProc.exec(["hics", "record", "--pause"]);
     }
 
     PersistentProperties {
@@ -96,7 +96,7 @@ Singleton {
         id: checkProc
 
         running: true
-        command: ["hyprstack", "record", "--status"]
+        command: ["hics", "record", "--status"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try { root.queriedState = JSON.parse(text); }
@@ -144,14 +144,14 @@ Singleton {
     }
 
     FileView {
-        path: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hyprstack/record/status.json`
+        path: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hics/record/status.json`
         printErrors: false
         watchChanges: true
         onFileChanged: { reload(); root.refresh(); }
     }
 
     FileView {
-        path: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hyprstack/record/start.json`
+        path: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hics/record/start.json`
         printErrors: false
         watchChanges: true
         onFileChanged: { reload(); root.refresh(); }

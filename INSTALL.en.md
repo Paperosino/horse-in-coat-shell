@@ -43,14 +43,14 @@ sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
 Run without `sudo`:
 
 ```bash
-git clone https://github.com/Paperosino/horse-in-coat-shell.git
-cd horse-in-coat-shell
+git clone https://github.com/Paperosino/horse-in-coat-shell.git hics
+cd hics
 packaging/arch/build-package.sh --install
 ```
 
 The script installs any missing build dependencies and builds the
 `hic-shell` package with a bundled runtime: its own Quickshell
-**v0.3.2** and private Qt libraries in `/usr/share/hyprstack/qs`. System
+**v0.3.2** and private Qt libraries in `/usr/share/hics/qs`. System
 updates of the `quickshell` and `qt6-*` packages no longer affect the shell;
 the system `quickshell` package is not needed (if the bundle is missing,
 the wrapper falls back to the system `qs`). The session service is
@@ -59,8 +59,8 @@ running the same script: it rebuilds the bundled runtime against the
 current system Qt and re-bundles it.
 
 If the shell was previously installed into `$HOME/.local`, remove
-`~/.local/share/hyprstack` so the packaged install takes priority
-(`HYPRSTACK_DATA_DIR` still overrides the selection).
+`~/.local/share/hics` so the packaged install takes priority
+(`HICS_DATA_DIR` still overrides the selection).
 
 #### Option B: manual build into `$HOME/.local`
 
@@ -98,8 +98,8 @@ Move the previous configuration to a backup:
 
 ```bash
 config_dir=${XDG_CONFIG_HOME:-$HOME/.config}
-backup_dir=$(mktemp -d "$HOME/hyprstack-backup.XXXXXXXX")
-for name in hypr hyprstack systemd/user/hic-session.service; do
+backup_dir=$(mktemp -d "$HOME/hics-backup.XXXXXXXX")
+for name in hypr hics systemd/user/hic-session.service; do
     if [ -e "$config_dir/$name" ] || [ -L "$config_dir/$name" ]; then
         mv "$config_dir/$name" "$backup_dir/"
     fi
@@ -110,11 +110,11 @@ printf 'Backup: %s\n' "$backup_dir"
 Save the printed path. Then copy the new configuration:
 
 ```bash
-mkdir -p "$config_dir/hypr" "$config_dir/hyprstack"
+mkdir -p "$config_dir/hypr" "$config_dir/hics"
 cp -R shell/assets/hyprland/config/. "$config_dir/hypr/"
-cp -R distribution/defaults/hyprstack/. "$config_dir/hyprstack/"
+cp -R distribution/defaults/hics/. "$config_dir/hics/"
 export PATH="$HOME/.local/bin:$PATH"
-runhics scheme set -n hyprstack-catppuccin -m dark
+hics scheme set -n hics-catppuccin -m dark
 ```
 
 **Only for option B (manual build):** install the user service.
@@ -137,7 +137,7 @@ Log into Hyprland through your display manager or run `start-hyprland` in a TTY.
 In a terminal, run:
 
 ```bash
-runhics-doctor
+hics-doctor
 hyprctl configerrors
 ```
 
@@ -152,14 +152,14 @@ and modules. Replace `YOUR_HOST` with your configuration name:
 
 ```nix
 {
-  inputs.hyprstack.url = "github:Paperosino/horse-in-coat-shell";
+  inputs.hics.url = "github:Paperosino/horse-in-coat-shell";
 
-  outputs = { nixpkgs, hyprstack, ... }: {
+  outputs = { nixpkgs, hics, ... }: {
     nixosConfigurations.YOUR_HOST = nixpkgs.lib.nixosSystem {
       modules = [
         ./configuration.nix
-        hyprstack.nixosModules.default
-        { programs.hyprstack.enable = true; }
+        hics.nixosModules.default
+        { programs.hics.enable = true; }
       ];
     };
   };
@@ -178,16 +178,16 @@ replacing `YOUR_USER` with your username:
 ```nix
 {
   home-manager.users.YOUR_USER = {
-    imports = [ hyprstack.homeManagerModules.default ];
-    programs.hyprstack.enable = true;
+    imports = [ hics.homeManagerModules.default ];
+    programs.hics.enable = true;
   };
 }
 ```
 
-Both modules must use the same `hyprstack` input. Shell preferences remain
+Both modules must use the same `hics` input. Shell preferences remain
 editable through the interface.
-Custom Lua: [`programs.hyprstack.extraConfig`](CONFIGURATION.md#экраны-и-клавиатура)
-or `~/.config/hyprstack/local.lua`.
+Custom Lua: [`programs.hics.extraConfig`](CONFIGURATION.md#экраны-и-клавиатура)
+or `~/.config/hics/local.lua`.
 
 **Without Home Manager:** skip this step; copy user configuration after
 applying the system configuration, as described below.
@@ -207,13 +207,13 @@ In a TTY, get the files and follow [Arch step 3](#config),
 **skipping the user service block**. No CMake build is needed.
 
 ```bash
-git clone https://github.com/Paperosino/horse-in-coat-shell.git
-cd horse-in-coat-shell
+git clone https://github.com/Paperosino/horse-in-coat-shell.git hics
+cd hics
 ```
 
 </details>
 
-Start a new Hyprland session and run `runhics-doctor`
+Start a new Hyprland session and run `hics-doctor`
 and `hyprctl configerrors`.
 
 ## Services and optional packages
@@ -229,7 +229,7 @@ brightness and `wtype` for emoji typing. Install a file manager of your choice.
 [Configuration and shortcuts (Russian)](CONFIGURATION.md) ·
 [Updates and diagnostics (Russian)](MAINTENANCE.md)
 
-Native system settings use the packaged C++ `hyprstack-system.service`, activated
+Native system settings use the packaged C++ `hics-system.service`, activated
 on the system D-Bus with Polkit authorization. Printing requires CUPS, volumes
 use UDisks2, and hardware profiles require power-profiles-daemon. A user-local
 installation does not register the privileged service; install the system package

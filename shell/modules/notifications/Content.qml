@@ -18,6 +18,8 @@ Item {
     required property Item osdPanel
     required property Item sessionPanel
     required property Item utilitiesPanel
+    property real originY: 0
+    property real availableHeight: (QsWindow.window as QsWindow)?.screen?.height ?? 0
     readonly property int padding: Tokens.padding.large
     readonly property int clampedPadding: CUtils.clamp(padding - (Config.border.thickness * Tokens.scale), 0, padding)
 
@@ -36,24 +38,24 @@ Item {
             height += (list.itemAtIndex(i) as NotifWrapper)?.nonAnimHeight ?? 0;
 
         if (screenState.osd) {
-            const h = osdPanel.y - clampedPadding;
+            const h = osdPanel.y - originY - clampedPadding;
             if (height > h)
                 height = h;
         }
 
         if (screenState.session) {
-            const h = sessionPanel.y - clampedPadding;
+            const h = sessionPanel.y - originY - clampedPadding;
             if (height > h)
                 height = h;
         }
 
         if (screenState.utilities) {
-            const h = ((QsWindow.window as QsWindow)?.screen.height ?? 0) - (utilitiesPanel as Utilities.Wrapper).nonAnimHeight - (Config.border.thickness * Tokens.scale) * 2 - padding * 2 - Tokens.spacing.extraLarge;
+            const h = root.availableHeight - (utilitiesPanel as Utilities.Wrapper).nonAnimHeight - (Config.border.thickness * Tokens.scale) * 2 - padding * 2 - Tokens.spacing.extraLarge;
             if (height > h)
                 height = h;
         }
 
-        return Math.min(((QsWindow.window as QsWindow)?.screen?.height ?? 0) + padding - clampedPadding * 2 - (Config.border.thickness * Tokens.scale), height + padding + clampedPadding);
+        return Math.max(0, Math.min(root.availableHeight, height + padding + clampedPadding));
     }
 
     ClippingWrapperRectangle {

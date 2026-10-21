@@ -1,7 +1,7 @@
 local home   = os.getenv("HOME")
 local config = os.getenv("XDG_CONFIG_HOME") or home .. "/.config"
 local hypr = config .. "/hypr"
-package.path = package.path .. ";" .. hypr .. "/?.lua;" .. config .. "/hyprstack/?.lua"
+package.path = package.path .. ";" .. hypr .. "/?.lua;" .. config .. "/hics/?.lua"
 
 -- Create a file if it doesn't exist, optionally with initial content
 local function maybe_create(file, content)
@@ -42,7 +42,7 @@ end
 maybe_copy(hypr .. "/scheme/default.lua", hypr .. "/scheme/current.lua")
 
 -- User variables
-maybe_create(config .. "/hyprstack/hypr-vars.lua", "return {}\n")
+maybe_create(config .. "/hics/hypr-vars.lua", "return {}\n")
 local overrides = require("hypr-vars")
 if type(overrides) == "table" then
     local vars = require("variables")
@@ -73,5 +73,5 @@ require("hyprland.gestures")
 require("hyprland.keybinds")
 
 -- User configs
-maybe_create(config .. "/hyprstack/hypr-user.lua")
+maybe_create(config .. "/hics/hypr-user.lua")
 require("hypr-user")

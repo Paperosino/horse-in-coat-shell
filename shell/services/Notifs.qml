@@ -8,6 +8,7 @@ import Quickshell.Services.Notifications
 import Hyprstack
 import Hyprstack.Config
 import Hyprstack.I18n
+import Hyprstack.Services
 import qs.components.misc
 import qs.services
 import qs.utils
@@ -89,11 +90,21 @@ Singleton {
     }
 
     function shouldShowPopup(): bool {
-        if (props.dnd || ShellState.anySidebarOpen())
+        if (props.dnd || NotificationPolicy.paused || ShellState.anySidebarOpen())
             return false;
         if (GlobalConfig.notifs.fullscreen === NotifsFullscreen.Off && hasFullscreen())
             return false;
         return true;
+    }
+
+    Connections {
+        target: NotificationPolicy
+        function onChanged(): void {
+            for (const notif of root.popups) {
+                const mode = NotificationPolicy.rule(notif.desktopEntry || notif.appName);
+                if (NotificationPolicy.paused || mode !== "all") notif.popup = false;
+            }
+        }
     }
 
     onDndChanged: {
@@ -156,12 +167,16 @@ Singleton {
         persistenceSupported: true
 
         onNotification: notif => {
+            const appId = notif.desktopEntry || notif.appName;
+            NotificationPolicy.observe(appId, notif.appName);
+            const mode = NotificationPolicy.rule(appId);
+            if (mode === "blocked" && !notif.lastGeneration) { notif.dismiss(); return; }
             notif.tracked = true;
             const saved = notif.lastGeneration ? root.list.find(n => !n.notification
                 && n.notificationId === String(notif.id) && n.appName === notif.appName) : null;
 
             const comp = notifComp.createObject(root, {
-                popup: !notif.lastGeneration && root.shouldShowPopup(),
+                popup: !notif.lastGeneration && mode !== "silent" && root.shouldShowPopup(),
                 read: ShellState.anySidebarOpen(),
                 fromPreviousGeneration: notif.lastGeneration,
                 notification: notif

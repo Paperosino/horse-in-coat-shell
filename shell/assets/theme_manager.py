@@ -20,9 +20,9 @@ from i18n import _, configure_argparse
 
 
 ASSETS = Path(__file__).resolve().parent
-CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "hyprstack"
-DATA = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "hyprstack"
-STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hyprstack"
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "hics"
+DATA = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "hics"
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hics"
 HEX = re.compile(r"#?([0-9a-fA-F]{6})\Z")
 MODES = ("dark", "light")
 PALETTE_VERSION = 3
@@ -394,7 +394,7 @@ def set_mode(mode: str) -> dict:
     if theme:
         return apply_theme(theme["id"], mode)
     if name == "dynamic":
-        from hyprstack_cli import dynamic_scheme, wallpaper_path
+        from hics_cli import dynamic_scheme, wallpaper_path
         save_current(dynamic_scheme(wallpaper_path(), mode, current.get("variant", "tonalspot")))
         return {"name": name, "mode": mode}
     raise ValueError(_("The current scheme is unavailable; choose a scheme from the catalogue"))

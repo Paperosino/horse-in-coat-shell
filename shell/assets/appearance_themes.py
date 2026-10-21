@@ -11,8 +11,8 @@ from feature_common import atomic_json, read_json, output
 HOME = Path.home()
 CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', HOME/'.config'))
 DATA = Path(os.environ.get('XDG_DATA_HOME', HOME/'.local/share'))
-CACHE = Path(os.environ.get('XDG_CACHE_HOME', HOME/'.cache'))/'hyprstack/theme-previews'
-STATE = CONFIG/'hyprstack/appearance.json'
+CACHE = Path(os.environ.get('XDG_CACHE_HOME', HOME/'.cache'))/'hics/theme-previews'
+STATE = CONFIG/'hics/appearance.json'
 ICON_NAMES = ['folder', 'user-home', 'text-x-generic', 'web-browser', 'user-trash', 'preferences-system']
 CURSOR_NAMES = ['left_ptr', 'pointer', 'text', 'wait', 'crosshair', 'grab', 'grabbing', 'ew-resize']
 
@@ -184,14 +184,14 @@ def apply(kind, theme, size=24, runtime=True):
     else:
         update_ini(DATA/'icons/default/index.theme','Icon Theme',{'Inherits':theme})
         # xrdb accepts resource values, not shell text; reject line separators.
-        path=CONFIG/'hyprstack/cursor.Xresources'
+        path=CONFIG/'hics/cursor.Xresources'
         atomic_text(path,f'Xcursor.theme: {theme}\nXcursor.size: {size}\n')
     if runtime:
         key='icon-theme' if kind=='icons' else 'cursor-theme'
         command(['gsettings','set','org.gnome.desktop.interface',key,json.dumps(theme)],warnings)
         if kind=='cursors':
             command(['gsettings','set','org.gnome.desktop.interface','cursor-size',str(size)],warnings)
-            if os.environ.get('DISPLAY'):command(['xrdb','-merge',str(CONFIG/'hyprstack/cursor.Xresources')],warnings)
+            if os.environ.get('DISPLAY'):command(['xrdb','-merge',str(CONFIG/'hics/cursor.Xresources')],warnings)
             if os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):command(['hyprctl','setcursor',theme,str(size)],warnings)
         flatpak_settings(kind,theme,size,warnings)
     saved=read_json(STATE);saved[kind]=theme
@@ -199,7 +199,7 @@ def apply(kind, theme, size=24, runtime=True):
     atomic_json(STATE,saved)
     if runtime:
         environment=session_environment()
-        atomic_text(CONFIG/'environment.d/90-hyprstack-appearance.conf',
+        atomic_text(CONFIG/'environment.d/90-hics-appearance.conf',
             '\n'.join(k+'='+json.dumps(v,ensure_ascii=False) for k,v in environment.items())+'\n')
         if os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):
             script=';'.join('hl.env('+json.dumps(k)+','+json.dumps(v,ensure_ascii=False)+')' for k,v in environment.items())
@@ -230,7 +230,7 @@ def main():
         if STATE.exists():
             saved=current();warnings=[]
             if os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):command(['hyprctl','setcursor',saved['cursors'],str(saved['size'])],warnings)
-            if os.environ.get('DISPLAY') and (CONFIG/'hyprstack/cursor.Xresources').exists():command(['xrdb','-merge',str(CONFIG/'hyprstack/cursor.Xresources')],warnings)
+            if os.environ.get('DISPLAY') and (CONFIG/'hics/cursor.Xresources').exists():command(['xrdb','-merge',str(CONFIG/'hics/cursor.Xresources')],warnings)
             output({'warnings':warnings})
         else:output({})
 if __name__=='__main__':

@@ -15,11 +15,11 @@ base = Path(tempfile.mkdtemp(prefix="hyprstack-controls-ui-"))
 shell = base / "shell"
 shutil.copytree(repo / "shell", shell, ignore=shutil.ignore_patterns("plugin", "extras", "__pycache__"))
 (base / "native").mkdir()
-for name, source in (("hyprstack-bars.so", repo / "build/hyprstack-bars.so"),
+for name, source in (("hics-bars.so", repo / "build/hics-bars.so"),
         ("libspatialoverview.so", repo / "build/third_party/phantomat/libspatialoverview.so")):
     shutil.copy2(source, base / "native" / name)
-(base / "config/hyprstack").mkdir(parents=True)
-(base / "config/hyprstack/layouts.json").write_text('{"mode":"scrolling"}')
+(base / "config/hics").mkdir(parents=True)
+(base / "config/hics/layouts.json").write_text('{"mode":"scrolling"}')
 config = repo / "shell/assets/hyprland/config"
 (base / "test.lua").write_text("package.path = " + json.dumps(str(config / "?.lua") + ";") + " .. package.path\n"
     + 'package.preload["scheme.current"] = function() return require("scheme.default") end\n'
@@ -72,9 +72,9 @@ try:
     subprocess.run(["hyprctl", "-i", instance["instance"], "plugin", "load", str(base / "native/libspatialoverview.so")], check=True)
     appenv = dict(env, QT_QPA_PLATFORM="wayland", WAYLAND_DISPLAY=instance["wl_socket"],
         HYPRLAND_INSTANCE_SIGNATURE=instance["instance"], QML_IMPORT_PATH=str(repo / "build/qml"),
-        QML2_IMPORT_PATH=str(repo / "build/qml"), LD_LIBRARY_PATH="/usr/share/hyprstack/qs/lib")
+        QML2_IMPORT_PATH=str(repo / "build/qml"), LD_LIBRARY_PATH="/usr/share/hics/qs/lib")
     with (base / "shell.log").open("w") as log:
-        child = subprocess.Popen(["/usr/share/hyprstack/qs/bin/hyprstack-qs", "-p", str(shell)], env=appenv, stdout=log, stderr=subprocess.STDOUT)
+        child = subprocess.Popen(["/usr/share/hics/qs/bin/hics-qs", "-p", str(shell)], env=appenv, stdout=log, stderr=subprocess.STDOUT)
         result = child.wait(timeout=22)
     output = (base / "shell.log").read_text()
     print(output[-7000:])

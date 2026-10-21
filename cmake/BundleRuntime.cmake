@@ -1,6 +1,6 @@
 # Private quickshell + Qt runtime for binary packages (HYPRSTACK_BUNDLE_RUNTIME).
 # Builds the pinned quickshell tag against the system Qt, then install(CODE)
-# assembles a self-contained runtime under ${DATADIR}/hyprstack/qs.
+# assembles a self-contained runtime under ${DATADIR}/hics/qs.
 
 include(ExternalProject)
 
@@ -64,11 +64,11 @@ ExternalProject_Add(quickshell-runtime
 # Staged quickshell tree (bin/quickshell, bin/qs symlink, share/) plus the
 # assembled private Qt runtime, DESTDIR-safe via $ENV{DESTDIR} at install time.
 install(DIRECTORY "${HYPRSTACK_QS_STAGE}/"
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/hyprstack/qs"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/hics/qs"
     USE_SOURCE_PERMISSIONS)
 
 install(CODE "
-    set(bundle_root \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/hyprstack/qs\")
+    set(bundle_root \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/hics/qs\")
     message(STATUS \"Assembling private Qt runtime in \${bundle_root}\")
     execute_process(
         COMMAND bash \"${CMAKE_CURRENT_SOURCE_DIR}/distribution/bundle-qt.sh\"

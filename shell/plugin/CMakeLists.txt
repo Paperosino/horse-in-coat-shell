@@ -1,4 +1,4 @@
-find_package(Qt6 REQUIRED COMPONENTS ShaderTools Core Qml Gui Quick QuickControls2 Concurrent Sql Network DBus)
+find_package(Qt6 REQUIRED COMPONENTS ShaderTools Core Qml Gui Quick QuickControls2 Concurrent Sql Network DBus Multimedia)
 if(NOT TARGET Qt6::QuickPrivate)
     find_package(Qt6QuickPrivate REQUIRED)
 endif()

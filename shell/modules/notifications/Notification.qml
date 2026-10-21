@@ -14,6 +14,7 @@ import qs.utils
 
 StyledRect {
     id: root
+    objectName: "notificationPopup"
 
     required property NotifData modelData
     // Releasing the last UI lock can destroy the data before its child items.
@@ -88,9 +89,7 @@ StyledRect {
             if (!GlobalConfig.notifs.actionOnClick || event.button !== Qt.LeftButton)
                 return;
 
-            const actions = root.modelData?.actions ?? [];
-            if (actions.length === 1)
-                actions[0].invoke();
+            root.modelData?.activate();
         }
 
         Item {

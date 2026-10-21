@@ -10,7 +10,7 @@ BOOLS={'canvasSticky','canvasGrid','canvasSnap','canvasMinimap','canvasRemember'
 FILE=CONFIG/'layouts.json'
 def config():
  c={**DEFAULT,**read_json(FILE)}
- c['canvasAvailable']=any((p/'native/libspatialoverview.so').is_file() for p in [Path(os.environ.get('HYPRSTACK_DATA_DIR','/usr/share/hyprstack')),Path(__file__).resolve().parents[2]])
+ c['canvasAvailable']=any((p/'native/libspatialoverview.so').is_file() for p in [Path(os.environ.get('HYPRSTACK_DATA_DIR','/usr/share/hics')),Path(__file__).resolve().parents[2]])
  return c
 
 def validate(value):

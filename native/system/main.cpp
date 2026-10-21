@@ -11,7 +11,7 @@
 #include <QThreadPool>
 class Broker final : public QObject, protected QDBusContext {
   Q_OBJECT
-  Q_CLASSINFO("D-Bus Interface", "org.hyprstack.System1")
+  Q_CLASSINFO("D-Bus Interface", "org.hics.System1")
   QSemaphore capacity{16};
   QString submit(const QString &domain, const QString &op, const QString &raw,
                  bool write) {
@@ -44,7 +44,7 @@ class Broker final : public QObject, protected QDBusContext {
             if (write) {
               System::validate(domain, op, options);
               if (!(domain == "printers" && op == "cancel-job"))
-                System::authorize(sender, "org.hyprstack.system." + domain,
+                System::authorize(sender, "org.hics.system." + domain,
                                   user);
               System::apply(domain, op, options, user);
             }

@@ -51,7 +51,7 @@ StyledRect {
 
                 StateLayer {
                     onClicked: {
-                        if (root.modelData?.activate())
+                        if (GlobalConfig.notifs.actionOnClick && root.modelData?.activate())
                             root.screenState.sidebar = false;
                         else {
                             const app = root.modelData?.appName;
@@ -95,6 +95,13 @@ StyledRect {
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             maximumLineCount: root.expanded ? Number.MAX_SAFE_INTEGER : 2
             elide: Text.ElideRight
+            TapHandler {
+                acceptedButtons: Qt.LeftButton
+                onTapped: {
+                    if (!bodyText.hoveredLink && GlobalConfig.notifs.actionOnClick && root.modelData?.activate())
+                        root.screenState.sidebar = false;
+                }
+            }
             onLinkActivated: link => {
                 Qt.openUrlExternally(link);
                 root.screenState.sidebar = false;

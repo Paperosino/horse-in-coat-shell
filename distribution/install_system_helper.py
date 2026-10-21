@@ -15,14 +15,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def deployment(prefix):
     prefix = Path(prefix)
-    for name in ('hyprstack-systemd', 'hyprstack-systemctl'):
+    for name in ('hics-systemd', 'hics-systemctl'):
         yield Path('/usr/local/bin') / name, (prefix / 'bin' / name).read_bytes(), 0o755
-    unit = (ROOT / 'distribution/systemd/system/hyprstack-system.service').read_text().replace('/usr/bin/hyprstack-systemd', '/usr/local/bin/hyprstack-systemd')
-    activation = (ROOT / 'distribution/dbus/org.hyprstack.System1.service').read_text().replace('/usr/bin/hyprstack-systemd', '/usr/local/bin/hyprstack-systemd')
-    yield Path('/etc/systemd/system/hyprstack-system.service'), unit.encode(), 0o644
-    yield Path('/usr/local/share/dbus-1/system-services/org.hyprstack.System1.service'), activation.encode(), 0o644
-    yield Path('/etc/dbus-1/system.d/org.hyprstack.System1.conf'), (ROOT / 'distribution/dbus/org.hyprstack.System1.conf').read_bytes(), 0o644
-    yield Path('/usr/share/polkit-1/actions/org.hyprstack.system.policy'), (ROOT / 'distribution/polkit/org.hyprstack.system.policy').read_bytes(), 0o644
+    unit = (ROOT / 'distribution/systemd/system/hics-system.service').read_text().replace('/usr/bin/hics-systemd', '/usr/local/bin/hics-systemd')
+    activation = (ROOT / 'distribution/dbus/org.hics.System1.service').read_text().replace('/usr/bin/hics-systemd', '/usr/local/bin/hics-systemd')
+    yield Path('/etc/systemd/system/hics-system.service'), unit.encode(), 0o644
+    yield Path('/usr/local/share/dbus-1/system-services/org.hics.System1.service'), activation.encode(), 0o644
+    yield Path('/etc/dbus-1/system.d/org.hics.System1.conf'), (ROOT / 'distribution/dbus/org.hics.System1.conf').read_bytes(), 0o644
+    yield Path('/usr/share/polkit-1/actions/org.hics.system.policy'), (ROOT / 'distribution/polkit/org.hics.system.policy').read_bytes(), 0o644
 
 
 def install(prefix):
@@ -45,7 +45,7 @@ def install(prefix):
             Path(temporary).unlink(missing_ok=True)
     subprocess.run(['systemctl', 'daemon-reload'], check=True)
     subprocess.run(['systemctl', 'reload', 'dbus.service'], check=True)
-    subprocess.run(['systemctl', 'try-restart', 'hyprstack-system.service'], check=True)
+    subprocess.run(['systemctl', 'try-restart', 'hics-system.service'], check=True)
     print('System helper installed; D-Bus activates it on demand.')
 
 

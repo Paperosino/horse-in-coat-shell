@@ -1,6 +1,7 @@
 import QtQuick
 import Hyprstack.Config
 import Hyprstack.I18n
+import Hyprstack.Services
 import qs.components
 import qs.services
 
@@ -28,7 +29,7 @@ Item {
         id: icon
 
         anchors.centerIn: parent
-        text: Notifs.dnd ? "notifications_paused" : "notifications"
+        text: Notifs.dnd || NotificationPolicy.paused ? "notifications_paused" : "notifications"
         color: root.screenState.sidebar || Notifs.unreadCount > 0 ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
         fontStyle: Tokens.font.icon.builders.small.weight(Font.Bold).build()
         fill: root.screenState.sidebar || Notifs.unreadCount > 0 ? 1 : 0

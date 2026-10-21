@@ -1,10 +1,10 @@
 [Русский](README.md)
 
 <p align="center">
-  <img src="shell/assets/logo.svg" width="104" alt="horse-in-coat-shell logo">
+  <img src="shell/assets/logo.svg" width="104" alt="hics logo">
 </p>
 
-<h1 align="center">horse-in-coat-shell</h1>
+<h1 align="center">hics</h1>
 
 <p align="center">Four ways to work with windows. One working environment for Hyprland.</p>
 
@@ -15,9 +15,9 @@
   <a href="#demo">Demo</a>
 </p>
 
-horse-in-coat-shell is developed as an independent project with its own direction. Current source and updates: [Paperosino/horse-in-coat-shell](https://github.com/Paperosino/horse-in-coat-shell).
+hics is developed as an independent project with its own direction. Current source and updates: [Paperosino/hics](https://github.com/Paperosino/horse-in-coat-shell).
 
-horse-in-coat-shell is a shell for Hyprland with four window modes:
+hics is a shell for Hyprland with four window modes:
 **scrolling** — an infinitely scrollable strip of columns; **stacking** —
 floating windows with title bars; **tiling** — classic tiling; **canvas** —
 an infinite spatial canvas with zoom, panning and a minimap. Modes switch with

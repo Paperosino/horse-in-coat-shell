@@ -1,0 +1,51 @@
+#include "desktopintegration.hpp"
+#include "notificationpolicy.hpp"
+#include <QCoreApplication>
+#include <QEventLoop>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QTextStream>
+#include <QTimer>
+using namespace hyprstack::services;
+int main(int argc, char **argv) {
+    QCoreApplication app(argc, argv);
+    const auto request = QJsonDocument::fromJson(QTextStream(stdin).readAll().toUtf8()).object();
+    const auto operation = request["operation"].toString();
+    QJsonObject result;
+    if (operation.startsWith("policy")) {
+        NotificationPolicy policy;
+        if (operation == "policy-write") {
+            policy.observe("org.example.Chat", "Chat");
+            policy.setRule("org.example.Chat", "silent");
+            policy.pauseFor(30);
+        } else if (operation == "policy-resume") policy.resume();
+        result = {{"paused", policy.paused()}, {"until", policy.pausedUntil()},
+            {"rule", policy.rule("org.example.Chat")}, {"applications", QJsonArray::fromVariantList(policy.applications())}, {"error", policy.error()}};
+    } else {
+        DesktopIntegration desktop;
+        bool succeeded = false;
+        QObject::connect(&desktop, &DesktopIntegration::operationSucceeded, &app, [&] { succeeded = true; });
+        if (operation == "refresh") desktop.refresh();
+        else if (operation == "profile") desktop.setCardProfile(request["card"].toString(), request["profile"].toString());
+        else if (operation == "hotspot") desktop.startHotspot(request["path"].toString(), request["ssid"].toString(), request["password"].toString());
+        else if (operation == "hidden") desktop.connectHiddenNetwork(request["ssid"].toString(), request["password"].toString(), true, true);
+        else if (operation == "stop-hotspot") desktop.stopHotspot(request["path"].toString());
+        else if (operation == "unlock") desktop.unlockVolume(request["path"].toString(), request["password"].toString());
+        else if (operation == "lock") desktop.lockVolume(request["path"].toString());
+        else if (operation == "eject") desktop.ejectDrive(request["path"].toString(), true);
+        QEventLoop loop;
+        QTimer poll;
+        QObject::connect(&poll, &QTimer::timeout, &loop, [&] { if (!desktop.busy()) loop.quit(); });
+        poll.start(10);
+        QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+        loop.exec();
+        result = {{"error", desktop.error()}, {"busy", desktop.busy()}, {"succeeded", succeeded},
+            {"cards", QJsonArray::fromVariantList(desktop.cards())}, {"wifi", QJsonArray::fromVariantList(desktop.wifiDevices())},
+            {"encrypted", QJsonArray::fromVariantList(desktop.encryptedVolumes())}, {"drives", QJsonArray::fromVariantList(desktop.removableDrives())},
+            {"captures", QJsonArray::fromVariantList(desktop.captureStreams())}, {"captureAvailable", desktop.captureMonitorAvailable()},
+            {"sources", QJsonArray::fromVariantList(desktop.recordingSources())}};
+    }
+    QTextStream(stdout) << QJsonDocument(result).toJson(QJsonDocument::Compact) << Qt::endl;
+}

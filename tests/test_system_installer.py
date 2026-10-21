@@ -8,13 +8,13 @@ class SystemInstaller(unittest.TestCase):
  def test_service_never_executes_user_owned_build(self):
   with tempfile.TemporaryDirectory() as directory:
    prefix=Path(directory);(prefix/'bin').mkdir()
-   for name in ('hyprstack-systemd','hyprstack-systemctl'):(prefix/'bin'/name).write_bytes(b'fixture')
+   for name in ('hics-systemd','hics-systemctl'):(prefix/'bin'/name).write_bytes(b'fixture')
    plan={str(path):(content,mode) for path,content,mode in installer.deployment(prefix)}
    self.assertEqual(len(plan),6)
    for path,(content,mode) in plan.items():
     self.assertNotIn(directory,path)
     if path.endswith('.service'):
-     self.assertNotIn(directory,content.decode());self.assertIn('/usr/local/bin/hyprstack-systemd',content.decode())
+     self.assertNotIn(directory,content.decode());self.assertIn('/usr/local/bin/hics-systemd',content.decode())
     self.assertEqual(mode,0o755 if path.startswith('/usr/local/bin/') else 0o644)
  def test_package_wires_system_service_post_install(self):
   pkg=(ROOT/'packaging/arch/PKGBUILD').read_text()

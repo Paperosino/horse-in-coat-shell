@@ -46,7 +46,7 @@ Variants {
                 asynchronous: true
 
                 anchors.fill: parent
-                active: Config.background.wallpaperEnabled && (LiveWallpapers.forScreen(win.screen.name).kind === "static" || LiveWallpapers.forScreen(win.screen.name).kind === "engine" && !LiveWallpapers.engineRunning[win.screen.name])
+                active: Config.background.wallpaperEnabled && (LiveWallpapers.forScreen(win.screen.name).kind === "static" || LiveWallpapers.forScreen(win.screen.name).kind === "engine" && !LiveWallpapers.videoSource(LiveWallpapers.forScreen(win.screen.name)).toString() && !LiveWallpapers.engineRunning[win.screen.name])
 
                 sourceComponent: Wallpaper {}
             }

@@ -34,7 +34,7 @@ class NativePayloadTests(unittest.TestCase):
             validate(self.payload, self.build)
 
     def test_stale_plugin_is_rejected_even_with_matching_abi(self):
-        (self.payload / "hyprstack-bars.so").write_bytes(b"\x7fELF" + b"old" * 30)
+        (self.payload / "hics-bars.so").write_bytes(b"\x7fELF" + b"old" * 30)
         with self.assertRaisesRegex(ValueError, "differs"):
             validate(self.payload, self.build)
 
@@ -45,6 +45,6 @@ class NativePayloadTests(unittest.TestCase):
     def test_truncated_or_non_elf_file_is_rejected(self):
         for content in (b"\x7fELF", b"not a library" * 10):
             with self.subTest(content=content):
-                (self.payload / "hyprstack-bars.so").write_bytes(content)
+                (self.payload / "hics-bars.so").write_bytes(content)
                 with self.assertRaisesRegex(ValueError, "Invalid"):
                     validate(self.payload, self.build)

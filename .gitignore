@@ -75,7 +75,7 @@
 !/shell/utils/
 /shell/assets/*
 !/shell/assets/diagnostics.py
-!/shell/assets/hyprstack_cli.py
+!/shell/assets/hics_cli.py
 !/shell/assets/i18n.py
 !/shell/assets/notification_tools.py
 !/shell/assets/session_runner.py
@@ -117,6 +117,7 @@
 !/shell/assets/*.py
 
 # Generated files and machine-local overrides are never source files.
+/DE_ROADMAP.md
 **/.*
 !/.gitignore
 !/.gitattributes
@@ -142,8 +143,8 @@
 **/install_manifest.txt
 **/node_modules/
 **/scheme/current.lua
-**/hyprstack/monitors.lua
-**/hyprstack/local.lua
+**/hics/monitors.lua
+**/hics/local.lua
 # These two files are empty extension points, with no machine configuration.
-!/distribution/defaults/hyprstack/monitors.lua
-!/distribution/defaults/hyprstack/local.lua
+!/distribution/defaults/hics/monitors.lua
+!/distribution/defaults/hics/local.lua

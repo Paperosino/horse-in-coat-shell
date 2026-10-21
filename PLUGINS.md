@@ -1,4 +1,4 @@
-# Расширения Hyprstack
+# Расширения hics
 
 Менеджер доступен в настройках → «Плагины». Установка поддерживает локальную папку,
 ZIP, HTTPS ZIP и ссылку на каталог плагина GitHub. Новый плагин выключен до явного
@@ -9,7 +9,7 @@ QML-плагин выполняется с правами пользовател
 
 | Формат | Поддержка |
 | --- | --- |
-| Hyprstack `api: "hyprstack-1"` | Основной формат: main, barWidget, desktopWidget, settings, panel |
+| hics `api: "hics-1"` | Основной формат: main, barWidget, desktopWidget, settings, panel |
 | Noctalia QML, manifest.json | Частичный мост Commons/Services/Widgets; предварительная проверка импортов |
 | AngelOS QML | Импорт манифеста; компоненты, зависящие от Skin/qs.config, требуют переноса |
 | Noctalia 5 Luau, plugin.toml | Распознавание метаданных; выполнение Luau пока не реализовано |
@@ -19,8 +19,8 @@ QML-плагин выполняется с правами пользовател
 в менеджере. В Qt 6 используйте `import qs.Commons as Commons` и `Commons.Color.mPrimary`,
 чтобы избежать конфликта с одноимёнными типами Qt.
 
-Пользовательские расширения: `$XDG_DATA_HOME/hyprstack/plugins` (по умолчанию
-`~/.local/share/hyprstack/plugins`). Настройки: `~/.config/hyprstack/plugins.json`.
+Пользовательские расширения: `$XDG_DATA_HOME/hics/plugins` (по умолчанию
+`~/.local/share/hics/plugins`). Настройки: `~/.config/hics/plugins.json`.
 Готовые примеры находятся в `shell/plugins`: pomodoro, system-monitor, web-search,
 quick-actions, night-light. Последнему требуется `hyprsunset`.
 
@@ -29,7 +29,7 @@ quick-actions, night-light. Последнему требуется `hyprsunset`
 `manifest.json`:
 
 ```json
-{"id":"hello","name":"Hello","version":"1.0.0","api":"hyprstack-1","entryPoints":{"barWidget":"Bar.qml"},"settingsSchema":[{"key":"label","type":"string","default":"Hello"}]}
+{"id":"hello","name":"Hello","version":"1.0.0","api":"hics-1","entryPoints":{"barWidget":"Bar.qml"},"settingsSchema":[{"key":"label","type":"string","default":"Hello"}]}
 ```
 
 `Bar.qml`:
@@ -51,5 +51,5 @@ API предоставляет `pluginId`, `pluginDir`, `pluginDataDir`, `plugin
 Схема настроек поддерживает bool, int, number, string, choice и json.
 Перетаскиваемые настольные виджеты сохраняют координаты через API настроек.
 
-IPC: `runhics-shell ipc call plugins list`, `plugins refresh`,
+IPC: `hics-shell ipc call plugins list`, `plugins refresh`,
 `plugins enable ID`, `plugins disable ID`, `plugins reload`.

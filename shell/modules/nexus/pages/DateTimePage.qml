@@ -22,7 +22,7 @@ PageBase {
         FeatureError { error: system.error }
         InfoRow { first: true; label: Tr.tr("System time"); value: (system.state.localTime ?? "").replace("T", " ").replace(/[+-]\d{2}:\d{2}$/, "") }
         InfoRow { last: true; label: Tr.tr("Time zone"); value: system.state.timezone ?? "" }
-        ToggleRow { first: true; text: Tr.tr("Automatic network time"); checked: !!system.state.ntp; enabled: system.state.canNtp && !system.busy; onToggled: system.apply("ntp", {enabled: checked}) }
+        ToggleRow { first: true; text: Tr.tr("Automatic network time"); checked: !!system.state.ntp; enabled: !!system.state.canNtp && !system.busy; onToggled: system.apply("ntp", {enabled: checked}) }
         InfoRow { last: true; label: Tr.tr("Clock synchronization"); value: system.state.synchronized ? Tr.tr("Synchronized") : Tr.tr("Not synchronized") }
         SectionHeader { text: Tr.tr("Time zone") }
         SearchBar { Layout.fillWidth: true; placeholderText: Tr.tr("Search time zones"); onTextChanged: root.zoneQuery = text }

@@ -37,6 +37,6 @@ Item {
         });
     }
     Component.onCompleted: reload()
-    FeatureBackend { id: backend; executable: "hyprstack-systemctl" }
+    FeatureBackend { id: backend; executable: "hics-systemctl" }
     Timer { interval: 15000; repeat: true; running: root.watching; onTriggered: { if (!root.busy) root.reload(); } }
 }

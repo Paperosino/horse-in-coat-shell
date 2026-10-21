@@ -1,6 +1,6 @@
 [English](INSTALL.en.md) · [На главную](README.md)
 
-# Установка horse-in-coat-shell
+# Установка hics
 
 [Arch Linux и производные](#arch) · [NixOS](#nixos)
 
@@ -43,14 +43,14 @@ sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
 Выполняйте без `sudo`:
 
 ```bash
-git clone https://github.com/Paperosino/horse-in-coat-shell.git
-cd horse-in-coat-shell
+git clone https://github.com/Paperosino/horse-in-coat-shell.git hics
+cd hics
 packaging/arch/build-package.sh --install
 ```
 
 Скрипт сам доустановит недостающие зависимости сборки и соберёт пакет
 `hic-shell` со вложенным рантаймом: собственный Quickshell **v0.3.2**
-и приватные библиотеки Qt в `/usr/share/hyprstack/qs`. Обновления системных
+и приватные библиотеки Qt в `/usr/share/hics/qs`. Обновления системных
 пакетов `quickshell` и `qt6-*` на оболочку не влияют; системный `quickshell`
 не нужен (при отсутствии бандла обёртка резервно использует системный `qs`).
 Служба сеанса сразу ставится в `/usr/lib/systemd/user`. Обновление пакета
@@ -58,8 +58,8 @@ packaging/arch/build-package.sh --install
 Qt и упаковывает его заново.
 
 Если оболочка раньше была установлена в `$HOME/.local`, удалите каталог
-`~/.local/share/hyprstack`, чтобы приоритет данных отдал пакетной
-установке (`HYPRSTACK_DATA_DIR` по-прежнему переопределяет выбор).
+`~/.local/share/hics`, чтобы приоритет данных отдал пакетной
+установке (`HICS_DATA_DIR` по-прежнему переопределяет выбор).
 
 #### Вариант Б: ручная сборка в `$HOME/.local`
 
@@ -97,8 +97,8 @@ sudo python3 distribution/install_system_helper.py "$HOME/.local"
 
 ```bash
 config_dir=${XDG_CONFIG_HOME:-$HOME/.config}
-backup_dir=$(mktemp -d "$HOME/hyprstack-backup.XXXXXXXX")
-for name in hypr hyprstack systemd/user/hic-session.service; do
+backup_dir=$(mktemp -d "$HOME/hics-backup.XXXXXXXX")
+for name in hypr hics systemd/user/hic-session.service; do
     if [ -e "$config_dir/$name" ] || [ -L "$config_dir/$name" ]; then
         mv "$config_dir/$name" "$backup_dir/"
     fi
@@ -109,11 +109,11 @@ printf 'Резервная копия: %s\n' "$backup_dir"
 Сохраните выведенный путь. Затем скопируйте новую конфигурацию:
 
 ```bash
-mkdir -p "$config_dir/hypr" "$config_dir/hyprstack"
+mkdir -p "$config_dir/hypr" "$config_dir/hics"
 cp -R shell/assets/hyprland/config/. "$config_dir/hypr/"
-cp -R distribution/defaults/hyprstack/. "$config_dir/hyprstack/"
+cp -R distribution/defaults/hics/. "$config_dir/hics/"
 export PATH="$HOME/.local/bin:$PATH"
-runhics scheme set -n hyprstack-catppuccin -m dark
+hics scheme set -n hics-catppuccin -m dark
 ```
 
 **Только для варианта Б (ручная сборка):** установите пользовательскую
@@ -136,7 +136,7 @@ systemctl --user daemon-reload
 В терминале выполните:
 
 ```bash
-runhics-doctor
+hics-doctor
 hyprctl configerrors
 ```
 
@@ -151,14 +151,14 @@ hyprctl configerrors
 
 ```nix
 {
-  inputs.hyprstack.url = "github:Paperosino/horse-in-coat-shell";
+  inputs.hics.url = "github:Paperosino/horse-in-coat-shell";
 
-  outputs = { nixpkgs, hyprstack, ... }: {
+  outputs = { nixpkgs, hics, ... }: {
     nixosConfigurations.YOUR_HOST = nixpkgs.lib.nixosSystem {
       modules = [
         ./configuration.nix
-        hyprstack.nixosModules.default
-        { programs.hyprstack.enable = true; }
+        hics.nixosModules.default
+        { programs.hics.enable = true; }
       ];
     };
   };
@@ -177,16 +177,16 @@ hyprctl configerrors
 ```nix
 {
   home-manager.users.YOUR_USER = {
-    imports = [ hyprstack.homeManagerModules.default ];
-    programs.hyprstack.enable = true;
+    imports = [ hics.homeManagerModules.default ];
+    programs.hics.enable = true;
   };
 }
 ```
 
-Оба модуля должны использовать один вход `hyprstack`. Настройки оболочки
+Оба модуля должны использовать один вход `hics`. Настройки оболочки
 останутся доступны для изменения через интерфейс.
-Свои Lua-настройки: [`programs.hyprstack.extraConfig`](CONFIGURATION.md#экраны-и-клавиатура)
-или `~/.config/hyprstack/local.lua`.
+Свои Lua-настройки: [`programs.hics.extraConfig`](CONFIGURATION.md#экраны-и-клавиатура)
+или `~/.config/hics/local.lua`.
 
 **Без Home Manager:** пропустите этот пункт; после применения системы
 скопируйте конфигурацию, как описано ниже.
@@ -206,13 +206,13 @@ sudo nixos-rebuild switch --flake .#YOUR_HOST
 **пропустив блок пользовательской службы**. Сборка CMake не нужна.
 
 ```bash
-git clone https://github.com/Paperosino/horse-in-coat-shell.git
-cd horse-in-coat-shell
+git clone https://github.com/Paperosino/horse-in-coat-shell.git hics
+cd hics
 ```
 
 </details>
 
-Войдите в новый сеанс Hyprland и выполните `runhics-doctor`
+Войдите в новый сеанс Hyprland и выполните `hics-doctor`
 и `hyprctl configerrors`.
 
 ## Службы и дополнительные пакеты
@@ -227,7 +227,7 @@ cd horse-in-coat-shell
 
 [Настройки и клавиши](CONFIGURATION.md) · [Обновление и диагностика](MAINTENANCE.md)
 
-Системные настройки используют C++-службу `hyprstack-system.service`, включённую
+Системные настройки используют C++-службу `hics-system.service`, включённую
 в пакет. Она активируется по D-Bus; права подтверждаются через Polkit. Для печати
 нужен CUPS, для накопителей — UDisks2, для профилей — power-profiles-daemon.
 Пользовательская установка в `~/.local` не регистрирует системную службу:

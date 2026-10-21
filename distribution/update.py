@@ -37,7 +37,7 @@ class Update(Installer):
             raise ValueError("No staged build")
         # The privileged broker belongs only in root-owned installation paths.
         for file in self.tree(self.staging / "bin", self.bin):
-            if file.path.name != "hyprstack-systemd":
+            if file.path.name != "hics-systemd":
                 yield file
         for file in self.tree(self.staging / "share", self.data):
             if not any(file.path.is_relative_to(self.data / name) for name in ("dbus-1", "polkit-1")):
@@ -45,7 +45,7 @@ class Update(Installer):
         for file in self.tree(ROOT / "shell/assets/hyprland/config", self.config / "hypr"):
             file.preserve = file.path == self.config / "hypr/scheme/current.lua"
             yield file
-        for file in self.tree(ROOT / "distribution/defaults/hyprstack", self.config / "hyprstack"):
+        for file in self.tree(ROOT / "distribution/defaults/hics", self.config / "hics"):
             file.preserve = file.path.name != "hypr-user.lua"
             yield file
         yield from self.tree(ROOT / "distribution/systemd/user/hic-session.service",
@@ -189,9 +189,9 @@ def main(argv=None):
             else:
                 print("План: git pull --ff-only" if not args.no_pull and (ROOT / ".git").exists() else "План: текущие исходники")
                 print("Проверка зависимостей → сборка → системный демон через sudo → резервная копия → обновление файлов")
-                print("Демон: /usr/local/bin/hyprstack-systemd; systemd, D-Bus и Polkit устанавливаются системно.")
+                print("Демон: /usr/local/bin/hics-systemd; systemd, D-Bus и Polkit устанавливаются системно.")
                 print("Программы:", update.bin)
-                print("Данные:", update.data / "hyprstack")
+                print("Данные:", update.data / "hics")
                 print("Конфигурация:", update.config / "hypr")
                 print("Личные Lua/JSON-настройки и текущая тема сохраняются.")
                 print("Резервные копии:", update.root / "backups")
@@ -209,7 +209,7 @@ def main(argv=None):
                 with tempfile.TemporaryDirectory(prefix="hyprstack-stage-") as stage:
                     subprocess.run(["cmake", "--install", str(directory)], check=True, env=dict(os.environ, DESTDIR=stage))
                     update.staging = Path(stage) / str(update.home / ".local").lstrip("/")
-                    validate_native_plugins(update.staging / "share/hyprstack/native", directory, hypr["abiHash"])
+                    validate_native_plugins(update.staging / "share/hics/native", directory, hypr["abiHash"])
                     files = list(update.plan())
                     validate_destinations(update, files)
                     require_logged_out(update)
@@ -218,10 +218,10 @@ def main(argv=None):
                     update.transaction("install")
                     # The per-user installer can provision toolkit preferences
                     # immediately; system packages use the same hook on login.
-                    subprocess.run([sys.executable, str(update.data / "hyprstack/shell/assets/gtk_theme.py")], check=True)
+                    subprocess.run([sys.executable, str(update.data / "hics/shell/assets/gtk_theme.py")], check=True)
         if shutil.which("systemctl"):
             subprocess.run(["systemctl", "--user", "daemon-reload"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print("Готово. Войдите в Hyprland и выполните runhics-doctor.", flush=True)
+        print("Готово. Войдите в Hyprland и выполните hics-doctor.", flush=True)
         return 0
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print("Обновление остановлено:", error, file=sys.stderr)

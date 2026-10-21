@@ -2,8 +2,8 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=1
-pkgdesc="Quickshell/QML desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
+pkgrel=6
+pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 install=hic-shell.install
 url="https://github.com/Paperosino/horse-in-coat-shell"
@@ -11,7 +11,7 @@ license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT)
 depends=(hyprland libqalculate lm_sensors pixman libdrm libinput systemd
     wayland libxkbcommon pango cairo libcups python python-pillow kitty firefox fuzzel
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
-    libnotify brightnessctl networkmanager pipewire pipewire-pulse wireplumber
+    libnotify brightnessctl networkmanager pipewire pipewire-pulse libpulse wireplumber
     polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2
     adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb)
 makedepends=(base-devel git cmake ninja pkgconf python gettext nlohmann-json
@@ -28,7 +28,7 @@ source=()
 
 build() {
     # build-package.sh stages the repository tree here (source=()).
-    cd "$startdir/src/hyprstack"
+    cd "$startdir/src/hics"
     cmake -S . -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
@@ -41,14 +41,14 @@ build() {
 
 package() {
     # build-package.sh stages the repository tree here (source=()).
-    cd "$startdir/src/hyprstack"
+    cd "$startdir/src/hics"
     DESTDIR="$pkgdir" cmake --install build
-    python distribution/native_plugins.py "$pkgdir/usr/share/hyprstack/native" build
+    python distribution/native_plugins.py "$pkgdir/usr/share/hics/native" build
 
     # System-wide user unit; ExecStart must point at /usr/bin, unlike the
     # copy documented for user-local installs under ~/.config/systemd/user.
     install -Dm644 distribution/systemd/user/hic-session.service \
         "$pkgdir/usr/lib/systemd/user/hic-session.service"
-    sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/runhics-session-runner|' \
+    sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/hics-session-runner|' \
         "$pkgdir/usr/lib/systemd/user/hic-session.service"
 }

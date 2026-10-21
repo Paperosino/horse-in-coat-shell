@@ -1,9 +1,9 @@
 self: { config, lib, pkgs, ... }:
 let
-  cfg = config.programs.hyprstack;
+  cfg = config.programs.hics;
   package = cfg.package;
 in {
-  options.programs.hyprstack = {
+  options.programs.hics = {
     enable = lib.mkEnableOption "Hyprstack and its matching Hyprland session";
     package = lib.mkOption {
       type = lib.types.package;
@@ -23,8 +23,8 @@ in {
     programs.hyprlock.enable = true;
     environment.systemPackages = [ package ];
     environment.sessionVariables = {
-      HYPRSTACK_DATA_DIR = "${package}/share/hyprstack";
-      HYPRSTACK_SESSION_COMMAND = "${package}/bin/runhics-session";
+      HYPRSTACK_DATA_DIR = "${package}/share/hics";
+      HYPRSTACK_SESSION_COMMAND = "${package}/bin/hics-session";
     };
 
     services.dbus.packages = [ package ];
@@ -37,7 +37,7 @@ in {
       unitConfig.ConditionEnvironment = "HYPRLAND_INSTANCE_SIGNATURE";
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${package}/bin/runhics-session-runner";
+        ExecStart = "${package}/bin/hics-session-runner";
         Restart = "on-failure";
         RestartSec = 3;
         TimeoutStopSec = 10;

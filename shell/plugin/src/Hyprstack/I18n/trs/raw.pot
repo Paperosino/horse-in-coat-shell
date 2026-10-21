@@ -1,12 +1,12 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the runhics-shell package.
+# This file is distributed under the same license as the hics-shell package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: runhics-shell\n"
+"Project-Id-Version: hics-shell\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-14 19:08+0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -74,7 +74,7 @@ msgctxt "file dialog sidebar heading"
 msgid "Files"
 msgstr ""
 
-#: modules/areapicker/AreaPicker.qml assets/hyprstack_cli.py
+#: modules/areapicker/AreaPicker.qml assets/hics_cli.py
 msgid "Screenshot taken"
 msgstr ""
 
@@ -1240,7 +1240,7 @@ msgid "Software"
 msgstr ""
 
 #: modules/nexus/pages/AboutPage.qml
-msgctxt "the runhics shell itself, not a unix shell"
+msgctxt "the hics shell itself, not a unix shell"
 msgid "Shell"
 msgstr ""
 
@@ -4326,91 +4326,91 @@ msgstr ""
 msgid "missing"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 #, qt-format
 msgid "Missing command: %1"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Invalid theme mode or variant"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Dynamic schemes use --variant; choose a preset to use --accent"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 #, qt-format
 msgid "Unknown colour scheme: %1"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 #, qt-format
 msgid "No wallpapers found in %1"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Wallpaper does not exist"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Emoji: "
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Invalid Hyprland session signature"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Recording process has already stopped"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Install wf-recorder to record your screen"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 #, qt-format
 msgid "Recorder could not start; see %1"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Control the Hyprstack desktop"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Commands"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "View and change colour schemes"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "View and change wallpapers"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Take a screenshot"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Record the screen"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Open clipboard history"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Open emoji picker"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Manage the shell"
 msgstr ""
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Check the installation"
 msgstr ""
 

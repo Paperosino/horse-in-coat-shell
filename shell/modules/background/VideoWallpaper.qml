@@ -1,24 +1,29 @@
 import QtQuick
 import QtMultimedia
-import Hyprstack.Config
+import Hyprstack.Services
 import qs.services
-import qs.utils
-
 Item {
     id: root
     required property var settings
     property bool paused: false
-    MediaPlayer {
+    property int restartSerial: 0
+    property string outputName
+    property int frames: 0
+    onRestartSerialChanged: player.restart()
+    WallpaperPlayer {
         id: player
-        source: Paths.fileUrl(root.settings.source)
-        loops: MediaPlayer.Infinite
-        autoPlay: !root.paused
-        videoOutput: video
-        audioOutput: AudioOutput { muted: root.settings.muted; volume: root.settings.volume / 100 }
-        onErrorOccurred: (error, errorString) => { LiveWallpapers.playbackError = errorString; }
-        Component.onCompleted: root.paused ? pause() : play()
+        source: LiveWallpapers.videoSource(root.settings)
+        paused: root.paused
+        muted: root.settings.muted
+        volume: root.settings.volume / 100
+        videoSink: video.videoSink
+        onFrameReceived: root.frames++
     }
-    onPausedChanged: paused ? player.pause() : player.play()
+    Timer {
+        interval: 1000; running: !!root.outputName; repeat: true
+        onTriggered: LiveWallpapers.reportVideo(root.outputName, {frames: root.frames, paused: root.paused,
+            recoveries: player.recoveries, error: player.error, source: player.source.toString()})
+    }
     VideoOutput {
         id: video
         anchors.fill: parent

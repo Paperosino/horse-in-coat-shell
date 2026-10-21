@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Layouts
 import Hyprstack.Config
 import Hyprstack.I18n
+import Hyprstack.Services
+import qs.services
 import qs.components.controls
 import qs.modules.nexus.common
 
@@ -38,13 +40,41 @@ PageBase {
     readonly property list<string> toastFullscreenValues: ["off", "important", "all"]
 
     title: Tr.tr("Notifications")
-    isSubPage: true
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+
+        SectionHeader { first: true; text: Tr.tr("Do not disturb") }
+        ToggleRow { first: true; text: Tr.tr("Do not disturb"); checked: Notifs.dnd; onToggled: Notifs.dnd = checked }
+        RowButton { text: Tr.tr("Pause popups for 30 minutes"); icon: "snooze"; onClicked: NotificationPolicy.pauseFor(30) }
+        RowButton { text: Tr.tr("Pause popups for 1 hour"); icon: "snooze"; onClicked: NotificationPolicy.pauseFor(60) }
+        RowButton {
+            last: true; visible: NotificationPolicy.paused
+            text: Tr.tr("Resume popups"); icon: "notifications_active"
+            subtext: new Date(NotificationPolicy.pausedUntil * 1000).toLocaleString()
+            onClicked: NotificationPolicy.resume()
+        }
+        SectionHeader { text: Tr.tr("Application rules") }
+        Repeater {
+            model: NotificationPolicy.applications
+            SelectRow {
+                id: appRule
+                required property var modelData
+                first: true; last: true
+                label: modelData.name || modelData.id
+                subtext: modelData.id
+                menuItems: [allRule, silentRule, blockedRule]
+                active: modelData.mode === "blocked" ? blockedRule : modelData.mode === "silent" ? silentRule : allRule
+                onSelected: item => NotificationPolicy.setRule(modelData.id, item.value)
+                MenuItem { id: allRule; text: Tr.tr("Popups and history"); value: "all" }
+                MenuItem { id: silentRule; text: Tr.tr("History only"); value: "silent" }
+                MenuItem { id: blockedRule; text: Tr.tr("Block new notifications"); value: "blocked" }
+            }
+        }
+        FeatureError { error: NotificationPolicy.error }
 
         // Notifications
         SectionHeader {
@@ -59,6 +89,13 @@ PageBase {
             menuItems: root.notifFullscreenItems
             active: root.notifFullscreenItems[GlobalConfig.notifs.fullscreen]
             onSelected: item => GlobalConfig.notifs.fullscreen = root.notifFullscreenItems.indexOf(item)
+        }
+
+        ToggleRow {
+            text: Tr.tr("Open application on click")
+            subtext: Tr.tr("Use the application's notification action or switch to its existing window")
+            checked: GlobalConfig.notifs.actionOnClick
+            onToggled: GlobalConfig.notifs.actionOnClick = checked
         }
 
         ToggleRow {

@@ -1,7 +1,7 @@
 local json = require("utils.json")
 local refresh_mode_bindings = function() end
-local config_dir = (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/hyprstack"
-local runtime_path = os.getenv("XDG_RUNTIME_DIR") .. "/hyprstack-layouts-" .. os.getenv("HYPRLAND_INSTANCE_SIGNATURE") .. ".json"
+local config_dir = (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/hics"
+local runtime_path = os.getenv("XDG_RUNTIME_DIR") .. "/hics-layouts-" .. os.getenv("HYPRLAND_INSTANCE_SIGNATURE") .. ".json"
 
 local function read(path)
     local file = io.open(path, "r")
@@ -806,16 +806,16 @@ end
 
 local script_dir = debug.getinfo(1, "S").source:sub(2):match("(.*/)")
 local data_dir = os.getenv("HYPRSTACK_DATA_DIR")
-    or (file_exists("/usr/share/hyprstack/native/hyprstack-bars.so") and "/usr/share/hyprstack")
-    or ((os.getenv("XDG_DATA_HOME") or os.getenv("HOME") .. "/.local/share") .. "/hyprstack")
+    or (file_exists("/usr/share/hics/native/hics-bars.so") and "/usr/share/hics")
+    or ((os.getenv("XDG_DATA_HOME") or os.getenv("HOME") .. "/.local/share") .. "/hics")
 local plugin_path = os.getenv("HYPRSTACK_TITLEBAR_PLUGIN") or read(config_dir .. "/titlebars.json").path or
-    (data_dir .. "/native/hyprstack-bars.so")
+    (data_dir .. "/native/hics-bars.so")
 local plugin_file = io.open(plugin_path, "r")
 if plugin_file then plugin_file:close(); hl.plugin.load(plugin_path) end
 -- The canvas plugin is loaded through the session (hyprctl plugin load), not
 -- here: plugins loaded during config parsing are treated as config-owned and
 -- get unloaded/reloaded by the config manager mid-parse, which corrupts the
--- lua state. See runhics-session.
+-- lua state. See hics-session.
 local canvas_plugin_path = data_dir .. "/native/libspatialoverview.so"
 -- Loading is deferred until the config has been parsed. The plugin requests a
 -- reload after registering its effects; the first pass must use core rules only.
@@ -873,7 +873,7 @@ end
 
 local function refresh_decorations(animate, keep_appearance)
     local state_home = os.getenv("XDG_STATE_HOME") or os.getenv("HOME") .. "/.local/state"
-    layouts.theme(read(state_home .. "/hyprstack/scheme.json").colours)
+    layouts.theme(read(state_home .. "/hics/scheme.json").colours)
     local scrolling = layouts.mode() == "scrolling"
     hl.config({ cursor = { no_warps = not scrolling or tiled_no_warps } })
     pointer_focus()

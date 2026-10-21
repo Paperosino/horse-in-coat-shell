@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 
-cat ~/.local/state/hyprstack/sequences.txt 2>/dev/null
+cat ~/.local/state/hics/sequences.txt 2>/dev/null
 
 exec "$@"

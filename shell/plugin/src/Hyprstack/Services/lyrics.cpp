@@ -39,7 +39,7 @@ constexpr qreal k_indexFudge = 0.1;
 
 [[nodiscard]] const QHash<QByteArray, QByteArray>& lrclibHeaders() {
     static const QHash<QByteArray, QByteArray> k_h = {
-        { "User-Agent"_ba, "runhics-shell/1.0.0"_ba },
+        { "User-Agent"_ba, "hics-shell/1.0.0"_ba },
     };
     return k_h;
 }
@@ -913,7 +913,7 @@ const QString& Lyrics::stateDir() {
         if (state.isEmpty()) {
             state = QDir::homePath() + u"/.local/state"_s;
         }
-        return state + u"/hyprstack/lyrics"_s;
+        return state + u"/hics/lyrics"_s;
     }();
     return k_dir;
 }
@@ -924,7 +924,7 @@ const QString& Lyrics::cacheDir() {
         if (cache.isEmpty()) {
             cache = QDir::homePath() + u"/.cache"_s;
         }
-        return cache + u"/hyprstack/lyrics"_s;
+        return cache + u"/hics/lyrics"_s;
     }();
     return k_dir;
 }

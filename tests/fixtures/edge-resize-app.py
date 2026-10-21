@@ -5,7 +5,7 @@ import os, sys
 
 MARGIN = int(os.environ.get('EDGE_MARGIN', '6'))
 
-app = Gtk.Application(application_id='org.hyprstack.EdgeResizeTest', flags=Gio.ApplicationFlags.NON_UNIQUE)
+app = Gtk.Application(application_id='org.hics.EdgeResizeTest', flags=Gio.ApplicationFlags.NON_UNIQUE)
 
 def activate(app):
     window = Gtk.ApplicationWindow(application=app, title='Edge resize test')

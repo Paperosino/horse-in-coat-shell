@@ -13,7 +13,7 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    title: Tr.tr("Keyboard & mouse")
+    title: Tr.tr("Keyboard")
     objectName: "keyboardPage"
 
     // Layout switching shortcuts (xkb grp: options)
@@ -111,11 +111,11 @@ PageBase {
         spacing: Tokens.spacing.extraSmall / 2
 
         SectionHeader { first: true; text: Tr.tr("Pointing devices") }
-        NavRow { first: true; text: Tr.tr("Mouse"); icon: "mouse"; subtext: Tr.tr("Sensitivity, buttons and scrolling"); onClicked: root.nState.openSubPage(2) }
-        NavRow { text: Tr.tr("Touchpad"); icon: "touchpad_mouse"; subtext: Tr.tr("Taps, clicks and scrolling"); onClicked: root.nState.openSubPage(3) }
+        NavRow { first: true; text: Tr.tr("Mouse"); icon: "mouse"; subtext: Tr.tr("Sensitivity, buttons and scrolling"); onClicked: root.nState.openPage("mouse") }
+        NavRow { text: Tr.tr("Touchpad"); icon: "touchpad_mouse"; subtext: Tr.tr("Taps, clicks and scrolling"); onClicked: root.nState.openPage("touchpad") }
         NavRow { text: Tr.tr("Cursor"); icon: "arrow_selector_tool"; subtext: Tr.tr("Visibility, movement and zoom"); onClicked: root.nState.openSubPage(4) }
         NavRow { text: Tr.tr("Gestures"); icon: "swipe"; subtext: Tr.tr("Workspace swipes"); onClicked: root.nState.openSubPage(5) }
-        NavRow { last:true;text:Tr.tr("Keyboard shortcuts");subtext:Tr.tr("Keys and mouse actions in one place");icon:"keyboard_keys";onClicked:root.nState.openSubPage(6) }
+        NavRow { last:true;text:Tr.tr("Keyboard shortcuts");subtext:Tr.tr("Keys and mouse actions in one place");icon:"keyboard_keys";onClicked:root.nState.openPage("shortcuts") }
 
         // Layouts
         SectionHeader {

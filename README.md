@@ -1,10 +1,10 @@
 [English](README.en.md)
 
 <p align="center">
-  <img src="shell/assets/logo.svg" width="104" alt="Логотип horse-in-coat-shell">
+  <img src="shell/assets/logo.svg" width="104" alt="Логотип hics">
 </p>
 
-<h1 align="center">horse-in-coat-shell</h1>
+<h1 align="center">hics</h1>
 
 <p align="center">Четыре способа работать с окнами. Одно рабочее окружение для Hyprland.</p>
 
@@ -15,9 +15,9 @@
   <a href="#demo">Демонстрация</a>
 </p>
 
-horse-in-coat-shell развивается как самостоятельный проект со своим направлением разработки. Актуальные исходники и обновления: [Paperosino/horse-in-coat-shell](https://github.com/Paperosino/horse-in-coat-shell).
+hics развивается как самостоятельный проект со своим направлением разработки. Актуальные исходники и обновления: [Paperosino/hics](https://github.com/Paperosino/horse-in-coat-shell).
 
-horse-in-coat-shell — оболочка для Hyprland с четырьмя режимами окон:
+hics — оболочка для Hyprland с четырьмя режимами окон:
 **scrolling** — прокручиваемая лента колонок; **stacking** — плавающие окна
 с заголовками; **tiling** — классический тайлинг; **canvas** — бесконечный
 холст с масштабом, панорамой и миникартой. Режимы переключаются одним

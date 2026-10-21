@@ -38,8 +38,12 @@ Item {
     readonly property alias utilities: utilities
     readonly property alias toasts: toasts
     readonly property alias sidebar: sidebar
+    readonly property bool notificationPopoutOverlap: popoutsWrapper.visible && !popouts.isDetached
+        && popoutsWrapper.x < width && popoutsWrapper.x + popoutsWrapper.width > width - notifications.width
+    readonly property real notificationPopupOffset: !bar.atBottom && notificationPopoutOverlap
+        ? Math.max(0, popoutsWrapper.y + popoutsWrapper.height) : 0
     readonly property real sidebarTop: bar.atBottom ? 0
-        : notifications.y + notifications.height - notifications.anchors.topMargin
+        : Math.max(0, notifications.y + notifications.height + 5)
 
     anchors.fill: parent
     anchors.margins: borderThickness
@@ -77,8 +81,12 @@ Item {
         osdPanel: osdWrapper
         sessionPanel: sessionWrapper
         utilitiesPanel: utilities
+        originY: y
+        availableHeight: Math.max(0, root.height - Math.max(0, y)
+            - (root.bar.atBottom && root.notificationPopoutOverlap ? popoutsWrapper.height : 0))
 
         anchors.top: parent.top
+        anchors.topMargin: root.notificationPopupOffset - 5
         anchors.right: parent.right
     }
 
@@ -197,7 +205,7 @@ Item {
         anchors.top: notifications.bottom
         anchors.bottom: utilities.atBottom ? utilities.top : parent.bottom
         anchors.right: parent.right
-        anchors.topMargin: -notifications.anchors.topMargin
+        anchors.topMargin: 5
 
         states: State {
             name: "bottom"

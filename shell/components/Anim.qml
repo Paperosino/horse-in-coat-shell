@@ -22,6 +22,7 @@ NumberAnimation {
     property int type: Anim.DefaultSpatial
 
     duration: {
+        if (GlobalConfig.appearance.reducedMotion) return 0;
         if (type < Anim.StandardSmall || type > Anim.SlowEffects)
             return Tokens.anim.durations.normal;
 

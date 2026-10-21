@@ -103,6 +103,7 @@ QtObject {
                 Component {
                     AppVolumes {}
                 }
+                Component { MediaPage {} }
             }
         },
 
@@ -235,7 +236,17 @@ QtObject {
                 }
             }
         },
-        Component { StackPage { Component { DevicesPage {} } Component { PrintersPage {} } Component { StoragePage {} } } }
+        Component { StackPage { Component { DevicesPage {} } Component { PrintersPage {} } Component { StoragePage {} } } },
+        Component { StackPage { Component { AccessibilityPage {} } } },
+        Component { StackPage { Component { SharingPage {} } } },
+        Component { StackPage { Component { NotificationsPage {} } } },
+        Component { StackPage { Component { InputDevicePage { title:Tr.tr("Mouse"); groups:["Mouse"] } } } },
+        Component { StackPage { Component { InputDevicePage { title:Tr.tr("Touchpad"); groups:["Touchpad"] } } } },
+        Component { StackPage { Component { PrintersPage {} } } },
+        Component { StackPage { Component { StoragePage {} } } },
+        Component { StackPage { Component { DateTimePage {} } } },
+        Component { StackPage { Component { SessionServicesPage { autostartOnly:true } } } },
+        Component { StackPage { Component { DefaultAppsPage {} } } }
     ]
 
     readonly property Component placeholderComp: Component {

@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Hyprstack.Config
+import Hyprstack.Services
 import qs.components
 import qs.utils
 
@@ -12,10 +13,28 @@ Singleton {
     property var entries: []
     property var capabilities: ({})
     property string playbackError: ""
-    readonly property string error: backend.error || playbackError
+    readonly property string error: backend.error || Object.values(videoStates).find(s => s.error)?.error || playbackError
     readonly property bool busy: backend.busy
+    property var videoStates: ({})
+    function reportVideo(name: string, state: var): void { videoStates = Object.assign({}, videoStates, {[name]: state}); }
     property var engineRunning: ({})
     function reportEngine(name: string, value: bool): void { engineRunning = Object.assign({}, engineRunning, {[name]: value}); }
+    property var restartSerials: ({})
+    function restart(name: string): void {
+        playbackError = "";
+        restartSerials = Object.assign({}, restartSerials, {[name]: (restartSerials[name] ?? 0) + 1});
+    }
+    function videoSource(settings: var): url {
+        return settings.kind === "video" || settings.kind === "engine" ? DesktopIntegration.wallpaperVideo(settings.source) : "";
+    }
+    IpcHandler {
+        target: "wallpapers"
+        function status(): string { return JSON.stringify({videos: root.videoStates, engines: root.engineRunning, error: root.error}); }
+        function restart(output: string): void {
+            const names = output ? [output] : Screens.screens.map(s => s.name);
+            for (const name of names) root.restart(name);
+        }
+    }
     property var elapsed: ({})
     property var lastItems: ({})
     readonly property string helper: Paths.toLocalFile(Qt.resolvedUrl("../assets/live_wallpapers.py"))

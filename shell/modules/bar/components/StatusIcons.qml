@@ -4,6 +4,9 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Hyprstack.Config
+import Hyprstack.Services
+import Hyprstack.I18n
+import qs.modules.nexus
 import qs.components
 import qs.services
 import qs.utils
@@ -55,6 +58,22 @@ StyledRect {
         anchors.centerIn: parent
 
         spacing: 0
+
+        Item {
+            visible: Recorder.busy || DesktopIntegration.microphoneTesting || DesktopIntegration.captureStreams.length > 0
+            implicitWidth: visible ? captureIcon.implicitWidth + Tokens.padding.small : 0
+            implicitHeight: captureIcon.implicitHeight
+            Accessible.role: Accessible.Button
+            Accessible.name: Tr.tr("Recording or video capture is active")
+            MaterialIcon {
+                id: captureIcon
+                anchors.centerIn: parent
+                text: DesktopIntegration.microphoneTesting ? "mic" : "screen_record"
+                color: Colours.palette.m3error
+                fontStyle: Tokens.font.icon.medium
+            }
+            StateLayer { onClicked: WindowFactory.openPage("sharing") }
+        }
 
         Repeater {
             model: ScriptModel {

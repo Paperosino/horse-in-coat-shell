@@ -22,7 +22,7 @@ def capture(command):
 
 def checks():
     home = Path.home()
-    data = Path(os.environ.get("HYPRSTACK_DATA_DIR", Path(os.environ.get("XDG_DATA_HOME", home / ".local/share")) / "hyprstack"))
+    data = Path(os.environ.get("HYPRSTACK_DATA_DIR", Path(os.environ.get("XDG_DATA_HOME", home / ".local/share")) / "hics"))
     version_text = capture(["Hyprland", "--version-json"])
     try: version = json.loads(version_text or "{}")
     except ValueError: version = {}
@@ -32,7 +32,7 @@ def checks():
     result.append({"check": "Quickshell >= 0.3.1", "ok": bool(match and tuple(map(int, match.groups())) >= (0, 3, 1)), "value": qs or "missing"})
     for name in ("kitty", "wl-paste", "cliphist", "wpctl", "xdg-open"):
         result.append({"check": name, "ok": bool(shutil.which(name)), "value": shutil.which(name) or "missing"})
-    for name in ("shell/shell.qml", "qml/Hyprstack/qmldir", "qml/M3Shapes/qmldir", "native/hyprstack-bars.so"):
+    for name in ("shell/shell.qml", "qml/Hyprstack/qmldir", "qml/M3Shapes/qmldir", "native/hics-bars.so"):
         result.append({"check": name, "ok": (data / name).is_file(), "value": str(data / name)})
     pam = os.environ.get("HYPRSTACK_PAM_SERVICE", "hyprlock")
     result.append({"check": "PAM lock service", "ok": bool(re.fullmatch(r"[A-Za-z0-9_.-]+", pam) and Path("/etc/pam.d", pam).is_file()), "value": pam})

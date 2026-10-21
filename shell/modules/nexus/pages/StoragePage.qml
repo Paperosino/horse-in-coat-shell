@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Hyprstack.Config
 import Hyprstack.I18n
+import Hyprstack.Services
 import qs.modules.nexus.common
 import qs.utils
 PageBase {
@@ -17,6 +18,10 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: Tokens.spacing.extraSmall / 2
         NativeSystemBackend { id: system; section: "storage"; watching: root.visible }
+        Connections {
+            target: DesktopIntegration
+            function onOperationSucceeded(): void { if (!system.busy) system.reload(); }
+        }
         FeatureError { error: system.error }
         RowButton { first: true; last: true; text: Tr.tr("Refresh"); icon: "refresh"; disabled: system.busy; onClicked: system.reload() }
         Repeater {
@@ -43,6 +48,7 @@ PageBase {
                 RowButton { last: true; text: Tr.tr("Settings, health & maintenance"); icon: "settings"; onClicked: root.selectedPath = root.selectedPath === volume.modelData.path ? "" : volume.modelData.path }
             }
         }
+        RemovableStorage {}
         Loader {
             Layout.fillWidth: true
             active: !!root.selectedVolume

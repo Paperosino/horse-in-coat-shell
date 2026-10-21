@@ -1,5 +1,5 @@
 [Unit]
-Description=Horse-in-coat shell desktop session
+Description=hics desktop session
 PartOf=graphical-session.target
 ConditionEnvironment=HYPRLAND_INSTANCE_SIGNATURE
 StartLimitIntervalSec=60
@@ -7,7 +7,7 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/runhics-session-runner
+ExecStart=%h/.local/bin/hics-session-runner
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=10

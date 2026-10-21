@@ -1,11 +1,11 @@
 """Validate native client requests before any privileged D-Bus operation."""
 import json,os,subprocess,unittest
 from pathlib import Path
-CLIENT=Path(__file__).resolve().parents[1]/'build/native/system/hyprstack-systemctl'
-@unittest.skipUnless(CLIENT.exists(),'build hyprstack-systemctl first')
+CLIENT=Path(__file__).resolve().parents[1]/'build/native/system/hics-systemctl'
+@unittest.skipUnless(CLIENT.exists(),'build hics-systemctl first')
 class NativeSystemTests(unittest.TestCase):
  def invalid(self,section,operation,payload):
-  env=dict(os.environ,DBUS_SYSTEM_BUS_ADDRESS='unix:path=/nonexistent/hyprstack-validation-test')
+  env=dict(os.environ,DBUS_SYSTEM_BUS_ADDRESS='unix:path=/nonexistent/hics-validation-test')
   result=subprocess.run([str(CLIENT),'apply',section,operation],input=json.dumps(payload),text=True,capture_output=True,env=env,timeout=3)
   response=json.loads(result.stdout);self.assertNotEqual(result.returncode,0);self.assertEqual(response['code'],'invalid',response)
  def test_printer_name_uri_and_operations(self):

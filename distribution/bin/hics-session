@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
-data_dir=${HYPRSTACK_DATA_DIR:-}
+for key in DATA_DIR SHELL_DIR LIB_DIR PAM_SERVICE LANGUAGE WALLPAPERS_DIR RECORDINGS_DIR ASSISTANT_KEY; do
+    current="HICS_$key"
+    if [[ -v $current ]]; then export "HYPRSTACK_$key=${!current}"; fi
+done
+data_dir=${HICS_DATA_DIR:-${HYPRSTACK_DATA_DIR:-}}
 if [[ -z $data_dir ]]; then
-    if [[ -d /usr/share/hyprstack ]]; then
-        data_dir=/usr/share/hyprstack
+    if [[ -d /usr/share/hics ]]; then
+        data_dir=/usr/share/hics
     else
-        data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/hyprstack
+        data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/hics
     fi
 fi
 action=${1:-start}
 if [[ "$action" != start && "$action" != stop && "$action" != restart ]]; then
-    printf 'Usage: runhics-session start|stop|restart\n' >&2
+    printf 'Usage: hics-session start|stop|restart\n' >&2
     exit 2
 fi
 if [[ "$action" != stop && ( -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" || -z "${WAYLAND_DISPLAY:-}" ) ]]; then
@@ -19,6 +23,7 @@ if [[ "$action" != stop && ( -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" || -z "${WAYL
 fi
 export PATH="$PATH:$HOME/.local/bin"
 export PYTHONDONTWRITEBYTECODE=1
+python3 "$data_dir/shell/assets/migrate_branding.py"
 if command -v systemctl >/dev/null && systemctl --user show-environment >/dev/null 2>&1; then
     if [[ "$action" != stop ]]; then
         session_vars=(WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP DISPLAY PATH XDG_RUNTIME_DIR XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE GTK2_RC_FILES HYPRSTACK_PAM_SERVICE HYPRSTACK_DATA_DIR HYPRSTACK_TITLEBAR_PLUGIN HYPRSTACK_SESSION_COMMAND)

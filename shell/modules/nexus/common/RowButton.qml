@@ -26,6 +26,7 @@ ConnectedRect {
 
     StateLayer {
         id: stateLayer
+        keyboardFocusable: true
 
         onClicked: e => root.clicked(e)
     }

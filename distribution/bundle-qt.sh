@@ -156,7 +156,7 @@ fi
 
 # 6. Use a Hyprstack-specific binary name (qt.conf lookup is app-dir based).
 if [[ -e $root/bin/quickshell || -L $root/bin/quickshell ]]; then
-    mv -f "$root/bin/quickshell" "$root/bin/hyprstack-qs"
+    mv -f "$root/bin/quickshell" "$root/bin/hics-qs"
 fi
 rm -f "$root/bin/qs"
 

@@ -107,15 +107,13 @@ QtObject {
         }
         const action = liveActions.find(a => a.identifier === "default");
         if (action) {
+            ShellState.closeDrawers();
+            Overview.close(false);
+            NotificationActivation.follow(notif);
             action.invoke();
             return true;
         }
-        const entry = DesktopEntries.applications.values.find(e => e.id === desktopEntry || e.id === desktopEntry + ".desktop");
-        if (entry) {
-            entry.execute();
-            return true;
-        }
-        return false;
+        return NotificationActivation.open(notif);
     }
 
     function updated(): void {

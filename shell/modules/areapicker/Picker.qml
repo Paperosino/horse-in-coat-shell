@@ -84,7 +84,7 @@ MouseArea {
         if (saving || loader.closing || sw < 1 || sh < 1)
             return;
         saving = true;
-        const tmpfile = Qt.resolvedUrl(`/tmp/hyprstack-picker-${Quickshell.processId}-${Date.now()}.png`);
+        const tmpfile = Qt.resolvedUrl(`/tmp/hics-picker-${Quickshell.processId}-${Date.now()}.png`);
         CUtils.saveItem(screencopy, tmpfile, Qt.rect(Math.ceil(rsx), Math.ceil(rsy), Math.floor(sw), Math.floor(sh)), path => {
             // Release exclusive input before another application is mapped.
             closeAnim.start();

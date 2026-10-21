@@ -14,6 +14,7 @@ Scope {
         IdleInhibitor;
         GameMode;
         Notifs;
+        DesktopIntegrationMonitor;
         Players;
         WindowSwitcher;
         Brightness;

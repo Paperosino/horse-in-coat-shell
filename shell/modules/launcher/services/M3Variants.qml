@@ -80,7 +80,7 @@ Searcher {
 
         function onClicked(list: AppList): void {
             list.screenState.launcher = false;
-            Quickshell.execDetached(["hyprstack", "scheme", "set", "-v", variant]);
+            Quickshell.execDetached(["hics", "scheme", "set", "-v", variant]);
         }
     }
 }

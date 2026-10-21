@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
+import qs.modules.nexus
 
 QtObject {
     property ShellScreen screen
@@ -37,6 +38,14 @@ QtObject {
     signal subPageOpened(idx: int)
     signal subPageClosed
     signal searchRequested
+
+    function openPage(id: string): void {
+        const route = PageRegistry.route(id);
+        const index = PageRegistry.indexOf(route.id);
+        if (index < 0) return;
+        currentPageIdx = index;
+        if (route.subPage !== undefined) openSubPage(route.subPage);
+    }
 
     function openSubPage(idx: int): void {
         searchTarget = searchTargetText = "";

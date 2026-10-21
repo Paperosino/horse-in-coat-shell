@@ -5,9 +5,9 @@
 #include <QVariantMap>
 #include <stdexcept>
 namespace System {
-inline constexpr auto Service = "org.hyprstack.System1";
-inline constexpr auto Path = "/org/hyprstack/System1";
-inline constexpr auto Interface = "org.hyprstack.System1";
+inline constexpr auto Service = "org.hics.System1";
+inline constexpr auto Path = "/org/hics/System1";
+inline constexpr auto Interface = "org.hics.System1";
 struct Failure : std::runtime_error {
   QString code;
   Failure(QString code, QString message)

@@ -30,7 +30,7 @@ Scope {
             PolkitAgent {
                 id: agent
 
-                path: "/org/hyprstack/PolkitAgent"
+                path: "/org/hics/PolkitAgent"
 
                 onFlowChanged: {
                     if (!flow)

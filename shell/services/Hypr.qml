@@ -259,7 +259,7 @@ Singleton {
     }
 
     FileView {
-        path: `${Quickshell.env("XDG_RUNTIME_DIR")}/hyprstack-layouts-${Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")}.json`
+        path: `${Quickshell.env("XDG_RUNTIME_DIR")}/hics-layouts-${Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")}.json`
         watchChanges: true
         printErrors: false
         onFileChanged: reload()

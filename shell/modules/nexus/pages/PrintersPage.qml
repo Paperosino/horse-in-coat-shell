@@ -21,7 +21,7 @@ PageBase {
         FeatureError { error: system.error }
         RowButton { first: true; last: true; text: Tr.tr("Refresh"); icon: "refresh"; disabled: system.busy; onClicked: system.reload() }
         SectionHeader { text: Tr.tr("Printer queues") }
-        InfoRow { visible: system.state.available && !(system.state.printers ?? []).length; first: true; last: true; label: Tr.tr("No printers configured"); value: Tr.tr("Add a network printer by its IPP address") }
+        InfoRow { visible: !!system.state.available && !(system.state.printers ?? []).length; first: true; last: true; label: Tr.tr("No printers configured"); value: Tr.tr("Add a network printer by its IPP address") }
         Repeater {
             model: system.state.printers ?? []
             ColumnLayout {

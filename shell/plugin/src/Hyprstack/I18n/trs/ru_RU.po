@@ -3,7 +3,7 @@
 # This file is distributed under the same license as Hyprstack.
 msgid ""
 msgstr ""
-"Project-Id-Version: runhics-shell 1.1.1\n"
+"Project-Id-Version: hics-shell 1.1.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-10 00:00+0400\n"
 "PO-Revision-Date: 2026-10-10 00:00+0400\n"
@@ -102,7 +102,7 @@ msgctxt "file dialog sidebar heading"
 msgid "Files"
 msgstr "Файлы"
 
-#: modules/areapicker/Picker.qml assets/hyprstack_cli.py
+#: modules/areapicker/Picker.qml assets/hics_cli.py
 msgid "Screenshot taken"
 msgstr "Снимок экрана сделан"
 
@@ -1277,7 +1277,7 @@ msgid "Software"
 msgstr "Программное обеспечение"
 
 #: modules/nexus/pages/AboutPage.qml
-msgctxt "the runhics shell itself, not a unix shell"
+msgctxt "the hics shell itself, not a unix shell"
 msgid "Shell"
 msgstr "Оболочка"
 
@@ -4365,91 +4365,91 @@ msgstr "ОШИБКА"
 msgid "missing"
 msgstr "не найдено"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 #, qt-format
 msgid "Missing command: %1"
 msgstr "Команда не найдена: %1"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Invalid theme mode or variant"
 msgstr "Некорректный режим или вариант темы"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Dynamic schemes use --variant; choose a preset to use --accent"
 msgstr "Динамические схемы используют --variant; для --accent выберите встроенную схему"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 #, qt-format
 msgid "Unknown colour scheme: %1"
 msgstr "Неизвестная цветовая схема: %1"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 #, qt-format
 msgid "No wallpapers found in %1"
 msgstr "Обои не найдены в %1"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Wallpaper does not exist"
 msgstr "Файл обоев не существует"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Emoji: "
 msgstr "Эмодзи: "
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Invalid Hyprland session signature"
 msgstr "Некорректный идентификатор сеанса Hyprland"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Recording process has already stopped"
 msgstr "Процесс записи уже завершён"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Install wf-recorder to record your screen"
 msgstr "Для записи экрана установите wf-recorder"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 #, qt-format
 msgid "Recorder could not start; see %1"
 msgstr "Не удалось начать запись; подробности: %1"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Control the Hyprstack desktop"
 msgstr "Управление рабочим окружением Hyprstack"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Commands"
 msgstr "Команды"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "View and change colour schemes"
 msgstr "Просмотр и изменение цветовых схем"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "View and change wallpapers"
 msgstr "Просмотр и изменение обоев"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Take a screenshot"
 msgstr "Сделать снимок экрана"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Record the screen"
 msgstr "Записать экран"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Open clipboard history"
 msgstr "Открыть историю буфера обмена"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Open emoji picker"
 msgstr "Открыть выбор эмодзи"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Manage the shell"
 msgstr "Управление оболочкой"
 
-#: assets/hyprstack_cli.py
+#: assets/hics_cli.py
 msgid "Check the installation"
 msgstr "Проверить установку"
 
@@ -5440,39 +5440,39 @@ msgstr "вверх"
 msgid "usage: "
 msgstr "Использование: "
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "Select an area…"
 msgstr "Выберите область…"
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "Starting…"
 msgstr "Запуск…"
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "Stopping…"
 msgstr "Остановка…"
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "Pending"
 msgstr "Ожидание"
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "No monitor is available for recording"
 msgstr "Нет доступного монитора для записи"
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "Invalid recording region"
 msgstr "Некорректная область записи"
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "The recording region is outside the available monitors"
 msgstr "Область записи находится за пределами доступных мониторов"
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "The recording selection could not be cancelled"
 msgstr "Не удалось отменить выбор области записи"
 
-#: modules/utilities/cards/Record.qml assets/hyprstack_cli.py
+#: modules/utilities/cards/Record.qml assets/hics_cli.py
 msgid "The recording could not be stopped"
 msgstr "Не удалось остановить запись"
 
@@ -7769,3 +7769,252 @@ msgstr "Ctrl+колесо: масштаб; Super+средняя кнопка: д
 
 msgid "Super+O: overview; Super+middle-drag: pan; Ctrl+wheel: zoom"
 msgstr "Super+O: обзор; Super+средняя кнопка: движение холста; Ctrl+колесо: масштаб"
+
+msgid "Wi-Fi hotspot"
+msgstr "Точка доступа Wi-Fi"
+
+msgid "Internet sharing"
+msgstr "Раздача интернета"
+
+msgid "Starting a hotspot may disconnect Wi-Fi on this adapter"
+msgstr "Запуск точки доступа может отключить Wi-Fi на этом адаптере"
+
+msgid "8–63 ASCII characters"
+msgstr "От 8 до 63 символов ASCII"
+
+msgid "Start hotspot"
+msgstr "Включить точку доступа"
+
+msgid "Stop hotspot"
+msgstr "Выключить точку доступа"
+
+msgid "Microphone test"
+msgstr "Проверка микрофона"
+
+msgid "Stop microphone test"
+msgstr "Остановить проверку микрофона"
+
+msgid "Test default microphone"
+msgstr "Проверить микрофон по умолчанию"
+
+msgid "Shows the input level for 15 seconds. Audio is not saved."
+msgstr "Показывает уровень сигнала в течение 15 секунд. Звук не сохраняется."
+
+msgid "Input level"
+msgstr "Уровень сигнала"
+
+msgid "Device profiles"
+msgstr "Профили устройств"
+
+msgid "Changing a profile may disconnect audio streams"
+msgstr "Изменение профиля может прервать звуковые потоки"
+
+msgid "Encrypted volumes"
+msgstr "Зашифрованные тома"
+
+msgid "Unlocked"
+msgstr "Разблокирован"
+
+msgid "Locked"
+msgstr "Заблокирован"
+
+msgid "Passphrase"
+msgstr "Парольная фраза"
+
+msgid "Lock volume"
+msgstr "Заблокировать том"
+
+msgid "Unlock volume"
+msgstr "Разблокировать том"
+
+msgid "Unmount the filesystem before locking"
+msgstr "Перед блокировкой отключите файловую систему"
+
+msgid "Safely remove drives"
+msgstr "Безопасное извлечение накопителей"
+
+msgid "Removable drive"
+msgstr "Съёмный накопитель"
+
+msgid "Unmount all volumes on this drive first. Busy drives will not be removed."
+msgstr "Сначала отключите все тома накопителя. Занятое устройство не будет извлечено."
+
+msgid "Open newly connected volumes"
+msgstr "Открывать подключённые тома"
+
+msgid "Mount removable filesystems and open them in the file manager. Encrypted volumes require unlocking."
+msgstr "Подключать съёмные файловые системы и открывать их в файловом менеджере. Зашифрованные тома нужно разблокировать."
+
+msgid "Accessibility"
+msgstr "Специальные возможности"
+
+msgid "High contrast"
+msgstr "Высокая контрастность"
+
+msgid "Use an opaque, high-contrast palette in the shell"
+msgstr "Использовать непрозрачную контрастную палитру оболочки"
+
+msgid "Reduce motion"
+msgstr "Уменьшить движение"
+
+msgid "Disable shell transitions and animated interaction effects"
+msgstr "Отключить переходы оболочки и анимированные эффекты взаимодействия"
+
+msgid "Keyboard navigation"
+msgstr "Управление с клавиатуры"
+
+msgid "Tab / Shift+Tab to move, Enter / Space to activate"
+msgstr "Tab / Shift+Tab — переход, Enter / Пробел — активация"
+
+msgid "Screen reader support"
+msgstr "Поддержка экранного диктора"
+
+msgid "Controls expose accessibility names and actions. Full screen reader compatibility still requires testing with Orca in a live session."
+msgstr "Элементы управления предоставляют доступные названия и действия. Полную совместимость с экранным диктором ещё нужно проверить с Orca в рабочем сеансе."
+
+msgid "Screen capture & sharing"
+msgstr "Запись и демонстрация экрана"
+
+msgid "Screen sharing"
+msgstr "Демонстрация экрана"
+
+msgid "Start sharing in your application. The desktop portal lets you select a screen or window and controls access."
+msgstr "Начните демонстрацию в приложении. Системный портал позволяет выбрать экран или окно и управляет доступом."
+
+msgid "Desktop portal"
+msgstr "Системный портал"
+
+msgid "Screen sharing portal is unavailable"
+msgstr "Портал демонстрации экрана недоступен"
+
+msgid "Screen and window selection is supported"
+msgstr "Поддерживается выбор экрана и окна"
+
+msgid "Screen selection is supported"
+msgstr "Поддерживается выбор экрана"
+
+msgid "Screen recording"
+msgstr "Запись экрана"
+
+msgid "Record system audio"
+msgstr "Записывать системный звук"
+
+msgid "Select recording region"
+msgstr "Выбрать область записи"
+
+msgid "Records the current window rectangle, including anything covering it"
+msgstr "Записывается текущая область окна вместе с перекрывающими его объектами"
+
+msgid "Record this screen"
+msgstr "Записать этот экран"
+
+msgid "Stop recording"
+msgstr "Остановить запись"
+
+msgid "Video capture streams"
+msgstr "Потоки видеозахвата"
+
+msgid "Capture status"
+msgstr "Состояние захвата"
+
+msgid "PipeWire capture monitoring is unavailable"
+msgstr "Отслеживание видеозахвата PipeWire недоступно"
+
+msgid "Applications currently have video capture streams"
+msgstr "У приложений есть потоки видеозахвата"
+
+msgid "No video capture streams detected"
+msgstr "Потоки видеозахвата не обнаружены"
+
+msgid "Screen capture"
+msgstr "Захват экрана"
+
+msgid "Video capture (screen or camera)"
+msgstr "Видеозахват (экран или камера)"
+
+msgid "Recording or video capture is active"
+msgstr "Активна запись или видеозахват"
+
+msgid "Contrast, motion, scale and keyboard navigation"
+msgstr "Контрастность, движение, масштаб и управление клавиатурой"
+
+msgid "Recording sources and video capture activity"
+msgstr "Источники записи и активность видеозахвата"
+
+msgid "Pause popups for 30 minutes"
+msgstr "Отключить всплывающие уведомления на 30 минут"
+
+msgid "Pause popups for 1 hour"
+msgstr "Отключить всплывающие уведомления на час"
+
+msgid "Resume popups"
+msgstr "Возобновить всплывающие уведомления"
+
+msgid "Application rules"
+msgstr "Правила приложений"
+
+msgid "Popups and history"
+msgstr "Всплывающие уведомления и история"
+
+msgid "History only"
+msgstr "Только история"
+
+msgid "Block new notifications"
+msgstr "Блокировать новые уведомления"
+
+msgid "Network operation failed"
+msgstr "Не удалось выполнить сетевую операцию"
+
+msgid "No Wi-Fi adapters are available"
+msgstr "Адаптеры Wi-Fi недоступны"
+
+msgid "This adapter does not support hotspot mode"
+msgstr "Этот адаптер не поддерживает режим точки доступа"
+
+msgid "This network is already saved. Open Saved networks to connect or edit it."
+msgstr "Эта сеть уже сохранена. Подключитесь к ней или измените её в разделе «Сохранённые сети»."
+
+msgid "System operations are busy. Try again shortly."
+msgstr "Выполняется системная операция. Повторите попытку чуть позже."
+
+msgid "Enter a network name of 1–32 bytes and a password of 8–63 characters"
+msgstr "Введите имя сети длиной от 1 до 32 байт и пароль от 8 до 63 символов"
+
+msgid "NetworkManager returned an invalid connection"
+msgstr "NetworkManager вернул некорректное подключение"
+
+msgid "Connection timed out. Check the network name, password and signal."
+msgstr "Истекло время подключения. Проверьте имя сети, пароль и уровень сигнала."
+
+msgid "Connection failed. Check the password, adapter and network availability."
+msgstr "Не удалось подключиться. Проверьте пароль, адаптер и доступность сети."
+
+msgid "Restart wallpaper"
+msgstr "Перезапустить обои"
+
+msgid "Wallpaper playback could not recover. Use Restart wallpaper to try again."
+msgstr "Не удалось восстановить воспроизведение. Нажмите «Перезапустить обои», чтобы повторить попытку."
+
+msgid "Wallpaper renderer could not recover. Use Restart wallpaper to try again."
+msgstr "Не удалось восстановить движок обоев. Нажмите «Перезапустить обои», чтобы повторить попытку."
+
+msgid "Input & interaction"
+msgstr "Ввод и управление"
+
+msgid "Application rules, quiet mode and popups"
+msgstr "Правила приложений, режим тишины и всплывающие уведомления"
+
+msgid "User services, timers and system monitoring"
+msgstr "Пользовательские службы, таймеры и мониторинг системы"
+
+msgid "Layouts, typing, cursor and gestures"
+msgstr "Раскладки, ввод текста, курсор и жесты"
+
+msgid "Clock, time zone and automatic time"
+msgstr "Часы, часовой пояс и синхронизация времени"
+
+msgid "Open application on click"
+msgstr "Открывать приложение по нажатию"
+
+msgid "Use the application's notification action or switch to its existing window"
+msgstr "Выполнять действие уведомления приложения или переходить в его открытое окно"

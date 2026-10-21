@@ -9,7 +9,7 @@
 Завершите Hyprland, войдите в TTY (**Ctrl+Alt+F3**) и выполните без `sudo`:
 
 ```bash
-cd /путь/к/horse-in-coat-shell
+cd /путь/к/hics
 ./update.sh
 ```
 
@@ -21,14 +21,14 @@ cd /путь/к/horse-in-coat-shell
 `--no-pull` — сборка текущих исходников. Свои изменения в Git сохраните
 коммитом или через `git stash`.
 
-После обновления войдите в Hyprland и выполните `runhics-doctor`.
+После обновления войдите в Hyprland и выполните `hics-doctor`.
 Для отката снова завершите сеанс и запустите:
 
 ```bash
 ./update.sh --rollback
 ```
 
-Копии: `${XDG_STATE_HOME:-$HOME/.local/state}/hyprstack-install/backups/`.
+Копии: `${XDG_STATE_HOME:-$HOME/.local/state}/hics-install/backups/`.
 Откат не меняет системные пакеты; требуется Hyprland **0.56.2**.
 Для конфигурации со ссылками на каталоги используйте свой менеджер dotfiles.
 
@@ -43,7 +43,7 @@ cd /путь/к/horse-in-coat-shell
 Из каталога конфигурации NixOS, заменив `YOUR_HOST`:
 
 ```bash
-nix flake update hyprstack
+nix flake update hics
 sudo nixos-rebuild switch --flake .#YOUR_HOST
 ```
 
@@ -58,28 +58,28 @@ sudo nixos-rebuild switch --flake .#YOUR_HOST
 ## Диагностика
 
 ```bash
-runhics-doctor
+hics-doctor
 hyprctl configerrors
-runhics-doctor --json
+hics-doctor --json
 journalctl --user -u hic-session.service -b
 ```
 
 Для запуска оболочки с выводом ошибок в терминал:
 
 ```bash
-runhics-session stop
-runhics-shell
+hics-session stop
+hics-shell
 ```
 
-- **QML:** проверьте совместимость Qt/Quickshell и наличие модулей `Hyprstack`
-  и `M3Shapes`. После обновления Qt пересоберите horse-in-coat-shell и, если нужно, Quickshell.
+- **QML:** проверьте совместимость Qt/Quickshell и наличие модулей оболочки
+  и `M3Shapes`. После обновления Qt пересоберите hics и, если нужно, Quickshell.
 - **PAM:** проверьте пакет `hyprlock` и `/etc/pam.d/hyprlock`.
 - **Polkit:** остановите сторонний агент авторизации.
 - **Вложенный рантайм:** при установке пакетом Quickshell и Qt берутся из
-  `/usr/share/hyprstack/qs`; проверка версии:
-  `LD_LIBRARY_PATH=/usr/share/hyprstack/qs/lib /usr/share/hyprstack/qs/bin/hyprstack-qs --version`.
+  `/usr/share/hics/qs`; проверка версии:
+  `LD_LIBRARY_PATH=/usr/share/hics/qs/lib /usr/share/hics/qs/bin/hics-qs --version`.
 
-Перезапуск оболочки: `runhics-session restart`.
+Перезапуск оболочки: `hics-session restart`.
 
 ## Восстановление прежнего окружения
 
@@ -89,8 +89,8 @@ runhics-shell
 
 Без Home Manager завершите Hyprland и перейдите в TTY:
 
-1. Найдите `hyprstack-backup.*`, выведенный при установке.
-2. Перенесите нынешние `hypr` и `hyprstack` из `${XDG_CONFIG_HOME:-$HOME/.config}`
+1. Найдите `hics-backup.*`, выведенный при установке.
+2. Перенесите нынешние `hypr` и `hics` из `${XDG_CONFIG_HOME:-$HOME/.config}`
    в отдельный каталог и верните туда прежние каталоги или ссылки из копии.
 3. Верните сохранённый `hic-session.service` в `systemd/user/`.
    Если прежней службы не было, удалите только установленную службу hic-session.
@@ -99,20 +99,20 @@ runhics-shell
 
 ## Удаление
 
-На NixOS отключите `programs.hyprstack.enable` в системной конфигурации
-и Home Manager, удалите ненужные импорты и вход `hyprstack`, примените изменения.
+На NixOS отключите `programs.hics.enable` в системной конфигурации
+и Home Manager, удалите ненужные импорты и вход `hics`, примените изменения.
 
 На Arch-based системах восстановите прежнюю конфигурацию по разделу выше.
 Установленные CMake файлы перечислены в `build/install_manifest.txt` вашей сборки;
-просмотрите список и удалите указанные файлы horse-in-coat-shell.
+просмотрите список и удалите указанные файлы hics.
 
 Пользовательские данные удаляются по желанию:
 
 | Каталог | Содержимое |
 | --- | --- |
-| `${XDG_CONFIG_HOME:-$HOME/.config}/hyprstack` | Настройки |
-| `${XDG_STATE_HOME:-$HOME/.local/state}/hyprstack` | Тема, обои, история и состояние |
-| `${XDG_CACHE_HOME:-$HOME/.cache}/hyprstack` | Кеш изображений |
+| `${XDG_CONFIG_HOME:-$HOME/.config}/hics` | Настройки |
+| `${XDG_STATE_HOME:-$HOME/.local/state}/hics` | Тема, обои, история и состояние |
+| `${XDG_CACHE_HOME:-$HOME/.cache}/hics` | Кеш изображений |
 
 ## Проверка четырёх режимов
 
@@ -121,7 +121,7 @@ runhics-shell
 проверяйте переходы tiling → stacking → scrolling → canvas → scrolling
 в отдельном вложенном compositor-сеансе. Одновременно патчить drawTex двумя
 обзорами нельзя: `overview_hooks(false)` передаёт рендер холсту,
-`spatialoverview.hyprstack_close()` освобождает его перед возвратом.
+Выход из холста освобождает его перед возвратом.
 Не удаляйте синхронную функцию без замены протокола передачи рендера.
 
 После сборки `python tests/integration_canvas.py --pointer` запускает отдельный
@@ -133,8 +133,8 @@ Wayland-сеанс с изолированными настройками и с�
 
 ## Системный D-Bus backend
 
-`native/system`: C++-демон `hyprstack-systemd` и клиент `hyprstack-systemctl`.
-API `org.hyprstack.System1` (`/org/hyprstack/System1`): `Status(section)` и
+`native/system`: C++-демон `hics-systemd` и клиент `hics-systemctl`.
+API `org.hics.System1` (`/org/hics/System1`): `Status(section)` и
 `Apply(section, operation, json)`, JSON-ответы с кодами ошибок. Разделы: printers,
 storage, datetime, power; printer-discovery выполняет ограниченный поиск CUPS.
 
@@ -147,8 +147,18 @@ Polkit. Команды оболочки, пути программ, пароли
 через UDisks2: запуск от root потерял бы пользователя и его каталог монтирования.
 
 Проверки: `python -m unittest discover -s tests`; после сборки
-`hyprstack-systemctl status printers`, `storage`, `datetime`, `power`.
+`hics-systemctl status printers`, `storage`, `datetime`, `power`.
 Изменения параметров ОС не выполняются при чтении и открытии страницы.
 Поддержка печати использует libcups/IPP, времени — timedate1, питания —
 PowerProfiles, дисков — UDisks2; настройки приложения settings-ui использованы
 как ориентир по возможностям, без копирования его Python/sudo backend.
+
+## Переход на имя hics
+
+Публичные команды: `hics`, `hics-shell`, `hics-session`, `hics-doctor`,
+`hics-systemctl`. Системный помощник — `hics-system.service`; он активируется
+по D-Bus и устанавливается пакетом либо установщиком системного помощника.
+Новые настройки и данные используют каталоги `hics` в соответствующих XDG-корнях.
+При первом запуске существующие каталоги подключаются ссылками без удаления
+данных. Старые команды запуска в личных Lua-файлах заменяются с сохранением
+копии `.before-hics`.

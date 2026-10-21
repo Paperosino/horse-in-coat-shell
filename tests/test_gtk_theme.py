@@ -21,10 +21,10 @@ class GtkPaletteTests(unittest.TestCase):
             environment["PATH"] = str(binary.parent) + os.pathsep + os.environ.get("PATH", "")
             helper = Path(__file__).resolve().parents[1] / "shell/assets/gtk_theme.py"
             subprocess.run([sys.executable, str(helper)], env=environment, check=True, capture_output=True)
-            self.assertTrue((root / "state/hyprstack/scheme.json").is_file())
-            self.assertTrue((root / "config/gtk-4.0/hyprstack.css").is_file())
-            self.assertTrue((root / "config/qt6ct/colors/hyprstack.conf").is_file())
-            self.assertTrue((root / ".var/app/org.example.Installed/config/gtk-4.0/hyprstack.css").is_file())
+            self.assertTrue((root / "state/hics/scheme.json").is_file())
+            self.assertTrue((root / "config/gtk-4.0/hics.css").is_file())
+            self.assertTrue((root / "config/qt6ct/colors/hics.conf").is_file())
+            self.assertTrue((root / ".var/app/org.example.Installed/config/gtk-4.0/hics.css").is_file())
 
     def test_replaces_dark_theme_symlink_without_modifying_its_target(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -46,14 +46,14 @@ class GtkPaletteTests(unittest.TestCase):
             folder = root / "gtk-3.0"
             folder.mkdir()
             main = folder / "gtk.css"
-            main.write_text("@import url('hyprstack.css');\n@import url(\"noctalia.css\");\nbutton { color: red; }\n")
+            main.write_text("@import url('hics.css');\n@import url(\"noctalia.css\");\nbutton { color: red; }\n")
             apply_palette(colours, root)
             result = main.read_text()
-            self.assertTrue(result.endswith('@import url("hyprstack.css");\n'))
+            self.assertTrue(result.endswith('@import url("hics.css");\n'))
             self.assertNotIn('button { color: red; }', result)
             self.assertNotIn('noctalia', result)
-            self.assertEqual(result.count('hyprstack.css'), 1)
-            css = (folder / "hyprstack.css").read_text()
+            self.assertEqual(result.count('hics.css'), 1)
+            css = (folder / "hics.css").read_text()
             for name in ("theme_bg_color", "theme_text_color", "dialog_bg_color", "view_bg_color", "headerbar_bg_color"):
                 self.assertIn(f"@define-color {name} #112233;", css)
 
@@ -65,8 +65,8 @@ class GtkPaletteTests(unittest.TestCase):
             with patch.object(theme_manager, "STATE", root / "state"), patch("gtk_theme.sync_flatpaks"), patch.dict(os.environ, {"XDG_CONFIG_HOME":str(root / "config")}):
                 theme_manager.save_current({"mode":"dark", "colours":colours})
             self.assertTrue((root / "state/scheme.json").exists())
-            self.assertIn("#" + colours["primary"], (root / "config/gtk-3.0/hyprstack.css").read_text())
-            self.assertTrue((root / "config/gtk-4.0/hyprstack.css").exists())
+            self.assertIn("#" + colours["primary"], (root / "config/gtk-3.0/hics.css").read_text())
+            self.assertTrue((root / "config/gtk-4.0/hics.css").exists())
 
     def test_replaces_custom_css_and_updates_managed_palette(self):
         colours = dict.fromkeys(("surface", "onSurface", "surfaceContainer", "primary", "onPrimary", "outlineVariant"), "112233")
@@ -79,9 +79,9 @@ class GtkPaletteTests(unittest.TestCase):
             colours["primary"] = "aabbcc"
             apply_palette(colours, root)
             self.assertNotIn("personal rules", custom.read_text())
-            self.assertEqual(custom.read_text().count('@import url("hyprstack.css");'), 1)
+            self.assertEqual(custom.read_text().count('@import url("hics.css");'), 1)
             for version in ("3.0", "4.0"):
-                self.assertIn("#aabbcc", (root / f"gtk-{version}/hyprstack.css").read_text())
+                self.assertIn("#aabbcc", (root / f"gtk-{version}/hics.css").read_text())
 
     def test_dark_and_light_schemes_update_both_toolkits(self):
         import configparser
@@ -100,8 +100,8 @@ class GtkPaletteTests(unittest.TestCase):
                     settings = configparser.ConfigParser()
                     settings.read(folder / f"qt{version}ct.conf")
                     self.assertTrue(settings.getboolean("Appearance", "custom_palette"))
-                    self.assertEqual(settings.get("Appearance", "color_scheme_path"), str(folder / "colors/hyprstack.conf"))
-                    settings.read(folder / "colors/hyprstack.conf")
+                    self.assertEqual(settings.get("Appearance", "color_scheme_path"), str(folder / "colors/hics.conf"))
+                    settings.read(folder / "colors/hics.conf")
                     active = settings.get("ColorScheme", "active_colors").split(", ")
                     self.assertEqual(len(active), 22)
                     self.assertEqual(active[10], "#ff" + colours["surface"])

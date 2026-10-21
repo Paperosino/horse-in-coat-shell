@@ -54,6 +54,23 @@ MouseArea {
         endRadiusAtPress = endRadius;
     }
 
+    property bool keyboardFocusable: false
+    activeFocusOnTab: keyboardFocusable && enabled && visible
+    Accessible.role: Accessible.Button
+    Accessible.name: root.parent?.Accessible.name || root.parent?.text || root.parent?.label?.text || ""
+    Accessible.onPressAction: root.clicked(null)
+    Keys.onReturnPressed: event => { root.clicked(null); event.accepted = true; }
+    Keys.onEnterPressed: event => { root.clicked(null); event.accepted = true; }
+    Keys.onSpacePressed: event => { root.clicked(null); event.accepted = true; }
+
+    Rectangle {
+        anchors.fill: parent
+        color: "transparent"
+        border.width: root.activeFocus ? 2 : 0
+        border.color: Colours.palette.m3primary
+        radius: root.radius
+    }
+
     anchors.fill: parent
     enabled: !disabled
     cursorShape: disabled ? undefined : Qt.PointingHandCursor
@@ -84,7 +101,7 @@ MouseArea {
         property: "circleRadius"
         to: root.endRadius
         easing: Tokens.anim.standard
-        duration: Tokens.anim.durations.expressiveSlowEffects * 2
+        duration: GlobalConfig.appearance.reducedMotion ? 0 : Tokens.anim.durations.expressiveSlowEffects * 2
     }
 
     Anim {

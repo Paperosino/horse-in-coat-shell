@@ -37,10 +37,10 @@ PageBase {
 
         Process {
             running: true
-            command: ["hyprstack", "--version"]
+            command: ["hics", "--version"]
             stdout: StdioCollector {
                 onStreamFinished: {
-                    const m = text.match(/hyprstack\s+(\d+(?:\.\d+)*)/);
+                    const m = text.match(/hics\s+(\d+(?:\.\d+)*)/);
                     root.cliVersion = m ? m[1] : "";
                 }
             }
@@ -122,12 +122,12 @@ PageBase {
 
         InfoRow {
             first: true
-            label: Tr.trCtx("Shell", "the runhics shell itself, not a unix shell")
+            label: Tr.trCtx("Shell", "the hics shell itself, not a unix shell")
             value: CUtils.version || "…"
         }
 
         InfoRow {
-            label: Tr.trCtx("CLI", "the runhics command line tool")
+            label: Tr.trCtx("CLI", "the hics command line tool")
             value: root.cliVersion || "…"
         }
 

@@ -69,6 +69,7 @@ StyledRect {
 
     StateLayer {
         id: stateLayer
+        keyboardFocusable: true
 
         color: root.internalChecked ? root.activeOnColour : root.inactiveOnColour
         disabled: root.disabled

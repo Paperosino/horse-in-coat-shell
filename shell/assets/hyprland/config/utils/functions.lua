@@ -198,7 +198,7 @@ end
 local function load_toggle_config()
     local config = default_config()
 
-    local user_file = io.open(config_dir .. "/hyprstack/cli.json", "r") -- CLI config
+    local user_file = io.open(config_dir .. "/hics/cli.json", "r") -- CLI config
     if not user_file then
         return config
     end
@@ -213,7 +213,7 @@ local function load_toggle_config()
         -- Invalid cli.json: notify and fall back to defaults.
         -- conf_or_error holds the parse error (string) or a non-table value on success.
         local reason = recognized and "Expected a JSON object" or tostring(conf_or_error):gsub("^.-:%d+: ", "")
-        hl.exec_cmd("runhics shell toaster error " ..
+        hl.exec_cmd("hics shell toaster error " ..
             shell_join({ "Failed to parse CLI config", reason }) .. " error")
     end
 

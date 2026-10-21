@@ -11,10 +11,10 @@ require_wayland_session()
 repo=Path(__file__).resolve().parents[1]
 workspace=tempfile.TemporaryDirectory(prefix='hyprstack-canvas-test-')
 base=Path(workspace.name)
-(base/'config/hyprstack').mkdir(parents=True)
+(base/'config/hics').mkdir(parents=True)
 (base/'data/native').mkdir(parents=True)
-for plugin in ['hyprstack-bars.so','libspatialoverview.so']:
- candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hyprstack/native')/plugin]
+for plugin in ['hics-bars.so','libspatialoverview.so']:
+ candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hics/native')/plugin]
  source=next((p for p in candidates if p.is_file()),None)
  if source is None:raise RuntimeError('Build native modules before running this integration test')
  shutil.copy2(source,base/'data/native'/plugin)
@@ -26,7 +26,7 @@ config=repo/'shell/assets/hyprland/config'
     'dofile('+json.dumps(str(config/'hyprland/gestures.lua'))+')\n'+
     'dofile('+json.dumps(str(repo/'shell/assets/hyprland/layouts.lua'))+')\n')
 env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),HYPRSTACK_DATA_DIR=str(base/'data'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'user-data'));env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
-(base/'config/hyprstack/layouts.json').write_text(json.dumps({'mode':'scrolling'}))
+(base/'config/hics/layouts.json').write_text(json.dumps({'mode':'scrolling'}))
 p=None;apps=[];instance=None
 try:
  log=(base/'compositor.log').open('w');p=subprocess.Popen(['Hyprland','--config',str(base/'test.lua')],env=env,stdout=log,stderr=subprocess.STDOUT)

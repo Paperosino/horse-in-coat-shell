@@ -9,7 +9,7 @@ using Qt::StringLiterals::operator""_s;
 Q_LOGGING_CATEGORY(lcConfig, "hyprstack.config", QtInfoMsg)
 
 QString configDir() {
-    return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + u"/hyprstack"_s;
+    return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + u"/hics"_s;
 }
 
 QString monitorConfigDir() {

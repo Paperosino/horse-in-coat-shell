@@ -2,9 +2,9 @@
 from __future__ import annotations
 import json, os, tempfile, subprocess
 from pathlib import Path
-CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', Path.home()/'.config'))/'hyprstack'
-STATE = Path(os.environ.get('XDG_STATE_HOME', Path.home()/'.local/state'))/'hyprstack'
-DATA = Path(os.environ.get('XDG_DATA_HOME', Path.home()/'.local/share'))/'hyprstack'
+CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', Path.home()/'.config'))/'hics'
+STATE = Path(os.environ.get('XDG_STATE_HOME', Path.home()/'.local/state'))/'hics'
+DATA = Path(os.environ.get('XDG_DATA_HOME', Path.home()/'.local/share'))/'hics'
 def read_json(path, default=None):
     fallback = {} if default is None else default
     try:

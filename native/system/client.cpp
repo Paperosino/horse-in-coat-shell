@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   try {
     if (args.size() < 3 || !QStringList{"status", "apply"}.contains(args[1]))
       throw System::Failure("invalid",
-                            "Usage: hyprstack-systemctl status SECTION | apply "
+                            "Usage: hics-systemctl status SECTION | apply "
                             "SECTION OPERATION < JSON");
     bool write = args[1] == "apply";
     QJsonObject options;

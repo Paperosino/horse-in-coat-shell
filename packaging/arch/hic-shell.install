@@ -1,7 +1,17 @@
 post_install() {
     if [ -d /run/systemd/system ]; then
+        systemctl stop hyprstack-system.service 2>/dev/null || true
         systemctl daemon-reload
-        systemctl --user try-restart hic-session.service 2>/dev/null || true
+        systemctl try-restart hics-system.service 2>/dev/null || true
+        # Keep existing compositor configuration paths usable across the rename.
+        if [ ! -L /usr/share/hyprstack ]; then
+            if [ -e /usr/share/hyprstack ]; then
+                # Preserve files modified outside the package before replacing
+                # the old data path with its compatibility link.
+                mv /usr/share/hyprstack "/usr/share/hyprstack.legacy-$(date +%s)"
+            fi
+            ln -s hics /usr/share/hyprstack
+        fi
         systemctl reload dbus.service
     fi
 }

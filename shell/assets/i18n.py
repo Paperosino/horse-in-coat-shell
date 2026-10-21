@@ -13,7 +13,7 @@ def language():
     else:
         config = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
         try:
-            selected = json.loads((config / "hyprstack/shell.json").read_text()).get("general", {}).get("language", "ru_RU")
+            selected = json.loads((config / "hics/shell.json").read_text()).get("general", {}).get("language", "ru_RU")
         except (OSError, ValueError, AttributeError):
             selected = "ru_RU"
     if not selected:

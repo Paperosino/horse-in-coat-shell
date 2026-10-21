@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Build the runhics-shell Arch package from the repository tree.
+# Build the hics-shell Arch package from the repository tree.
 # Usage: packaging/arch/build-package.sh [makepkg options, e.g. --install]
 set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)
 root=$(cd -- "$here/../.." && pwd -P)
 
-stage=$(mktemp -d "${TMPDIR:-/tmp}/hyprstack-package.XXXXXXXX")
+stage=$(mktemp -d "${TMPDIR:-/tmp}/hics-package.XXXXXXXX")
 cleanup() {
     if [[ ${KEEP_STAGING:-0} == 1 ]]; then
         printf 'Staging directory kept: %s\n' "$stage"
@@ -17,9 +17,9 @@ cleanup() {
 trap cleanup EXIT
 
 printf 'Staging source tree in %s\n' "$stage"
-mkdir -p "$stage/src/hyprstack"
+mkdir -p "$stage/src/hics"
 rsync -a --exclude='/.git' --exclude='/build' --exclude='/pkg' --exclude='/src' \
-    "$root"/ "$stage/src/hyprstack/"
+    "$root"/ "$stage/src/hics/"
 cp "$here/PKGBUILD" "$stage/PKGBUILD"
 cp "$here/hic-shell.install" "$stage/hic-shell.install"
 

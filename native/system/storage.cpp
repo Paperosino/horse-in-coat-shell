@@ -201,7 +201,7 @@ QJsonObject storageStatus() {
         {"mountEditable", editable(all, uuid)},
         {"configured", !entry.isEmpty()},
         {"automatic", !entry.isEmpty() && !opts.contains("noauto")},
-        {"mountDirectory", entry.isEmpty() ? "/mnt/hyprstack-" + uuid
+        {"mountDirectory", entry.isEmpty() ? "/mnt/hics-" + uuid
                                            : bytes(entry.value("dir"))},
         {"mountOptions", bytes(entry.value("opts"))},
         {"maintenance", jobState(it.key().path())},

@@ -61,6 +61,7 @@ PageBase {
             ToggleRow { text: Tr.tr("Disable parallax"); checked: root.draft.disableParallax; onToggled: root.set("disableParallax", checked) }
         }
         RowButton { text: Tr.tr("Apply wallpaper"); icon: "check"; disabled: LiveWallpapers.busy; onClicked: LiveWallpapers.save(root.outputName, root.draft) }
+        RowButton { text: Tr.tr("Restart wallpaper"); icon: "restart_alt"; onClicked: LiveWallpapers.restart(root.outputName) }
         RowButton { text: Tr.tr("Restore static wallpaper"); icon: "stop"; onClicked: { root.set("kind", "static"); root.set("source", ""); LiveWallpapers.save(root.outputName, root.draft); } }
         SectionHeader { text: "Wallpaper Engine · Steam Workshop" }
         InfoRow { label: "linux-wallpaperengine"; value: LiveWallpapers.capabilities.engineAvailable ? Tr.tr("Available") : Tr.tr("Not installed") }

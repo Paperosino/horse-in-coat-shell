@@ -51,7 +51,7 @@ Searcher {
         id: getSchemes
 
         running: true
-        command: ["hyprstack", "scheme", "list"]
+        command: ["hics", "scheme", "list"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const schemeData = JSON.parse(text);
@@ -75,7 +75,7 @@ Searcher {
         id: getCurrent
 
         running: true
-        command: ["hyprstack", "scheme", "get", "-nfv"]
+        command: ["hics", "scheme", "get", "-nfv"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const [name, flavour, variant] = text.trim().split("\n");
@@ -93,7 +93,7 @@ Searcher {
 
         function onClicked(list: AppList): void {
             list.screenState.launcher = false;
-            Quickshell.execDetached(["hyprstack", "scheme", "set", "-n", name, "-f", flavour]);
+            Quickshell.execDetached(["hics", "scheme", "set", "-n", name, "-f", flavour]);
         }
     }
 }

@@ -10,7 +10,7 @@ QtObject {
     readonly property var pluginSettings: manifest.settings ?? ({})
     readonly property var settings: pluginSettings
     readonly property string pluginDir: manifest.path ?? ""
-    readonly property string pluginDataDir: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hyprstack/plugins/${pluginId}`
+    readonly property string pluginDataDir: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hics/plugins/${pluginId}`
     property var mainInstance: null
     property var barWidget: null
     function saveSettings(value = null): void { Plugins.saveSettings(pluginId, value ?? pluginSettings); }

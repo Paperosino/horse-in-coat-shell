@@ -6,6 +6,8 @@ Item {
 
     required property ScreenState screenState
     required property Item sidebarPanel
+    property alias originY: content.originY
+    property alias availableHeight: content.availableHeight
     property alias osdPanel: content.osdPanel
     property alias sessionPanel: content.sessionPanel
     property alias utilitiesPanel: content.utilitiesPanel
@@ -18,7 +20,9 @@ Item {
     Content {
         id: content
 
-        anchors.topMargin: -root.anchors.topMargin
+        // The parent margin also includes space reserved for a status popup.
+        // Only compensate the fixed five-pixel join, not that placement.
+        anchors.topMargin: 5
         screenState: root.screenState
     }
 }

@@ -23,7 +23,7 @@ def checked_path(root,name):
     return p
 
 def manifest(folder,bundled=False):
-    if (folder/'manifest.json').exists():raw=read_json(folder/'manifest.json');fmt='native' if raw.get('api')=='hyprstack-1' else 'noctalia-qml' if 'entryPoints' in raw else 'angelos'
+    if (folder/'manifest.json').exists():raw=read_json(folder/'manifest.json');fmt='native' if raw.get('api') in ('hics-1','hyprstack-1') else 'noctalia-qml' if 'entryPoints' in raw else 'angelos'
     elif (folder/'plugin.toml').exists():raw=tomllib.loads((folder/'plugin.toml').read_text());fmt='noctalia-luau'
     else:raise ValueError('No manifest.json or plugin.toml')
     original=str(raw.get('id',folder.name));identifier=re.sub(r'[^A-Za-z0-9_.-]','-',original)

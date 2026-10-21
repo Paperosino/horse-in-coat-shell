@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+for key in DATA_DIR SHELL_DIR LIB_DIR PAM_SERVICE LANGUAGE WALLPAPERS_DIR RECORDINGS_DIR ASSISTANT_KEY; do
+    current="HICS_$key"
+    if [[ -v $current ]]; then export "HYPRSTACK_$key=${!current}"; fi
+done
+data_dir=${HICS_DATA_DIR:-${HYPRSTACK_DATA_DIR:-}}
+if [[ -z $data_dir ]]; then
+    if [[ -d /usr/share/hics ]]; then
+        data_dir=/usr/share/hics
+    else
+        data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/hics
+    fi
+fi
+shell_dir=${HYPRSTACK_SHELL_DIR:-$data_dir/shell}
+qs_bin=$data_dir/qs/bin/hics-qs
+if [[ -x $qs_bin ]]; then
+    export LD_LIBRARY_PATH="$data_dir/qs/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export HYPRSTACK_QS=$qs_bin
+elif qs_path=$(command -v qs 2>/dev/null); then
+    export HYPRSTACK_QS=$qs_path
+fi
+export PYTHONDONTWRITEBYTECODE=1
+python3 "$data_dir/shell/assets/migrate_branding.py"
+exec python3 "$shell_dir/assets/hics_cli.py" "$@"

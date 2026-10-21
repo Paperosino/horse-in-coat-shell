@@ -29,12 +29,12 @@ Searcher {
     }
 
     function setRandom(): void {
-        Quickshell.execDetached(["hyprstack", "wallpaper", "-r", ...smartArg]);
+        Quickshell.execDetached(["hics", "wallpaper", "-r", ...smartArg]);
     }
 
     function setWallpaper(path: string): void {
         actualCurrent = path;
-        Quickshell.execDetached(["hyprstack", "wallpaper", "-f", path, ...smartArg]);
+        Quickshell.execDetached(["hics", "wallpaper", "-f", path, ...smartArg]);
     }
 
     function preview(path: string): void {
@@ -118,7 +118,7 @@ Searcher {
         id: getPreviewColoursProc
 
         property string requestedPath
-        command: ["hyprstack", "wallpaper", "-p", requestedPath, ...root.smartArg]
+        command: ["hics", "wallpaper", "-p", requestedPath, ...root.smartArg]
         onExited: if (requestedPath !== root.previewPath) Qt.callLater(root.requestPreviewColours)
         stdout: StdioCollector {
             onStreamFinished: {

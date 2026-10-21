@@ -3,14 +3,14 @@
 , cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
-, pipewire, wireplumber, polkit, hyprlock, hyprpicker, xdg-utils, xdg-user-dirs
+, pipewire, pulseaudio, wireplumber, polkit, hyprlock, hyprpicker, xdg-utils, xdg-user-dirs
 , libxml2, adwaita-icon-theme, xkeyboard_config, src
 }:
 let
   python = python3.withPackages (packages: [ packages.pillow ]);
   runtime = [ quickshell hyprland python kitty firefox fuzzel btop pavucontrol
     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify brightnessctl
-    networkmanager pipewire wireplumber polkit hyprlock hyprpicker xdg-utils
+    networkmanager pipewire pulseaudio wireplumber polkit hyprlock hyprpicker xdg-utils
     xdg-user-dirs libxml2 systemd libqalculate ];
 in
 assert lib.assertMsg (hyprland.version == "0.56.2") "Hyprstack requires Hyprland 0.56.2";
@@ -22,7 +22,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   inherit src;
 
   nativeBuildInputs = [ cmake ninja pkg-config gettext makeWrapper qt6.wrapQtAppsHook python hyprland ];
-  buildInputs = [ qt6.qtbase qt6.qtdeclarative qt6.qtshadertools libqalculate lm_sensors
+  buildInputs = [ qt6.qtbase qt6.qtdeclarative qt6.qtshadertools qt6.qtmultimedia libqalculate lm_sensors
     hyprland.dev cups util-linux e2fsprogs lua5_4 hyprgraphics pixman libdrm libinput systemd wayland libxkbcommon pango cairo nlohmann_json ]
     ++ (hyprland.buildInputs or []);
 
@@ -36,16 +36,16 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   dontWrapQtApps = true;
 
   preConfigure = ''
-    export XDG_RUNTIME_DIR="$TMPDIR/hyprstack-runtime"
+    export XDG_RUNTIME_DIR="$TMPDIR/hics-runtime"
     mkdir -p "$XDG_RUNTIME_DIR"
     chmod 700 "$XDG_RUNTIME_DIR"
   '';
 
   postInstall = ''
-    for program in runhics-shell runhics-session runhics-session-runner runhics-doctor; do
+    for program in hics-shell hics-session hics-session-runner hics-doctor; do
       wrapProgram "$out/bin/$program" \
-        --set HYPRSTACK_DATA_DIR "$out/share/hyprstack" \
-        --set HYPRSTACK_TITLEBAR_PLUGIN "$out/share/hyprstack/native/hyprstack-bars.so" \
+        --set HYPRSTACK_DATA_DIR "$out/share/hics" \
+        --set HYPRSTACK_TITLEBAR_PLUGIN "$out/share/hics/native/hics-bars.so" \
         --set HYPRSTACK_XKB_RULES_PATH "${xkeyboard_config}/share/X11/xkb/rules/base.lst" \
         --set-default HYPRSTACK_PAM_SERVICE hyprlock \
         --prefix PATH : "$out/bin:${lib.makeBinPath runtime}" \
@@ -60,6 +60,6 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
     homepage = "https://github.com/Paperosino/horse-in-coat-shell";
     license = lib.licenses.gpl3Only;
     platforms = [ "x86_64-linux" "aarch64-linux" ];
-    mainProgram = "runhics-shell";
+    mainProgram = "hics-shell";
   };
 }

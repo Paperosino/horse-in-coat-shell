@@ -34,12 +34,12 @@ class FlatpakPaletteTests(unittest.TestCase):
         run.assert_not_called()
         for app in apps:
             base = self.home / ".var/app" / app / "config"
-            self.assertIn("#aabbcc", (base / "gtk-4.0/hyprstack.css").read_text())
+            self.assertIn("#aabbcc", (base / "gtk-4.0/hics.css").read_text())
             settings = configparser.ConfigParser()
             settings.read(base / "kdeglobals")
             self.assertEqual(settings.get("Colors:Selection", "BackgroundNormal"), "170,187,204")
             settings.read(base / "qt6ct/qt6ct.conf")
-            self.assertEqual(settings.get("Appearance", "color_scheme_path"), str(base / "qt6ct/colors/hyprstack.conf"))
+            self.assertEqual(settings.get("Appearance", "color_scheme_path"), str(base / "qt6ct/colors/hics.conf"))
             self.assertTrue((base / "gtk-3.0/gtk.css").is_file())
 
     def test_periodic_sync_only_configures_new_apps(self):
@@ -67,4 +67,4 @@ class FlatpakPaletteTests(unittest.TestCase):
     def test_flatpak_failure_does_not_prevent_host_theme_changes(self):
         with patch("gtk_theme.installed_flatpaks", side_effect=subprocess.TimeoutExpired("flatpak", 15)):
             gtk_theme.apply_desktop_palette(self.colours, self.home / "config")
-        self.assertTrue((self.home / "config/gtk-3.0/hyprstack.css").is_file())
+        self.assertTrue((self.home / "config/gtk-3.0/hics.css").is_file())

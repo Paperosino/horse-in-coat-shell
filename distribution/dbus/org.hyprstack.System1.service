@@ -1,5 +1,0 @@
-[D-BUS Service]
-Name=org.hyprstack.System1
-Exec=/usr/bin/hyprstack-systemd
-User=root
-SystemdService=hyprstack-system.service

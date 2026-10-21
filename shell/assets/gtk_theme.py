@@ -69,13 +69,13 @@ def apply_palette(colours, config_root, mode=None):
     ]) + "\n"
     for version in ("3.0", "4.0"):
         directory = Path(config_root) / ("gtk-" + version)
-        atomic_text(directory / "hyprstack.css", css)
+        atomic_text(directory / "hics.css", css)
         main = directory / "gtk.css"
         # Hyprstack owns toolkit styling. Drop legacy imports (Noctalia,
         # libadwaita overrides, etc.) instead of mixing unrelated palettes.
-        atomic_text(main, '@import url("hyprstack.css");\n')
+        atomic_text(main, '@import url("hics.css");\n')
         # Replace old dark-theme symlinks as well; never write through them.
-        atomic_text(directory / "gtk-dark.css", '@import url("hyprstack.css");\n')
+        atomic_text(directory / "gtk-dark.css", '@import url("hics.css");\n')
         dark = mode == "dark" if mode else sum(int(colours["surface"][i:i+2], 16) * weight for i, weight in ((0,.2126),(2,.7152),(4,.0722))) < 128
         update_settings(directory / "settings.ini", "Settings", {
             "gtk-theme-name": "Adwaita",
@@ -95,7 +95,7 @@ def apply_palette(colours, config_root, mode=None):
     disabled_palette = ", ".join("#ff" + colours[role] for role in disabled)
     for version in (5, 6):
         folder = Path(config_root) / f"qt{version}ct"
-        colour_file = folder / "colors/hyprstack.conf"
+        colour_file = folder / "colors/hics.conf"
         atomic_text(colour_file, "[ColorScheme]\n" +
                     f"active_colors={palette}\ninactive_colors={palette}\ndisabled_colors={disabled_palette}\n")
         update_settings(folder / f"qt{version}ct.conf", "Appearance", {
@@ -162,7 +162,7 @@ def apply_desktop_palette(colours, config_root, mode=None):
 
 
 def sync_new_flatpaks():
-    state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hyprstack/scheme.json"
+    state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hics/scheme.json"
     if state.exists():
         scheme = json.loads(state.read_text())
         sync_flatpaks(scheme["colours"], scheme.get("mode"), only_new=True)
@@ -170,7 +170,7 @@ def sync_new_flatpaks():
 
 
 def restore():
-    state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hyprstack/scheme.json"
+    state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hics/scheme.json"
     if state.exists():
         scheme = json.loads(state.read_text())
         apply_desktop_palette(scheme["colours"], Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")), scheme.get("mode"))

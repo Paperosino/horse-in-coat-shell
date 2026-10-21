@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Hyprstack.Config
 import Hyprstack.I18n
+import Hyprstack.Services
 import qs.components
 import qs.components.controls
 import qs.services
@@ -18,10 +19,12 @@ PageBase {
     readonly property bool secured: securitySelect.active !== noneItem
     property bool connecting: false
     property bool failed: false
+    property string failureMessage
     property bool success: false
 
     function submit(): void {
-        const ssid = ssidField.text.trim();
+        if (root.connecting) return;
+        const ssid = ssidField.text;
         if (ssid.length === 0) {
             ssidField.isError = true;
             ssidField.forceActiveFocus();
@@ -36,19 +39,17 @@ PageBase {
         root.failed = false;
         root.connecting = true;
 
-        Nmcli.addHiddenNetwork(ssid, root.secured ? passwordField.text : "", root.secured ? "wpa" : "none", hiddenToggle.checked, result => {
+        if (Nmcli.savedConnectionSsids.includes(ssid)) {
             root.connecting = false;
-            if (result && result.success) {
-                root.success = true;
-                root.nState.closeSubPage();
-            } else {
-                root.failed = true;
-                if (root.secured)
-                    passwordField.isError = true;
-                // Clean up the half-created profile so a retry starts fresh.
-                Nmcli.forgetNetwork(ssid);
-            }
-        });
+            root.failed = true;
+            root.failureMessage = Tr.tr("This network is already saved. Open Saved networks to connect or edit it.");
+            return;
+        }
+        root.failureMessage = "";
+        if (!DesktopIntegration.connectHiddenNetwork(ssid, root.secured ? passwordField.text : "", root.secured, hiddenToggle.checked)) {
+            root.connecting = false; root.failed = true; root.failureMessage = DesktopIntegration.error;
+        }
+        passwordField.clear();
     }
 
     title: Tr.tr("Add network")
@@ -61,17 +62,21 @@ PageBase {
         spacing: Tokens.spacing.large
 
         Connections {
-            function onSubPageClosed(): void {
-                if (root.success)
-                    return;
-
-                const ssid = ssidField.text.trim();
-                if (ssid)
-                    Nmcli.forgetNetwork(ssid);
+            target: DesktopIntegration
+            function onHiddenNetworkFinished(success: bool): void {
+                if (!root.connecting) return;
+                root.connecting = false;
+                Nmcli.loadSavedConnections(() => {});
+                if (success) {
+                    root.success = true;
+                    root.nState.closeSubPage();
+                } else {
+                    root.failed = true;
+                    root.failureMessage = DesktopIntegration.error;
+                }
             }
-
-            target: root.nState
         }
+        FeatureError { error: root.failureMessage }
 
         StyledText {
             Layout.fillWidth: true

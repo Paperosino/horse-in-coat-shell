@@ -22,9 +22,42 @@ ColumnLayout {
     default property Item contentChild
     property Item searchHighlight
     property int searchAttempts
+    property real settledContentHeight: 0
+    property real preferredContentY: -flickable.topMargin
+
+    // Repeaters briefly remove their delegates when a refreshed model arrives.
+    // Keep that intermediate layout from clamping the current scroll position.
+    readonly property FrameAnimation contentLayoutSettled: FrameAnimation {
+        property real sampledHeight: -1
+        property int stableFrames: 0
+        onTriggered: {
+            const height = root.contentChild?.implicitHeight ?? 0;
+            if (currentFrame === 1 || height !== sampledHeight) {
+                sampledHeight = height;
+                stableFrames = 0;
+            } else {
+                stableFrames++;
+            }
+            // Wait for layout polish as well as a quiet update interval.
+            if (elapsedTime >= 0.064 && stableFrames >= 2) {
+                root.settledContentHeight = height;
+                const maximum = Math.max(-flickable.topMargin, height - flickable.height + flickable.bottomMargin);
+                flickable.contentY = Math.max(-flickable.topMargin, Math.min(maximum, root.preferredContentY));
+                stop();
+            }
+        }
+    }
+
+    onContentChildChanged: contentLayoutSettled.restart()
+
+    Connections {
+        target: root.contentChild
+        function onImplicitHeightChanged(): void { root.contentLayoutSettled.restart(); }
+    }
 
     function revealSearchTarget(): bool {
         if (!nState.searchTarget && !nState.searchTargetText) return true;
+        if (contentLayoutSettled.running) return false;
         function find(item) {
             if (root.nState.searchTarget ? item.objectName === root.nState.searchTarget
                 : item.text === root.nState.searchTargetText || item.label === root.nState.searchTargetText
@@ -49,6 +82,7 @@ ColumnLayout {
     }
 
     Component.onCompleted: {
+        contentLayoutSettled.restart();
         if (nState.searchTarget || nState.searchTargetText) searchRetry.start();
     }
 
@@ -119,7 +153,11 @@ ColumnLayout {
         topMargin: Tokens.padding.large
         bottomMargin: Tokens.padding.extraLarge
 
-        contentHeight: root.contentChild?.implicitHeight ?? 0
+        onContentYChanged: {
+            if (!root.contentLayoutSettled.running || dragging)
+                root.preferredContentY = contentY;
+        }
+        contentHeight: root.settledContentHeight
         contentItem.children: [root.contentChild, searchOutline]
 
         Rectangle {

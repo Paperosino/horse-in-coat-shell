@@ -2,6 +2,6 @@ import QtQuick
 import Hyprstack.Config
 
 ColorAnimation {
-    duration: Tokens.anim.durations.expressiveSlowEffects
+    duration: GlobalConfig.appearance.reducedMotion ? 0 : Tokens.anim.durations.expressiveSlowEffects
     easing: Tokens.anim.expressiveSlowEffects
 }

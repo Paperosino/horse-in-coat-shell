@@ -22,7 +22,7 @@
           };
         in {
           default = package;
-          hyprstack = package;
+          hics = package;
           inherit (package) hyprland quickshell;
         });
 

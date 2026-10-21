@@ -122,7 +122,7 @@ def scheme_command(args):
         else:
             print(json.dumps(current))
     else:
-        identifier = args.name or current.get("name", "hyprstack-catppuccin")
+        identifier = ("hyprstack-" + args.name[5:] if args.name and args.name.startswith("hics-") else args.name) or current.get("name", "hyprstack-catppuccin")
         if args.random:
             identifier = random.choice(catalogue)["id"]
         mode = args.mode or current.get("mode", "dark")
@@ -140,6 +140,10 @@ def scheme_command(args):
 
 
 def wallpaper_command(args):
+    if args.status:
+        return ipc("wallpapers", "status")
+    if args.restart is not None:
+        return ipc("wallpapers", "restart", args.restart)
     current = themes.read_current()
     if args.print is not None:
         print(json.dumps(dynamic_scheme(Path(args.print) if args.print else wallpaper_path(),
@@ -535,8 +539,8 @@ def record_command(args):
 
 def parser():
     configure_argparse()
-    p = argparse.ArgumentParser(description=_("Control the Hyprstack desktop"), prog="hyprstack")
-    p.add_argument("-v", "--version", action="version", version="hyprstack " + VERSION)
+    p = argparse.ArgumentParser(description=_("Control the hics desktop"), prog="hics")
+    p.add_argument("-v", "--version", action="version", version="hics " + VERSION)
     sub = p.add_subparsers(dest="command", required=True, title=_("Commands"))
     scheme = sub.add_parser("scheme", help=_("View and change colour schemes")).add_subparsers(dest="operation", required=True)
     listing = scheme.add_parser("list")
@@ -558,6 +562,8 @@ def parser():
     choice.add_argument("-p", "--print", nargs="?", const="")
     choice.add_argument("-f", "--file")
     choice.add_argument("-r", "--random", nargs="?", const="")
+    choice.add_argument("--status", action="store_true")
+    choice.add_argument("--restart", nargs="?", const="")
     wall.add_argument("-N", "--no-smart", action="store_true")
     shot = sub.add_parser("screenshot", help=_("Take a screenshot"))
     shot.add_argument("-r", "--region", nargs="?", const="slurp")
@@ -593,18 +599,18 @@ def main():
         elif args.command == "clipboard": clipboard_command(args)
         elif args.command == "emoji": emoji_command(args)
         elif args.command == "doctor":
-            return run(["runhics-doctor"]).returncode
+            return run(["hics-doctor"]).returncode
         elif args.message:
             return ipc(*args.message).returncode
         else:
             if args.kill or args.restart:
                 run([qs_binary(), "-p", shell_path(), "kill"], timeout=10)
             if not args.kill:
-                command = ["runhics-shell"] + (["--daemonize"] if args.daemon else [])
+                command = ["hics-shell"] + (["--daemonize"] if args.daemon else [])
                 os.execvp(command[0], command)
         return 0
     except (OSError, ValueError, KeyError, TypeError, ImportError, subprocess.SubprocessError) as error:
-        print("hyprstack: " + str(error), file=sys.stderr)
+        print("hics: " + str(error), file=sys.stderr)
         return 1
 
 

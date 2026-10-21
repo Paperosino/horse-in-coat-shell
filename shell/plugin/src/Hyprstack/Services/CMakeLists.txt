@@ -8,6 +8,9 @@ endif()
 qml_module(hyprstack-services
     URI Hyprstack.Services
     SOURCES
+        wallpaperplayer.cpp
+        desktopintegration.cpp
+        notificationpolicy.cpp
         service.cpp
         serviceref.cpp
         ${audio_sources}
@@ -28,6 +31,7 @@ qml_module(hyprstack-services
         Qt::Concurrent
         Qt::DBus
         Qt::Network
+        Qt::Multimedia
         ${audio_libraries}
         Sensors::Sensors
         hyprstack-util

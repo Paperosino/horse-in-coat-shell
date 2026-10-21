@@ -7,7 +7,7 @@ hl.env("XCURSOR_THEME", vars.cursorTheme)
 hl.env("XCURSOR_SIZE", vars.cursorSize)
 
 -- User appearance choices survive compositor reloads and fresh logins.
-local appearance_path = (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/hyprstack/appearance.json"
+local appearance_path = (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/hics/appearance.json"
 local appearance_file = io.open(appearance_path, "r")
 if appearance_file then
     local ok, appearance = pcall(require("utils.json").decode, appearance_file:read("*a"))

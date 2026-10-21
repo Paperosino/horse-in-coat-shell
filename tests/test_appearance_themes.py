@@ -7,7 +7,7 @@ import appearance_themes as themes
 class AppearanceThemesTest(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);base=Path(self.temp.name)
-  for key,relative in [('HOME','home'),('CONFIG','home/config'),('DATA','home/data'),('CACHE','cache'),('STATE','home/config/hyprstack/appearance.json')]:
+  for key,relative in [('HOME','home'),('CONFIG','home/config'),('DATA','home/data'),('CACHE','cache'),('STATE','home/config/hics/appearance.json')]:
    p=patch.object(themes,key,base/relative);p.start();self.addCleanup(p.stop)
   p=patch.dict(os.environ,{'XDG_DATA_DIRS':str(base/'system')},clear=False);p.start();self.addCleanup(p.stop)
   icon=themes.DATA/'icons/Test';(icon/'32x32/places').mkdir(parents=True)
@@ -54,6 +54,6 @@ class AppearanceThemesTest(unittest.TestCase):
  def test_runtime_updates_are_reported_and_saved(self):
   with patch.object(themes,'command',return_value=None),patch.object(themes,'flatpak_settings'):
    themes.apply('icons','Test')
-  self.assertTrue((themes.CONFIG/'environment.d/90-hyprstack-appearance.conf').is_file())
+  self.assertTrue((themes.CONFIG/'environment.d/90-hics-appearance.conf').is_file())
   self.assertEqual(themes.current()['icons'],'Test')
 if __name__=='__main__':unittest.main()

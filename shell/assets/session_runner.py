@@ -19,7 +19,7 @@ def paths():
     runtime = os.environ.get("XDG_RUNTIME_DIR", "")
     if not runtime or not re.fullmatch(r"[A-Za-z0-9_.-]+", signature):
         raise ValueError("Run Hyprstack in a Hyprland Wayland session")
-    return Path(runtime) / ("runhics-session-" + signature), Path(runtime) / "hypr" / signature / ".socket2.sock"
+    return Path(runtime) / ("hics-session-" + signature), Path(runtime) / "hypr" / signature / ".socket2.sock"
 
 
 def stop_child_groups(children):
@@ -85,7 +85,7 @@ def run_session():
             if shutil.which("wl-paste") and shutil.which("cliphist"):
                 for kind in ("text", "image"):
                     children.append(subprocess.Popen(["wl-paste", "--type", kind, "--watch", "cliphist", "store"], start_new_session=True))
-            shell = subprocess.Popen(["runhics-shell"], start_new_session=True)
+            shell = subprocess.Popen(["hics-shell"], start_new_session=True)
             children.append(shell)
             with selectors.DefaultSelector() as selector:
                 selector.register(event, selectors.EVENT_READ)
@@ -151,7 +151,7 @@ def main():
         if action == "stop" and not os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
             runtime = os.environ.get("XDG_RUNTIME_DIR")
             if runtime:
-                for lockpath in Path(runtime).glob("runhics-session-*"):
+                for lockpath in Path(runtime).glob("hics-session-*"):
                     stop_session(lockpath)
             return 0
         lockpath, eventpath = paths()
@@ -164,7 +164,7 @@ def main():
             return 0
         return run_session()
     except (OSError, ValueError, subprocess.SubprocessError) as error:
-        print("runhics-session: " + str(error), file=sys.stderr)
+        print("hics-session: " + str(error), file=sys.stderr)
         return 1
 
 

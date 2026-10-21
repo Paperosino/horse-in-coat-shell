@@ -2,7 +2,7 @@
 
 `build-package.sh` stages the repository tree, resolves build dependencies
 via pacman and runs `makepkg`. The produced package bundles its own pinned
-quickshell (v0.3.2) and a private Qt runtime under `/usr/share/hyprstack/qs`,
+quickshell (v0.3.2) and a private Qt runtime under `/usr/share/hics/qs`,
 so system quickshell/Qt updates cannot break the shell.
 
 ```bash

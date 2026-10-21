@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-data_dir=${HYPRSTACK_DATA_DIR:-}
+for key in DATA_DIR SHELL_DIR LIB_DIR PAM_SERVICE LANGUAGE WALLPAPERS_DIR RECORDINGS_DIR ASSISTANT_KEY; do
+    current="HICS_$key"
+    if [[ -v $current ]]; then export "HYPRSTACK_$key=${!current}"; fi
+done
+data_dir=${HICS_DATA_DIR:-${HYPRSTACK_DATA_DIR:-}}
 if [[ -z $data_dir ]]; then
-    if [[ -d /usr/share/hyprstack ]]; then
-        data_dir=/usr/share/hyprstack
+    if [[ -d /usr/share/hics ]]; then
+        data_dir=/usr/share/hics
     else
-        data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/hyprstack
+        data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/hics
     fi
 fi
 export HYPRSTACK_SHELL_DIR=${HYPRSTACK_SHELL_DIR:-$data_dir/shell}
@@ -14,7 +18,8 @@ export QML2_IMPORT_PATH="$data_dir/qml${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
 export HYPRSTACK_LIB_DIR="$data_dir/lib"
 export PATH="$PATH:$HOME/.local/bin"
 export PYTHONDONTWRITEBYTECODE=1
-qs_bin=$data_dir/qs/bin/hyprstack-qs
+python3 "$data_dir/shell/assets/migrate_branding.py"
+qs_bin=$data_dir/qs/bin/hics-qs
 if [[ -x $qs_bin ]]; then
     export LD_LIBRARY_PATH="$data_dir/qs/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     export HYPRSTACK_QS=$qs_bin

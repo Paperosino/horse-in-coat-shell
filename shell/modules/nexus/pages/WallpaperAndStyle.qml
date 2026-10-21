@@ -25,10 +25,20 @@ PageBase {
         SectionHeader { text:Tr.tr("Colours & themes") }
         NavRow { first:true;text:Tr.tr("Colours");subtext:Tr.tr("Accent, light and dark palettes");icon:"colors";onClicked:root.nState.openSubPage(3) }
         NavRow { last:true;text:Tr.tr("Themes & automation");subtext:Tr.tr("Import themes, day and night schedule");icon:"schedule";onClicked:root.nState.openSubPage(4) }
+        ToggleRow {
+            first: true
+            last: true
+            text: Tr.tr("Smart colour scheme")
+            subtext: Tr.tr("Derive theme mode and variant from the wallpaper")
+            checked: GlobalConfig.services.smartScheme
+            onToggled: GlobalConfig.services.smartScheme = checked
+        }
         SectionHeader { text:Tr.tr("Application appearance") }
         NavRow { first:true;text:Tr.tr("Application icons");subtext:Tr.tr("Theme previews for GTK, Qt 5, Qt 6 and Flatpak");icon:"interests";onClicked:root.nState.openSubPage(6) }
         NavRow { last:true;text:Tr.tr("Cursor appearance");subtext:Tr.tr("Preview shapes, choose a theme and adjust its size");icon:"arrow_selector_tool";onClicked:root.nState.openSubPage(7) }
         SectionHeader { text:Tr.tr("Shell & windows") }
         NavRow { first:true;last:true;text:Tr.tr("Shell appearance");subtext:Tr.tr("Transparency, blur, window edges, shadows and scale");icon:"blur_on";onClicked:root.nState.openSubPage(8) }
+
+
     }
 }

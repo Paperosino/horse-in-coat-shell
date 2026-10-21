@@ -24,7 +24,7 @@ foreach(po IN LISTS po_files)
     set_source_files_properties("${mo}" PROPERTIES QT_RESOURCE_ALIAS "${lang}.mo")
     list(APPEND mo_files "${mo}")
     install(FILES "${mo}"
-        DESTINATION "${CMAKE_INSTALL_DATADIR}/hyprstack/translations/${lang}/LC_MESSAGES"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/hics/translations/${lang}/LC_MESSAGES"
         RENAME hyprstack.mo)
 endforeach()
 

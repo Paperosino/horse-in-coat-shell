@@ -134,15 +134,15 @@ bind_variable("kbLock", hl.dsp.global("hyprstack:lock"))
 
 -- Restore lock
 bind_variable("kbRestoreLock", function()
-    hl.dispatch(hl.dsp.exec_cmd("runhics shell -d"))
+    hl.dispatch(hl.dsp.exec_cmd("hics shell -d"))
     hl.dispatch(hl.dsp.global("hyprstack:lock"))
 end)
 
 -- Kill/restart
-create_bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd("runhics-session stop"), release, "Session: Stop shell")
+create_bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd("hics-session stop"), release, "Session: Stop shell")
 create_bind(
     "CTRL + SUPER + ALT + R",
-    hl.dsp.exec_cmd("runhics-session restart"),
+    hl.dsp.exec_cmd("hics-session restart"),
     release, "Session: Restart shell"
 )
 
@@ -229,12 +229,12 @@ bind_variable("kbFileExplorer", hl.dsp.exec_cmd(vars.fileExplorer))
 bind_variable("kbAudioSettings", hl.dsp.exec_cmd(vars.audioSettings))
 
 -- Utilities
-bind_variable("kbScreenshot", hl.dsp.exec_cmd("runhics screenshot"), locked)
+bind_variable("kbScreenshot", hl.dsp.exec_cmd("hics screenshot"), locked)
 bind_variable("kbScreenshotFreeze", hl.dsp.global("hyprstack:screenshotFreeze"))
 bind_variable("kbScreenshotRegion", hl.dsp.global("hyprstack:screenshot"))
-bind_variable("kbRecord", hl.dsp.exec_cmd("runhics record"))
-bind_variable("kbRecordSound", hl.dsp.exec_cmd("runhics record -s"))
-bind_variable("kbRecordRegion", hl.dsp.exec_cmd("runhics record -r"))
+bind_variable("kbRecord", hl.dsp.exec_cmd("hics record"))
+bind_variable("kbRecordSound", hl.dsp.exec_cmd("hics record -s"))
+bind_variable("kbRecordRegion", hl.dsp.exec_cmd("hics record -r"))
 bind_variable("kbColorPicker", hl.dsp.exec_cmd("hyprpicker -a"))
 
 -- Brightness
@@ -272,7 +272,7 @@ bind_variable("kbSleep", hl.dsp.exec_cmd(vars.sleepGestureCmd), locked)
 -- Clipboard and emoji picker
 bind_variable("kbClipboard", hl.dsp.global("hyprstack:clipboard"))
 bind_variable("kbClipboardDel", hl.dsp.global("hyprstack:clipboardDelete"))
-bind_variable("kbEmoji", hl.dsp.exec_cmd("pkill fuzzel || runhics emoji -p"))
+bind_variable("kbEmoji", hl.dsp.exec_cmd("pkill fuzzel || hics emoji -p"))
 bind_variable("kbClipboardPasteLatest",
     hl.dsp.exec_cmd('sleep 0.5s && ydotool type -d 1 "$(cliphist list | head -1 | cliphist decode)"'),
     locked

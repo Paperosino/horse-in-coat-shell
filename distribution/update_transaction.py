@@ -46,7 +46,7 @@ class Installer:
         self.data = Path(os.environ.get("XDG_DATA_HOME", str(self.home / ".local/share")))
         self.state = Path(os.environ.get("XDG_STATE_HOME", str(self.home / ".local/state")))
         self.bin = self.home / ".local/bin"
-        self.root = self.state / "hyprstack-install"
+        self.root = self.state / "hics-install"
         self.manifest = self.root / "installed.json"
         self.latest = self.root / "latest.json"
         self.pending = self.root / "pending.json"

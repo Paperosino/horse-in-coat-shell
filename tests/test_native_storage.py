@@ -2,7 +2,7 @@
 import json,os,shlex,subprocess,tempfile,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-LIB=ROOT/'build/native/system/libhyprstack-system-backend.a'
+LIB=ROOT/'build/native/system/libhics-system-backend.a'
 @unittest.skipUnless(LIB.exists(),'build native backend first')
 class StorageBusTests(unittest.TestCase):
  @classmethod
@@ -38,12 +38,12 @@ QTextStream(stdout)<<System::encode(result)<<Qt::endl; return 0;
   p=subprocess.run([str(self.probeBinary)]+([op] if op else []),input=json.dumps(options or {}),text=True,capture_output=True,env=self.env,timeout=5)
   return json.loads(p.stdout)
  def fixture(self,method,*args):
-  subprocess.run(['busctl','--address='+self.env['DBUS_SYSTEM_BUS_ADDRESS'],'call','org.freedesktop.UDisks2','/org/freedesktop/UDisks2/block_devices/test','org.hyprstack.Test',method,*args],check=True,capture_output=True)
+  subprocess.run(['busctl','--address='+self.env['DBUS_SYSTEM_BUS_ADDRESS'],'call','org.freedesktop.UDisks2','/org/freedesktop/UDisks2/block_devices/test','org.hics.Test',method,*args],check=True,capture_output=True)
  def options(self):return dict(path='/org/freedesktop/UDisks2/block_devices/test',directory='/mnt/test',automatic=True,readOnly=False,noexec=True,nosuid=True,nodev=True,nofail=True,noatime=False)
  def test_broker_reloads_mount_units_after_configuration(self):
   self.fixture('SetOptions','s','defaults')
   self.assertTrue(self.probe('broker-configure',self.options())['ok'])
-  response=subprocess.check_output(['busctl','--address='+self.env['DBUS_SYSTEM_BUS_ADDRESS'],'call','org.freedesktop.systemd1','/org/freedesktop/systemd1','org.hyprstack.Test','ReloadCount'],text=True)
+  response=subprocess.check_output(['busctl','--address='+self.env['DBUS_SYSTEM_BUS_ADDRESS'],'call','org.freedesktop.systemd1','/org/freedesktop/systemd1','org.hics.Test','ReloadCount'],text=True)
   self.assertEqual(response.strip(),'u 1')
  def test_cached_smart_without_device_io(self):
   v=self.probe()['volumes'][0];self.assertEqual(v['smart']['temperature'],30);self.assertEqual(v['smart']['hours'],2);self.assertFalse(v['smart']['failing'])
@@ -54,7 +54,7 @@ QTextStream(stdout)<<System::encode(result)<<Qt::endl; return 0;
     self.fixture('SetMount','sb',str(target),'true' if ssd else 'false')
     result=self.probe('maintenance-'+op,{'path':self.options()['path']})
     self.assertTrue(result.get('ok'),result)
-    output=subprocess.check_output(['busctl','--address='+self.env['DBUS_SYSTEM_BUS_ADDRESS'],'--json=short','call','org.freedesktop.systemd1','/org/freedesktop/systemd1','org.hyprstack.Test','LastTask'],text=True)
+    output=subprocess.check_output(['busctl','--address='+self.env['DBUS_SYSTEM_BUS_ADDRESS'],'--json=short','call','org.freedesktop.systemd1','/org/freedesktop/systemd1','org.hics.Test','LastTask'],text=True)
     task=json.loads(json.loads(output)['data'][0])
     self.assertTrue(task['program'].endswith('/'+program));self.assertEqual(task['arguments'][1:],['--',str(target)])
     self.assertEqual(task['nice'],19);self.assertTrue(task['noNewPrivileges']);self.assertEqual(task['unit'],'hyprstack-disk-test.service')

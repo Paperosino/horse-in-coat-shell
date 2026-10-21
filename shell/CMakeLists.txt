@@ -26,7 +26,7 @@ endif()
 
 string(REGEX REPLACE "^v" "" VERSION "${VERSION}")
 
-project(runhics-shell VERSION ${VERSION} LANGUAGES CXX)
+project(hics-shell VERSION ${VERSION} LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
@@ -37,9 +37,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 set(DISTRIBUTOR "Unset" CACHE STRING "Distributor")
 set(ENABLE_MODULES "extras;plugin;shell" CACHE STRING "Modules to build/install")
-set(INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}/hyprstack" CACHE STRING "Library install dir")
+set(INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}/hics" CACHE STRING "Library install dir")
 set(INSTALL_QMLDIR "${CMAKE_INSTALL_LIBDIR}/qt6/qml" CACHE STRING "QML install dir")
-set(INSTALL_QSCONFDIR "${CMAKE_INSTALL_SYSCONFDIR}/xdg/quickshell/hyprstack" CACHE STRING "Quickshell config install dir")
+set(INSTALL_QSCONFDIR "${CMAKE_INSTALL_SYSCONFDIR}/xdg/quickshell/hics" CACHE STRING "Quickshell config install dir")
 
 add_compile_definitions(
     QT_NO_CAST_FROM_ASCII
@@ -80,7 +80,7 @@ if("shell" IN_LIST ENABLE_MODULES)
         PATTERN "__pycache__" EXCLUDE PATTERN "*.pyc" EXCLUDE
         PATTERN "README.md" EXCLUDE)
     install(FILES
-        assets/diagnostics.py assets/hyprstack_cli.py assets/i18n.py
+        assets/migrate_branding.py assets/diagnostics.py assets/hics_cli.py assets/i18n.py
         assets/notification_tools.py assets/session_runner.py assets/theme_manager.py assets/gtk_theme.py
         assets/feature_common.py assets/system_controls.py assets/live_wallpapers.py
         assets/plugin_manager.py assets/assistant_backend.py assets/clipboard_helper.py

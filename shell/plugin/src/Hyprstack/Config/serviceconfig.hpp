@@ -23,6 +23,8 @@ CONFIG_LIST_TYPE(PlayerAlias, PlayerAliasList)
 class ServiceConfig : public settings::ObjectNode {
     CONFIG_NODE(ServiceConfig, settings::ObjectNode)
 
+    CONFIG_GLOBAL_PROPERTY(bool, openRemovableVolumes, false)
+
     CONFIG_GLOBAL_PROPERTY(bool, weatherEnabled, false)
 
     CONFIG_GLOBAL_PROPERTY(QString, weatherLocation, {})

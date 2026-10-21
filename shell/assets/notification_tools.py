@@ -16,8 +16,8 @@ import time
 from urllib.parse import unquote, urlsplit
 
 
-CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "hyprstack/imagecache/notifs"
-STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hyprstack/notifs.json"
+CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "hics/imagecache/notifs"
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hics/notifs.json"
 
 
 def local_path(value: str) -> Path:

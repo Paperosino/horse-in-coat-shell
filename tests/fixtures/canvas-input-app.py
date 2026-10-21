@@ -2,7 +2,7 @@ import os
 import gi
 gi.require_version('Gtk','4.0')
 from gi.repository import Gtk,Gdk,Gio,GLib
-app=Gtk.Application(application_id='org.hyprstack.CanvasInputTest',flags=Gio.ApplicationFlags.NON_UNIQUE)
+app=Gtk.Application(application_id=os.environ.get('HICS_TEST_APPLICATION_ID', 'org.hics.CanvasInputTest'),flags=Gio.ApplicationFlags.NON_UNIQUE)
 def activate(app):
  window=Gtk.ApplicationWindow(application=app,title='Canvas input regression');window.set_default_size(640,400)
  # Force client decorations/shadow margins: these exercise the bars motion
