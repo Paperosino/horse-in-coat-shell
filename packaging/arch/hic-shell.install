@@ -1,3 +1,27 @@
+hics_restart_user_sessions() {
+    # Connect only to user managers that are already running. try-restart
+    # leaves inactive sessions alone, including lingering users without a GUI.
+    systemctl list-units --type=service --state=running --no-legend --plain --no-pager 'user@*.service' |
+        while read -r hics_unit hics_details; do
+            case "$hics_unit" in
+                user@*.service) ;;
+                *) continue ;;
+            esac
+            hics_uid=${hics_unit#user@}
+            hics_uid=${hics_uid%.service}
+            case "$hics_uid" in
+                ''|*[!0-9]*) continue ;;
+            esac
+            if ! systemctl --user --machine="$hics_uid@.host" daemon-reload; then
+                printf 'hics: could not reload user manager %s; session was not restarted.\n' "$hics_uid" >&2
+                continue
+            fi
+            if ! systemctl --user --machine="$hics_uid@.host" try-restart hic-session.service; then
+                printf 'hics: could not restart the active shell for user %s.\n' "$hics_uid" >&2
+            fi
+        done
+}
+
 post_install() {
     if [ -d /run/systemd/system ]; then
         systemctl stop hyprstack-system.service 2>/dev/null || true
@@ -13,6 +37,7 @@ post_install() {
             ln -s hics /usr/share/hyprstack
         fi
         systemctl reload dbus.service
+        hics_restart_user_sessions
     fi
 }
 post_upgrade() {

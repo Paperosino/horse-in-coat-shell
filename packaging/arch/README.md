@@ -18,3 +18,9 @@ Notes:
   instead of installing.
 - Updating the package rebuilds the bundled runtime against the then-current
   system Qt; see `MAINTENANCE.md`.
+
+After installation and upgrades, the package reloads running systemd user
+managers and restarts active `hic-session.service` instances automatically.
+Inactive shells stay inactive. Hyprland and applications remain running.
+If a user manager cannot be reached, the installer prints a warning and
+continues with other users; run `hics-session restart` in that session.

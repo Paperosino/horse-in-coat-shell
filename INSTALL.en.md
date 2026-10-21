@@ -57,6 +57,9 @@ the wrapper falls back to the system `qs`). The session service is
 installed straight into `/usr/lib/systemd/user`. Update the package by
 running the same script: it rebuilds the bundled runtime against the
 current system Qt and re-bundles it.
+After installation and upgrades, active `hic-session.service` instances restart
+automatically. Hyprland and open applications keep running; inactive user
+sessions do not start a shell.
 
 If the shell was previously installed into `$HOME/.local`, remove
 `~/.local/share/hics` so the packaged install takes priority
