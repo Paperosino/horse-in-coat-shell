@@ -56,11 +56,11 @@ Region {
 
     Region {
         readonly property var dock:root.panels.dock
-        readonly property real pad:dock.membraneRadius+8
-        x:root.panels.x+dock.x+dock.membraneCenter.x-pad
-        y:root.panels.y+dock.y+dock.membraneCenter.y-pad
-        width:dock.visible && dock.motionEnabled && dock.hoverAmount>0.01 ? pad*2 : 0
-        height:width
+        readonly property rect bounds:dock.membraneBounds
+        x:root.panels.x+dock.x+bounds.x
+        y:root.panels.y+dock.y+bounds.y
+        width:dock.visible ? bounds.width : 0
+        height:dock.visible ? bounds.height : 0
         intersection:Intersection.Subtract
     }
 

@@ -234,15 +234,21 @@ StyledWindow {
             radius: Tokens.rounding.extraLarge
         }
 
-        BlobRect {
-            readonly property var dock: panels.dock
-            visible:dock.visible && dock.motionEnabled && dock.hoverAmount>0.001
-            group:visible ? blobGroup : null
-            deformScale:0
-            x:panels.x+dock.x+dock.membraneCenter.x-dock.membraneRadius
-            y:panels.y+dock.y+dock.membraneCenter.y-dock.membraneRadius
-            implicitWidth:dock.membraneRadius*2;implicitHeight:implicitWidth
-            radius:implicitWidth/2
+        Repeater {
+            model: 7
+            BlobRect {
+                required property int index
+                readonly property var dock: panels.dock
+                readonly property var lobe: dock.membraneShapes[index] ?? null
+                visible: dock.visible && lobe !== null
+                group: visible ? blobGroup : null
+                deformScale: 0
+                x: panels.x+dock.x+(lobe?.x ?? 0)
+                y: panels.y+dock.y+(lobe?.y ?? 0)
+                implicitWidth: lobe?.w ?? 0
+                implicitHeight: lobe?.h ?? 0
+                radius: Math.min(width/2,height/2,Tokens.rounding.large+6*Tokens.scale)
+            }
         }
         BlobRect {
             readonly property var dock:panels.dock

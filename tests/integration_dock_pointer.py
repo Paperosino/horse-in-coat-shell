@@ -42,9 +42,9 @@ ShellRoot {
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
   let buttons=[],titles=[],clocks=[],captures=[];root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
-  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,membraneCenter:dock.membraneCenter,membraneRadius:dock.membraneRadius,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
+  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,dockBox:root.box(dock),membraneShapes:dock.membraneShapes,membraneBounds:dock.membraneBounds,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
    captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
-   buttons:buttons.map(b=>Object.assign(root.box(b),{wave:b.wave,visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
+   buttons:buttons.map(b=>Object.assign(root.box(b),{wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
  }}
 }'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))))
     fixtures = ROOT/'tests/fixtures'
@@ -104,9 +104,23 @@ ShellRoot {
         assert raised['hoverAmount']>.8,('Dock hover field never activated',raised)
         assert raised['buttons'][0]['visual']['y'] < raised['buttons'][0]['y']-15,('Icon did not lift',raised)
         assert abs(raised['dockWidth']-base_width)<1,'Hover changed dock width'
+        def assert_membrane(snapshot):
+            for button in snapshot['buttons']:
+                if button['wave']<.03:continue
+                cx=button['center']['x']-snapshot['dockBox']['x']
+                cy=button['center']['y']-snapshot['dockBox']['y']
+                hw=button['w']*button['scale']/2
+                hh=button['h']*button['scale']/2
+                assert any(s['x']<=cx-hw+.1 and s['y']<=cy-hh+.1 and s['x']+s['w']>=cx+hw-.1 and s['y']+s['h']>=cy+hh-.1 for s in snapshot['membraneShapes']),('Animated icon escaped membrane',snapshot)
+        assert_membrane(early)
+        assert_membrane(raised)
+        # Move off the icon centre: the lobe must remain centred on the icon,
+        # including the spring's return after the pointer has already left.
+        send('move',button['x']+button['w']*.8,button['y']+button['h']/2)
+        assert_membrane(read())
         image=base/'membrane.png';subprocess.run(['grim',str(image)],env=env,check=True,capture_output=True)
         shutil.copy2(image,'/tmp/hics-dock-membrane.png')
-        send('move',100,300);time.sleep(.8)
+        send('move',100,300);assert_membrane(read());time.sleep(.8)
         assert read()['hoverAmount']<.02,'Dock membrane did not settle after pointer exit'
         print('PASS: continuous hover raises the icon and membrane without changing dock width',flush=True)
         for attempt in range(2):
@@ -161,8 +175,23 @@ ShellRoot {
             send('move',button['x']+button['w']/2,button['y']+button['h']/2);time.sleep(.7)
             current=read();button=current['buttons'][0];visual=button['visual']
             delta=(visual['x']-button['x']) if side in ('left','right') else (visual['y']-button['y'])
+            assert_membrane(current)
             assert current['hoverAmount']>.8 and (delta>15 if side in ('left','top') else delta< -15),(side,current)
         print('PASS: the liquid wave follows all four dock positions towards the work area',flush=True)
+        (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,spread=120)))
+        for i in range(4):
+            processes.append(subprocess.Popen(['kitty','--class',f'org.hics.MembraneFixture{i}','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL))
+        wait_for(lambda s:len(s.get('buttons',[]))==5)
+        time.sleep(.8)
+        buttons=read()['buttons'];target=buttons[2]
+        send('move',target['x']+target['w']/2,target['y']+target['h']/2)
+        time.sleep(.4);many=read();assert_membrane(many)
+        assert len(many['membraneShapes'])>=3,('Neighbouring icons have no membrane',many)
+        target=buttons[3]
+        send('move',target['x']+target['w']/2,target['y']+target['h']/2)
+        assert_membrane(read())
+        send('move',100,300);assert_membrane(read())
+        print('PASS: the shared membrane contains neighbouring icons during pointer travel and spring return',flush=True)
         (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,animations=False)))
         time.sleep(.7);current=read();assert all(abs(b['visual']['y']-b['y'])<.5 for b in current['buttons']),current
         print('PASS: disabling dock animations immediately settles the membrane',flush=True)

@@ -37,10 +37,37 @@ Item {
     property real wavePosition: vertical ? height / 2 : width / 2
     readonly property real hoverAmount: hoverSpring.value
     MotionSpring {id:hoverSpring;target:root.motionEnabled && pointerField.hovered && !root.menuOpen && !root.listOpen && !root.draggedKey ? 1 : 0;enabled:root.motionEnabled;damping:DockConf.damping}
-    readonly property real membraneRadius: root.iconSize * 0.5 * (1 + (DockConf.magnification - 1) * hoverAmount)
-    readonly property point membraneCenter: vertical
-        ? Qt.point(width/2 + (DockConf.position === "left" ? 1 : -1) * DockConf.lift * Tokens.scale * hoverAmount, Math.max(iconSize/2,Math.min(height-iconSize/2,wavePosition)))
-        : Qt.point(Math.max(iconSize/2,Math.min(width-iconSize/2,wavePosition)), height/2 + (atBottom ? -1 : 1) * DockConf.lift * Tokens.scale * hoverAmount)
+    // Sample actual animated icon geometry, never the cursor coordinate.
+    // Seven overlapping lobes cover the wave and fit the shared SDF budget.
+    readonly property var membraneShapes: {
+        const shapes = [];
+        if (!motionEnabled) return shapes;
+        for (let i=0; i<taskRepeater.count; ++i) {
+            const button=taskRepeater.itemAt(i);
+            if (!button || button.wave<0.015) continue;
+            const p=button.mapToItem(root,button.width/2,button.height/2);
+            if ((vertical ? p.y<0 || p.y>height : p.x<0 || p.x>width)) continue;
+            // Scale follows Translate in the icon transform list, so it also
+            // scales the displacement. Keep the membrane in that same space.
+            const lift=DockConf.lift*Tokens.scale*button.wave*button.visualScale;
+            const normal=vertical ? (DockConf.position==="left"?1:-1) : (atBottom?-1:1);
+            const padding=6*Tokens.scale;
+            const w=button.width*button.visualScale*(vertical?1+0.08*button.wave:1)+2*padding;
+            const h=button.height*button.visualScale*(vertical?1:1+0.08*button.wave)+2*padding;
+            const cx=p.x+(vertical?normal*lift:0), cy=p.y+(vertical?0:normal*lift);
+            shapes.push({x:cx-w/2,y:cy-h/2,w:w,h:h,weight:button.wave,index:i});
+        }
+        return shapes.sort((a,b)=>b.weight-a.weight).slice(0,7).sort((a,b)=>a.index-b.index);
+    }
+    readonly property rect membraneBounds: {
+        if (!membraneShapes.length) return Qt.rect(0,0,0,0);
+        let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;
+        for (const shape of membraneShapes) {
+            x=Math.min(x,shape.x); y=Math.min(y,shape.y);
+            right=Math.max(right,shape.x+shape.w); bottom=Math.max(bottom,shape.y+shape.h);
+        }
+        return Qt.rect(x,y,right-x,bottom-y);
+    }
     property point absorptionCenter: Qt.point(0,0)
     property real absorptionAmount: 0
     property string lastTargets: ""
@@ -314,6 +341,7 @@ Item {
                         property bool motionReady: false
                         property int previousMinimized: minimizedCount
                         property real impulseScale: 1
+                        readonly property real visualScale: (1+(DockConf.magnification-1)*wave)*(GlobalConfig.appearance.reducedMotion?1:impulseScale)*(taskMouse.pressed&&!taskMouse.dragged?0.9:1)
                         property real accentPulse: 0
                         Component.onCompleted: Qt.callLater(()=>{previousMinimized=minimizedCount;motionReady=true;})
                         onMinimizedCountChanged: {
@@ -374,7 +402,7 @@ Item {
                             anchors.fill:parent
                             transform:[
                                 Translate {x:root.vertical ? (DockConf.position==="left"?1:-1)*DockConf.lift*Tokens.scale*task.wave : 0;y:root.vertical ? 0 : (root.atBottom?-1:1)*DockConf.lift*Tokens.scale*task.wave},
-                                Scale {origin.x:task.width/2;origin.y:task.height/2;xScale:(1+(DockConf.magnification-1)*task.wave)*(GlobalConfig.appearance.reducedMotion?1:task.impulseScale)*(taskMouse.pressed&&!taskMouse.dragged?0.9:1);yScale:xScale}
+                                Scale {origin.x:task.width/2;origin.y:task.height/2;xScale:task.visualScale;yScale:xScale}
                             ]
                         StyledRect {
                             anchors.fill: parent
