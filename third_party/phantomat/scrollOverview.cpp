@@ -2221,6 +2221,7 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_, PHLMONITO
             return;
 
         if (window) {
+            pruneCanvasViewMemory(window->m_stableID);
             g_canvasNativeLayout.erase(window->m_stableID);
             g_canvasSpatialLayout.erase(window->m_stableID);
             if (window->layoutTarget()) g_canvasManagedTargets.erase(window->layoutTarget().get());
@@ -4605,6 +4606,7 @@ bool CScrollOverview::followCanvasWindow(PHLWINDOW window, bool syncFocus, bool 
     if (!isCanvasDesktop() || !MONITOR || !shouldShowOverviewWindow(window) || closing)
         return false;
 
+    rememberCanvasView(true);
     markCanvasCameraActive(MONITOR);
     // The window you go to is the one you see: in front of the others.
     if (syncFocus)
@@ -5121,6 +5123,8 @@ void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
     if (clientGestureButton && SURFACE && SURFACE == clientGestureSurface)
         clientGestureLocal = SURFACELOCAL;
 
+    const bool pointerMoved = g_pSeatManager->m_state.pointerFocus != SURFACE ||
+        (canvasForwardedPointerLocal - SURFACELOCAL).size() > 0.001;
     canvasForwardedPointerWindow  = WINDOW;
     canvasForwardedPointerSurface = SURFACE;
     canvasForwardedPointerLocal   = SURFACELOCAL;
@@ -5133,9 +5137,14 @@ void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
         }
         return;
     }
-    g_pSeatManager->setPointerFocus(SURFACE, SURFACELOCAL);
-    g_pSeatManager->sendPointerMotion(timeMs ? timeMs : Time::millis(Time::steadyNow()), SURFACELOCAL);
-    g_pSeatManager->sendPointerFrame();
+    // Do not inject a synthetic motion/frame before every wheel event.
+    // XWayland uses motion to establish its scroll valuator baseline; redundant
+    // motion can erase the following axis delta in Qt/XInput consumers.
+    if (pointerMoved) {
+        g_pSeatManager->setPointerFocus(SURFACE, SURFACELOCAL);
+        g_pSeatManager->sendPointerMotion(timeMs ? timeMs : Time::millis(Time::steadyNow()), SURFACELOCAL);
+        g_pSeatManager->sendPointerFrame();
+    }
 
     if (ScrollOverview::Config::getCanvasHoverFocus() && !(canvasNavigationActive && SpatialOverview::Navigator::isOpen()) && !hoverFocusSettling &&
         !implicitGrab && WINDOW != PREVIOUSWINDOW) {
@@ -9170,6 +9179,7 @@ void CScrollOverview::onPreRender() {
 
     followLinkedCamera();
     syncCanvasWindowScreens();
+    rememberCanvasView();
 
     forceLayersAboveFullscreen();
     updateWorkspaceOverflow();
@@ -9851,10 +9861,86 @@ bool CScrollOverview::navigatorOwnsPointer() const {
     return isCanvasNavigationActive() && ScrollOverview::Config::getNavigatorPointer();
 }
 
+// A view belongs to live window identities, never addresses or app titles.
+// Geometry changes invalidate the old group; the next settled view rebuilds it.
+void CScrollOverview::pruneCanvasViewMemory(uint64_t closedId) {
+    for (auto it = canvasViewMemory.begin(); it != canvasViewMemory.end();) {
+        auto& members = it->second.members;
+        std::erase_if(members, [closedId](const auto& member) {
+            const auto window = member.window.lock();
+            return !shouldShowOverviewWindow(window) || window->m_stableID == closedId;
+        });
+        bool valid = !members.empty();
+        bool owns = false;
+        for (const auto& member : members) {
+            const auto window = member.window.lock();
+            owns |= window->m_stableID == it->first;
+            const auto box = window->geometricBox(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+            if ((box.pos() - member.box.pos()).size() > 2.0 || (box.size() - member.box.size()).size() > 2.0)
+                valid = false;
+        }
+        if (!valid || !owns) it = canvasViewMemory.erase(it); else ++it;
+    }
+}
+
+void CScrollOverview::rememberCanvasView(bool force) {
+    const auto monitor = pMonitor.lock();
+    if (!monitor || !isCanvasDesktop() || closing || canvasNavigationActive || !canvasAtRestZoom() ||
+        viewOffset->isBeingAnimated() || scale->isBeingAnimated() || dragActiveWindow || resizeActiveWindow || spacePanHeld || scrollingPanPointerDown)
+        return;
+    const auto now = Time::steadyNow();
+    if (!force && now - lastCanvasViewCapture < std::chrono::milliseconds(200)) return;
+    lastCanvasViewCapture = now;
+    pruneCanvasViewMemory();
+    SRememberedView view{.offset = viewOffset->goal(), .screenSize = monitor->m_size, .members = {}};
+    const auto screen = monitor->logicalBox();
+    for (const auto& window : Desktop::windowState()->windows()) {
+        if (!shouldShowOverviewWindow(window) || window->m_pinned || canvasScreenFixedWindow(window) ||
+            Fullscreen::controller()->isFullscreen(window) || window->m_realPosition->isBeingAnimated() || window->m_realSize->isBeingAnimated()) continue;
+        const auto box = canvasDrawnGlobalBox(window);
+        const auto visible = box.intersection(screen);
+        if (box.width <= 1 || box.height <= 1 || visible.width * visible.height < box.width * box.height * 0.6) continue;
+        view.members.push_back({window, window->geometricBox(Desktop::View::IGeometric::GEOMETRIC_GOAL)});
+    }
+    // Covered stacks are not a split view. Preserve only independently visible
+    // windows, so raising a tab/window cannot record a hidden neighbour.
+    const auto candidates = view.members;
+    std::erase_if(view.members, [&candidates](const auto& member) {
+        for (const auto& other : candidates) {
+            if (other.window == member.window) continue;
+            const auto overlap = member.box.intersection(other.box);
+            const auto area = std::min(member.box.width * member.box.height, other.box.width * other.box.height);
+            if (area > 0 && overlap.width * overlap.height > area * 0.35) return true;
+        }
+        return false;
+    });
+    for (const auto& member : view.members)
+        if (const auto window = member.window.lock()) canvasViewMemory[window->m_stableID] = view;
+}
+
+std::optional<Vector2D> CScrollOverview::rememberedCanvasOffset(const PHLWINDOW& window) const {
+    const auto monitor = pMonitor.lock();
+    if (!window || !monitor) return std::nullopt;
+    const auto it = canvasViewMemory.find(window->m_stableID);
+    if (it == canvasViewMemory.end() || (it->second.screenSize - monitor->m_size).size() > 1.0) return std::nullopt;
+    bool owns = false;
+    for (const auto& member : it->second.members) {
+        const auto current = member.window.lock();
+        if (!shouldShowOverviewWindow(current)) return std::nullopt;
+        owns |= current == window;
+        const auto box = current->geometricBox(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+        if ((box.pos() - member.box.pos()).size() > 2.0 || (box.size() - member.box.size()).size() > 2.0) return std::nullopt;
+    }
+    return owns ? std::optional<Vector2D>{it->second.offset} : std::nullopt;
+}
+
 Vector2D CScrollOverview::canvasCameraOffsetFor(const PHLWINDOW& window, float zoom, bool navigating) const {
     const auto MONITOR = pMonitor.lock();
     if (!MONITOR || !window)
         return viewOffset->goal();
+
+    if (!navigating && std::abs(zoom - 1.F) < 0.001F)
+        if (const auto remembered = rememberedCanvasOffset(window)) return *remembered;
 
     const auto BOX    = window->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     auto       target = BOX.middle();

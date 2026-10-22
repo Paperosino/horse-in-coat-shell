@@ -1608,6 +1608,10 @@ function layouts.action(operation, address, stable_id)
         end
         return
     end
+    if operation == "close" then
+        hl.dispatch(hl.dsp.window.close({ window = window }))
+        return
+    end
     if operation == "toggle-floating" then layouts.toggle_floating(window); return end
     if layouts.mode() ~= "stacking" then return end
     local record = record_for(window) or { id = window.stable_id, workspace = key(window.workspace) }

@@ -176,6 +176,9 @@ class CScrollOverview : public IOverview {
     void   updateNavigatorHover();
     void   setCanvasCursor(const std::string& shape);
     void   leaveNavigatorPointer();
+    void rememberCanvasView(bool force = false);
+    void pruneCanvasViewMemory(uint64_t closedId = 0);
+    std::optional<Vector2D> rememberedCanvasOffset(const PHLWINDOW& window) const;
     Vector2D canvasCameraOffsetFor(const PHLWINDOW& window, float zoom, bool navigating) const;
     void   renderNavigatorWindowOverlay(PHLMONITOR monitor, PHLWINDOW window, const CBox& windowBox);
     void   renderNavigatorReticle(PHLMONITOR monitor, const Time::steady_tp& now);
@@ -433,6 +436,10 @@ class CScrollOverview : public IOverview {
     bool                             hoverFocusSettling   = false;
     bool                             hoverFocusSettleSeen = false;
     PHLWINDOWREF                     hoverFocusSettleWindow;
+    struct SViewMember { PHLWINDOWREF window; CBox box; };
+    struct SRememberedView { Vector2D offset, screenSize; std::vector<SViewMember> members; };
+    std::unordered_map<uint64_t, SRememberedView> canvasViewMemory;
+    Time::steady_tp lastCanvasViewCapture = {};
     PHLWINDOWREF                     canvasForwardedPointerWindow;
     WP<CWLSurfaceResource>           canvasForwardedPointerSurface;
     Vector2D                         canvasForwardedPointerLocal = {};

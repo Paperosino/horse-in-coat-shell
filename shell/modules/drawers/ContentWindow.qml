@@ -135,7 +135,8 @@ StyledWindow {
             if (!pressed || !(panels.dock.menuOpen || panels.dock.listOpen)) return;
             const position = point.position;
             const dock = panels.dock;
-            const inside = [dock, dock.listSurface, dock.menuSurface, dock.previewSurface].some(item => {
+            const surfaces = dock.menuOpen ? [dock.menuSurface, dock.previewSurface] : [dock, dock.listSurface];
+            const inside = surfaces.some(item => {
                 if (!item.visible) return false;
                 const p = item.mapFromItem(root.contentItem, position.x, position.y);
                 return p.x >= 0 && p.y >= 0 && p.x <= item.width && p.y <= item.height;

@@ -21,6 +21,8 @@ int main(void) {
   if(sscanf(line,"%31s %u %u",op,&x,&y)!=3)break;
   if(!strcmp(op,"move"))zwlr_virtual_pointer_v1_motion_absolute(pointer,ms,x,y,getenv("HYPRSTACK_POINTER_WIDTH")?atoi(getenv("HYPRSTACK_POINTER_WIDTH")):1280,getenv("HYPRSTACK_POINTER_HEIGHT")?atoi(getenv("HYPRSTACK_POINTER_HEIGHT")):720);
   if(!strcmp(op,"button"))zwlr_virtual_pointer_v1_button(pointer,ms,x,y);
+  if(!strcmp(op,"wheel")) { zwlr_virtual_pointer_v1_axis_source(pointer,WL_POINTER_AXIS_SOURCE_WHEEL); zwlr_virtual_pointer_v1_axis_discrete(pointer,ms,x,wl_fixed_from_int((int)y*15),(int)y); }
+  if(!strcmp(op,"smooth")) { zwlr_virtual_pointer_v1_axis_source(pointer,WL_POINTER_AXIS_SOURCE_FINGER); zwlr_virtual_pointer_v1_axis(pointer,ms,x,wl_fixed_from_int((int)y)); }
   zwlr_virtual_pointer_v1_frame(pointer);if(wl_display_roundtrip(display)<0)break;
   puts("ok");fflush(stdout);
  }
