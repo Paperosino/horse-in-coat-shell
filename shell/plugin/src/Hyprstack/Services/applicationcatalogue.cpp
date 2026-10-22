@@ -1,0 +1,238 @@
+#include "applicationcatalogue.hpp"
+#include <QDirIterator>
+#include <QFileInfo>
+#include <QProcess>
+#include <QSet>
+#include <QStandardPaths>
+#pragma push_macro("signals")
+#undef signals
+#include <gio/gdesktopappinfo.h>
+#pragma pop_macro("signals")
+
+namespace hyprstack::services {
+namespace {
+QString take(gchar *s) {
+  const auto result = QString::fromUtf8(s);
+  g_free(s);
+  return result;
+}
+QStringList strings(const gchar *const *values) {
+  QStringList result;
+  if (values)
+    for (; *values; ++values)
+      result.append(QString::fromUtf8(*values));
+  return result;
+}
+QStringList roots() {
+  auto result =
+      QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+  for (auto &path : result)
+    path += "/applications";
+  return result;
+}
+} // namespace
+DesktopApplicationAction::DesktopApplicationAction(QString path, QString id,
+                                                   QString name,
+                                                   QObject *parent)
+    : QObject(parent), m_path(std::move(path)), m_id(std::move(id)),
+      m_name(std::move(name)) {}
+void DesktopApplicationAction::execute() {
+  auto *app = g_desktop_app_info_new_from_filename(m_path.toUtf8().constData());
+  if (!app)
+    return;
+  auto *context = g_app_launch_context_new();
+  g_desktop_app_info_launch_action(app, m_id.toUtf8().constData(), context);
+  g_object_unref(context);
+  g_object_unref(app);
+}
+void DesktopApplication::execute() {
+  // GIO handles DBusActivatable, quoting, field codes and the current desktop
+  // file. This is deliberately the same path as `gio launch FILE`.
+  auto *process = new QProcess(this);
+  process->setProgram("gio");
+  process->setArguments({"launch", m_path});
+  connect(process, &QProcess::errorOccurred, this, [this, process] {
+    emit launchFailed(process->errorString());
+    process->deleteLater();
+  });
+  connect(process, &QProcess::finished, this, [this, process](int code) {
+    if (code)
+      emit launchFailed(
+          QString::fromUtf8(process->readAllStandardError()).trimmed());
+    process->deleteLater();
+  });
+  process->start();
+}
+void DesktopApplication::update(const QVariantMap &data, const QString &path) {
+  if (m_data == data && m_path == path)
+    return;
+  m_data = data;
+  m_path = path;
+  for (auto *action : m_actions)
+    action->deleteLater();
+  m_actions.clear();
+  if (auto *app =
+          g_desktop_app_info_new_from_filename(path.toUtf8().constData())) {
+    const auto actions = g_desktop_app_info_list_actions(app);
+    if (actions)
+      for (auto action = actions; *action; ++action) {
+        const auto title =
+            take(g_desktop_app_info_get_action_name(app, *action));
+        m_actions.append(new DesktopApplicationAction(
+            path, QString::fromUtf8(*action), title, this));
+      }
+    g_object_unref(app);
+  }
+  emit changed();
+}
+ApplicationCatalogue::ApplicationCatalogue(QObject *parent) : QObject(parent) {
+  m_debounce.setSingleShot(true);
+  m_debounce.setInterval(250);
+  connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this,
+          [this] { m_debounce.start(); });
+  connect(&m_watcher, &QFileSystemWatcher::fileChanged, this,
+          [this] { m_debounce.start(); });
+  connect(&m_debounce, &QTimer::timeout, this, &ApplicationCatalogue::refresh);
+  // Reconcile new XDG roots, nested directories and atomically replaced files.
+  m_reconcile.setInterval(15000);
+  connect(&m_reconcile, &QTimer::timeout, this, &ApplicationCatalogue::refresh);
+  m_reconcile.start();
+  refresh();
+}
+QObject *ApplicationCatalogue::byId(QString id) const {
+  if (id.endsWith(".desktop"))
+    id.chop(8);
+  return m_entries.value(id, nullptr);
+}
+QObject *ApplicationCatalogue::heuristicLookup(QString name) const {
+  if (auto *entry = byId(name))
+    return entry;
+  name = name.toLower();
+  for (auto *entry : m_entries) {
+    if (entry->id().toLower() == name ||
+        entry->startupClass().toLower() == name)
+      return entry;
+  }
+  for (auto *entry : m_entries) {
+    if (entry->id().section('.', -1).compare(name, Qt::CaseInsensitive) == 0)
+      return entry;
+  }
+  return nullptr;
+}
+void ApplicationCatalogue::refresh() {
+  QSet<QString> seen, watched;
+  QObjectList visible;
+  for (const auto &root : roots()) {
+    if (QDir(root).exists())
+      watched.insert(root);
+    // Watch the nearest existing parent so first-time installations are seen.
+    auto parent = QFileInfo(root).dir();
+    while (!parent.exists() && parent.cdUp()) {
+    }
+    if (parent.exists())
+      watched.insert(parent.path());
+    QDirIterator dirs(root, QDir::Dirs | QDir::NoDotAndDotDot,
+                      QDirIterator::Subdirectories);
+    while (dirs.hasNext())
+      watched.insert(dirs.next());
+    QDirIterator files(root, {"*.desktop"}, QDir::Files,
+                       QDirIterator::Subdirectories);
+    while (files.hasNext()) {
+      const auto path = files.next();
+      auto id = QDir(root).relativeFilePath(path);
+      id.replace('/', '-');
+      id.chop(8);
+      if (seen.contains(id))
+        continue;
+      seen.insert(id);
+      watched.insert(path);
+      auto *app =
+          g_desktop_app_info_new_from_filename(path.toUtf8().constData());
+      if (!app) {
+        if (auto *old = m_entries.take(id))
+          old->deleteLater();
+        continue;
+      }
+      if (g_desktop_app_info_get_is_hidden(app)) {
+        if (auto *old = m_entries.take(id))
+          old->deleteLater();
+        g_object_unref(app);
+        continue;
+      }
+      auto *info = G_APP_INFO(app);
+      QVariantMap data{
+          {"id", id},
+          {"name", QString::fromUtf8(g_app_info_get_display_name(info))},
+          {"comment", QString::fromUtf8(g_app_info_get_description(info))},
+          {"genericName",
+           QString::fromUtf8(g_desktop_app_info_get_generic_name(app))},
+          {"startupClass",
+           QString::fromUtf8(g_desktop_app_info_get_startup_wm_class(app))},
+          {"execString", QString::fromUtf8(g_app_info_get_commandline(info))},
+          {"icon", take(g_desktop_app_info_get_string(app, "Icon"))},
+          {"workingDirectory",
+           take(g_desktop_app_info_get_string(app, "Path"))},
+          {"runInTerminal",
+           bool(g_desktop_app_info_get_boolean(app, "Terminal"))},
+          {"noDisplay", !bool(g_app_info_should_show(info))},
+          {"categories",
+           QString::fromUtf8(g_desktop_app_info_get_categories(app))
+               .split(';', Qt::SkipEmptyParts)},
+          {"keywords", strings(g_desktop_app_info_get_keywords(app))}};
+      gint argc = 0;
+      gchar **argv = nullptr;
+      const auto exec = data.value("execString").toString().toUtf8();
+      QStringList command;
+      if (g_shell_parse_argv(exec.constData(), &argc, &argv, nullptr)) {
+        for (int i = 0; i < argc; ++i) {
+          auto arg = QString::fromUtf8(argv[i]);
+          if (arg == "%f" || arg == "%F" || arg == "%u" || arg == "%U" ||
+              arg == "%i")
+            continue;
+          arg.replace("%c", data.value("name").toString());
+          arg.replace("%k", path);
+          arg.replace("%%", "%");
+          command.append(arg);
+        }
+        g_strfreev(argv);
+      }
+      data.insert("command", command);
+      auto *entry = m_entries.value(id);
+      if (!entry) {
+        entry = new DesktopApplication(this);
+        m_entries.insert(id, entry);
+        connect(entry, &DesktopApplication::launchFailed, this,
+                [this](const QString &message) {
+                  m_error = message;
+                  emit errorChanged();
+                });
+      }
+      entry->update(data, path);
+      if (!data.value("noDisplay").toBool())
+        visible.append(entry);
+      g_object_unref(app);
+    }
+  }
+  for (auto it = m_entries.begin(); it != m_entries.end();) {
+    if (!seen.contains(it.key())) {
+      it.value()->deleteLater();
+      it = m_entries.erase(it);
+    } else
+      ++it;
+  }
+  auto current = m_watcher.directories();
+  current.append(m_watcher.files());
+  const QSet<QString> old(current.begin(), current.end());
+  const auto removed = (old - watched).values(),
+             added = (watched - old).values();
+  if (!removed.isEmpty())
+    m_watcher.removePaths(removed);
+  if (!added.isEmpty())
+    m_watcher.addPaths(added);
+  std::sort(visible.begin(), visible.end(), [](QObject *a, QObject *b) {
+    return a->property("id").toString() < b->property("id").toString();
+  });
+  m_visible = visible;
+  emit applicationsChanged();
+}
+} // namespace hyprstack::services

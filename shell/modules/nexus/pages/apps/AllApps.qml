@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Hyprstack.Services
 import Quickshell.Widgets
 import Hyprstack.Config
 import Hyprstack.I18n
@@ -26,12 +27,12 @@ PageBase {
         Repeater {
             id: list
 
-            model: [...DesktopEntries.applications.values].sort((a, b) => a.name.localeCompare(b.name))
+            model: [...ApplicationCatalogue.applications.values].sort((a, b) => a.name.localeCompare(b.name))
 
             ConnectedRect {
                 id: appItem
 
-                required property DesktopEntry modelData
+                required property var modelData
                 required property int index
 
                 Layout.fillWidth: true

@@ -35,7 +35,7 @@ Item {
         }
         for (let i = 0; i < rowEntries.length; ++i) {
             const item = rowEntries[i];
-            if (item.entryId === "spacer") continue;
+            if (item.entryId === "spacer" || item.entryId === "activeWindow") continue;
             if (firstSpacer >= 0 && i < firstSpacer)
                 left += item.width + spacing;
             else if (lastSpacer >= 0 && i > lastSpacer)
@@ -52,7 +52,7 @@ Item {
 
     function entryAt(x: real): Item {
         for (const item of entryItems) {
-            if (item.entryId === "spacer") continue;
+            if (item.entryId === "spacer" || item.entryId === "activeWindow") continue;
             const position = item.mapToItem(root, 0, 0);
             if (x >= position.x && x < position.x + item.width)
                 return item;

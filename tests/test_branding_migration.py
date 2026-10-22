@@ -38,4 +38,13 @@ class BrandingMigration(unittest.TestCase):
             with patch.dict(os.environ, {key:str(base) for key in ('XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_STATE_HOME','XDG_CACHE_HOME')}):
                 migration.migrate()
             self.assertFalse((base/'hics').is_symlink())
+    def test_shortcut_hook_precedes_bindings_and_keeps_exact_backup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory);config=base/'hypr';config.mkdir()
+            path=config/'hyprland.lua';original='-- personal configuration\nhl.bind("SUPER + T",function() end)\n';path.write_text(original)
+            env={key:str(base) for key in ('XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_STATE_HOME','XDG_CACHE_HOME')}
+            with patch.dict(os.environ,env):migration.migrate();migration.migrate()
+            self.assertEqual(path.read_text().count('-- hics-shortcut-editor'),1)
+            self.assertLess(path.read_text().index('dofile'),path.read_text().index('hl.bind'))
+            self.assertEqual(path.with_suffix('.lua.before-hics-shortcuts').read_text(),original)
 if __name__ == '__main__': unittest.main()

@@ -120,7 +120,7 @@ QtObject {
                 Component { InputDevicePage { title: Tr.tr("Touchpad"); groups: ["Touchpad"] } }
                 Component { InputDevicePage { title: Tr.tr("Cursor"); groups: ["Cursor"] } }
                 Component { InputDevicePage { title: Tr.tr("Gestures"); groups: ["Gestures"] } }
-                Component { KeybindsPage {} }
+                Component { ShortcutEditorPage {} }
             }
         },
 
@@ -222,7 +222,7 @@ QtObject {
         Component {
             StackPage {
                 Component {
-                    KeybindsPage {}
+                    ShortcutEditorPage {}
                 }
             }
         },
@@ -249,7 +249,9 @@ QtObject {
         Component { StackPage { Component { DateTimePage {} } } },
         Component { StackPage { Component { SessionServicesPage { autostartOnly:true } } } },
         Component { StackPage { Component { DefaultAppsPage {} } } },
-        Component { StackPage { Component { VpnProfilesPage {} } Component { VpnEditorPage {} } Component { VpnPluginsPage {} } } }
+        Component { StackPage { Component { VpnProfilesPage {} } Component { VpnEditorPage {} } Component { VpnPluginsPage {} } } },
+        Component { StackPage { Component { ClipboardPage {} } } },
+        Component { StackPage { Component { WorkspaceSessionPage {} } } }
     ]
 
     readonly property Component placeholderComp: Component {

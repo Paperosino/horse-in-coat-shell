@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Hyprstack.Services
 import Quickshell.Widgets
 import Hyprstack
 import Hyprstack.Config
@@ -180,7 +181,7 @@ PageBase {
         readonly property int popupHeight: root.flickable.height - y + root.flickable.contentY - Tokens.padding.large - Tokens.padding.extraExtraLarge
 
         enabled: !DefaultApps.busy
-        signal selected(app: DesktopEntry)
+        signal selected(app: var)
         onSelected: app => { if (!["browser", "fileManager", "textEditor", "imageViewer", "videoPlayer", "audioPlayer", "pdfViewer", "terminal", "audioSettings"].includes(category)) DefaultApps.setDefault(category, app); }
 
         status: currentApp?.name ?? Tr.tr("Not set")
@@ -230,7 +231,7 @@ PageBase {
 
                     model: {
                         const q = searchField.text.trim().toLowerCase();
-                        let apps = [...DesktopEntries.applications.values];
+                        let apps = [...ApplicationCatalogue.applications.values];
                         if (q) {
                             apps = apps.filter(a => {
                                 const name = (a.name || "").toLowerCase();

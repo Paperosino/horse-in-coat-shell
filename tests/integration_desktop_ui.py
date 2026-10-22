@@ -40,10 +40,12 @@ ShellRoot {
   liveActions: [{identifier:"default", invoke:() => root.defaultActionCount++}, {identifier:"delete", invoke:() => root.otherActionCount++}]
  }
  property var vpnProtocols: __VPN_PROTOCOLS__
+ property var dockPreviewA: ({title:"First window",wayland:null})
+ property var dockPreviewB: ({title:"Second window",wayland:null})
  property int phase: 0
  property var current: null
  property NexusState state: NexusState {}
- FloatingWindow { visible: true; width: 1000; height: 900; Item { id: host; anchors.fill: parent } }
+ FloatingWindow { visible: true; implicitWidth: 1000; implicitHeight: 900;color:Colours.palette.m3surface; Item { id: host; anchors.fill: parent } }
  ScreenState { id: popupState; modelData: Quickshell.screens[0] }
  Bar.BarWrapper { id: testBar; parent:host; screen:Quickshell.screens[0]; screenState:popupState; popouts:popupPanels.popouts; fullscreen:false }
  Drawers.Panels { id:popupPanels; parent:host; screen:Quickshell.screens[0]; screenState:popupState; bar:testBar; borderThickness:0 }
@@ -80,6 +82,46 @@ ShellRoot {
   }
  }
 
+ Timer {id:screenshot;interval:120;property string file;onTriggered:Quickshell.execDetached(["/usr/bin/grim",file])}
+ property QtObject fakeClipboard: QtObject {
+  property var entries:[{id:"fixture",text:"Pinned project notes",isBinary:false,pinned:true,application:"Editor",timestamp:1700000000,imagePath:""}]
+  property var settings:({enabled:true,paused:false,text:true,images:true,maxEntries:500,expiryDays:30})
+  property string error:""
+  property bool capturing:true
+  property bool busy:false
+  function refresh():void {}
+  function configure(values):void {settings=Object.assign({},settings,values)}
+  function clear(keep):void {if(!keep)entries=[]}
+  function pin(id):void {}
+  function copy(id):void {}
+  function remove(id):void {}
+  function importLegacy():void {}
+ }
+ property QtObject fakeShortcuts: QtObject {
+  property var actions:[{id:"fixture",description:"Shell: Open launcher",keys:["SUPER + Space"],submap:"",flags:{}}]
+  property var settings:({physicalKeys:false})
+  property var savedAction:({})
+  property string error:""
+  function refresh():void {}
+  function conflicts(id,key,submap):var {return key==="SUPER + X"?[{description:"Existing action"}]:[]}
+  function save(action):void {savedAction=action}
+  function configure(values):void {settings=Object.assign({},settings,values)}
+ }
+ property QtObject fakeSessions: QtObject {
+  property var settings:({enabled:true,autosave:true,startup:"ask",interval:120})
+  property var snapshots:[{id:"fixture",name:"Development",count:2,created:1700000000}]
+  property var preview:({version:1,id:"fixture",name:"Development",windows:[{key:"a",application:"Editor",name:"Editor",enabled:true,command:["editor"],workspace:2},{key:"b",application:"Terminal",name:"Terminal",enabled:true,command:["terminal"]}]})
+  property var report:[]
+  property string error:""
+  property string desktop:"Hyprland"
+  property bool busy:false
+  property var restored:[]
+  signal changed()
+  function refresh():void {}
+  function configure(values):void {settings=Object.assign({},settings,values)}
+  function savePreview(snapshot):void {preview=snapshot}
+  function restore(id,selected):void {restored=selected}
+ }
  property QtObject fakeEditorVpn: QtObject {
   property bool busy:false
   property string error:""
@@ -185,7 +227,7 @@ ShellRoot {
  }
  function sendNotification(): void { notifier.exec(["notify-send", "--app-name=Integration test", "--expire-time=10000", "Integration notification"]); }
  function check(condition, message): bool { if (condition) return true; console.error("NOTIFICATION_TEST_FAILED", message); Qt.quit(); return false; }
- property var sources: PageRegistry.navigationPages.map(p => p.pageIndex).concat(["AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml", "network/VpnProfilesPage.qml", "network/VpnEditorPage.qml", "network/VpnPluginsPage.qml"]).concat(["wireguard","openvpn","pptp","l2tp","openconnect","vpnc","strongswan","libreswan","sstp","fortisslvpn","ssh"].map(p=>"vpn-test:"+p))
+ property var sources: PageRegistry.navigationPages.map(p => p.pageIndex).concat(["AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml", "network/VpnProfilesPage.qml", "network/VpnEditorPage.qml", "network/VpnPluginsPage.qml", "ClipboardPage.qml", "ShortcutEditorPage.qml", "WorkspaceSessionPage.qml"]).concat(["wireguard","openvpn","pptp","l2tp","openconnect","vpnc","strongswan","libreswan","sstp","fortisslvpn","ssh"].map(p=>"vpn-test:"+p))
  Component.onCompleted: {
   if (!check(PageRegistry.pages.length === PageCompRegistry.pageComps.length, "page registry alignment")) return;
   for (const page of PageRegistry.navigationPages) {
@@ -262,6 +304,26 @@ ShellRoot {
     } else if (step === 7) {
      if (!root.check(root.actionReply === "default", "ActionInvoked delivered to application")) return;
      console.log("NOTIFICATION_DBUS_ACTION_OK");
+     DockConf.enabled = true;
+     popupPanels.dock.menuTask = {entry:null,windows:[],group:{key:"fixture"},pinned:false,mapToItem:() => Qt.point(0,0)};
+     popupPanels.dock.menuOpen = true;
+     popupPanels.dock.hoverWindow(root.dockPreviewA);
+    } else if (step === 8) {
+     if (!root.check(!popupPanels.dock.previewWindow, "dock preview requires hover delay")) return;
+    } else if (step === 10) {
+     if (!root.check(popupPanels.dock.previewWindow === root.dockPreviewA, "dock preview opens after one second")) return;
+     popupPanels.dock.hoverWindow(root.dockPreviewB);
+     if (!root.check(popupPanels.dock.previewWindow === root.dockPreviewB, "warm dock preview switches immediately")) return;
+     popupPanels.dock.leaveWindow(root.dockPreviewB);
+    } else if (step === 11) {
+     if (!root.check(popupPanels.dock.previewWarm, "dock preview remains warm during grace period")) return;
+    } else if (step === 21) {
+     if (!root.check(!popupPanels.dock.previewWarm && !popupPanels.dock.previewWindow, "dock preview grace expires")) return;
+     popupPanels.dock.hoverWindow(root.dockPreviewA);
+     if (!root.check(!popupPanels.dock.previewWindow, "expired preview requires hover again")) return;
+     popupPanels.dock.closeMenu();
+     if (!root.check(!popupPanels.dock.menuOpen && !popupPanels.dock.hoveredWindow, "closing dock cancels hover state")) return;
+     console.log("DOCK_PREVIEW_OK");
      console.log("DESKTOP_UI_OK"); Qt.quit();
     }
     return;
@@ -277,6 +339,24 @@ ShellRoot {
    if (component.status !== Component.Ready) { console.error(component.errorString()); Qt.quit(); return; }
    root.current = component.createObject(host, {nState: root.state, width: 1000, height: 900});
    if (!root.current) { console.error("PAGE_CREATION_FAILED", path); Qt.quit(); return; }
+   if(path==="ClipboardPage.qml"){
+    root.current.backend=root.fakeClipboard;
+    root.current.set("maxEntries",750);
+    if(!root.check(root.fakeClipboard.settings.maxEntries===750,"clipboard retention updates the backend"))return;
+   }
+   if(path==="ShortcutEditorPage.qml"){
+    root.current.backend=root.fakeShortcuts;
+    root.current.begin(root.fakeShortcuts.actions[0]);root.current.chord="SUPER + X";
+    if(!root.check(root.current.conflicts.length===1,"shortcut conflicts appear before applying"))return;
+    root.current.chord="SUPER + SHIFT + T";root.current.save();
+    if(!root.check(root.fakeShortcuts.savedAction.keys[0]==="SUPER + SHIFT + T","shortcut editor saves the recorded combination"))return;
+   }
+   if(path==="WorkspaceSessionPage.qml"){
+    root.current.backend=root.fakeSessions;root.current.loadPreview();root.current.windowChange(1,"enabled",false);
+    if(!root.check(root.current.selected.length===1&&root.current.selected[0].key==="a","snapshot application selection"))return;
+    root.current.confirmRestore=true;root.findNamed(root.current,"confirmSessionRestore").clicked(null);
+    if(!root.check(root.fakeSessions.restored.length===1&&root.fakeSessions.restored[0]==="a","restore uses only selected applications"))return;
+   }
    if(path==="network/VpnEditorPage.qml"){
     root.current.protocol=root.vpnProtocols.find(p=>p.service===root.current.form.type)??({fields:[]});
     if(!root.check(!root.current.advanced,"VPN advanced settings start collapsed"))return;
@@ -311,7 +391,11 @@ ShellRoot {
     }
     root.current.advanced=true;
    }
-   GlobalConfig.appearance.highContrast = root.phase % 2 === 1;
+   if(["ClipboardPage.qml","ShortcutEditorPage.qml","WorkspaceSessionPage.qml"].includes(path)&&Quickshell.env("HICS_UI_PREVIEW_DIR")){
+    screenshot.file=Quickshell.env("HICS_UI_PREVIEW_DIR")+"/"+path+".png";screenshot.restart();
+   }
+   GlobalConfig.appearance.highContrast = Quickshell.env("HICS_UI_PREVIEW_DIR")?false:root.phase % 2 === 1;
+   if(Quickshell.env("HICS_UI_PREVIEW_DIR")){const hide=["ClipboardPage.qml","ShortcutEditorPage.qml","WorkspaceSessionPage.qml"].includes(path);testBar.visible=!hide;popupPanels.visible=!hide;}
    GlobalConfig.appearance.reducedMotion = true;
    console.log("PAGE_OK", path);
   }
@@ -332,12 +416,17 @@ ShellRoot {
         else:
             path.write_text(fake)
         path.chmod(0o700)
+    (base/'config/hics').mkdir(parents=True,exist_ok=True)
+    (base/'config/hics/workspace.json').write_text(json.dumps({'clipboard':{'enabled':False}}))
     env = dict(os.environ, QT_QPA_PLATFORM='wayland', QT_QUICK_BACKEND='software',
         XDG_CONFIG_HOME=str(base / 'config'), XDG_STATE_HOME=str(base / 'state'),
         XDG_DATA_HOME=str(base / 'data'), XDG_CACHE_HOME=str(base / 'cache'),
         TEST_NETWORK_LOG=str(base / 'network.log'), XDG_RUNTIME_DIR=str(base / 'runtime'), QML_IMPORT_PATH=str(ROOT / 'build/qml'),
         QML2_IMPORT_PATH=str(ROOT / 'build/qml'), HYPRSTACK_NESTED='1',
         PATH=str(tools) + ':' + os.environ['PATH'])
+    if os.environ.get('HICS_UI_HARDWARE'):
+        env.pop('QT_QUICK_BACKEND',None)
+        env['QSG_RHI_BACKEND']='opengl'
     Path(env['XDG_RUNTIME_DIR']).mkdir(mode=0o700)
     env.pop('HYPRLAND_INSTANCE_SIGNATURE', None)
     env.pop('WAYLAND_DISPLAY', None)

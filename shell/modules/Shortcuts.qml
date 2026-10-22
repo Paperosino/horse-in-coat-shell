@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Hyprstack
+import Hyprstack.Services
 import qs.components.misc
 import qs.services
 import qs.modules.nexus
@@ -77,13 +78,15 @@ Scope {
     }
 
     // qmllint disable unresolved-type
+    CustomShortcut {name:"clipboardPasteLatest";description:"Paste latest clipboard entry";onPressed:ClipboardHistory.pasteLatest()}
+
     CustomShortcut {
         // qmllint enable unresolved-type
         name: "clipboardDelete"
         description: "Delete latest clipboard entry"
         onPressed: {
-            if (Clipboard.entries.length > 0)
-                Clipboard.deleteEntry(Clipboard.entries[0]);
+            const entries=Clipboard.entries.filter(e=>!e.pinned).sort((a,b)=>b.timestamp-a.timestamp);
+            if(entries.length)Clipboard.deleteEntry(entries[0]);
         }
     }
 

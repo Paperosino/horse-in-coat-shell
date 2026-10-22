@@ -1,4 +1,5 @@
 #include "sessionmanager.hpp"
+#include "workspacetools.hpp"
 
 #include <qdbusconnection.h>
 #include <qdbuserror.h>
@@ -94,6 +95,7 @@ bool SessionManager::exec(const QStringList& command) {
 }
 
 void SessionManager::logout() {
+    WorkspaceSession::saveBeforeExit();
     callSession(u"Terminate"_s);
 }
 
@@ -123,10 +125,12 @@ void SessionManager::hibernate() {
 }
 
 void SessionManager::poweroff() {
+    WorkspaceSession::saveBeforeExit();
     callManager(u"PowerOff"_s);
 }
 
 void SessionManager::reboot() {
+    WorkspaceSession::saveBeforeExit();
     callManager(u"Reboot"_s);
 }
 

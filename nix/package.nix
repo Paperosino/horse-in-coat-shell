@@ -1,6 +1,6 @@
 { lib, stdenv, cmake, ninja, pkg-config, gettext, makeWrapper, qt6
 , hyprland, quickshell, python3, libqalculate, lm_sensors, pixman, libdrm
-, libsecret, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
+, glib, libsecret, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
 , pipewire, pulseaudio, wireplumber, polkit, hyprlock, hyprpicker, xdg-utils, xdg-user-dirs
@@ -8,7 +8,7 @@
 }:
 let
   python = python3.withPackages (packages: [ packages.pillow ]);
-  runtime = [ quickshell hyprland python kitty firefox fuzzel btop pavucontrol
+  runtime = [ glib quickshell hyprland python kitty firefox fuzzel btop pavucontrol
     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify brightnessctl
     networkmanager pipewire pulseaudio wireplumber polkit hyprlock hyprpicker xdg-utils
     xdg-user-dirs libxml2 systemd libqalculate ];
@@ -42,7 +42,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   '';
 
   postInstall = ''
-    for program in hics-shell hics-session hics-session-runner hics-doctor; do
+    for program in hics-shell hics-session hics-session-runner hics-doctor hics-workspace; do
       wrapProgram "$out/bin/$program" \
         --set HYPRSTACK_DATA_DIR "$out/share/hics" \
         --set HYPRSTACK_TITLEBAR_PLUGIN "$out/share/hics/native/hics-bars.so" \

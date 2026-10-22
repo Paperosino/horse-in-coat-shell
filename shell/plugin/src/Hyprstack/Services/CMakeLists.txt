@@ -8,6 +8,9 @@ endif()
 qml_module(hyprstack-services
     URI Hyprstack.Services
     SOURCES
+        applicationcatalogue.cpp
+        workspacetools.cpp
+        workspacestore.cpp
         vpnsecretagent.cpp
         networkmanagervpn.cpp
         wallpaperplayer.cpp
@@ -51,3 +54,13 @@ qt_add_resources(hyprstack-services vpn_protocol_catalogue PREFIX "/hics/vpn" FI
 set_source_files_properties(networkmanagervpn.cpp vpnsecretagent.cpp PROPERTIES
     SKIP_PRECOMPILE_HEADERS ON
     COMPILE_OPTIONS "-UQT_NO_CAST_FROM_ASCII;-UQT_NO_CAST_TO_ASCII")
+
+set_source_files_properties(workspacetools.cpp workspacestore.cpp workspacecli.cpp PROPERTIES
+    SKIP_PRECOMPILE_HEADERS ON
+    COMPILE_OPTIONS "-UQT_NO_CAST_FROM_ASCII;-UQT_NO_CAST_TO_ASCII;-UQT_NO_CAST_FROM_BYTEARRAY")
+add_executable(hics-workspace workspacecli.cpp workspacetools.cpp workspacetools.hpp workspacestore.cpp)
+set_target_properties(hics-workspace PROPERTIES AUTOMOC ON INSTALL_RPATH "$ORIGIN/../share/hics/qs/lib" INSTALL_RPATH_USE_LINK_PATH ON)
+target_link_libraries(hics-workspace PRIVATE PkgConfig::NetworkManager Qt::Core Qt::Gui Qt::Qml Qt::Concurrent Qt::DBus)
+install(TARGETS hics-workspace RUNTIME DESTINATION bin)
+
+set_source_files_properties(applicationcatalogue.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON COMPILE_OPTIONS "-UQT_NO_CAST_FROM_ASCII;-UQT_NO_CAST_TO_ASCII;-UQT_NO_CAST_FROM_BYTEARRAY")

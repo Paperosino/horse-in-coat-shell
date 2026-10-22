@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Hyprstack.Services
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -30,18 +31,36 @@ Item {
     readonly property real iconSize: DockConf.iconSize * Tokens.scale
     readonly property alias listSurface: appList
     readonly property alias menuSurface: taskMenu
+    readonly property alias previewSurface: windowPreview
+    property var previewWindow: null
+    property var hoveredWindow: null
+    property bool previewWarm: false
+    function hoverWindow(window): void {
+        hoveredWindow = window;
+        previewReset.stop();
+        if (previewWarm) previewWindow = window;
+        else previewDelay.restart();
+    }
+    function leaveWindow(window): void {
+        if (hoveredWindow !== window) return;
+        hoveredWindow = null;
+        previewDelay.stop();
+        previewReset.restart();
+    }
+    Timer { id: previewDelay; interval: 1000; onTriggered: { if (root.hoveredWindow) { root.previewWarm = true; root.previewWindow = root.hoveredWindow; } } }
+    Timer { id: previewReset; interval: 5000; onTriggered: { root.previewWarm = false; root.previewWindow = null; } }
     readonly property Item openSurface: appList.visible ? appList : taskMenu.visible ? taskMenu : null
     readonly property bool unifiedSurface: !vertical && openSurface !== null
         && Math.abs(openSurface.width - width) < 1 && Math.abs(openSurface.x) < 1
     property var menuTask: null
     property bool menuOpen: false
-    function closeMenu(): void { menuOpen = false; }
+    function closeMenu(): void { menuOpen = false; previewDelay.stop(); previewReset.stop(); hoveredWindow = previewWindow = null; previewWarm = false; }
     function closePopups(): void { listOpen = false; closeMenu(); }
     readonly property real offsetScale: 0
 
     readonly property real listNaturalWidth: 320 * Tokens.scale
     readonly property int popupGap: Math.round(8 * Tokens.scale)
-    readonly property var appEntries: DesktopEntries.applications.values
+    readonly property var appEntries: ApplicationCatalogue.applications.values
     property bool listOpen: false
 
     property string draggedKey: ""
@@ -89,9 +108,9 @@ Item {
 
     function lookup(app: string): var {
         return appEntries.find(e => !!e.startupClass && e.startupClass.toLowerCase() === app.toLowerCase())
-            ?? DesktopEntries.heuristicLookup(app)
-            ?? DesktopEntries.heuristicLookup(app.replace(/-browser$/, ""))
-            ?? DesktopEntries.heuristicLookup(app.replace(/\.desktop$/, "").split(".").pop());
+            ?? ApplicationCatalogue.heuristicLookup(app)
+            ?? ApplicationCatalogue.heuristicLookup(app.replace(/-browser$/, ""))
+            ?? ApplicationCatalogue.heuristicLookup(app.replace(/\.desktop$/, "").split(".").pop());
     }
 
     readonly property var groups: {
@@ -108,7 +127,7 @@ Item {
         }
         for (const key of Taskbar.pinned) {
             if (groups.has(key)) continue;
-            const entry = DesktopEntries.byId(key) ?? lookup(key);
+            const entry = ApplicationCatalogue.byId(key) ?? lookup(key);
             if (entry) groups.set(key, { app: key, key: key, entry: entry, windows: [] });
         }
         return Array.from(groups.values()).sort((a, b) => {
@@ -249,7 +268,7 @@ Item {
                         }
 
                         function showMenu(): void {
-                            root.listOpen = false;
+                            root.closePopups();
                             root.menuTask = task;
                             root.menuOpen = true;
                             taskMenu.forceActiveFocus();
@@ -548,47 +567,72 @@ Item {
 
                 delegate: Column {
                     id: menuWindow
-
                     required property HyprlandToplevel modelData
-
                     width: menuColumn.width
-                    spacing: 4 * Tokens.scale
-
-                    StyledText {
+                    spacing: 2 * Tokens.scale
+                    TaskMenuButton {
                         width: parent.width
                         text: menuWindow.modelData?.title ?? ""
-                        elide: Text.ElideRight
-                        font: Tokens.font.body.small
-                        color: Colours.palette.m3onSurfaceVariant
+                        onClicked: taskMenu.selectedTask.act("dock-activate", menuWindow.modelData)
+                        HoverHandler {
+                            onHoveredChanged: hovered ? root.hoverWindow(menuWindow.modelData) : root.leaveWindow(menuWindow.modelData)
+                        }
                     }
-
                     Row {
                         spacing: 6 * Tokens.scale
-
-                        WindowButton {
-                            icon: "open_in_full"
-                            onClicked: taskMenu.selectedTask.act("dock-activate", menuWindow.modelData)
-                        }
-
-                        WindowButton {
-                            icon: "minimize"
-                            onClicked: taskMenu.selectedTask.act("minimize", menuWindow.modelData)
-                        }
-
-                        WindowButton {
-                            icon: Hypr.isMaximized(menuWindow.modelData) ? "filter_none" : "crop_square"
-                            onClicked: taskMenu.selectedTask.act("maximize", menuWindow.modelData)
-                        }
-
-                        WindowButton {
-                            icon: "close"
-                            danger: true
+                        TaskMenuButton {
+                            width: (menuColumn.width - 6 * Tokens.scale) * 0.3
+                            text: Tr.tr("Close")
                             onClicked: taskMenu.selectedTask.act("close", menuWindow.modelData)
+                        }
+                        TaskMenuButton {
+                            width: (menuColumn.width - 6 * Tokens.scale) * 0.7
+                            text: Tr.tr("Force quit")
+                            onClicked: {
+                                const address = menuWindow.modelData?.lastIpcObject?.address;
+                                root.closeMenu();
+                                if (address) Hypr.dispatch("signalwindow address:" + address + ",9");
+                            }
                         }
                     }
                 }
             }
         }
+        }
+    }
+
+    Item {
+        id: windowPreview
+        visible: root.menuOpen && !!root.previewWindow && taskMenu.visible
+        width: Math.min(320 * Tokens.scale, root.screen.width - 32 * Tokens.scale)
+        height: 200 * Tokens.scale
+        // Overlap the menu edge so both surfaces form one continuous blob.
+        x: taskMenu.x + taskMenu.width + width - 14 * Tokens.scale <= root.maxWidth - root.x
+            ? taskMenu.x + taskMenu.width - 14 * Tokens.scale : taskMenu.x - width + 14 * Tokens.scale
+        y: Math.max(-root.y, Math.min(root.viewportHeight - root.y - height, taskMenu.y))
+        HoverHandler { onHoveredChanged: { if (hovered) previewReset.stop(); else if (!root.hoveredWindow) previewReset.restart(); } }
+        Column {
+            anchors.fill: parent
+            anchors.margins: 18 * Tokens.scale
+            spacing: 8 * Tokens.scale
+            StyledText { width: parent.width; text: root.previewWindow?.title ?? ""; elide: Text.ElideRight; font: Tokens.font.body.small }
+            StyledClippingRect {
+                width: parent.width
+                height: parent.height - 30 * Tokens.scale
+                radius: Tokens.rounding.medium
+                color: Colours.palette.m3surfaceContainerLowest
+                clip: true
+                Loader {
+                    anchors.fill: parent
+                    active: windowPreview.visible && !!root.previewWindow?.wayland
+                    sourceComponent: ScreencopyView {
+                        captureSource: root.previewWindow?.wayland ?? null
+                        live: true
+                        constraintSize: Qt.size(320, 180)
+                    }
+                }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: taskMenu.selectedTask.act("dock-activate", root.previewWindow) }
+            }
         }
     }
 
@@ -668,6 +712,7 @@ Item {
             anchors.leftMargin: 6 * Tokens.scale
             verticalAlignment: Text.AlignVCenter
             text: parent.text
+            elide: Text.ElideRight
             font: Tokens.font.body.small
         }
 
@@ -681,31 +726,4 @@ Item {
         }
     }
 
-    component WindowButton: Rectangle {
-        required property string icon
-
-        property bool danger
-
-        signal clicked
-
-        width: 38 * Tokens.scale
-        height: 30 * Tokens.scale
-        radius: Tokens.rounding.small
-        color: buttonMouse.containsMouse ? Colours.palette.m3surfaceContainerHighest : "transparent"
-
-        MaterialIcon {
-            anchors.centerIn: parent
-            text: parent.icon
-            color: parent.danger ? Colours.palette.m3error : Colours.palette.m3onSurface
-        }
-
-        MouseArea {
-            id: buttonMouse
-
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: parent.clicked()
-        }
-    }
 }

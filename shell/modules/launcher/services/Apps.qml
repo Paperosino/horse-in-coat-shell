@@ -1,6 +1,7 @@
 pragma Singleton
 
 import Quickshell
+import Hyprstack.Services
 import Hyprstack.Config
 import Hyprstack.Models
 import qs.utils
@@ -8,7 +9,7 @@ import qs.utils
 Searcher {
     id: root
 
-    function launch(entry: DesktopEntry): void {
+    function launch(entry: var): void {
         appDb.incrementFrequency(entry.id);
 
         if (entry.runInTerminal)
@@ -70,6 +71,6 @@ Searcher {
 
         path: `${Paths.state}/apps.sqlite`
         favouriteApps: GlobalConfig.launcher.favouriteApps
-        entries: DesktopEntries.applications.values.filter(a => !Strings.testRegexList(GlobalConfig.launcher.hiddenApps, a.id))
+        entries: ApplicationCatalogue.applications.values.filter(a => !Strings.testRegexList(GlobalConfig.launcher.hiddenApps, a.id))
     }
 }

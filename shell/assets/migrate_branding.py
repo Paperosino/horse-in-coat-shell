@@ -22,6 +22,21 @@ def migrate():
     # Old shell preferences name built-in schemes with the original prefix;
     # those IDs remain accepted by the theme service.
     config = roots[0] / 'hypr'
+    # Register before user keybindings so their original Lua callbacks remain
+    # available to the shortcut editor. Existing user configuration is preserved.
+    main = config / 'hyprland.lua'
+    hook = Path(__file__).resolve().parent / 'hyprland/shortcuts.lua'
+    if main.is_file() and not main.is_symlink() and hook.is_file():
+        text = main.read_text()
+        if '-- hics-shortcut-editor' not in text:
+            backup = main.with_suffix('.lua.before-hics-shortcuts')
+            if not backup.exists():
+                backup.write_text(text)
+            escaped = str(hook).replace('\\', '\\\\').replace('"', '\\"')
+            block = ('-- hics-shortcut-editor: preserve Lua callbacks for graphical editing\n'
+                     'do local p = "' + escaped + '"; local f = io.open(p, "r"); '
+                     'if f then f:close(); hics_shortcuts = dofile(p).install() end end\n')
+            main.write_text(block + text)
     if config.is_dir():
         for path in config.rglob('*.lua'):
             if path.is_symlink() or not path.is_file():

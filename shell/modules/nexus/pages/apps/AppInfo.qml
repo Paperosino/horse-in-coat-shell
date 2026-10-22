@@ -12,7 +12,7 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    readonly property DesktopEntry app: nState.selectedApp
+    readonly property var app: nState.selectedApp
     readonly property bool favouriteByRegex: app && matchedByRegex(GlobalConfig.launcher.favouriteApps, app.id)
     readonly property bool hiddenByRegex: app && matchedByRegex(GlobalConfig.launcher.hiddenApps, app.id)
 

@@ -8591,3 +8591,519 @@ msgstr "Сертификат с агентом ключей"
 
 msgid "Smart card"
 msgstr "Смарт-карта"
+
+msgid "Actions and combinations"
+msgstr "Действия и сочетания"
+
+msgid "Add shortcut"
+msgstr "Добавить сочетание"
+
+msgid "Advanced behaviour"
+msgstr "Дополнительные параметры"
+
+msgid "Already assigned"
+msgstr "Уже назначено"
+
+msgid "Application launch policy"
+msgstr "Запуск приложений"
+
+msgid "Ask before restoring"
+msgstr "Спрашивать перед восстановлением"
+
+msgid "Automatic checkpoint"
+msgstr "Автоматический снимок"
+
+msgid "Available while locked"
+msgstr "Работает при блокировке экрана"
+
+msgid "Bind by physical key position"
+msgstr "Привязать к физическому расположению клавиши"
+
+msgid "Capture is paused. Existing entries remain available."
+msgstr "Запись приостановлена. Сохранённые записи остаются доступны."
+
+msgid "Changes apply immediately and survive compositor restarts."
+msgstr "Изменения применяются сразу и сохраняются после перезапуска."
+
+msgid "Checkpoint interval (seconds)"
+msgstr "Интервал снимков (секунды)"
+
+msgid "Choose a startup policy and keep an automatic recovery checkpoint."
+msgstr "Выберите поведение при входе и периодичность автоматических снимков."
+
+msgid "Choose an action to edit its shortcut. Modified actions are marked."
+msgstr "Выберите действие для настройки. Изменённые сочетания отмечены значком."
+
+msgid "Choose content types and how much ordinary history to keep."
+msgstr "Выберите типы содержимого и объём сохраняемой истории."
+
+msgid "Clear history when signing out"
+msgstr "Очищать историю при выходе"
+
+msgid "Clear unpinned"
+msgstr "Очистить незакреплённое"
+
+msgid "Clipboard capture is not running"
+msgstr "Запись буфера обмена не работает"
+
+msgid "Confirm reset"
+msgstr "Подтвердить сброс"
+
+msgid "Control duplicate instances, launch pacing and applications excluded from recovery."
+msgstr "Настройте обработку уже запущенных приложений, задержки и исключения."
+
+msgid "Copy something to start your history"
+msgstr "Скопируйте что-нибудь, чтобы начать историю"
+
+msgid "Delay between launches (ms)"
+msgstr "Задержка между запусками (мс)"
+
+msgid "Delete all history including pins"
+msgstr "Удалить всю историю, включая закреплённое"
+
+msgid "Delete snapshot"
+msgstr "Удалить снимок"
+
+msgid "Disabled: new history is stored in the runtime directory. Previous disk history is kept until explicitly cleared."
+msgstr "При отключении новая история хранится во временном каталоге сеанса. Ранее записанная на диск история сохраняется до явной очистки."
+
+msgid "Do not consume input"
+msgstr "Передавать нажатие приложению"
+
+msgid "Do not relaunch running applications"
+msgstr "Не запускать повторно работающие приложения"
+
+msgid "Do not restore"
+msgstr "Не восстанавливать"
+
+msgid "Enable application recovery in other desktops"
+msgstr "Восстанавливать приложения в других окружениях"
+
+msgid "Esc cancels recording"
+msgstr "Esc отменяет запись"
+
+msgid "Excluded active applications"
+msgstr "Исключения для активного приложения"
+
+msgid "Excluded applications"
+msgstr "Исключённые приложения"
+
+msgid "Excluded text patterns"
+msgstr "Исключения по содержимому"
+
+msgid "Existing applications follow your duplicate-handling settings."
+msgstr "Работающие приложения обрабатываются согласно настройкам повторного запуска."
+
+msgid "Expected an array of command arguments"
+msgstr "Ожидается массив строк с аргументами команды"
+
+msgid "Expire after days (0 keeps forever)"
+msgstr "Срок хранения в днях (0 — без ограничения)"
+
+msgid "Export"
+msgstr "Экспорт"
+
+msgid "Export .desktop starters"
+msgstr "Экспорт файлов запуска .desktop"
+
+msgid "Export keyboard shortcuts"
+msgstr "Экспорт сочетаний клавиш"
+
+msgid "Export portable application starters"
+msgstr "Экспорт переносимых файлов запуска"
+
+msgid "Export session snapshot"
+msgstr "Экспорт снимка сессии"
+
+msgid "Export snapshot"
+msgstr "Экспорт снимка"
+
+msgid "Floating window"
+msgstr "Плавающее окно"
+
+msgid "Focus the previously active window"
+msgstr "Вернуть фокус на ранее активное окно"
+
+msgid "For example SUPER + SHIFT + T. Physical keys can use code: followed by a Hyprland keycode."
+msgstr "Например SUPER + SHIFT + T. Для физической клавиши используйте code: и код клавиши Hyprland."
+
+msgid "GNOME, KDE and portable sessions"
+msgstr "GNOME, KDE и переносимые сессии"
+
+msgid "Ignore content marked as secret"
+msgstr "Не сохранять содержимое с меткой секрета"
+
+msgid "Images"
+msgstr "Изображения"
+
+msgid "Import hics snapshot"
+msgstr "Импорт снимка hics"
+
+msgid "Import keyboard shortcuts"
+msgstr "Импорт сочетаний клавиш"
+
+msgid "Import obeys the current content filters and size limits."
+msgstr "При импорте действуют текущие исключения и ограничения размера."
+
+msgid "Import previous cliphist history"
+msgstr "Импорт прежней истории cliphist"
+
+msgid "Import saved application launch data and export standard .desktop starters. Internal application state depends on the application; window placement is specific to the compositor."
+msgstr "Импорт сохранённых команд запуска и экспорт стандартных файлов .desktop. Внутреннее состояние восстанавливает само приложение, а расположение окон зависит от композитора."
+
+msgid "Import session snapshot"
+msgstr "Импорт снимка сессии"
+
+msgid "Import, export and defaults"
+msgstr "Импорт, экспорт и сброс"
+
+msgid "Imported commands are shown in the preview and run only after you choose to restore. hics does not replace GNOME SessionManager or KDE KSMServer."
+msgstr "Команды видны в предпросмотре и запускаются только после подтверждения восстановления. hics не заменяет GNOME SessionManager и KDE KSMServer."
+
+msgid "Inspect a snapshot before restoring. Applications can be selected individually."
+msgstr "Просмотрите снимок перед восстановлением и выберите нужные приложения."
+
+msgid "Keep a portable backup of your custom keyboard setup."
+msgstr "Сохраните резервную копию своих сочетаний для переноса или восстановления."
+
+msgid "Keep history between logins"
+msgstr "Сохранять историю между входами"
+
+msgid "Keep saved coordinates"
+msgstr "Оставить сохранённые координаты"
+
+msgid "Keep sensitive content out of the history and pause collection while locked."
+msgstr "Исключите конфиденциальный текст и приостанавливайте запись при блокировке."
+
+msgid "Key combination"
+msgstr "Сочетание клавиш"
+
+msgid "Last recovery report"
+msgstr "Отчёт последнего восстановления"
+
+msgid "Latest automatic checkpoint"
+msgstr "Последний автоматический снимок"
+
+msgid "Launch and placement results for each selected application."
+msgstr "Результаты запуска и размещения каждого выбранного приложения."
+
+msgid "Launch arguments (JSON array)"
+msgstr "Аргументы запуска (массив JSON)"
+
+msgid "Launch separately for each saved window"
+msgstr "Запускать отдельно для каждого сохранённого окна"
+
+msgid "Leave empty for a global shortcut."
+msgstr "Оставьте пустым для глобального сочетания."
+
+msgid "Make the keyboard yours"
+msgstr "Клавиши под ваши задачи"
+
+msgid "Match exact window titles"
+msgstr "Сопоставлять точные заголовки окон"
+
+msgid "Maximum entry size (MiB)"
+msgstr "Максимальный размер записи (МиБ)"
+
+msgid "Maximum history entries"
+msgstr "Максимальное число записей"
+
+msgid "Maximum saved snapshots"
+msgstr "Максимальное число снимков"
+
+msgid "Missing monitor"
+msgstr "Если монитор недоступен"
+
+msgid "Mouse binding"
+msgstr "Сочетание с кнопкой мыши"
+
+msgid "Move to an available screen"
+msgstr "Перенести на доступный экран"
+
+msgid "No combination assigned"
+msgstr "Сочетание не назначено"
+
+msgid "On login"
+msgstr "При входе"
+
+msgid "One application class regular expression per line."
+msgstr "Регулярные выражения для классов приложений, по одному на строку."
+
+msgid "One regular expression per line. Application attribution uses the active Hyprland window."
+msgstr "По одному регулярному выражению на строку. Источник определяется по активному окну Hyprland."
+
+msgid "One regular expression per line. Matching copied text is not stored."
+msgstr "По одному регулярному выражению на строку. Совпадающий текст не сохраняется."
+
+msgid "Only selected applications will be restored. Changes are saved to this snapshot."
+msgstr "Восстановятся только выбранные приложения. Изменения сохраняются в этом снимке."
+
+msgid "Pause while the screen is locked"
+msgstr "Приостанавливать при блокировке экрана"
+
+msgid "Pick up where you left off"
+msgstr "Продолжить с того же места"
+
+msgid "Pinned entries stay available when ordinary history expires or is cleared."
+msgstr "Закреплённые записи сохраняются при обычной очистке и по истечении срока хранения."
+
+msgid "Placement is available in hics / Hyprland. Other desktops can launch the saved applications."
+msgstr "Размещение окон восстанавливается в hics / Hyprland. В других окружениях доступен запуск сохранённых приложений."
+
+msgid "Press your new shortcut…"
+msgstr "Нажмите новое сочетание…"
+
+msgid "Privacy and exclusions"
+msgstr "Приватность и исключения"
+
+msgid "Recent and pinned"
+msgstr "Недавнее и закреплённое"
+
+msgid "Record a combination, check conflicts and customise actions without editing configuration files."
+msgstr "Записывайте сочетания, проверяйте конфликты и настраивайте действия без редактирования файлов."
+
+msgid "Recorded keys use a keycode and work independently of the keyboard layout."
+msgstr "Клавиши записываются по физическому коду и не зависят от раскладки."
+
+msgid "Repeat while held"
+msgstr "Повторять при удержании"
+
+msgid "Restore all default shortcuts"
+msgstr "Восстановить все стандартные сочетания"
+
+msgid "Restore automatically"
+msgstr "Восстанавливать автоматически"
+
+msgid "Restore floating geometry"
+msgstr "Восстанавливать размеры и положение плавающих окон"
+
+msgid "Restore fullscreen and maximized state"
+msgstr "Восстанавливать развёрнутый и полноэкранный режим"
+
+msgid "Restore saved session"
+msgstr "Восстановить сохранённую сессию"
+
+msgid "Restore selected"
+msgstr "Восстановить выбранное"
+
+msgid "Restore this application"
+msgstr "Восстанавливать это приложение"
+
+msgid "Restore window mode"
+msgstr "Восстанавливать режим размещения окон"
+
+msgid "Restore workspaces"
+msgstr "Восстанавливать рабочие столы"
+
+msgid "Restore your workspace"
+msgstr "Восстановление рабочего пространства"
+
+msgid "Save a workspace, choose what returns and recover applications after signing in."
+msgstr "Сохраните рабочее пространство, выберите нужные приложения и восстановите их после входа."
+
+msgid "Save automatic recovery checkpoints"
+msgstr "Создавать автоматические снимки"
+
+msgid "Save current session"
+msgstr "Сохранить текущую сессию"
+
+msgid "Save shortcut"
+msgstr "Сохранить сочетание"
+
+msgid "Save snapshot changes"
+msgstr "Сохранить изменения снимка"
+
+msgid "Saved workspaces"
+msgstr "Сохранённые рабочие пространства"
+
+msgid "Search copied text and images, keep useful entries and control what is remembered."
+msgstr "Ищите скопированный текст и изображения, закрепляйте полезное и управляйте хранением."
+
+msgid "Session recovery"
+msgstr "Восстановление сессии"
+
+msgid "Show launch commands and window details"
+msgstr "Показать команды запуска и параметры окон"
+
+msgid "Single-instance applications may still reuse their existing process."
+msgstr "Приложения с одним экземпляром могут использовать уже работающий процесс."
+
+msgid "Snapshot name"
+msgstr "Название снимка"
+
+msgid "Start fresh"
+msgstr "Начать с пустого пространства"
+
+msgid "Start selected applications now"
+msgstr "Запустить выбранные приложения сейчас"
+
+msgid "Startup snapshot"
+msgstr "Снимок для входа"
+
+msgid "Submap"
+msgstr "Режим сочетаний (submap)"
+
+msgid "Super is the Windows / Meta key"
+msgstr "Super — клавиша Windows / Meta"
+
+msgid "The command runs when you press this shortcut."
+msgstr "Команда запускается при нажатии этого сочетания."
+
+msgid "The first element is the executable. Arguments are passed directly, without a shell."
+msgstr "Первый элемент — исполняемая программа. Аргументы передаются напрямую, без командной оболочки."
+
+msgid "Trigger on release"
+msgstr "Выполнять при отпускании"
+
+msgid "Useful for stable document titles. Changing titles may prevent matching."
+msgstr "Подходит для постоянных заголовков документов. Изменение заголовка может помешать сопоставлению."
+
+msgid "Uses XDG autostart in GNOME and KDE. Avoid enabling another desktop's automatic app recovery at the same time."
+msgstr "Используется автозапуск XDG в GNOME и KDE. Одновременное восстановление другим окружением может дублировать приложения."
+
+msgid "Wait for windows (seconds)"
+msgstr "Ожидание появления окон (секунды)"
+
+msgid "Watching for copied text and images"
+msgstr "Запись скопированного текста и изображений включена"
+
+msgid "Welcome back"
+msgstr "С возвращением"
+
+msgid "What to remember"
+msgstr "Что сохранять"
+
+msgid "When signing in"
+msgstr "При входе в систему"
+
+msgid "Window restoration"
+msgstr "Восстановление окон"
+
+msgid "Working… Cancel"
+msgstr "Выполняется… Отменить"
+
+msgid "Workspace"
+msgstr "Рабочий стол"
+
+msgid "Your clipboard, organised"
+msgstr "Буфер обмена под контролем"
+
+msgid "Your saved applications can be restored now, or you can start with an empty workspace."
+msgstr "Можно восстановить сохранённые приложения или начать с пустого рабочего пространства."
+
+msgid "Your saved workspaces will appear here"
+msgstr "Здесь появятся сохранённые рабочие пространства"
+
+msgid "entries"
+msgstr "записей"
+
+msgid "windows"
+msgstr "окон"
+
+msgid "Pause capture"
+msgstr "Приостановить запись"
+
+msgid "Resume capture"
+msgstr "Продолжить запись"
+
+msgid "Cancel recording"
+msgstr "Отменить запись"
+
+msgid "Record combination"
+msgstr "Записать сочетание"
+
+msgid "Already running"
+msgstr "Уже работает"
+
+msgid "Shared application launch"
+msgstr "Общий запуск приложения"
+
+msgid "No launch command"
+msgstr "Не задана команда запуска"
+
+msgid "Launched"
+msgstr "Запущено"
+
+msgid "Launch failed"
+msgstr "Не удалось запустить"
+
+msgid "Restored"
+msgstr "Восстановлено"
+
+msgid "Application launch only on this desktop"
+msgstr "В этом окружении доступен только запуск приложения"
+
+msgid "Window not found before timeout"
+msgstr "Окно не найдено за отведённое время"
+
+msgid "History, pins, privacy and retention"
+msgstr "История, закрепление, приватность и срок хранения"
+
+msgid "Snapshots, application recovery and desktop compatibility"
+msgstr "Снимки, восстановление приложений и совместимость окружений"
+
+msgid "Press a key combination"
+msgstr "Нажмите сочетание клавиш"
+
+msgid "This shortcut is already assigned to another action"
+msgstr "Это сочетание уже назначено другому действию"
+
+msgid "Shortcut name and command are required"
+msgstr "Укажите имя сочетания и команду"
+
+msgid "Unsupported shortcut key"
+msgstr "Неподдерживаемая клавиша"
+
+msgid "Clipboard entry no longer exists"
+msgstr "Запись буфера обмена больше не существует"
+
+msgid "Clipboard history is busy"
+msgstr "История буфера обмена занята"
+
+msgid "Session name is required"
+msgstr "Укажите название сессии"
+
+msgid "No saved applications were found for this desktop"
+msgstr "Сохранённые приложения этого окружения не найдены"
+
+msgid "The edited content was excluded or exceeded the clipboard size limit"
+msgstr "Текст попадает под исключение или превышает ограничение размера"
+
+msgid "Clipboard capture could not start. Check wl-clipboard installation."
+msgstr "Не удалось начать запись буфера. Проверьте установку wl-clipboard."
+
+msgid "Working directory"
+msgstr "Рабочий каталог"
+
+msgid "Delay after launch (ms)"
+msgstr "Задержка после запуска (мс)"
+
+msgid "X position"
+msgstr "Положение X"
+
+msgid "Y position"
+msgstr "Положение Y"
+
+msgid "Window width"
+msgstr "Ширина окна"
+
+msgid "Window height"
+msgstr "Высота окна"
+
+msgid "Window state"
+msgstr "Состояние окна"
+
+msgid "Restore monitors"
+msgstr "Восстанавливать экраны"
+
+msgid "Normal"
+msgstr "Обычное"
+
+msgid "Maximized"
+msgstr "Развёрнутое"
+
+msgid "Force quit"
+msgstr "Завершить принудительно"
+
+msgid "Clipboard capture stopped unexpectedly"
+msgstr "Запись буфера обмена неожиданно остановилась"

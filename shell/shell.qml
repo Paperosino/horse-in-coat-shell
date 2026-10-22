@@ -43,6 +43,7 @@ ShellRoot {
         id: lock
     }
 
+    WorkspaceServices {locked:lock.lock.locked}
     Shortcuts {}
     ShortcutHelp { authenticationActive: authentication.active }
     OverviewModule.OverviewWindows {}

@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Hyprstack.Services
 import qs.services
 import "NotificationActivation.js" as Match
 
@@ -12,7 +13,7 @@ Singleton {
     property int confirmations: 0
 
     function entryFor(notification: var): var {
-        return Match.desktopEntry(notification, DesktopEntries.applications.values);
+        return Match.desktopEntry(notification, ApplicationCatalogue.applications.values);
     }
 
     function focus(window: var): bool {

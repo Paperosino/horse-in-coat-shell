@@ -12,7 +12,7 @@ import qs.modules.launcher.services
 Item {
     id: root
 
-    required property DesktopEntry modelData
+    required property var modelData
     required property ScreenState screenState
 
     property bool selectionOnly: false

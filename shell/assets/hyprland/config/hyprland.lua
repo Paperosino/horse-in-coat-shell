@@ -59,6 +59,12 @@ hl.monitor({
     scale    = "auto",
 })
 
+-- hics-shortcut-editor: preserve Lua callbacks for graphical editing
+local shortcuts_root=os.getenv("HICS_DATA_DIR") or os.getenv("HYPRSTACK_DATA_DIR") or "/usr/share/hics"
+local shortcuts_path=shortcuts_root.."/shell/assets/hyprland/shortcuts.lua"
+local shortcuts_file=io.open(shortcuts_path,"r")
+if shortcuts_file then shortcuts_file:close();hics_shortcuts=dofile(shortcuts_path).install() end
+
 -- Configs
 require("hyprland.env")
 require("hyprland.general")

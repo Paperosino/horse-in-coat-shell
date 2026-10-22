@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Hyprstack.Services
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -20,7 +21,7 @@ StyledClippingRect {
     required property real maxWidth
     required property BarPopouts.Wrapper popouts
     readonly property alias buttons: taskRepeater
-    readonly property var appEntries: DesktopEntries.applications.values
+    readonly property var appEntries: ApplicationCatalogue.applications.values
     property Item popupTask: null
     property string draggedKey: ""
     property string dropKey: ""
@@ -43,9 +44,9 @@ StyledClippingRect {
 
     function lookup(app: string): var {
         return appEntries.find(e => !!e.startupClass && e.startupClass.toLowerCase() === app.toLowerCase())
-            ?? DesktopEntries.heuristicLookup(app)
-            ?? DesktopEntries.heuristicLookup(app.replace(/-browser$/, ""))
-            ?? DesktopEntries.heuristicLookup(app.replace(/\.desktop$/, "").split(".").pop());
+            ?? ApplicationCatalogue.heuristicLookup(app)
+            ?? ApplicationCatalogue.heuristicLookup(app.replace(/-browser$/, ""))
+            ?? ApplicationCatalogue.heuristicLookup(app.replace(/\.desktop$/, "").split(".").pop());
     }
 
     function updateDrag(x: real): void {
@@ -120,7 +121,7 @@ StyledClippingRect {
         }
         for (const key of Taskbar.pinned) {
             if (groups.has(key)) continue;
-            const entry = DesktopEntries.byId(key) ?? lookup(key);
+            const entry = ApplicationCatalogue.byId(key) ?? lookup(key);
             if (entry) groups.set(key, { app: key, key: key, entry: entry, windows: [] });
         }
         return Array.from(groups.values()).sort((a, b) => {

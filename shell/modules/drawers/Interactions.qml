@@ -42,7 +42,7 @@ CustomMouseArea {
     function inDock(x: real, y: real): bool {
         const dock = panels.dock;
         if (!dock.visible) return false;
-        for (const item of [dock, dock.listSurface, dock.menuSurface]) {
+        for (const item of [dock, dock.listSurface, dock.menuSurface, dock.previewSurface]) {
             if (!item.visible) continue;
             const pos = item.mapToItem(root, 0, 0);
             if (x >= pos.x && x <= pos.x + item.width && y >= pos.y && y <= pos.y + item.height) return true;

@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Hyprstack.Services
 import Quickshell.Services.Notifications
 import Hyprstack.Config
 
@@ -142,10 +143,10 @@ Singleton {
 
     function getAppIcon(name: string, fallback: string): string {
         const shortName = (name ?? "").replace(/\.desktop$/, "").split(".").pop();
-        const entry = DesktopEntries.applications.values.find(e => e.startupClass
+        const entry = ApplicationCatalogue.applications.values.find(e => e.startupClass
             && e.startupClass.toLowerCase() === (name ?? "").toLowerCase())
-            ?? DesktopEntries.heuristicLookup(name ?? "")
-            ?? DesktopEntries.heuristicLookup(shortName);
+            ?? ApplicationCatalogue.heuristicLookup(name ?? "")
+            ?? ApplicationCatalogue.heuristicLookup(shortName);
         const icon = entry?.icon ? Quickshell.iconPath(entry.icon, true) : "";
         if (icon)
             return icon;
@@ -158,7 +159,7 @@ Singleton {
         if (match)
             return match;
 
-        const categories = DesktopEntries.heuristicLookup(name)?.categories;
+        const categories = ApplicationCatalogue.heuristicLookup(name)?.categories;
         if (categories)
             for (const [key, value] of Object.entries(categoryIcons))
                 if (categories.includes(key))

@@ -79,12 +79,9 @@ def run_session():
         for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGCHLD):
             previous[sig] = signal.signal(sig, lambda signum, frame: None)
         result = 0
+        session_disconnected = False
         try:
-            # The shell owns the themed Polkit agent; only clipboard helpers
-            # need separate processes.
-            if shutil.which("wl-paste") and shutil.which("cliphist"):
-                for kind in ("text", "image"):
-                    children.append(subprocess.Popen(["wl-paste", "--type", kind, "--watch", "cliphist", "store"], start_new_session=True))
+            # The native shell service owns clipboard capture and its privacy policy.
             shell = subprocess.Popen(["hics-shell"], start_new_session=True)
             children.append(shell)
             with selectors.DefaultSelector() as selector:
@@ -106,6 +103,7 @@ def run_session():
                     for key, mask in selector.select(timeout=max(0, next_theme_sync - time.monotonic())):
                         if key.fileobj is event:
                             if not event.recv(65536):
+                                session_disconnected = True
                                 done = True
                         else:
                             signals = os.read(readfd, 4096)
@@ -113,6 +111,8 @@ def run_session():
                                 done = True
         finally:
             stop_child_groups(children)
+            if session_disconnected and shutil.which("hics-workspace"):
+                subprocess.run(["hics-workspace","cleanup"],timeout=5,check=False)
             event.close()
             signal.set_wakeup_fd(previous_fd)
             for sig, handler in previous.items():

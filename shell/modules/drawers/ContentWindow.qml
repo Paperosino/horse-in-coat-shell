@@ -129,6 +129,21 @@ StyledWindow {
         win: root
     }
 
+    TapHandler {
+        acceptedButtons: Qt.AllButtons
+        onPressedChanged: {
+            if (!pressed || !(panels.dock.menuOpen || panels.dock.listOpen)) return;
+            const position = point.position;
+            const dock = panels.dock;
+            const inside = [dock, dock.listSurface, dock.menuSurface, dock.previewSurface].some(item => {
+                if (!item.visible) return false;
+                const p = item.mapFromItem(root.contentItem, position.x, position.y);
+                return p.x >= 0 && p.y >= 0 && p.x <= item.width && p.y <= item.height;
+            });
+            if (!inside) dock.closePopups();
+        }
+    }
+
     HyprlandFocusGrab {
         id: focusGrab
 
@@ -210,6 +225,17 @@ StyledWindow {
 
         DockPopupBg { surface: panels.dock.listSurface }
         DockPopupBg { surface: panels.dock.menuSurface }
+        BlobRect {
+            readonly property var surface: panels.dock.previewSurface
+            visible: surface.visible
+            group: visible ? blobGroup : null
+            x: panels.x + panels.dock.x + surface.x
+            y: panels.y + panels.dock.y + surface.y
+            implicitWidth: surface.width
+            implicitHeight: surface.height
+            radius: Tokens.rounding.extraLarge
+            deformScale: 0
+        }
 
         PanelBg {
             id: dashBg

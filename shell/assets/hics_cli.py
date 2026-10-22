@@ -576,6 +576,8 @@ def parser():
     record.add_argument("--stop", action="store_true")
     clip = sub.add_parser("clipboard", help=_("Open clipboard history"))
     clip.add_argument("-d", "--delete", action="store_true")
+    workspace = sub.add_parser("workspace", help=_("Save and restore workspace sessions"))
+    workspace.add_argument("workspace_args", nargs=argparse.REMAINDER)
     emoji = sub.add_parser("emoji", help=_("Open emoji picker"))
     emoji.add_argument("-p", "--paste", action="store_true")
     shell = sub.add_parser("shell", help=_("Manage the shell"))
@@ -597,6 +599,7 @@ def main():
         elif args.command == "screenshot": screenshot_command(args)
         elif args.command == "record": record_command(args)
         elif args.command == "clipboard": clipboard_command(args)
+        elif args.command == "workspace": return run(["hics-workspace", *(args.workspace_args or ["--help"])]).returncode
         elif args.command == "emoji": emoji_command(args)
         elif args.command == "doctor":
             return run(["hics-doctor"]).returncode

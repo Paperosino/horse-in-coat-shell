@@ -1997,6 +1997,7 @@ local function replace_binds(keys, action, description, options)
     end
 end
 local shortcut_vars = require("variables")
+replace_binds(shortcut_vars.kbClipboardPasteLatest, hl.dsp.global("hyprstack:clipboardPasteLatest"), "Clipboard: Paste latest entry")
 replace_binds(shortcut_vars.kbToggleWindowFloating, layouts.toggle_floating, "Windows: Toggle floating")
 replace_binds(shortcut_vars.kbWindowCycleNext, function() layouts.window_cycle(1) end, "Windows: Next window", "repeat")
 replace_binds(shortcut_vars.kbWindowCyclePrev, function() layouts.window_cycle(-1) end, "Windows: Previous window", "repeat")
@@ -2440,4 +2441,6 @@ elseif hl.plugin.hyprbars and hl.plugin.hyprbars.overview_hooks then
     hl.plugin.hyprbars.overview_hooks(true)
 end
 
+-- Run after mode-dependent bindings have replaced their defaults.
+if hics_shortcuts and hics_shortcuts.finish then hics_shortcuts.finish() end
 return layouts

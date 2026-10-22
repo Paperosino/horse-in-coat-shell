@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
 import Hyprstack.Config
+import Hyprstack.Services
 import Hyprstack.I18n
 import qs.components
 import qs.components.containers
@@ -43,8 +44,8 @@ Item {
     function saveEditing(): void {
         if (!root.editingEntry) return;
         const newText = editTextEdit.text;
-        Clipboard.saveEditedText(root.editingEntry.raw, newText, () => {
-            root.editingEntry = null;
+        Clipboard.saveEditedText(root.editingEntry.raw, newText, (success) => {
+            if(success)root.editingEntry = null;
         });
     }
 
@@ -72,6 +73,8 @@ Item {
             }
         }
     }
+
+    StyledText {anchors.bottom:parent.bottom;anchors.left:parent.left;anchors.right:parent.right;anchors.margins:8;visible:!!Clipboard.lastError;z:10;text:Tr.tr(Clipboard.lastError);color:Colours.palette.m3error;wrapMode:Text.WordWrap}
 
     // 1. LIST VIEW (Default)
     ColumnLayout {
@@ -115,6 +118,7 @@ Item {
 
             Item { Layout.fillWidth: true }
 
+            IconButton {icon:ClipboardHistory.settings.paused?"play_arrow":"pause";Accessible.name:Tr.tr("Pause clipboard history");onClicked:ClipboardHistory.configure({paused:!ClipboardHistory.settings.paused})}
             IconButton {
                 icon: "delete_sweep"
                 disabled: Clipboard.entries.length === 0
@@ -287,6 +291,7 @@ Item {
                                 onClicked: root.startEditing(delegateRect.modelData)
                             }
 
+                            IconButton {icon:delegateRect.modelData.pinned?"keep_off":"keep";Accessible.name:Tr.tr(delegateRect.modelData.pinned?"Unpin":"Pin");onClicked:Clipboard.pin(delegateRect.modelData)}
                             // Copy button
                             IconButton {
                                 icon: "content_copy"

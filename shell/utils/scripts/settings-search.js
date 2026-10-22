@@ -4105,6 +4105,10 @@ var catalogue = [
 
 catalogue.push({page:20,subpages:[],path:["Notifications"],label:"Open application on click",context:"",target:"",match:"Open application on click",keywords:"focus canvas window уведомления окно холст переход чат"});
 
+catalogue.push({page:29,subpages:[],path:["Clipboard history"],label:"Privacy and exclusions",context:"",target:"",match:"Clipboard history",keywords:"clipboard history pin unpin expiry retention password privacy буфер обмена история закрепить очистка секрет срок хранения исключения"});
+catalogue.push({page:13,subpages:[],path:["Keyboard shortcuts"],label:"Record combination",context:"",target:"",match:"Keyboard shortcuts",keywords:"keybind shortcut keyboard record conflict reset export клавиши сочетания запись конфликт сброс"});
+catalogue.push({page:30,subpages:[],path:["Session recovery"],label:"Session recovery",context:"",target:"",match:"Session recovery",keywords:"session recovery restore autosave checkpoint GNOME KDE XDG восстановление сессии снимок автосохранение приложения рабочие столы"});
+
 // End catalogue
 
 var aliases = [

@@ -20,9 +20,9 @@ QtObject {
     readonly property var navigationPages: ([
         ...navigationGroup("personalisation", ["appearance", "panels", "dock", "windows"]),
         ...navigationGroup("devices", ["display", "audio", "printers", "storage"]),
-        ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "shortcuts", "accessibility"]),
+        ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "shortcuts", "clipboard", "accessibility"]),
         ...navigationGroup("connections", ["network", "bluetooth", "sharing"]),
-        ...navigationGroup("applications", ["apps", "default-apps", "autostart", "notifications", "plugins", "assistant"]),
+        ...navigationGroup("applications", ["apps", "default-apps", "autostart", "session-recovery", "notifications", "plugins", "assistant"]),
         ...navigationGroup("system", ["power", "region", "datetime", "services", "about"])
     ])
     function navigationGroup(category: string, ids: list<string>): var {
@@ -184,6 +184,8 @@ QtObject {
         {id:"datetime", label:Tr.tr("Date & time"), icon:"schedule", description:Tr.tr("Clock, time zone and automatic time"), category:"shell"},
         {id:"autostart", label:Tr.tr("Autostart"), icon:"rocket_launch", description:Tr.tr("Applications started when signing in"), category:"shell"},
         {id:"default-apps", label:Tr.tr("Default applications"), icon:"open_in_new", description:Tr.tr("Browser, documents, media and file formats"), category:"shell"},
-        {id:"vpn", label:Tr.tr("VPN"), icon:"vpn_key", description:Tr.tr("NetworkManager profiles, protocols, DNS and routing"), category:"connectivity"}
+        {id:"vpn", label:Tr.tr("VPN"), icon:"vpn_key", description:Tr.tr("NetworkManager profiles, protocols, DNS and routing"), category:"connectivity"},
+        {id:"clipboard",label:Tr.tr("Clipboard history"),icon:"content_paste",description:Tr.tr("History, pins, privacy and retention"),category:"shell"},
+        {id:"session-recovery",label:Tr.tr("Session recovery"),icon:"restore",description:Tr.tr("Snapshots, application recovery and desktop compatibility"),category:"shell"}
     ]
 }

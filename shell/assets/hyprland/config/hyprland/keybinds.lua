@@ -1,3 +1,8 @@
+-- Install before any shell bindings so the editor retains their Lua callbacks.
+local shortcut_root=os.getenv("HYPRSTACK_DATA_DIR") or "/usr/share/hics"
+local shortcut_file=shortcut_root.."/shell/assets/hyprland/shortcuts.lua"
+local shortcut_probe=io.open(shortcut_file,"r")
+if shortcut_probe then shortcut_probe:close();if not hics_shortcuts then hics_shortcuts=dofile(shortcut_file).install() end end
 local vars = require("variables")
 local fn   = require("utils.functions")
 
@@ -273,7 +278,4 @@ bind_variable("kbSleep", hl.dsp.exec_cmd(vars.sleepGestureCmd), locked)
 bind_variable("kbClipboard", hl.dsp.global("hyprstack:clipboard"))
 bind_variable("kbClipboardDel", hl.dsp.global("hyprstack:clipboardDelete"))
 bind_variable("kbEmoji", hl.dsp.exec_cmd("pkill fuzzel || hics emoji -p"))
-bind_variable("kbClipboardPasteLatest",
-    hl.dsp.exec_cmd('sleep 0.5s && ydotool type -d 1 "$(cliphist list | head -1 | cliphist decode)"'),
-    locked
-)
+bind_variable("kbClipboardPasteLatest", hl.dsp.global("hyprstack:clipboardPasteLatest"))
