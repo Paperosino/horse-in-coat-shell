@@ -1962,7 +1962,29 @@ hl.window_rule({ name = "hyprstack-telegram-auxiliary", match = {
 hl.window_rule({ name = "hyprstack-screen-dialogs", match = {
     class = "(?i)^(gcr-prompter|gcr-system-prompter|org\\.gnome\\.keyring\\.SystemPrompter|polkit-gnome-authentication-agent-1|polkit-kde-authentication-agent-1|swappy|org\\.gnome\\.NautilusPreviewer)$"
 }, float = true, center = true, pin = true, ["hyprbars:no_bar"] = no_titlebar })
+-- Stable identities prevent a newly created window reusing a closed address
+-- from inheriting its place in the activation history.
+local canvas_focus_history = {}
+local canvas_close_generation = 0
+local canvas_focus_restore_pending = false
+local function remember_canvas_focus(window)
+    if not eligible(window) then return end
+    for i = #canvas_focus_history, 1, -1 do
+        if canvas_focus_history[i].address == window.address then table.remove(canvas_focus_history, i) end
+    end
+    table.insert(canvas_focus_history, 1, { address = window.address, id = window.stable_id })
+end
+local initial_focus_history = hl.get_windows()
+table.sort(initial_focus_history, function(a, b)
+    local left, right = a.focus_history_id, b.focus_history_id
+    return (left >= 0 and left or math.huge) > (right >= 0 and right or math.huge)
+end)
+for _, window in ipairs(initial_focus_history) do
+    if window.focus_history_id >= 0 then remember_canvas_focus(window) end
+end
+remember_canvas_focus(hl.get_active_window())
 hl.on("window.active", function(window)
+    if not changing and not canvas_focus_restore_pending then remember_canvas_focus(window) end
     if window and window.mapped and (layouts.mode() == "tiling" or layouts.mode() == "stacking") then raise(window) end
 end)
 
@@ -2276,6 +2298,36 @@ hl.on("monitor.layout_changed", function()
     end
 end)
 hl.on("window.close", function(window)
+    local recent = canvas_focus_history[1]
+    local restore = layouts.mode() == "canvas" and recent and recent.address == window.address
+        and recent.id == window.stable_id
+    for i = #canvas_focus_history, 1, -1 do
+        if canvas_focus_history[i].address == window.address then table.remove(canvas_focus_history, i) end
+    end
+    if restore then
+        canvas_focus_restore_pending = true
+        canvas_close_generation = canvas_close_generation + 1
+        local generation = canvas_close_generation
+        local candidates = {}
+        for _, entry in ipairs(canvas_focus_history) do table.insert(candidates, entry) end
+        -- Hyprland completes unmapping and its fallback focus after this event.
+        -- Select from the history captured before that fallback changes it.
+        hl.timer(function()
+            if generation ~= canvas_close_generation then return end
+            canvas_focus_restore_pending = false
+            if layouts.mode() ~= "canvas" then return end
+            for _, entry in ipairs(candidates) do
+                local candidate = hl.get_window("address:" .. entry.address)
+                local record = candidate and record_for(candidate)
+                if eligible(candidate) and candidate.stable_id == entry.id and not candidate.hidden
+                    and not (record and record.minimized) then
+                    hl.dispatch(hl.dsp.focus({ window = candidate }))
+                    remember_canvas_focus(candidate)
+                    return
+                end
+            end
+        end, { timeout = 1, type = "oneshot" })
+    end
     cancel_minimize(window)
     records[window.address] = nil
     save()

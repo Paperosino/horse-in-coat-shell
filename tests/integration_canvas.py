@@ -48,7 +48,7 @@ try:
  print('Plugins:',ctl('-j','plugin','list'),flush=True)
  print('Bridge:',ctl('repl','return type(hl.plugin.spatialoverview.hyprstack_close)'),flush=True)
  app_env=dict(env,WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=sig)
- for n in range(3):apps.append(subprocess.Popen(['kitty','--class','hyprstack-nested-test','--title',f'Nested test {n}','sleep','90'],env=app_env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL))
+ for n in range(4):apps.append(subprocess.Popen(['kitty','-o','confirm_os_window_close=0','--class','hyprstack-nested-test','--title',f'Nested test {n}','sleep','90'],env=app_env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL))
  time.sleep(2)
  ctl('repl','return hyprstack_layouts.set_mode("scrolling")');time.sleep(.5)
  ctl('repl','hl.dispatch(hl.dsp.window.move({direction="left"}))')
@@ -116,6 +116,24 @@ try:
   if c['floating']:
    assert all(abs(a-b)<=2 for a,b in zip(c['size'],after[address]['size'])),(c,after[address])
  print('PASS: reload keeps canvas independent; exit restores tiled/floating windows and workspaces',flush=True)
+ ctl('repl','return hyprstack_layouts.set_mode("canvas")');time.sleep(.6)
+ ordered=list(after)
+ def focus(address):
+  ctl('repl','hl.dispatch(hl.dsp.focus({window=hl.get_window("address:'+address+'" )}))');time.sleep(.15)
+ def close(address):
+  ctl('repl','hl.dispatch(hl.dsp.window.close({window=hl.get_window("address:'+address+'" )}))');time.sleep(.6)
+ def active():return json.loads(ctl('activewindow','-j')).get('address')
+ # Deliberately use an order different from creation and spatial order.
+ focus(ordered[0]);focus(ordered[3]);focus(ordered[2]);focus(ordered[1])
+ close(ordered[1]);assert active()==ordered[2],(active(),ordered)
+ print('PASS: closing the focused canvas window restores the most recently active window',flush=True)
+ close(ordered[2]);assert active()==ordered[3],(active(),ordered)
+ print('PASS: repeated closes follow activation order without recording compositor fallback focus',flush=True)
+ # A background close must never move the keyboard focus or camera.
+ close(ordered[0]);assert active()==ordered[3],(active(),ordered)
+ close(ordered[3]);assert not active(),active()
+ print('PASS: closing a background or the last canvas window preserves valid focus',flush=True)
+
 
 finally:
  for app in apps:
