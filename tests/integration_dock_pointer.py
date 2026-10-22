@@ -39,9 +39,9 @@ ShellRoot {
  Timer {interval:100;running:true;repeat:true;onTriggered:{
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
-  let buttons=[],titles=[],clocks=[];root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
+  let buttons=[],titles=[],clocks=[],captures=[];root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
   status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
-   source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
+   captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
    buttons:buttons.map(b=>root.box(b)),titles:titles.map(t=>root.box(t))}));
  }}
 }'''.replace('STATE',json.dumps(str(state))))
@@ -71,7 +71,7 @@ ShellRoot {
         time.sleep(1)
         runner=base/'run.py';runner.write_text('import os,sys\nos.environ["DBUS_SYSTEM_BUS_ADDRESS"]=os.environ["DBUS_SESSION_BUS_ADDRESS"]\nos.execvp(sys.argv[1],sys.argv[1:])\n')
         shell_log=(base/'shell.log').open('w')
-        shell_process=subprocess.Popen(['dbus-run-session','--','python3',str(runner),'quickshell','-p',str(shell)],env=env,stdout=shell_log,stderr=subprocess.STDOUT);processes.append(shell_process)
+        shell_process=subprocess.Popen(['dbus-run-session','--','python3',str(runner),os.environ.get('HICS_DOCK_TEST_QS','/usr/share/hics/qs/bin/hics-qs'),'-p',str(shell)],env=env,stdout=shell_log,stderr=subprocess.STDOUT);processes.append(shell_process)
         def read():
             try:return json.loads(state.read_text())
             except (FileNotFoundError,json.JSONDecodeError):return {}
@@ -101,9 +101,11 @@ ShellRoot {
         time.sleep(.3);assert not read()['preview'],'Preview appeared before the one-second hover delay'
         snapshot=wait_for(lambda s:s.get('preview'),3)
         assert snapshot['source'],'Preview has no toplevel capture source'
+        snapshot=wait_for(lambda s:s.get('hasContent'),4)
         image=base/'preview.png';subprocess.run(['grim',str(image)],env=env,check=True,capture_output=True)
         from PIL import Image
-        box=snapshot['previewBox'];crop=Image.open(image).convert('RGB').crop((round(box['x']),round(box['y']),round(box['x']+box['w']),round(box['y']+box['h'])))
+        box=snapshot['captureGeometry'];crop=Image.open(image).convert('RGB').crop((round(box['x']),round(box['y']),round(box['x']+box['w']),round(box['y']+box['h'])))
+        crop=crop.crop((round(crop.width*.15),round(crop.height*.15),round(crop.width*.85),round(crop.height*.85)))
         coloured=sum(count for count,(r,g,b) in crop.getcolors(crop.width*crop.height) if r>130 and g<75 and 30<b<110)
         assert coloured>1000,('Preview does not contain the real window image',coloured,snapshot)
         print('PASS: real hover opens a captured window preview after one second',flush=True)

@@ -636,6 +636,7 @@ Item {
                     anchors.fill: parent
                     active: windowPreview.visible && !!root.previewWindow?.wayland
                     sourceComponent: ScreencopyView {
+                        objectName: "dockWindowCapture"
                         captureSource: root.previewWindow?.wayland ?? null
                         live: true
                         constraintSize: Qt.size(320, 180)

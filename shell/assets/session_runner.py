@@ -2,6 +2,7 @@
 """Run one desktop session and clean up its processes on compositor disconnect."""
 from __future__ import annotations
 import fcntl
+import json
 import os
 from pathlib import Path
 import re
@@ -44,6 +45,22 @@ def stop_child_groups(children):
         except ProcessLookupError:
             pass
         child.wait()
+
+
+def load_capture_plugin():
+    data = Path(os.environ.get("HICS_DATA_DIR", os.environ.get("HYPRSTACK_DATA_DIR", "/usr/share/hics")))
+    plugin = data / "native/hics-capture.so"
+    if not plugin.is_file() or not shutil.which("hyprctl"):
+        return
+    try:
+        listed = subprocess.run(["hyprctl", "-j", "plugin", "list"], capture_output=True, text=True, timeout=5, check=True)
+        if any(item.get("name") == "hics-capture" for item in json.loads(listed.stdout)):
+            return
+        result = subprocess.run(["hyprctl", "plugin", "load", str(plugin)], capture_output=True, text=True, timeout=10)
+        if result.returncode or result.stdout.strip() != "ok":
+            print("Unable to load hics window capture:", result.stdout.strip(), result.stderr.strip(), file=sys.stderr)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print("Unable to load hics window capture:", error, file=sys.stderr)
 
 
 def run_session():
@@ -89,10 +106,15 @@ def run_session():
                 selector.register(readfd, selectors.EVENT_READ)
                 done = False
                 next_theme_sync = time.monotonic() + 30
+                capture_load_at = time.monotonic() + 3
+                capture_loaded = False
                 while not done:
                     if shell.poll() is not None:
                         result = shell.returncode
                         break
+                    if not capture_loaded and time.monotonic() >= capture_load_at:
+                        load_capture_plugin()
+                        capture_loaded = True
                     if time.monotonic() >= next_theme_sync:
                         from gtk_theme import sync_new_flatpaks
                         try:
@@ -100,7 +122,7 @@ def run_session():
                         except (OSError, ValueError, KeyError) as error:
                             print("Unable to sync new Flatpak themes:", error, file=sys.stderr)
                         next_theme_sync = time.monotonic() + 30
-                    for key, mask in selector.select(timeout=max(0, next_theme_sync - time.monotonic())):
+                    for key, mask in selector.select(timeout=max(0, min(next_theme_sync, capture_load_at if not capture_loaded else next_theme_sync) - time.monotonic())):
                         if key.fileobj is event:
                             if not event.recv(65536):
                                 session_disconnected = True
