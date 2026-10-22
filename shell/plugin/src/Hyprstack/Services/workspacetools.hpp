@@ -53,6 +53,7 @@ private:
   QVariantList m_entries;
   QString m_error;
   bool m_locked = false, m_importing = false, m_restarting=false;
+  bool m_refreshing = false, m_refreshAgain = false;
   QProcess m_text, m_image;
   QFileSystemWatcher m_files;
   QTimer m_refresh;

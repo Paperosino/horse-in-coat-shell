@@ -275,8 +275,18 @@ ClipboardHistory::ClipboardHistory(QObject *parent) : QObject(parent) {
   m_refresh.setSingleShot(true);
   m_refresh.setInterval(120);
   connect(&m_refresh, &QTimer::timeout, this, &ClipboardHistory::refresh);
-  connect(&m_files, &QFileSystemWatcher::directoryChanged, this,
+  connect(&m_files, &QFileSystemWatcher::fileChanged, this,
           [this] { m_refresh.start(); });
+  connect(&m_files, &QFileSystemWatcher::directoryChanged, this,
+          [this](const QString &directory) {
+    // Atomic index replacement drops the file watch. Directory notifications
+    // only rearm that watch; lock/payload files must not refresh the history.
+    const auto index = directory + "/index.json";
+    if (QFileInfo::exists(index) && !m_files.files().contains(index)) {
+      m_files.addPath(index);
+      m_refresh.start();
+    }
+  });
   for(auto *process:{&m_text,&m_image}) {
     connect(process,&QProcess::errorOccurred,this,[this](QProcess::ProcessError error){if(!m_restarting&&error==QProcess::FailedToStart){m_error="Clipboard capture could not start. Check wl-clipboard installation.";emit changed();}});
     connect(process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this,process](int code,QProcess::ExitStatus){
@@ -303,14 +313,51 @@ void ClipboardHistory::perform(const std::function<void()> &action) {
   emit changed();
 }
 void ClipboardHistory::refresh() {
-  perform([&] {
+  try {
     m_settings = W::settings("clipboard");
-    m_entries = W::clipboardEntries();
-    if (!m_files.directories().contains(W::clipboardDirectory())) {
-      m_files.removePaths(m_files.directories());
-      m_files.addPath(W::clipboardDirectory());
+  } catch (const std::exception &e) {
+    m_error = QString::fromUtf8(e.what());
+    emit changed();
+    return;
+  }
+  if (m_refreshing) {
+    m_refreshAgain = true;
+    return;
+  }
+  m_refreshing = true;
+  auto *watcher = new QFutureWatcher<QVariantMap>(this);
+  connect(watcher, &QFutureWatcher<QVariantMap>::finished, this, [this, watcher] {
+    const auto result = watcher->result();
+    watcher->deleteLater();
+    m_refreshing = false;
+    m_error = result.value("error").toString();
+    if (m_error.isEmpty()) {
+      m_entries = result.value("entries").toList();
+      const auto directory = result.value("directory").toString();
+      if (!m_files.directories().contains(directory)) {
+        if (!m_files.directories().isEmpty()) m_files.removePaths(m_files.directories());
+        if (!m_files.files().isEmpty()) m_files.removePaths(m_files.files());
+        m_files.addPath(directory);
+      }
+      const auto index = directory + "/index.json";
+      if (QFileInfo::exists(index) && !m_files.files().contains(index)) m_files.addPath(index);
+    }
+    emit changed();
+    if (m_refreshAgain) {
+      m_refreshAgain = false;
+      m_refresh.start();
     }
   });
+  // Acquiring the history lock and pruning files can wait for a clipboard
+  // writer. Never block Qt's GUI/render synchronization while doing so.
+  watcher->setFuture(QtConcurrent::run([] {
+    try {
+      return QVariantMap{{"entries", W::clipboardEntries()},
+                         {"directory", W::clipboardDirectory()}};
+    } catch (const std::exception &e) {
+      return QVariantMap{{"error", QString::fromUtf8(e.what())}};
+    }
+  }));
 }
 void ClipboardHistory::watchers() {
   const bool wanted =
