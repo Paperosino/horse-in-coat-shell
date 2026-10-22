@@ -89,9 +89,9 @@ StyledWindow {
     WlrLayershell.keyboardFocus: screenState.sidebar || screenState.launcher || screenState.session || screenState.clipboard || panels.dock.listOpen || panels.dock.menuOpen
         ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
-    // A dock popup is modal: receive the dismissing click even over client
+    // Open popups receive the dismissing click even over client
     // windows. The normal shaped input region resumes as soon as it closes.
-    mask: panels.dock.menuOpen || panels.dock.listOpen ? null
+    mask: screenState.clipboard || panels.dock.menuOpen || panels.dock.listOpen ? null
         : hasFullscreen && !(contentItem.Config.general.showOverFullscreen && focusGrab.active)
             ? emptyRegion : regions
 
@@ -135,8 +135,24 @@ StyledWindow {
     TapHandler {
         parent: root.contentItem
         acceptedButtons: Qt.AllButtons
-        onPressedChanged: if (pressed)
-            panels.dock.dismissOutside(root.contentItem, point.position.x, point.position.y)
+        onPressedChanged: if (pressed) {
+            panels.dock.dismissOutside(root.contentItem, point.position.x, point.position.y);
+            panels.clipboard.dismissOutside(root.contentItem, point.position.x, point.position.y);
+        }
+    }
+
+    // Observe presses before child MouseAreas (search, entries, panel buttons).
+    // Reject the press afterwards so controls inside the drawer still work.
+    MouseArea {
+        parent: root.contentItem
+        anchors.fill: parent
+        z: 10000
+        enabled: root.screenState.clipboard
+        acceptedButtons: Qt.AllButtons
+        onPressed: event => {
+            event.accepted = false;
+            panels.clipboard.dismissOutside(root.contentItem, event.x, event.y);
+        }
     }
 
     HyprlandFocusGrab {

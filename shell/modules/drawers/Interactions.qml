@@ -119,6 +119,7 @@ CustomMouseArea {
     onPressed: event => {
         dragStart = Qt.point(event.x, event.y);
         panels.dock.dismissOutside(root, event.x, event.y);
+        panels.clipboard.dismissOutside(root, event.x, event.y);
     }
     onContainsMouseChanged: {
         if (!containsMouse)

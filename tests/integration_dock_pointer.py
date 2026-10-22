@@ -20,6 +20,7 @@ with tempfile.TemporaryDirectory(prefix='hics-dock-pointer-') as directory:
     (base/'config/hics/shell.json').write_text(json.dumps({'dashboard':{'enabled':False},'utilities':{'enabled':False}}))
     (base/'config/hics/workspace.json').write_text(json.dumps({'clipboard': {'enabled':False}}))
     state = base/'pointer-state.json'
+    control = base/'control.txt';control.write_text('')
     (shell/'shell.qml').write_text('''import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -36,15 +37,16 @@ ShellRoot {
  }
  function box(item) {const p=item.mapToItem(win.contentItem,0,0);return {x:p.x,y:p.y,w:item.width,h:item.height,text:item.text??""};}
  FileView {id:status;path:STATE;printErrors:false}
+ FileView {path:CONTROL;watchChanges:true;printErrors:false;onFileChanged:reload();onLoaded:if(text().startsWith("clipboard"))win.screenState.clipboard=true}
  Timer {interval:100;running:true;repeat:true;onTriggered:{
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
   let buttons=[],titles=[],clocks=[],captures=[];root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
-  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
+  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
    captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
    buttons:buttons.map(b=>root.box(b)),titles:titles.map(t=>root.box(t))}));
  }}
-}'''.replace('STATE',json.dumps(str(state))))
+}'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))))
     fixtures = ROOT/'tests/fixtures'
     for flag,name in [('client-header','virtual-pointer.h'),('private-code','virtual-pointer-protocol.c')]:
         subprocess.run(['wayland-scanner',flag,str(fixtures/'wlr-virtual-pointer-unstable-v1.xml'),str(base/name)],check=True)
@@ -92,6 +94,20 @@ ShellRoot {
         def send(op,x,y):
             pointer.stdin.write(f'{op} {round(x)} {round(y)}\n');pointer.stdin.flush();assert pointer.stdout.readline().strip()=='ok';time.sleep(.1)
         def click(x,y,button=272):send('move',x,y);send('button',button,1);send('button',button,0)
+        for attempt in range(2):
+            control.write_text('clipboard'+str(attempt))
+            snapshot=wait_for(lambda s:s.get('clipboard'))
+            time.sleep(.7)
+            box=read()['clipboardBox']
+            click(box['x']+20,box['y']+20)
+            assert read()['clipboard'],'Click inside clipboard incorrectly dismissed it'
+            if attempt == 0:
+                click(30,300)
+            else:
+                clock=read()['clocks'][0]
+                click(clock['x']+clock['w']/2,clock['y']+clock['h']/2)
+            wait_for(lambda s:not s.get('clipboard'))
+        print('PASS: clipboard keeps inside clicks and closes on client and panel outside clicks',flush=True)
         def open_menu():
             button=read()['buttons'][0];click(button['x']+button['w']/2,button['y']+button['h']/2,273)
             wait_for(lambda s:s.get('open') and len(s.get('titles',[]))==2)

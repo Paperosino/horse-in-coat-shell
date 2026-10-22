@@ -15,6 +15,12 @@ Item {
     readonly property bool shouldBeActive: screenState.clipboard
     property real offsetScale: shouldBeActive ? 0 : 1
 
+    function dismissOutside(item: Item, x: real, y: real): void {
+        if (!screenState.clipboard) return;
+        const point = mapFromItem(item, x, y);
+        if (!contains(point)) screenState.clipboard = false;
+    }
+
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
 
