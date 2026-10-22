@@ -12,13 +12,18 @@ def settings(kind='vpn'):
 def log(method,data=None):
  with open(os.environ['VPN_TEST_LOG'],'a') as f:f.write(json.dumps({'method':method,'data':data},default=str)+'\n')
 class Profile(dbus.service.Object):
- def __init__(self,index,data):
-  self.data=data;self.path=ROOT+'/Settings/'+str(index);super().__init__(bus,self.path)
+ def __init__(self,index,data,secrets_error=None):
+  self.secrets_error=secrets_error;self.data=data;self.path=ROOT+'/Settings/'+str(index);super().__init__(bus,self.path)
  @dbus.service.method(IF,out_signature='a{sa{sv}}')
- def GetSettings(self):return self.data
+ def GetSettings(self):
+  result=dbus.Dictionary({k:dbus.Dictionary(v,signature="sv") for k,v in self.data.items()},signature="sa{sv}")
+  if 'vpn' in result:result['vpn'].pop('secrets',None)
+  if 'wireguard' in result:result['wireguard'].pop('private-key',None)
+  return result
  @dbus.service.method(IF,in_signature='s',out_signature='a{sa{sv}}')
  def GetSecrets(self,setting):
   log('GetSecrets')
+  if self.secrets_error:raise dbus.exceptions.DBusException('No agents were available for this request.' if self.secrets_error.endswith('.NoSecrets') else 'Access denied',name=self.secrets_error)
   return {'vpn':{'secrets':dbus.Dictionary({'password':'stored-password'},signature='ss')}}
  @dbus.service.method(IF,in_signature='a{sa{sv}}ua{sv}',out_signature='a{sv}')
  def Update2(self,data,flags,args):self.data=data;log('Update2',data);return {}
@@ -59,15 +64,19 @@ class AgentManager(dbus.service.Object):
  @dbus.service.method('org.hics.Test',in_signature='ss',out_signature='s',async_callbacks=('reply','error'))
  def Request(self,mode,sender,reply,error):
   connection=settings();connection['vpn']['service-type']='org.freedesktop.NetworkManager.pptp' if mode=='agent-plugin-submit' else 'org.hics.fixture.no-plugin'
+  if mode=='agent-existing-secrets':connection['vpn']['secrets']=dbus.Dictionary({'password':'system-fixture-password'},signature='ss')
   if mode=='agent-plugin-submit':connection['vpn']['data']=dbus.Dictionary({'gateway':'vpn.example','user':'fixture','password-flags':'2'},signature='ss')
   agent=dbus.Interface(bus.get_object(sender,'/org/freedesktop/NetworkManager/SecretAgent',introspect=False),'org.freedesktop.NetworkManager.SecretAgent')
   def success(result):reply(json.dumps({'password':str(result.get('vpn',{}).get('secrets',{}).get('password',''))}))
   def failure(exception):reply(json.dumps({'errorName':exception.get_dbus_name()}))
-  agent.GetSecrets(connection,dbus.ObjectPath(ROOT+'/Settings/1'),'vpn',dbus.Array(['password'],signature='s'),dbus.UInt32(0 if mode=='agent-no-interaction' else 3),reply_handler=success,error_handler=failure,timeout=10)
+  agent.GetSecrets(connection,dbus.ObjectPath(ROOT+'/Settings/1'),'vpn',dbus.Array(['password'],signature='s'),dbus.UInt32(0 if mode in ('agent-no-interaction','agent-existing-secrets') else 3),reply_handler=success,error_handler=failure,timeout=10)
 agent_manager=AgentManager(bus,ROOT+'/AgentManager')
 profiles={}
 p=Profile(1,settings());profiles[p.path]=p
 p=Profile(2,settings('802-3-ethernet'));profiles[p.path]=p
+missing=settings();missing['vpn']['service-type']='org.freedesktop.NetworkManager.libreswan';missing['vpn']['data']=dbus.Dictionary({'right':'vpn.example','vendor-option':'keep-me','pskvalue-flags':'0','xauthpassword-flags':'0'},signature='ss')
+p=Profile(3,missing,'org.freedesktop.NetworkManager.AgentManager.NoSecrets');profiles[p.path]=p
+p=Profile(4,settings(),'org.freedesktop.NetworkManager.Settings.PermissionDenied');profiles[p.path]=p
 manager=Manager(bus,ROOT);store=Settings(bus,ROOT+'/Settings')
 print('ready',flush=True)
 GLib.MainLoop().run()

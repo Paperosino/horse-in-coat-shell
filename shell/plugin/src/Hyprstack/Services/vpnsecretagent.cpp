@@ -162,7 +162,19 @@ VpnSettings VpnSecretAgent::GetSecrets(const VpnSettings &connection,
     return {};
   }
   auto cache = m_session.value(uuid + "/" + setting);
-  if (!(flags & 2) && !cache.isEmpty()) {
+  const auto supplied =
+      setting == "vpn"
+          ? secrets(connection.value("vpn").value("secrets"))
+          : QVariantMap{{"private-key",
+                         connection.value("wireguard").value("private-key")}};
+  for (auto i = supplied.begin(); i != supplied.end(); ++i)
+    if (!i.value().toString().isEmpty())
+      cache[i.key()] = i.value();
+  // NetworkManager includes already stored system secrets in its request.
+  // A non-interactive editor read must return them rather than discarding them
+  // while looking for an additional keyring entry. Interactive requests still
+  // go through the plugin so missing credentials can be requested correctly.
+  if (!(flags & 3) && !cache.isEmpty()) {
     QMap<QString, QString> strings;
     for (auto i = cache.begin(); i != cache.end(); ++i)
       strings[i.key()] = i.value().toString();

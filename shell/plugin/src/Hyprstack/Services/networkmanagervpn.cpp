@@ -113,8 +113,35 @@ C readConnection(GDBusConnection *b, const QString &path) {
 void preserveSecrets(GDBusConnection *b, const QString &path, NMConnection *c) {
   const char *kind = nm_connection_get_setting_vpn(c) ? "vpn" : "wireguard";
   GError *error = nullptr;
-  auto reply = call(b, path, settingsInterface, "GetSecrets",
-                    g_variant_new("(s)", kind));
+  auto reply = variant(g_dbus_connection_call_sync(
+      b, service, path.toUtf8().constData(), settingsInterface, "GetSecrets",
+      g_variant_new("(s)", kind), nullptr,
+      G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 90000, nullptr,
+      &error));
+  if (error) {
+    char *remote = g_dbus_error_get_remote_error(error);
+    const bool absent =
+        g_strcmp0(remote,
+                  "org.freedesktop.NetworkManager.AgentManager.NoSecrets") ==
+            0 ||
+        g_strcmp0(remote,
+                  "org.freedesktop.NetworkManager.SecretAgent.NoSecrets") ==
+            0 ||
+        g_strcmp0(
+            remote,
+            "org.freedesktop.NetworkManager.Settings.Connection.NoSecrets") ==
+            0;
+    g_free(remote);
+    // GetSecrets is non-interactive. A new, certificate-only or ask-each-time
+    // profile may have no retrievable secrets. Keep its secret flags and apply
+    // the user's new values normally; this does not mean the agent is absent.
+    // Permission, transport and all other errors still abort the update.
+    if (absent) {
+      g_error_free(error);
+      return;
+    }
+    check(error);
+  }
   auto secrets = child(reply.get());
   if (!nm_connection_update_secrets(c, kind, secrets.get(), &error))
     check(error);

@@ -5,10 +5,12 @@
 #include <QDBusMetaType>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
+#include <QDBusReply>
 #include <QEventLoop>
 #include <QFile>
 #include <QJsonDocument>
 #include <QTimer>
+#include <QUuid>
 #include <cstdio>
 using namespace hyprstack::services;
 int main(int argc, char **argv) {
@@ -70,6 +72,57 @@ int main(int argc, char **argv) {
                          .toVariant()
                          .toMap();
     }
+  } else if (mode == "roundtrip-no-secrets") {
+    // Explicit host integration mode: never activate the disposable profile.
+    QString path;
+    QObject::connect(&vpn, &NetworkManagerVpn::saved, &app,
+                     [&](const QString &p) { path = p; });
+    auto settle = [&] {
+      while (vpn.busy())
+        wait();
+    };
+    vpn.create("org.freedesktop.NetworkManager.libreswan");
+    auto draft = vpn.draft();
+    draft["name"] = "hics-secret-check-" +
+                    QUuid::createUuid().toString(QUuid::WithoutBraces);
+    draft["data"] = QVariantMap{{"right", "vpn.invalid"},
+                                {"pskvalue-flags", "0"},
+                                {"xauthpassword-flags", "0"}};
+    vpn.save(draft);
+    settle();
+    QString failure = vpn.error();
+    if (failure.isEmpty() && !path.isEmpty()) {
+      vpn.edit(path);
+      settle();
+      draft = vpn.draft();
+      draft["secrets"] = QVariantMap{{"xauthpassword", "new-fixture-password"}};
+      vpn.save(draft);
+      settle();
+      failure = vpn.error();
+    }
+    result = {{"error", failure}, {"path", path}};
+    if (failure.isEmpty() && !path.isEmpty()) {
+      qDBusRegisterMetaType<VpnSettings>();
+      qDBusRegisterMetaType<QMap<QString, QString>>();
+      auto request = QDBusMessage::createMethodCall(
+          "org.freedesktop.NetworkManager", path,
+          "org.freedesktop.NetworkManager.Settings.Connection", "GetSecrets");
+      request.setArguments({"vpn"});
+      QDBusReply<VpnSettings> reply =
+          QDBusConnection::systemBus().call(request, QDBus::Block, 10000);
+      auto values = qdbus_cast<QMap<QString, QString>>(
+          reply.value().value("vpn").value("secrets"));
+      result["readError"] = reply.error().name();
+      result["secretKeys"] = values.keys();
+      result["passwordPersisted"] =
+          reply.isValid() &&
+          values.value("xauthpassword") == "new-fixture-password";
+    }
+    if (!path.isEmpty()) {
+      vpn.remove(path);
+      settle();
+      result["cleanupError"] = vpn.error();
+    }
   } else if (mode == "export") {
     vpn.exportFile("/org/freedesktop/NetworkManager/Settings/1",
                    QUrl::fromLocalFile(app.arguments().value(2)));
@@ -81,8 +134,12 @@ int main(int argc, char **argv) {
     result = {{"plugins", vpn.plugins()},
               {"profiles", vpn.profiles()},
               {"error", vpn.error()}};
-  } else if (mode == "edit") {
-    vpn.edit("/org/freedesktop/NetworkManager/Settings/1");
+  } else if (mode == "edit" || mode == "edit-no-secrets" ||
+             mode == "edit-empty-secrets" || mode == "edit-denied") {
+    vpn.edit(mode == "edit" ? "/org/freedesktop/NetworkManager/Settings/1"
+             : mode == "edit-denied"
+                 ? "/org/freedesktop/NetworkManager/Settings/4"
+                 : "/org/freedesktop/NetworkManager/Settings/3");
     wait();
     auto draft = vpn.draft();
     auto ip = draft.value("ip4").toMap();
@@ -91,6 +148,8 @@ int main(int argc, char **argv) {
     ip["priority"] = -50;
     draft["ip4"] = ip;
     draft["name"] = "Edited VPN";
+    if (mode == "edit-no-secrets")
+      draft["secrets"] = QVariantMap{{"xauthpassword", "new-fixture-password"}};
     vpn.save(draft);
     wait();
     result = {{"error", vpn.error()}};

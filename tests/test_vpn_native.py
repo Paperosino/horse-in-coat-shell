@@ -60,3 +60,20 @@ class VpnNativeTests(unittest.TestCase):
  @unittest.skipUnless(Path('/usr/lib/nm-pptp-auth-dialog').exists(), 'PPTP auth helper is not installed')
  def test_plugin_external_ui_is_rendered_by_the_native_agent(self):
   result=self.run_probe('agent-plugin-submit');self.assertEqual(result.get('password'),'agent-fixture',result)
+
+ def test_missing_stored_secrets_does_not_block_saving_a_new_password(self):
+  self.assertEqual(self.run_probe('edit-no-secrets')['error'],'')
+  update=next(c['data'] for c in self.calls() if c['method']=='Update2')
+  self.assertEqual(update['vpn']['secrets']['xauthpassword'],'new-fixture-password')
+  self.assertEqual(update['vpn']['data']['vendor-option'],'keep-me')
+ def test_profile_without_secrets_can_save_dns_and_keep_secret_flags(self):
+  self.assertEqual(self.run_probe('edit-empty-secrets')['error'],'')
+  update=next(c['data'] for c in self.calls() if c['method']=='Update2')
+  self.assertEqual(update['ipv4']['dns-priority'],-50)
+  self.assertEqual(update['vpn']['data']['pskvalue-flags'],'0')
+ def test_secret_permission_errors_still_prevent_destructive_updates(self):
+  self.assertTrue(self.run_probe('edit-denied')['error'])
+  self.assertFalse(any(c['method']=='Update2' for c in self.calls()))
+
+ def test_secret_agent_returns_system_credentials_for_noninteractive_editor_reads(self):
+  result=self.run_probe('agent-existing-secrets');self.assertEqual(result.get('password'),'system-fixture-password',result)
