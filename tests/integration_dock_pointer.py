@@ -38,7 +38,7 @@ ShellRoot {
  function box(item) {const p=item.mapToItem(win.contentItem,0,0);return {x:p.x,y:p.y,w:item.width,h:item.height,text:item.text??""};}
  FileView {id:status;path:STATE;printErrors:false}
  FileView {path:CONTROL;watchChanges:true;printErrors:false;onFileChanged:reload();onLoaded:if(text().startsWith("clipboard"))win.screenState.clipboard=true}
- Timer {interval:100;running:true;repeat:true;onTriggered:{
+ Timer {interval:16;running:true;repeat:true;onTriggered:{
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
   let buttons=[],titles=[],clocks=[],captures=[];root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
@@ -96,7 +96,10 @@ ShellRoot {
         def click(x,y,button=272):send('move',x,y);send('button',button,1);send('button',button,0)
         initial=read();button=initial['buttons'][0];base_width=initial['dockWidth']
         send('move',button['x']+button['w']/2,button['y']+button['h']/2)
-        time.sleep(.65)
+        early=read()
+        assert early["hoverAmount"]>.15,("Hover response delayed beyond 100 ms",early)
+        assert early["buttons"][0]["wave"]>.1,("Icon response delayed beyond 100 ms",early)
+        time.sleep(.55)
         raised=read()
         assert raised['hoverAmount']>.8,('Dock hover field never activated',raised)
         assert raised['buttons'][0]['visual']['y'] < raised['buttons'][0]['y']-15,('Icon did not lift',raised)
@@ -150,6 +153,7 @@ ShellRoot {
         click(clock['x']+clock['w']/2,clock['y']+clock['h']/2)
         wait_for(lambda s:s.get('open') is False,3)
         print('PASS: clicking another panel control dismisses the dock popup',flush=True)
+        click(12,300) # Dismiss the clock popout before testing the top dock.
         for side in ('top','left','right','bottom'):
             (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position=side,iconSize=44)))
             send('move',100,300);time.sleep(1)

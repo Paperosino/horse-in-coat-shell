@@ -50,15 +50,16 @@ class CExpressiveTaskAnimation final : public Render::IWindowTransformer {
     double spring(double t) const {
         // Analytic damped spring, evaluated once per output frame. Normalize
         // the endpoint so finishing cannot produce a final position snap.
-        const double z = std::clamp(m_damping, 0.55, 0.99), omega = 11.0;
+        const double z = std::clamp(m_damping, 0.55, 0.99), omega = 6.5;
         const double wd = omega * std::sqrt(1.0 - z * z);
         const auto response = [=](double x) { return 1.0 - std::exp(-z * omega * x) *
             (std::cos(wd * x) + z * omega / wd * std::sin(wd * x)); };
         return response(t) / response(1.0);
     }
-    CBox current() const {
-        const double t = progress(), p = spring(t);
-        const double shape = std::clamp(spring(std::min(1.0, t * (m_minimizing ? 1.3 : 1.0))), 0.0, 1.0);
+    CBox current() const { return currentAt(progress()); }
+    CBox currentAt(double t) const {
+        const double p = spring(t);
+        const double shape = std::clamp(p, 0.0, 1.0);
         auto size = m_from.size() + (m_to.size() - m_from.size()) * shape;
         const auto direction = m_to.middle() - m_from.middle();
         const double stretch = std::sin(t * M_PI) * 0.12;
@@ -77,7 +78,8 @@ class CExpressiveTaskAnimation final : public Render::IWindowTransformer {
         const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
         if (!monitor || !data) return;
         m_source = source;
-        m_destination = current().translate(-monitor->m_position);
+        m_frameProgress = progress();
+        m_destination = currentAt(m_frameProgress).translate(-monitor->m_position);
         m_hasSource = true;
         // The output is already composed in monitor coordinates. Keep its final
         // copy untransformed: the motion-blur shader samples a cropped source
@@ -110,14 +112,16 @@ class CExpressiveTaskAnimation final : public Render::IWindowTransformer {
         CTexPassElement::SRenderData texture;
         texture.tex = in->getTexture();
         texture.box = {(m_destination.pos() - m_source.pos() * ratio) * monitor->m_scale, in->m_size * ratio};
-        const double t = progress();
-        const double morph = m_minimizing ? t : 1.0 - t;
-        const double contentAlpha = m_minimizing ? std::clamp(1.0 - elapsed() / 0.07, 0.0, 1.0)
-            : std::clamp((elapsed() - (m_duration - 0.07)) / 0.07, 0.0, 1.0);
+        const double t = m_frameProgress;
+        const double shape = std::clamp(spring(t), 0.0, 1.0);
+        const double morph = m_minimizing ? shape : 1.0 - shape;
+        // Geometry and content share the same spring, in both directions.
+        // Reveal the actual client as it grows, rather than waiting at full size.
+        const double contentAlpha = std::clamp(1.0 - morph * 2.2, 0.0, 1.0);
         const auto box = m_destination.copy().scale(monitor->m_scale);
         const double radius = std::min(box.w, box.h) * 0.5;
         const int rounding = static_cast<int>(std::lerp(24.0 * monitor->m_scale, radius, std::clamp(morph * 2.0, 0.0, 1.0)));
-        const double fade = m_minimizing ? std::clamp((1.0 - t) / 0.12, 0.0, 1.0) : 1.0;
+        const double fade = m_minimizing ? std::clamp((1.0 - t) / 0.04, 0.0, 1.0) : 1.0;
         // Rounded GPU surfaces replace unreadably squeezed window contents.
         // The compositor still owns the real client and its original geometry.
         for (int layer = 3; layer > 0; --layer) {
@@ -187,7 +191,7 @@ class CExpressiveTaskAnimation final : public Render::IWindowTransformer {
     CBox m_from, m_to, m_source, m_destination, m_damage;
     bool m_hasSource = false;
     int m_renderCount=0,m_paintCount=0;
-    double m_duration, m_damping;
+    double m_duration, m_damping, m_frameProgress = 0;
     std::string m_iconPath;
     CHyprColor m_surface, m_accent;
     bool m_minimizing, m_iconAttempted = false;

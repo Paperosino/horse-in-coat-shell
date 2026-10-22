@@ -80,11 +80,20 @@ with tempfile.TemporaryDirectory(prefix='hics-dock-motion-') as directory:
         pixels=Image.open(image).convert('RGB')
         box=(max(0,int(landing['x'])),max(0,int(landing['y'])),min(pixels.width,int(landing['x']+landing['width'])),min(pixels.height,int(landing['y']+landing['height'])))
         crop=pixels.crop(box);assert crop.width>5 and crop.height>5
-        assert len(crop.getcolors(crop.width*crop.height) or [])>2,'Native morph produced no rendered pixels'
+        assert len(crop.getcolors(crop.width*crop.height) or [])>2,('Native morph produced no rendered pixels',landing,state(),box)
         time.sleep(.35);assert windows()[0]['workspace']['name'].startswith('special:'),windows()
         action('restore');time.sleep(.15)
         restored=state();assert 0<restored.get('progress',0)<1,restored
-        time.sleep(.8);after=windows()[0];assert after['at']==before['at'] and after['size']==before['size'],(before,after)
+        # The real pink client must be visible while the restore is still
+        # travelling, rather than a blank token until the final 70 ms.
+        time.sleep(.13)
+        reveal=state();assert 0<reveal.get('progress',0)<.85,reveal
+        snapshot=base/'restore.png';subprocess.run(['grim',str(snapshot)],env=appenv,capture_output=True,check=True)
+        frame=Image.open(snapshot).convert('RGB')
+        pink=sum(n for n,(r,g,b) in frame.getcolors(frame.width*frame.height) if r>130 and g<90 and b<130)
+        assert pink>1000,('Restoring client content appeared too late',pink,reveal)
+        assert reveal.get('paintCount',0)>=4,('Animation did not keep rendering frames',reveal)
+        time.sleep(.65);after=windows()[0];assert after['at']==before['at'] and after['size']==before['size'],(before,after)
         print('PASS: minimize/restore uses dock priority, renders the morph and preserves real client geometry',flush=True)
         action('minimize');time.sleep(.12);interrupted=state();action('restore');time.sleep(.04);reversed_state=state()
         assert reversed_state.get('width',0)<before['size'][0],(interrupted,reversed_state)

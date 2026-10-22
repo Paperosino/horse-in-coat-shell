@@ -35,9 +35,8 @@ Item {
     readonly property bool motionEnabled: DockConf.animations && !GlobalConfig.appearance.reducedMotion
     readonly property real motionPadding: motionEnabled ? (DockConf.lift + root.iconSize * 0.3 + 12 * Tokens.scale) : 0
     property real wavePosition: vertical ? height / 2 : width / 2
-    property real hoverAmount: motionEnabled && pointerField.hovered && !menuOpen && !listOpen && !draggedKey ? 1 : 0
-    Behavior on wavePosition {enabled:root.motionEnabled; SpringAnimation {spring:4.5;damping:DockConf.damping;epsilon:0.1} }
-    Behavior on hoverAmount {enabled:root.motionEnabled; SpringAnimation {spring:4.0;damping:DockConf.damping;epsilon:0.002} }
+    readonly property real hoverAmount: hoverSpring.value
+    MotionSpring {id:hoverSpring;target:root.motionEnabled && pointerField.hovered && !root.menuOpen && !root.listOpen && !root.draggedKey ? 1 : 0;enabled:root.motionEnabled;damping:DockConf.damping}
     readonly property real membraneRadius: root.iconSize * 0.5 * (1 + (DockConf.magnification - 1) * hoverAmount)
     readonly property point membraneCenter: vertical
         ? Qt.point(width/2 + (DockConf.position === "left" ? 1 : -1) * DockConf.lift * Tokens.scale * hoverAmount, Math.max(iconSize/2,Math.min(height-iconSize/2,wavePosition)))
@@ -49,7 +48,7 @@ Item {
         const p = item.mapToItem(root, item.width/2,item.height/2);
         const d = (vertical ? p.y : p.x) - wavePosition;
         const sigma = DockConf.spread * Tokens.scale;
-        return Math.exp(-d*d/(2*sigma*sigma)) * hoverAmount;
+        return Math.exp(-d*d/(2*sigma*sigma)) * hoverSpring.target;
     }
     function reportTargets(): void {
         if (!Hypr.stacking || !screen || !QsWindow.window) return;
@@ -93,7 +92,7 @@ Item {
     SequentialAnimation {
         id:membraneImpulse
         NumberAnimation {target:root;property:"absorptionAmount";to:1;duration:70}
-        SpringAnimation {target:root;property:"absorptionAmount";to:0;spring:4.5;damping:DockConf.damping;epsilon:0.005}
+        NumberAnimation {target:root;property:"absorptionAmount";to:0;duration:240;easing.type:Easing.OutCubic}
     }
     property var previewWindow: null
     property var hoveredWindow: null
@@ -309,7 +308,8 @@ Item {
                         width: root.iconSize
                         height: root.iconSize
                         readonly property alias visual: taskVisual
-                        readonly property real wave: root.motionEnabled ? root.waveWeight(task) : 0
+                        readonly property real wave: waveSpring.value
+                        MotionSpring {id:waveSpring;target:root.motionEnabled ? root.waveWeight(task) : 0;enabled:root.motionEnabled;stiffness:360;damping:DockConf.damping}
                         readonly property int minimizedCount: windows.filter(w=>Hypr.isMinimized(w)).length
                         property bool motionReady: false
                         property int previousMinimized: minimizedCount
@@ -322,7 +322,7 @@ Item {
                             }
                             previousMinimized=minimizedCount;
                         }
-                        Timer {id:absorbDelay;interval:DockConf.animationDuration*0.75;onTriggered:absorption.restart()}
+                        Timer {id:absorbDelay;interval:DockConf.animationDuration*0.72;onTriggered:absorption.restart()}
                         ParallelAnimation {
                             id:absorption
                             NumberAnimation {target:task;property:"accentPulse";from:1;to:0;duration:360;easing.type:Easing.OutQuad}
@@ -330,7 +330,7 @@ Item {
                             ScriptAction {script:{root.absorptionCenter=task.mapToItem(root,task.width/2,task.height/2);membraneImpulse.restart();}}
                             NumberAnimation {target:task;property:"impulseScale";to:0.86;duration:65}
                             NumberAnimation {target:task;property:"impulseScale";to:1.12;duration:95;easing.type:Easing.OutQuad}
-                            SpringAnimation {target:task;property:"impulseScale";to:1;spring:4.5;damping:DockConf.damping;epsilon:0.002}
+                            NumberAnimation {target:task;property:"impulseScale";to:1;duration:180;easing.type:Easing.OutCubic}
                             }
                         }
                         opacity: root.draggedKey === task.group.key && !root.externalDrag ? 0.35 : 1

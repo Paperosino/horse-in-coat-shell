@@ -9,14 +9,13 @@ Item {
     implicitHeight:140*Tokens.scale
     readonly property bool animated:DockConf.animations && !GlobalConfig.appearance.reducedMotion
     property real cursor:width/2
-    property real amount:field.hovered && animated ? 1 : 0
+    readonly property real amount:response.value
+    MotionSpring {id:response;target:field.hovered && root.animated ? 1 : 0;enabled:root.animated;damping:DockConf.damping}
     readonly property real baseWidth:240*Tokens.scale
     readonly property real baseHeight:56*Tokens.scale
     readonly property real baseX:(width-baseWidth)/2
     readonly property real baseY:height-baseHeight-12*Tokens.scale
     readonly property real bubbleRadius:28*Tokens.scale
-    Behavior on amount {enabled:root.animated;SpringAnimation{spring:4;damping:DockConf.damping;epsilon:0.005}}
-    Behavior on cursor {enabled:root.animated;SpringAnimation{spring:4.5;damping:DockConf.damping;epsilon:0.1}}
     BlobGroup {id:surface;color:Colours.palette.m3surfaceContainerHigh;smoothing:28*Tokens.scale}
     BlobRect {group:surface;deformScale:0;x:root.baseX;y:root.baseY;implicitWidth:root.baseWidth;implicitHeight:root.baseHeight;radius:height/2}
     BlobRect {
