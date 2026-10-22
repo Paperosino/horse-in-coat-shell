@@ -1,0 +1,1106 @@
+[
+  {
+    "id": "wireguard",
+    "name": "WireGuard",
+    "service": "wireguard",
+    "package": "",
+    "fields": []
+  },
+  {
+    "id": "openvpn",
+    "name": "OpenVPN",
+    "service": "org.freedesktop.NetworkManager.openvpn",
+    "package": "networkmanager-openvpn",
+    "fields": [
+      {
+        "key": "remote",
+        "label": "Remote server",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "connection-type",
+        "label": "Authentication",
+        "type": "choice",
+        "choices": [
+          "tls",
+          "password",
+          "password-tls",
+          "static-key"
+        ]
+      },
+      {
+        "key": "username",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "ca",
+        "label": "CA certificate",
+        "type": "file"
+      },
+      {
+        "key": "cert",
+        "label": "Client certificate",
+        "type": "file"
+      },
+      {
+        "key": "key",
+        "label": "Private key file",
+        "type": "file"
+      },
+      {
+        "key": "cert-pass",
+        "label": "Private key password",
+        "type": "secret"
+      },
+      {
+        "key": "port",
+        "label": "Port",
+        "type": "int",
+        "min": 0,
+        "max": 65535
+      },
+      {
+        "key": "proto-tcp",
+        "label": "Use TCP",
+        "type": "bool"
+      },
+      {
+        "key": "dev",
+        "label": "Tunnel interface",
+        "type": "text"
+      },
+      {
+        "key": "dev-type",
+        "label": "Tunnel type",
+        "type": "choice",
+        "choices": [
+          "tun",
+          "tap"
+        ]
+      },
+      {
+        "key": "cipher",
+        "label": "Cipher",
+        "type": "text"
+      },
+      {
+        "key": "data-ciphers",
+        "label": "Data ciphers",
+        "type": "text"
+      },
+      {
+        "key": "auth",
+        "label": "HMAC authentication",
+        "type": "text"
+      },
+      {
+        "key": "tls-remote",
+        "label": "Remote certificate name",
+        "type": "text"
+      },
+      {
+        "key": "verify-x509-name",
+        "label": "Verify X.509 name",
+        "type": "text"
+      },
+      {
+        "key": "tls-auth",
+        "label": "TLS authentication key",
+        "type": "file"
+      },
+      {
+        "key": "tls-crypt",
+        "label": "TLS crypt key",
+        "type": "file"
+      },
+      {
+        "key": "tls-crypt-v2",
+        "label": "TLS crypt v2 key",
+        "type": "file"
+      },
+      {
+        "key": "ta-dir",
+        "label": "TLS key direction",
+        "type": "text"
+      },
+      {
+        "key": "static-key",
+        "label": "Static key file",
+        "type": "file"
+      },
+      {
+        "key": "local-ip",
+        "label": "Local tunnel address",
+        "type": "text"
+      },
+      {
+        "key": "remote-ip",
+        "label": "Remote tunnel address",
+        "type": "text"
+      },
+      {
+        "key": "tunnel-mtu",
+        "label": "Tunnel MTU",
+        "type": "int",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "key": "mssfix",
+        "label": "TCP MSS limit",
+        "type": "text"
+      },
+      {
+        "key": "comp-lzo",
+        "label": "Compression",
+        "type": "text"
+      },
+      {
+        "key": "float",
+        "label": "Allow remote address changes",
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "id": "pptp",
+    "name": "PPTP",
+    "service": "org.freedesktop.NetworkManager.pptp",
+    "package": "networkmanager-pptp",
+    "fields": [
+      {
+        "key": "gateway",
+        "label": "Gateway",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "user",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "domain",
+        "label": "Domain",
+        "type": "text"
+      },
+      {
+        "key": "refuse-eap",
+        "label": "Refuse EAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-pap",
+        "label": "Refuse PAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-chap",
+        "label": "Refuse CHAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-mschap",
+        "label": "Refuse MSCHAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-mschapv2",
+        "label": "Refuse MSCHAPv2",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "require-mppe",
+        "label": "Require MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "require-mppe-128",
+        "label": "Require 128-bit MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "mppe-stateful",
+        "label": "Stateful MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "nobsdcomp",
+        "label": "Disable BSD compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "nodeflate",
+        "label": "Disable Deflate compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "no-vj-comp",
+        "label": "Disable TCP header compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "mtu",
+        "label": "MTU",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 65535
+      },
+      {
+        "key": "mru",
+        "label": "MRU",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 65535
+      },
+      {
+        "key": "lcp-echo-failure",
+        "label": "LCP echo failures",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "key": "lcp-echo-interval",
+        "label": "LCP echo interval",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 2147483647
+      }
+    ]
+  },
+  {
+    "id": "l2tp",
+    "name": "L2TP / IPsec",
+    "service": "org.freedesktop.NetworkManager.l2tp",
+    "package": "networkmanager-l2tp",
+    "fields": [
+      {
+        "key": "gateway",
+        "label": "Gateway",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "user-auth-type",
+        "label": "User authentication",
+        "type": "choice",
+        "choices": [
+          "password",
+          "tls"
+        ]
+      },
+      {
+        "key": "user",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "domain",
+        "label": "Domain",
+        "type": "text"
+      },
+      {
+        "key": "user-ca",
+        "label": "User CA certificate",
+        "type": "file"
+      },
+      {
+        "key": "user-cert",
+        "label": "User certificate",
+        "type": "file"
+      },
+      {
+        "key": "user-key",
+        "label": "User private key",
+        "type": "file"
+      },
+      {
+        "key": "user-certpass",
+        "label": "User key password",
+        "type": "secret"
+      },
+      {
+        "key": "ipsec-enabled",
+        "label": "Enable IPsec",
+        "type": "bool",
+        "section": "IPsec"
+      },
+      {
+        "key": "machine-auth-type",
+        "label": "Machine authentication",
+        "type": "choice",
+        "choices": [
+          "psk",
+          "tls"
+        ],
+        "section": "IPsec"
+      },
+      {
+        "key": "ipsec-psk",
+        "label": "IPsec pre-shared key",
+        "type": "secret",
+        "section": "IPsec"
+      },
+      {
+        "key": "machine-ca",
+        "label": "Machine CA certificate",
+        "type": "file",
+        "section": "IPsec"
+      },
+      {
+        "key": "machine-cert",
+        "label": "Machine certificate",
+        "type": "file",
+        "section": "IPsec"
+      },
+      {
+        "key": "machine-key",
+        "label": "Machine private key",
+        "type": "file",
+        "section": "IPsec"
+      },
+      {
+        "key": "machine-certpass",
+        "label": "Machine key password",
+        "type": "secret",
+        "section": "IPsec"
+      },
+      {
+        "key": "ipsec-remote-id",
+        "label": "Remote identity",
+        "type": "text",
+        "section": "IPsec"
+      },
+      {
+        "key": "ipsec-group-name",
+        "label": "Group name",
+        "type": "text",
+        "section": "IPsec"
+      },
+      {
+        "key": "ipsec-ikev2",
+        "label": "Use IKEv2",
+        "type": "bool",
+        "section": "IPsec"
+      },
+      {
+        "key": "ipsec-ike",
+        "label": "IKE proposals",
+        "type": "text",
+        "section": "IPsec"
+      },
+      {
+        "key": "ipsec-esp",
+        "label": "ESP proposals",
+        "type": "text",
+        "section": "IPsec"
+      },
+      {
+        "key": "ipsec-ikelifetime",
+        "label": "IKE lifetime",
+        "type": "int",
+        "section": "IPsec",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "key": "ipsec-salifetime",
+        "label": "IPsec lifetime",
+        "type": "int",
+        "section": "IPsec",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "key": "ipsec-forceencaps",
+        "label": "Force UDP encapsulation",
+        "type": "bool",
+        "section": "IPsec"
+      },
+      {
+        "key": "ipsec-ipcomp",
+        "label": "IP compression",
+        "type": "bool",
+        "section": "IPsec"
+      },
+      {
+        "key": "ephemeral-port",
+        "label": "Use an ephemeral L2TP source port",
+        "type": "bool",
+        "section": "Advanced"
+      },
+      {
+        "key": "refuse-eap",
+        "label": "Refuse EAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-pap",
+        "label": "Refuse PAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-chap",
+        "label": "Refuse CHAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-mschap",
+        "label": "Refuse MSCHAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-mschapv2",
+        "label": "Refuse MSCHAPv2",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "require-mppe",
+        "label": "Require MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "require-mppe-128",
+        "label": "Require 128-bit MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "mppe-stateful",
+        "label": "Stateful MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "nobsdcomp",
+        "label": "Disable BSD compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "nodeflate",
+        "label": "Disable Deflate compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "no-vj-comp",
+        "label": "Disable TCP header compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "mtu",
+        "label": "MTU",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 65535
+      },
+      {
+        "key": "mru",
+        "label": "MRU",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 65535
+      },
+      {
+        "key": "lcp-echo-failure",
+        "label": "LCP echo failures",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "key": "lcp-echo-interval",
+        "label": "LCP echo interval",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 2147483647
+      }
+    ]
+  },
+  {
+    "id": "openconnect",
+    "name": "OpenConnect / AnyConnect / GlobalProtect",
+    "service": "org.freedesktop.NetworkManager.openconnect",
+    "package": "networkmanager-openconnect",
+    "fields": [
+      {
+        "key": "gateway",
+        "label": "Gateway",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "protocol",
+        "label": "Protocol",
+        "type": "choice",
+        "choices": [
+          "anyconnect",
+          "nc",
+          "gp",
+          "pulse",
+          "f5",
+          "fortinet",
+          "array"
+        ]
+      },
+      {
+        "key": "usergroup",
+        "label": "User group",
+        "type": "text"
+      },
+      {
+        "key": "cacert",
+        "label": "CA certificate",
+        "type": "file"
+      },
+      {
+        "key": "usercert",
+        "label": "Client certificate",
+        "type": "file"
+      },
+      {
+        "key": "userkey",
+        "label": "Private key file",
+        "type": "file"
+      },
+      {
+        "key": "cookie",
+        "label": "Session cookie",
+        "type": "secret"
+      },
+      {
+        "key": "gwcert",
+        "label": "Server certificate fingerprint",
+        "type": "secret"
+      }
+    ]
+  },
+  {
+    "id": "vpnc",
+    "name": "Cisco IPsec (VPNC)",
+    "service": "org.freedesktop.NetworkManager.vpnc",
+    "package": "networkmanager-vpnc",
+    "fields": [
+      {
+        "key": "IPSec gateway",
+        "label": "Gateway",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "IPSec ID",
+        "label": "Group name",
+        "type": "text"
+      },
+      {
+        "key": "IPSec secret",
+        "label": "Group password",
+        "type": "secret"
+      },
+      {
+        "key": "Xauth username",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "Xauth password",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "IKE Authmode",
+        "label": "IKE authentication",
+        "type": "choice",
+        "choices": [
+          "psk",
+          "hybrid",
+          "cert"
+        ]
+      },
+      {
+        "key": "CA-File",
+        "label": "CA certificate",
+        "type": "file"
+      },
+      {
+        "key": "Domain",
+        "label": "Domain",
+        "type": "text"
+      },
+      {
+        "key": "DHGroup",
+        "label": "DH group",
+        "type": "text"
+      },
+      {
+        "key": "Perfect Forward Secrecy",
+        "label": "Perfect forward secrecy",
+        "type": "text"
+      },
+      {
+        "key": "NAT Traversal Mode",
+        "label": "NAT traversal mode",
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "id": "strongswan",
+    "name": "IPsec / IKEv2 (strongSwan)",
+    "service": "org.freedesktop.NetworkManager.strongswan",
+    "package": "networkmanager-strongswan",
+    "fields": [
+      {
+        "key": "address",
+        "label": "Gateway",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "method",
+        "label": "Authentication",
+        "type": "choice",
+        "choices": [
+          "eap",
+          "psk",
+          "key",
+          "agent",
+          "smartcard"
+        ]
+      },
+      {
+        "key": "user",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "certificate",
+        "label": "CA certificate",
+        "type": "file"
+      },
+      {
+        "key": "usercert",
+        "label": "Client certificate",
+        "type": "file"
+      },
+      {
+        "key": "userkey",
+        "label": "Private key file",
+        "type": "file"
+      },
+      {
+        "key": "local-identity",
+        "label": "Local identity",
+        "type": "text"
+      },
+      {
+        "key": "remote-identity",
+        "label": "Remote identity",
+        "type": "text"
+      },
+      {
+        "key": "proposal",
+        "label": "IKE proposals",
+        "type": "text"
+      },
+      {
+        "key": "esp",
+        "label": "ESP proposals",
+        "type": "text"
+      },
+      {
+        "key": "virtual",
+        "label": "Request virtual IP",
+        "type": "bool"
+      },
+      {
+        "key": "encap",
+        "label": "Force UDP encapsulation",
+        "type": "bool"
+      },
+      {
+        "key": "ipcomp",
+        "label": "IP compression",
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "id": "libreswan",
+    "name": "IPsec (Libreswan)",
+    "service": "org.freedesktop.NetworkManager.libreswan",
+    "package": "networkmanager-libreswan",
+    "fields": [
+      {
+        "key": "right",
+        "label": "Gateway",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "leftid",
+        "label": "Local identity",
+        "type": "text"
+      },
+      {
+        "key": "rightid",
+        "label": "Remote identity",
+        "type": "text"
+      },
+      {
+        "key": "leftxauthusername",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "xauthpassword",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "pskvalue",
+        "label": "Pre-shared key",
+        "type": "secret"
+      },
+      {
+        "key": "ike",
+        "label": "IKE proposals",
+        "type": "text"
+      },
+      {
+        "key": "phase2alg",
+        "label": "ESP proposals",
+        "type": "text"
+      },
+      {
+        "key": "ikev2",
+        "label": "IKEv2 policy",
+        "type": "text"
+      },
+      {
+        "key": "leftcert",
+        "label": "Client certificate",
+        "type": "text"
+      },
+      {
+        "key": "leftrsasigkey",
+        "label": "Local RSA key",
+        "type": "text"
+      },
+      {
+        "key": "rightrsasigkey",
+        "label": "Remote RSA key",
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "id": "sstp",
+    "name": "SSTP",
+    "service": "org.freedesktop.NetworkManager.sstp",
+    "package": "networkmanager-sstp",
+    "fields": [
+      {
+        "key": "gateway",
+        "label": "Gateway",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "user",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "domain",
+        "label": "Domain",
+        "type": "text"
+      },
+      {
+        "key": "ca-cert",
+        "label": "CA certificate",
+        "type": "file"
+      },
+      {
+        "key": "tls-ext",
+        "label": "Use TLS server name",
+        "type": "bool"
+      },
+      {
+        "key": "refuse-eap",
+        "label": "Refuse EAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-pap",
+        "label": "Refuse PAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-chap",
+        "label": "Refuse CHAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-mschap",
+        "label": "Refuse MSCHAP",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "refuse-mschapv2",
+        "label": "Refuse MSCHAPv2",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "require-mppe",
+        "label": "Require MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "require-mppe-128",
+        "label": "Require 128-bit MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "mppe-stateful",
+        "label": "Stateful MPPE",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "nobsdcomp",
+        "label": "Disable BSD compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "nodeflate",
+        "label": "Disable Deflate compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "no-vj-comp",
+        "label": "Disable TCP header compression",
+        "type": "bool",
+        "section": "PPP"
+      },
+      {
+        "key": "mtu",
+        "label": "MTU",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 65535
+      },
+      {
+        "key": "mru",
+        "label": "MRU",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 65535
+      },
+      {
+        "key": "lcp-echo-failure",
+        "label": "LCP echo failures",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "key": "lcp-echo-interval",
+        "label": "LCP echo interval",
+        "type": "int",
+        "section": "PPP",
+        "min": 0,
+        "max": 2147483647
+      }
+    ]
+  },
+  {
+    "id": "fortisslvpn",
+    "name": "Fortinet SSL VPN",
+    "service": "org.freedesktop.NetworkManager.fortisslvpn",
+    "package": "networkmanager-fortisslvpn",
+    "fields": [
+      {
+        "key": "gateway",
+        "label": "Gateway",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "user",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "domain",
+        "label": "Domain",
+        "type": "text"
+      },
+      {
+        "key": "trusted-cert",
+        "label": "Trusted server certificate",
+        "type": "text"
+      },
+      {
+        "key": "ca",
+        "label": "CA certificate",
+        "type": "file"
+      },
+      {
+        "key": "cert",
+        "label": "Client certificate",
+        "type": "file"
+      },
+      {
+        "key": "key",
+        "label": "Private key file",
+        "type": "file"
+      },
+      {
+        "key": "realm",
+        "label": "Realm",
+        "type": "text"
+      },
+      {
+        "key": "otp",
+        "label": "One-time password",
+        "type": "secret"
+      }
+    ]
+  },
+  {
+    "id": "ssh",
+    "name": "SSH VPN",
+    "service": "org.freedesktop.NetworkManager.ssh",
+    "package": "networkmanager-ssh",
+    "fields": [
+      {
+        "key": "remote",
+        "label": "SSH server",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "remote-username",
+        "label": "Username",
+        "type": "text"
+      },
+      {
+        "key": "port",
+        "label": "Port",
+        "type": "int",
+        "min": 0,
+        "max": 65535
+      },
+      {
+        "key": "key-file",
+        "label": "Private key file",
+        "type": "file"
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "type": "secret"
+      },
+      {
+        "key": "key-passphrase",
+        "label": "Private key password",
+        "type": "secret"
+      },
+      {
+        "key": "local-ip",
+        "label": "Local tunnel address",
+        "type": "text"
+      },
+      {
+        "key": "remote-ip",
+        "label": "Remote tunnel address",
+        "type": "text"
+      },
+      {
+        "key": "netmask",
+        "label": "Netmask",
+        "type": "text"
+      },
+      {
+        "key": "remote-dev",
+        "label": "Remote tunnel device",
+        "type": "int",
+        "min": 0,
+        "max": 2147483647
+      }
+    ]
+  }
+]

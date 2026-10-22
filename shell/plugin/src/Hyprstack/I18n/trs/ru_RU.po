@@ -8018,3 +8018,492 @@ msgstr "Открывать приложение по нажатию"
 
 msgid "Use the application's notification action or switch to its existing window"
 msgstr "Выполнять действие уведомления приложения или переходить в его открытое окно"
+
+msgid "A negative DNS priority excludes DNS from connections with higher priorities while this VPN is active."
+msgstr "Отрицательный приоритет DNS исключает DNS подключений с более высоким приоритетом на время работы VPN."
+
+msgid "A value is required"
+msgstr "Необходимо указать значение"
+
+msgid "Add VPN connection"
+msgstr "Добавить VPN-подключение"
+
+msgid "Add peer"
+msgstr "Добавить узел"
+
+msgid "Advanced"
+msgstr "Дополнительно"
+
+msgid "Advanced plugin properties"
+msgstr "Дополнительные параметры плагина"
+
+msgid "Allow remote address changes"
+msgstr "Разрешать смену удалённого адреса"
+
+msgid "Allowed IPs"
+msgstr "Разрешённые IP-адреса"
+
+msgid "Authentication"
+msgstr "Аутентификация"
+
+msgid "Authentication and tunnel"
+msgstr "Аутентификация и туннель"
+
+msgid "CA certificate"
+msgstr "Сертификат центра сертификации"
+
+msgid "Choose file"
+msgstr "Выбрать файл"
+
+msgid "Cipher"
+msgstr "Шифр"
+
+msgid "Client certificate"
+msgstr "Сертификат клиента"
+
+msgid "Compression"
+msgstr "Сжатие"
+
+msgid "Confirm deletion"
+msgstr "Подтвердить удаление"
+
+msgid "Connecting"
+msgstr "Подключение"
+
+msgid "Connection name"
+msgstr "Название подключения"
+
+msgid "Create a connection or import a configuration file"
+msgstr "Создайте подключение или импортируйте файл конфигурации"
+
+msgid "Create a profile"
+msgstr "Создать профиль"
+
+msgid "Create routes from allowed IPs"
+msgstr "Создавать маршруты для разрешённых IP-адресов"
+
+msgid "DH group"
+msgstr "Группа Диффи — Хеллмана"
+
+msgid "Data ciphers"
+msgstr "Шифры данных"
+
+msgid "Delete connection"
+msgstr "Удалить подключение"
+
+msgid "Disable BSD compression"
+msgstr "Отключить сжатие BSD"
+
+msgid "Disable Deflate compression"
+msgstr "Отключить сжатие Deflate"
+
+msgid "Disable TCP header compression"
+msgstr "Отключить сжатие заголовков TCP"
+
+msgid "Disconnected"
+msgstr "Отключено"
+
+msgid "Domain"
+msgstr "Домен"
+
+msgid "ESP proposals"
+msgstr "Предложения ESP"
+
+msgid "Edit connection"
+msgstr "Изменить подключение"
+
+msgid "Enable IPsec"
+msgstr "Включить IPsec"
+
+msgid "Endpoint"
+msgstr "Адрес узла"
+
+msgid "Enter VPN credentials"
+msgstr "Введите учётные данные VPN"
+
+msgid "Exclusive VPN DNS"
+msgstr "Использовать только DNS VPN"
+
+msgid "Expected a JSON object"
+msgstr "Ожидается объект JSON"
+
+msgid "Export NetworkManager profile"
+msgstr "Экспорт профиля NetworkManager"
+
+msgid "Export VPN configuration"
+msgstr "Экспорт конфигурации VPN"
+
+msgid "Export configuration"
+msgstr "Экспортировать конфигурацию"
+
+msgid "Export supported"
+msgstr "Поддерживает экспорт"
+
+msgid "Force UDP encapsulation"
+msgstr "Принудительная инкапсуляция UDP"
+
+msgid "Generate private key"
+msgstr "Создать закрытый ключ"
+
+msgid "Group name"
+msgstr "Название группы"
+
+msgid "Group password"
+msgstr "Пароль группы"
+
+msgid "HMAC authentication"
+msgstr "Аутентификация HMAC"
+
+msgid "IKE authentication"
+msgstr "Аутентификация IKE"
+
+msgid "IKE lifetime"
+msgstr "Время жизни IKE"
+
+msgid "IKE proposals"
+msgstr "Предложения IKE"
+
+msgid "IKEv2 policy"
+msgstr "Политика IKEv2"
+
+msgid "IP compression"
+msgstr "Сжатие IP"
+
+msgid "IPsec lifetime"
+msgstr "Время жизни IPsec"
+
+msgid "IPsec pre-shared key"
+msgstr "Предварительный общий ключ IPsec"
+
+msgid "Ignore DNS provided by VPN"
+msgstr "Игнорировать DNS от VPN"
+
+msgid "Ignore routes provided by VPN"
+msgstr "Игнорировать маршруты от VPN"
+
+msgid "Import VPN configuration"
+msgstr "Импорт конфигурации VPN"
+
+msgid "Import configuration"
+msgstr "Импортировать конфигурацию"
+
+msgid "Import supported"
+msgstr "Поддерживает импорт"
+
+msgid "Install plugin"
+msgstr "Установить плагин"
+
+msgid "Installed"
+msgstr "Установлен"
+
+msgid "Installed NetworkManager plugins are discovered automatically. WireGuard is built into NetworkManager."
+msgstr "Установленные плагины NetworkManager обнаруживаются автоматически. WireGuard встроен в NetworkManager."
+
+msgid "Installed protocols, import support and plugin packages"
+msgstr "Установленные протоколы, поддержка импорта и пакеты плагинов"
+
+msgid "Interface name"
+msgstr "Название интерфейса"
+
+msgid "Invalid JSON"
+msgstr "Некорректный JSON"
+
+msgid "LCP echo failures"
+msgstr "Допустимое число ошибок эха LCP"
+
+msgid "LCP echo interval"
+msgstr "Интервал эха LCP"
+
+msgid "Leave empty to keep the stored credential"
+msgstr "Оставьте пустым, чтобы сохранить существующий пароль или ключ"
+
+msgid "Local RSA key"
+msgstr "Локальный ключ RSA"
+
+msgid "Local identity"
+msgstr "Локальный идентификатор"
+
+msgid "Local tunnel address"
+msgstr "Локальный адрес туннеля"
+
+msgid "Machine CA certificate"
+msgstr "Сертификат центра сертификации компьютера"
+
+msgid "Machine authentication"
+msgstr "Аутентификация компьютера"
+
+msgid "Machine certificate"
+msgstr "Сертификат компьютера"
+
+msgid "Machine key password"
+msgstr "Пароль ключа компьютера"
+
+msgid "Machine private key"
+msgstr "Закрытый ключ компьютера"
+
+msgid "Manage saved VPN profiles, certificates, DNS and routes. Imported and existing profiles keep their plugin-specific settings."
+msgstr "Настройка профилей VPN, сертификатов, DNS и маршрутов. Импортированные и существующие профили сохраняют специфичные параметры плагинов."
+
+msgid "NAT traversal mode"
+msgstr "Режим обхода NAT"
+
+msgid "Netmask"
+msgstr "Маска сети"
+
+msgid "NetworkManager VPN connections"
+msgstr "VPN-подключения NetworkManager"
+
+msgid "NetworkManager VPN plugins"
+msgstr "Плагины VPN NetworkManager"
+
+msgid "No VPN connections"
+msgstr "Нет VPN-подключений"
+
+msgid "One-time password"
+msgstr "Одноразовый пароль"
+
+msgid "Optional except for a new WireGuard interface"
+msgstr "Необязательно, кроме создания нового интерфейса WireGuard"
+
+msgid "Perfect forward secrecy"
+msgstr "Совершенная прямая секретность"
+
+msgid "Plugin not installed"
+msgstr "Плагин не установлен"
+
+msgid "Plugin support"
+msgstr "Поддержка плагинов"
+
+msgid "Port"
+msgstr "Порт"
+
+msgid "Pre-shared key"
+msgstr "Предварительный общий ключ"
+
+msgid "Private key file"
+msgstr "Файл закрытого ключа"
+
+msgid "Private key password"
+msgstr "Пароль закрытого ключа"
+
+msgid "Protocol"
+msgstr "Протокол"
+
+msgid "Public key"
+msgstr "Открытый ключ"
+
+msgid "Realm"
+msgstr "Область аутентификации"
+
+msgid "Refuse CHAP"
+msgstr "Запретить CHAP"
+
+msgid "Refuse EAP"
+msgstr "Запретить EAP"
+
+msgid "Refuse MSCHAP"
+msgstr "Запретить MSCHAP"
+
+msgid "Refuse MSCHAPv2"
+msgstr "Запретить MSCHAPv2"
+
+msgid "Refuse PAP"
+msgstr "Запретить PAP"
+
+msgid "Remember in system keyring"
+msgstr "Сохранить в системной связке ключей"
+
+msgid "Remote RSA key"
+msgstr "Удалённый ключ RSA"
+
+msgid "Remote certificate name"
+msgstr "Имя удалённого сертификата"
+
+msgid "Remote identity"
+msgstr "Удалённый идентификатор"
+
+msgid "Remote server"
+msgstr "Удалённый сервер"
+
+msgid "Remote tunnel address"
+msgstr "Удалённый адрес туннеля"
+
+msgid "Remote tunnel device"
+msgstr "Удалённое устройство туннеля"
+
+msgid "Remove peer"
+msgstr "Удалить узел"
+
+msgid "Request virtual IP"
+msgstr "Запрашивать виртуальный IP-адрес"
+
+msgid "Require 128-bit MPPE"
+msgstr "Требовать 128-битное MPPE"
+
+msgid "Require MPPE"
+msgstr "Требовать MPPE"
+
+msgid "SSH server"
+msgstr "Сервер SSH"
+
+msgid "Save connection"
+msgstr "Сохранить подключение"
+
+msgid "Saved VPN connections"
+msgstr "Сохранённые VPN-подключения"
+
+msgid "Search and routing domains"
+msgstr "Домены поиска и маршрутизации DNS"
+
+msgid "Select certificate or key file"
+msgstr "Выберите сертификат или файл ключа"
+
+msgid "Separate servers with commas"
+msgstr "Разделяйте адреса серверов запятыми"
+
+msgid "Server certificate fingerprint"
+msgstr "Отпечаток сертификата сервера"
+
+msgid "Session cookie"
+msgstr "Cookie сеанса"
+
+msgid "Stateful MPPE"
+msgstr "MPPE с сохранением состояния"
+
+msgid "Static key file"
+msgstr "Файл статического ключа"
+
+msgid "TCP MSS limit"
+msgstr "Ограничение TCP MSS"
+
+msgid "TLS authentication key"
+msgstr "Ключ аутентификации TLS"
+
+msgid "TLS crypt key"
+msgstr "Ключ TLS crypt"
+
+msgid "TLS crypt v2 key"
+msgstr "Ключ TLS crypt v2"
+
+msgid "TLS key direction"
+msgstr "Направление ключа TLS"
+
+msgid "The export contains private credentials. Keep it secure."
+msgstr "Экспорт содержит пароли и закрытые ключи. Храните файл в защищённом месте."
+
+msgid "Trusted server certificate"
+msgstr "Доверенный сертификат сервера"
+
+msgid "Tunnel MTU"
+msgstr "MTU туннеля"
+
+msgid "Tunnel interface"
+msgstr "Интерфейс туннеля"
+
+msgid "Tunnel type"
+msgstr "Тип туннеля"
+
+msgid "Use IKEv2"
+msgstr "Использовать IKEv2"
+
+msgid "Use TCP"
+msgstr "Использовать TCP"
+
+msgid "Use TLS server name"
+msgstr "Использовать имя сервера TLS"
+
+msgid "Use an ephemeral L2TP source port"
+msgstr "Использовать динамический исходящий порт L2TP"
+
+msgid "Use only for resources on this network"
+msgstr "Использовать только для ресурсов этой сети"
+
+msgid "Use ~domain for split DNS, ~. for all domains"
+msgstr "Используйте ~домен для раздельного DNS, ~. для всех доменов"
+
+msgid "User CA certificate"
+msgstr "Сертификат центра сертификации пользователя"
+
+msgid "User authentication"
+msgstr "Аутентификация пользователя"
+
+msgid "User certificate"
+msgstr "Сертификат пользователя"
+
+msgid "User group"
+msgstr "Группа пользователя"
+
+msgid "User key password"
+msgstr "Пароль ключа пользователя"
+
+msgid "User private key"
+msgstr "Закрытый ключ пользователя"
+
+msgid "Username"
+msgstr "Имя пользователя"
+
+msgid "VPN authentication"
+msgstr "Аутентификация VPN"
+
+msgid "VPN connection"
+msgstr "VPN-подключение"
+
+msgid "Verify X.509 name"
+msgstr "Проверка имени X.509"
+
+msgid "WireGuard peer"
+msgstr "Узел WireGuard"
+
+msgid "WireGuard private key"
+msgstr "Закрытый ключ WireGuard"
+
+msgid "External VPN applications"
+msgstr "Внешние VPN-приложения"
+
+msgid "VPN profiles, protocol plugins, DNS and routes"
+msgstr "Профили VPN, плагины протоколов, DNS и маршруты"
+
+msgid "Saved settings"
+msgstr "Сохранённые настройки"
+
+msgid "Changes apply the next time you connect."
+msgstr "Изменения применятся при следующем подключении."
+
+msgid "Address configuration"
+msgstr "Настройка адресов"
+
+msgid "IP addresses"
+msgstr "IP-адреса"
+
+msgid "One address/prefix per line"
+msgstr "Один адрес/префикс на строку"
+
+msgid "DNS priority"
+msgstr "Приоритет DNS"
+
+msgid "Route metric"
+msgstr "Метрика маршрута"
+
+msgid "Static routes"
+msgstr "Статические маршруты"
+
+msgid "Policy routing rules"
+msgstr "Правила маршрутизации"
+
+msgid "One route per line: network/prefix next-hop metric. Use - for no next-hop and -1 for automatic metric."
+msgstr "Один маршрут на строку: сеть/префикс шлюз метрика. Используйте - без шлюза и -1 для автоматической метрики."
+
+msgid "One rule per line, for example: priority 100 from 10.0.0.0/24 table 100"
+msgstr "Одно правило на строку, например: priority 100 from 10.0.0.0/24 table 100"
+
+msgid "Plugin data (JSON)"
+msgstr "Параметры плагина (JSON)"
+
+msgid "All plugin-specific keys are preserved. Edit the dictionary for options not shown above."
+msgstr "Все специфичные ключи плагина сохраняются. Параметры, которых нет выше, можно изменить в словаре."
+
+msgid "Listen port"
+msgstr "Порт прослушивания"
+
+msgid "Persistent keepalive"
+msgstr "Интервал keepalive"

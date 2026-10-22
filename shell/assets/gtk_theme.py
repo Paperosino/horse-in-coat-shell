@@ -46,6 +46,9 @@ def apply_palette(colours, config_root, mode=None):
         if not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F]{6}", value):
             raise ValueError("Invalid GTK palette colour: " + name)
         values[name] = "#" + value
+    for name in ("error", "onError"):
+        if name in colours and (not isinstance(colours[name], str) or not re.fullmatch(r"[0-9a-fA-F]{6}", colours[name])):
+            raise ValueError("Invalid GTK palette colour: " + name)
     aliases = {
         "surface": ("theme_bg_color", "window_bg_color", "view_bg_color", "dialog_bg_color", "popover_bg_color", "theme_base_color"),
         "onSurface": ("theme_fg_color", "window_fg_color", "view_fg_color", "dialog_fg_color", "popover_fg_color", "headerbar_fg_color", "card_fg_color", "sidebar_fg_color", "theme_text_color"),
@@ -55,21 +58,73 @@ def apply_palette(colours, config_root, mode=None):
         "outlineVariant": ("borders", "sidebar_border_color"),
     }
     definitions = [f"@define-color {alias} {values[role]};" for role, names in aliases.items() for alias in names]
-    css = "/* Generated from the Hyprstack palette. */\n" + "\n".join(definitions + [
-        f"@define-color window_bg_color {values['surface']};",
-        f"@define-color window_fg_color {values['onSurface']};",
-        f"@define-color accent_bg_color {values['primary']};",
-        f"@define-color accent_fg_color {values['onPrimary']};",
-        f"window, window.background, window.dialog, messagedialog, dialog, .dialog, .background {{ background-color: {values['surface']}; color: {values['onSurface']}; }}",
-        f"headerbar, toolbar {{ background-color: {values['surfaceContainer']}; color: {values['onSurface']}; border: none; }}",
-        f"button {{ border-radius: 12px; background-image: none; background-color: {values['surfaceContainer']}; color: {values['onSurface']}; border: 1px solid {values['outlineVariant']}; }}",
-        f"button.suggested-action {{ background-color: {values['primary']}; color: {values['onPrimary']}; }}",
-        f"entry, textview, textview text, spinbutton {{ border-radius: 10px; background-color: {values['surfaceContainer']}; color: {values['onSurface']}; border: 1px solid {values['outlineVariant']}; }}",
-        f"entry:focus {{ border-color: {values['primary']}; }}",
-    ]) + "\n"
+    def blend(left, right, amount):
+        return "#" + "".join(f"{round(int(left[i:i+2],16)*(1-amount)+int(right[i:i+2],16)*amount):02x}" for i in (1,3,5))
+    surface, ink, container, accent, on_accent, border = (values[k] for k in ("surface","onSurface","surfaceContainer","primary","onPrimary","outlineVariant"))
+    hover = blend(container, ink, 0.10)
+    pressed = blend(container, ink, 0.18)
+    muted = blend(ink, surface, 0.48)
+    accent_hover = blend(accent, ink, 0.08)
+    error = "#" + colours.get("error", colours["primary"])
+    on_error = "#" + colours.get("onError", colours["onPrimary"])
+    rules = [
+        f"window, window.background, window.dialog, messagedialog, dialog, .dialog, .background {{ background-color: {surface}; color: {ink}; }}",
+        f".view, viewport, treeview, iconview, textview, textview text, list, flowbox, gridview, columnview, .content-view, notebook > stack {{ background-color: {surface}; color: {ink}; }}",
+        f"headerbar, toolbar, actionbar, statusbar, .toolbar, .sidebar, .navigation-sidebar, notebook > header {{ background-color: {container}; color: {ink}; }}",
+        f"popover > contents, popover.background, menu, menuitem, .menu, tooltip, .card, .boxed-list, .boxed-list > row {{ background-color: {container}; color: {ink}; }}",
+        f"label, image {{ color: inherit; }}",
+        f"button {{ border-radius: 10px; background-image: none; background-color: {container}; color: {ink}; border: 1px solid {border}; box-shadow: none; text-shadow: none; }}",
+        f"button:hover {{ background-image: none; background-color: {hover}; color: {ink}; }}",
+        f"button:active, button:checked, button:checked:hover {{ background-image: none; background-color: {accent}; color: {on_accent}; border-color: {accent}; }}",
+        f"button:disabled, button:disabled:hover, button:disabled:checked {{ background-image: none; background-color: {container}; color: {muted}; border-color: {border}; }}",
+        f"button.flat, button.flat.image-button, button.titlebutton {{ background-color: transparent; border-color: transparent; }}",
+        f"button.flat:hover, button.flat.image-button:hover, button.titlebutton:hover {{ background-color: {hover}; color: {ink}; }}",
+        f"button.flat:active, button.flat:checked {{ background-color: {pressed}; color: {ink}; }}",
+        f"button.suggested-action, button.suggested-action:checked {{ background-image: none; background-color: {accent}; color: {on_accent}; border-color: {accent}; }}",
+        f"button.suggested-action:hover, button.suggested-action:active {{ background-color: {accent_hover}; color: {on_accent}; }}",
+        f"button.destructive-action {{ background-image: none; background-color: {error}; color: {on_error}; border-color: {error}; }}",
+        f"button.destructive-action:hover, button.destructive-action:active {{ background-color: {blend(error, ink, .10)}; color: {on_error}; }}",
+        f"entry, textview, spinbutton, searchentry, dropdown, combobox {{ background-color: {container}; background-image: none; color: {ink}; border-color: {border}; }}",
+        f"entry {{ border-radius: 8px; border: 1px solid {border}; }}",
+        f"entry:focus, entry:focus-within, spinbutton:focus-within {{ border-color: {accent}; }}",
+        f"selection, text selection, entry selection, row:selected, treeview:selected, .view:selected, menuitem:hover {{ background-color: {accent}; color: {on_accent}; }}",
+        f"row:hover, flowboxchild:hover {{ background-color: {hover}; }}",
+        f"switch, scale trough, progressbar trough {{ background-color: {container}; border-color: {border}; }}",
+        f"switch:checked, scale highlight, progressbar progress, check:checked, radio:checked {{ background-color: {accent}; color: {on_accent}; border-color: {accent}; }}",
+        f"switch slider, scale slider {{ background-color: {ink}; border-color: {border}; }}",
+        f"check, radio {{ background-color: {container}; border-color: {border}; color: {ink}; }}",
+        f"separator {{ background-color: {border}; min-width: 1px; min-height: 1px; }}",
+        f"*:disabled {{ color: {muted}; }}",
+    ]
+    css = "/* Generated from the hics palette. */\n" + "\n".join(definitions + rules) + "\n"
+    # GTK2 has no CSS support; it needs a real RC palette, not GTK3 theme names.
+    rc = ["# Generated from the hics palette.", 'style "hics-palette" {', '  xthickness = 2', '  ythickness = 2']
+    for state, bg, fg in (("NORMAL",surface,ink),("PRELIGHT",hover,ink),("ACTIVE",pressed,ink),("SELECTED",accent,on_accent),("INSENSITIVE",container,muted)):
+        rc += [f'  bg[{state}] = "{bg}"', f'  base[{state}] = "{surface if state == "NORMAL" else bg}"', f'  fg[{state}] = "{fg}"', f'  text[{state}] = "{fg}"']
+    rc += ['}', 'class "*" style "hics-palette"', 'widget_class "*" style "hics-palette"', '']
+    gtk2 = Path(config_root) / "gtk-2.0"
+    atomic_text(gtk2 / "hics.gtkrc", "\n".join(rc))
+    gtkrc = gtk2 / "gtkrc"
+    previous = gtkrc.read_text() if gtkrc.is_file() else ""
+    previous = re.sub(r'(?m)^\s*include\s+"[^"\n]*/?hics\.gtkrc"\s*$', '', previous)
+    atomic_text(gtkrc, previous.rstrip() + "\ninclude " + json.dumps(str(gtk2 / "hics.gtkrc")) + "\n")
     for version in ("3.0", "4.0"):
         directory = Path(config_root) / ("gtk-" + version)
-        atomic_text(directory / "hics.css", css)
+        toolkit_css = css.replace(":focus-within", ":focus") if version == "3.0" else css
+        if version == "4.0":
+            # libadwaita 1.6+ uses inherited CSS variables rather than the old
+            # named colours for many controls and accent-button variants.
+            variables = {
+                "window-bg-color":surface,"window-fg-color":ink,"view-bg-color":surface,"view-fg-color":ink,
+                "headerbar-bg-color":container,"headerbar-fg-color":ink,"headerbar-backdrop-color":container,
+                "card-bg-color":container,"card-fg-color":ink,"popover-bg-color":container,"popover-fg-color":ink,
+                "dialog-bg-color":surface,"dialog-fg-color":ink,"sidebar-bg-color":container,"sidebar-fg-color":ink,
+                "sidebar-backdrop-color":container,"sidebar-border-color":border,"accent-bg-color":accent,
+                "accent-fg-color":on_accent,"accent-color":accent,"destructive-bg-color":error,
+                "destructive-fg-color":on_error,"destructive-color":error,"border-color":border,
+            }
+            toolkit_css += "window { " + " ".join(f"--{key}: {value};" for key,value in variables.items()) + " }\n"
+        atomic_text(directory / "hics.css", toolkit_css)
         main = directory / "gtk.css"
         # Hyprstack owns toolkit styling. Drop legacy imports (Noctalia,
         # libadwaita overrides, etc.) instead of mixing unrelated palettes.
@@ -144,7 +199,7 @@ def sync_flatpaks(colours, mode=None, only_new=False):
         base = Path.home() / ".var/app" / app / "config"
         # Do not let configuration symlinks overwrite another application's
         # settings (or a host theme) while synchronising private sandboxes.
-        managed = ("gtk-3.0", "gtk-4.0", "qt5ct", "qt6ct")
+        managed = ("gtk-2.0", "gtk-3.0", "gtk-4.0", "qt5ct", "qt6ct")
         if any(parent.is_symlink() for parent in (base, base.parent, base.parent.parent, base.parent.parent.parent)) or any((base / name).is_symlink() for name in (*managed, "qt5ct/colors", "qt6ct/colors")):
             print("Skipping symlinked Flatpak config:", app, file=sys.stderr)
             continue
@@ -161,6 +216,15 @@ def apply_desktop_palette(colours, config_root, mode=None):
     sync_flatpaks(colours, mode)
 
 
+def install_legacy_gtk2(config_root):
+    # Apps started outside the session wrapper still read ~/.gtkrc-2.0.
+    legacy = Path.home() / ".gtkrc-2.0"
+    previous = legacy.read_text() if legacy.is_file() else ""
+    marker = "# hics managed palette"
+    previous = re.sub(r'(?m)^# hics managed palette\ninclude "[^"\n]+"\n?', '', previous)
+    atomic_text(legacy, previous.rstrip() + "\n" + marker + "\ninclude " + json.dumps(str(Path(config_root) / "gtk-2.0/gtkrc")) + "\n")
+
+
 def sync_new_flatpaks():
     state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hics/scheme.json"
     if state.exists():
@@ -174,11 +238,13 @@ def restore():
     if state.exists():
         scheme = json.loads(state.read_text())
         apply_desktop_palette(scheme["colours"], Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")), scheme.get("mode"))
+        install_legacy_gtk2(Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")))
     else:
         # Packages cannot configure an arbitrary user's home during root install.
         # The shared session entry point installs defaults at the first login.
         import theme_manager
         theme_manager.apply_theme("catppuccin", "dark")
+        install_legacy_gtk2(Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")))
 
 
 if __name__ == "__main__":

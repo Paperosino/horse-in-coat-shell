@@ -8,6 +8,8 @@ endif()
 qml_module(hyprstack-services
     URI Hyprstack.Services
     SOURCES
+        vpnsecretagent.cpp
+        networkmanagervpn.cpp
         wallpaperplayer.cpp
         desktopintegration.cpp
         notificationpolicy.cpp
@@ -28,6 +30,8 @@ qml_module(hyprstack-services
         hyprdevices.cpp
         hyprextras.cpp
     LIBRARIES
+        PkgConfig::Secret
+        PkgConfig::NetworkManager
         Qt::Concurrent
         Qt::DBus
         Qt::Network
@@ -41,3 +45,9 @@ qml_module(hyprstack-services
         Hyprstack
         Hyprstack.Config
 )
+
+qt_add_resources(hyprstack-services vpn_protocol_catalogue PREFIX "/hics/vpn" FILES vpn-protocols.json)
+# This adapter interleaves libnm's UTF-8 property names with Qt map keys.
+set_source_files_properties(networkmanagervpn.cpp vpnsecretagent.cpp PROPERTIES
+    SKIP_PRECOMPILE_HEADERS ON
+    COMPILE_OPTIONS "-UQT_NO_CAST_FROM_ASCII;-UQT_NO_CAST_TO_ASCII")

@@ -20,6 +20,7 @@ PageBase {
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+        NavRow {first:true;last:true;text:Tr.tr("NetworkManager VPN connections");icon:"vpn_key";subtext:Tr.tr("VPN profiles, protocol plugins, DNS and routes");onClicked:root.nState.openPage("vpn")}
 
         Timer {
             running: root.visible && Nmcli.wifiEnabled
@@ -116,12 +117,12 @@ PageBase {
         FeatureError { error: Nmcli.lastError }
         HotspotSettings {}
 
-        // ---- VPN -------------------------------------------------------------
+        // ---- External VPN applications -------------------------------------------------------------
         ToggleRow {
             Layout.topMargin: Tokens.spacing.large
             Layout.fillWidth: true
             first: true
-            text: Tr.tr("VPN")
+            text: Tr.tr("External VPN applications")
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased
             checked: VPN.connected

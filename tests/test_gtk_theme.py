@@ -112,3 +112,38 @@ class GtkPaletteTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 apply_palette({"surface": "red; }"}, Path(directory))
             self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_gtk2_preserves_preferences_and_replaces_managed_include(self):
+        colours = dict.fromkeys(("surface", "onSurface", "surfaceContainer", "primary", "onPrimary", "outlineVariant"), "112233")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "gtk-2.0").mkdir()
+            rc = root / "gtk-2.0/gtkrc"
+            rc.write_text('gtk-icon-theme-name="my-icons"\ngtk-cursor-theme-name="my-cursor"\n')
+            apply_palette(colours, root)
+            apply_palette(colours, root)
+            self.assertIn('gtk-icon-theme-name="my-icons"', rc.read_text())
+            self.assertIn('gtk-cursor-theme-name="my-cursor"', rc.read_text())
+            self.assertEqual(rc.read_text().count('hics.gtkrc'), 1)
+            palette = (root / "gtk-2.0/hics.gtkrc").read_text()
+            self.assertIn('#112233', palette)
+            self.assertIn('SELECTED', palette)
+
+    def test_gtk4_variables_and_button_states_are_generated_for_light_and_dark(self):
+        for mode, surface, ink in (("dark", "101018", "e0e0e0"), ("light", "f0f0f8", "202028")):
+            colours = dict(surface=surface, onSurface=ink, surfaceContainer=surface, primary="aaccee", onPrimary="102030", outlineVariant="505060")
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                apply_palette(colours, root, mode)
+                css = (root / "gtk-4.0/hics.css").read_text()
+                self.assertIn('--window-bg-color: #' + surface, css)
+                self.assertIn('--window-fg-color: #' + ink, css)
+                for selector in ('button:checked', 'button:disabled', 'button.suggested-action', 'button.destructive-action', 'button.flat'):
+                    self.assertIn(selector, css)
+                self.assertNotIn(':focus-within', (root / 'gtk-3.0/hics.css').read_text())
+
+    def test_rejects_invalid_optional_colours(self):
+        colours = dict.fromkeys(("surface", "onSurface", "surfaceContainer", "primary", "onPrimary", "outlineVariant"), "112233")
+        for value in (None, 'red; }', 42):
+            with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+                apply_palette(dict(colours, error=value), Path(directory))

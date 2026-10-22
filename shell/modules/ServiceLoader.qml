@@ -4,6 +4,8 @@ import Hyprstack.Config
 import qs.services
 
 Scope {
+    VpnAuthentication {}
+
     Component.onCompleted: {
         // Force certain singletons to load on shell init instead of lazily
 

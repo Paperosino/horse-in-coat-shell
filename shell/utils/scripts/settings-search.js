@@ -2,6 +2,10 @@
 
 // Static metadata: searching never creates hidden pages or starts their services.
 var catalogue = [
+  {"page": 28, "subpages": [], "path": ["VPN"], "label": "VPN", "context": "", "target": "", "match": "", "keywords": "OpenVPN WireGuard PPTP L2TP IPsec VPNC OpenConnect Fortinet SSH DNS \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u044b \u0441\u0435\u0442\u044c"},
+  {"page": 28, "subpages": [2], "path": ["VPN"], "label": "VPN plugins", "context": "", "target": "", "match": "", "keywords": "NetworkManager \u043f\u043b\u0430\u0433\u0438\u043d\u044b \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430"},
+  {"page": 28, "subpages": [1], "path": ["VPN"], "label": "VPN connection", "context": "", "target": "", "match": "", "keywords": "IPv4 IPv6 DNS \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u044b \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u044b peers \u043a\u043b\u044e\u0447\u0438"},
+
   {
     "page": 0,
     "subpages": [],

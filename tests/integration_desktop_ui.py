@@ -17,6 +17,7 @@ import Quickshell.Io
 import Hyprstack.Config
 import Hyprstack.Services
 import qs.modules.nexus
+import qs.modules
 import qs.modules.nexus.pages
 import qs.modules.nexus.common
 import qs.modules.nexus.pages.services
@@ -76,6 +77,7 @@ ShellRoot {
   }
  }
 
+ VpnAuthentication {}
  StatusIcons {}
  VideoWallpaper { settings: ({kind:"video",source:"",muted:true,volume:0,scaling:"fill"}); paused:true }
  Process { id: notifier }
@@ -88,7 +90,7 @@ ShellRoot {
  }
  function sendNotification(): void { notifier.exec(["notify-send", "--app-name=Integration test", "--expire-time=10000", "Integration notification"]); }
  function check(condition, message): bool { if (condition) return true; console.error("NOTIFICATION_TEST_FAILED", message); Qt.quit(); return false; }
- property var sources: PageRegistry.navigationPages.map(p => p.pageIndex).concat(["AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml"])
+ property var sources: PageRegistry.navigationPages.map(p => p.pageIndex).concat(["AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml", "network/VpnProfilesPage.qml", "network/VpnEditorPage.qml", "network/VpnPluginsPage.qml"]).concat(["wireguard","openvpn","pptp","l2tp","openconnect","vpnc","strongswan","libreswan","sstp","fortisslvpn","ssh"].map(p=>"vpn-test:"+p))
  Component.onCompleted: {
   if (!check(PageRegistry.pages.length === PageCompRegistry.pageComps.length, "page registry alignment")) return;
   for (const page of PageRegistry.navigationPages) {
@@ -169,7 +171,13 @@ ShellRoot {
     }
     return;
    }
-   const path = root.sources[root.phase++];
+   let path = root.sources[root.phase++];
+   if (typeof path === "string" && path.startsWith("vpn-test:")) {
+    const protocol = path.substring(9);
+    NetworkManagerVpn.create(protocol === "wireguard" ? protocol : "org.freedesktop.NetworkManager." + protocol);
+    path = "network/VpnEditorPage.qml";
+   }
+
    const component = typeof path === "number" ? PageCompRegistry.pageComps[path] : Qt.createComponent("modules/nexus/pages/" + path);
    if (component.status !== Component.Ready) { console.error(component.errorString()); Qt.quit(); return; }
    root.current = component.createObject(host, {nState: root.state, width: 1000, height: 900});
@@ -179,12 +187,12 @@ ShellRoot {
    console.log("PAGE_OK", path);
   }
  }
- Timer { interval: 30000; running: true; onTriggered: { console.error("DESKTOP_UI_TIMEOUT"); Qt.quit(); } }
+ Timer { interval: 55000; running: true; onTriggered: { console.error("DESKTOP_UI_TIMEOUT"); Qt.quit(); } }
 }''')
     tools = base / 'tools'
     tools.mkdir()
     fake = '#!/usr/bin/python3\nimport sys,json\nprint(json.dumps({"error":"Test backend unavailable"}) if "status" in sys.argv or "apply" in sys.argv else "[]")\n'
-    for name in ('hyprctl', 'nmcli', 'hyprstack', 'hics-systemctl', 'pactl', 'pw-dump'):
+    for name in ('hyprctl', 'nmcli', 'hics', 'hics-systemctl', 'pactl', 'pw-dump'):
         path = tools / name
         if name == 'pactl':
             path.write_text('#!/usr/bin/python3\nimport json\nprint(json.dumps([{"name":"test-card","properties":{"device.description":"Test card"},"active_profile":"stereo","profiles":{"stereo":{"description":"Stereo","available":"yes"}}}]))\n')
@@ -233,7 +241,7 @@ ShellRoot {
         if instances:
             env['HYPRLAND_INSTANCE_SIGNATURE'] = instances[0].name
         run = subprocess.run(['dbus-run-session', '--', 'python3', str(runner),
-            'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=35)
+            'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=60)
         output = run.stdout + run.stderr
         print(output[-24000:])
         assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'

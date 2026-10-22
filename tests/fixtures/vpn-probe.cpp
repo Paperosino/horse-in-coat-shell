@@ -1,0 +1,152 @@
+#include "networkmanagervpn.hpp"
+#include "vpnsecretagent.hpp"
+#include <QCoreApplication>
+#include <QDBusConnection>
+#include <QDBusMetaType>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
+#include <QEventLoop>
+#include <QFile>
+#include <QJsonDocument>
+#include <QTimer>
+#include <cstdio>
+using namespace hyprstack::services;
+int main(int argc, char **argv) {
+  QCoreApplication app(argc, argv);
+  NetworkManagerVpn vpn;
+  auto mode = app.arguments().value(1);
+  auto wait = [&] {
+    QEventLoop loop;
+    QObject::connect(&vpn, &NetworkManagerVpn::changed, &loop, [&] {
+      if (!vpn.busy())
+        loop.quit();
+    });
+    QTimer::singleShot(10000, &loop, &QEventLoop::quit);
+    if (vpn.busy())
+      loop.exec();
+  };
+  QVariantMap result;
+  if (mode.startsWith("agent-")) {
+    VpnSecretAgent agent;
+    QObject::connect(&agent, &VpnSecretAgent::changed, &app, [&] {
+      if (!agent.challenge().isEmpty()) {
+        if (mode == "agent-cancel")
+          agent.cancel();
+        else
+          agent.submit({{"password", "agent-fixture"}}, false);
+      }
+    });
+    auto bus = QDBusConnection::systemBus();
+    QEventLoop loop;
+    QDBusMessage request;
+    if (mode == "agent-untrusted") {
+      request = QDBusMessage::createMethodCall(
+          bus.baseService(), "/org/freedesktop/NetworkManager/SecretAgent",
+          "org.freedesktop.NetworkManager.SecretAgent", "GetSecrets");
+      VpnSettings connection{{"connection", {{"uuid", "test"}}}};
+      request.setArguments({QVariant::fromValue(connection),
+                            QVariant::fromValue(QDBusObjectPath("/test")),
+                            "vpn", QStringList{}, uint(3)});
+    } else {
+      request = QDBusMessage::createMethodCall(
+          "org.freedesktop.NetworkManager",
+          "/org/freedesktop/NetworkManager/AgentManager", "org.hics.Test",
+          "Request");
+      request.setArguments({mode, bus.baseService()});
+    }
+    QDBusPendingCallWatcher watcher(bus.asyncCall(request));
+    QObject::connect(&watcher, &QDBusPendingCallWatcher::finished, &loop,
+                     &QEventLoop::quit);
+    QTimer::singleShot(12000, &loop, &QEventLoop::quit);
+    loop.exec();
+    if (mode == "agent-untrusted") {
+      QDBusPendingReply<VpnSettings> reply = watcher;
+      result = {{"errorName", reply.error().name()}};
+    } else {
+      QDBusPendingReply<QString> reply = watcher;
+      result = reply.isError()
+                   ? QVariantMap{{"errorName", reply.error().name()}}
+                   : QJsonDocument::fromJson(reply.value().toUtf8())
+                         .toVariant()
+                         .toMap();
+    }
+  } else if (mode == "export") {
+    vpn.exportFile("/org/freedesktop/NetworkManager/Settings/1",
+                   QUrl::fromLocalFile(app.arguments().value(2)));
+    wait();
+    result = {{"error", vpn.error()}};
+  } else if (mode == "list") {
+    vpn.refresh();
+    wait();
+    result = {{"plugins", vpn.plugins()},
+              {"profiles", vpn.profiles()},
+              {"error", vpn.error()}};
+  } else if (mode == "edit") {
+    vpn.edit("/org/freedesktop/NetworkManager/Settings/1");
+    wait();
+    auto draft = vpn.draft();
+    auto ip = draft.value("ip4").toMap();
+    ip["dns"] = "9.9.9.9";
+    ip["ignoreAutoDns"] = true;
+    ip["priority"] = -50;
+    draft["ip4"] = ip;
+    draft["name"] = "Edited VPN";
+    vpn.save(draft);
+    wait();
+    result = {{"error", vpn.error()}};
+  } else if (mode == "invalid-dns" || mode == "invalid-route") {
+    vpn.create("org.freedesktop.NetworkManager.pptp");
+    auto draft = vpn.draft();
+    draft["name"] = "Bad profile";
+    draft["data"] = QVariantMap{{"gateway", "vpn.example"}};
+    auto ip = draft.value("ip4").toMap();
+    ip[mode == "invalid-dns" ? "dns" : "routes"] =
+        mode == "invalid-dns" ? "not-an-ip" : "not-a-route";
+    draft["ip4"] = ip;
+    result = vpn.validate(draft);
+  } else if (mode == "create") {
+    vpn.create("org.freedesktop.NetworkManager.pptp");
+    auto draft = vpn.draft();
+    draft["name"] = "PPTP fixture";
+    draft["data"] = QVariantMap{{"gateway", "vpn.example"},
+                                {"user", "fixture"},
+                                {"require-mppe", "yes"}};
+    draft["secrets"] = QVariantMap{{"password", "test-password"}};
+    vpn.save(draft);
+    wait();
+    result = {{"error", vpn.error()}};
+  } else if (mode == "wireguard") {
+    vpn.create("wireguard");
+    auto draft = vpn.draft();
+    draft["name"] = "WireGuard fixture";
+    draft["interface"] = "wg-fixture";
+    draft["secrets"] =
+        QVariantMap{{"private-key", QString(QByteArray(32, 'a').toBase64())}};
+    auto ip = draft.value("ip4").toMap();
+    ip["addresses"] = "10.2.0.2/32";
+    ip["dns"] = "9.9.9.9";
+    draft["ip4"] = ip;
+    draft["wireguard"] = QVariantMap{
+        {"peerRoutes", true},
+        {"peers", QVariantList{QVariantMap{
+                      {"publicKey", QString(QByteArray(32, 'b').toBase64())},
+                      {"endpoint", "vpn.example:51820"},
+                      {"allowedIPs", "0.0.0.0/0, ::/0"},
+                      {"keepalive", 25}}}}};
+    vpn.save(draft);
+    wait();
+    result = {{"error", vpn.error()}};
+  } else if (mode == "import") {
+    vpn.importFile(app.arguments().value(2),
+                   QUrl::fromLocalFile(app.arguments().value(3)));
+    wait();
+    result = {{"draft", vpn.draft()}, {"error", vpn.error()}};
+  } else if (mode == "activate") {
+    vpn.activate("/org/freedesktop/NetworkManager/Settings/1");
+    wait();
+    result = {{"error", vpn.error()}};
+  }
+  auto data = QJsonDocument::fromVariant(result).toJson(QJsonDocument::Compact);
+  puts(data.constData());
+  return 0;
+}

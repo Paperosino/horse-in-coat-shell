@@ -246,7 +246,8 @@ QtObject {
         Component { StackPage { Component { StoragePage {} } } },
         Component { StackPage { Component { DateTimePage {} } } },
         Component { StackPage { Component { SessionServicesPage { autostartOnly:true } } } },
-        Component { StackPage { Component { DefaultAppsPage {} } } }
+        Component { StackPage { Component { DefaultAppsPage {} } } },
+        Component { StackPage { Component { VpnProfilesPage {} } Component { VpnEditorPage {} } Component { VpnPluginsPage {} } } }
     ]
 
     readonly property Component placeholderComp: Component {

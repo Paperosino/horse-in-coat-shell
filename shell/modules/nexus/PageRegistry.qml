@@ -21,7 +21,7 @@ QtObject {
         ...navigationGroup("personalisation", ["appearance", "panels", "dock", "windows"]),
         ...navigationGroup("devices", ["display", "audio", "printers", "storage"]),
         ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "shortcuts", "accessibility"]),
-        ...navigationGroup("connections", ["network", "bluetooth", "sharing"]),
+        ...navigationGroup("connections", ["network", "vpn", "bluetooth", "sharing"]),
         ...navigationGroup("applications", ["apps", "default-apps", "autostart", "notifications", "plugins", "assistant"]),
         ...navigationGroup("system", ["power", "region", "datetime", "services", "about"])
     ])
@@ -183,6 +183,7 @@ QtObject {
         {id:"storage", label:Tr.tr("Storage"), icon:"storage", description:Tr.tr("Disk space, filesystems and removable volumes"), category:"connectivity"},
         {id:"datetime", label:Tr.tr("Date & time"), icon:"schedule", description:Tr.tr("Clock, time zone and automatic time"), category:"shell"},
         {id:"autostart", label:Tr.tr("Autostart"), icon:"rocket_launch", description:Tr.tr("Applications started when signing in"), category:"shell"},
-        {id:"default-apps", label:Tr.tr("Default applications"), icon:"open_in_new", description:Tr.tr("Browser, documents, media and file formats"), category:"shell"}
+        {id:"default-apps", label:Tr.tr("Default applications"), icon:"open_in_new", description:Tr.tr("Browser, documents, media and file formats"), category:"shell"},
+        {id:"vpn", label:Tr.tr("VPN"), icon:"vpn_key", description:Tr.tr("NetworkManager profiles, protocols, DNS and routing"), category:"connectivity"}
     ]
 }

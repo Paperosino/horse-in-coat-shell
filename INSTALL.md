@@ -31,7 +31,7 @@ pacman -Si hyprland
 sudo pacman -Syu --needed base-devel git cmake ninja pkgconf gettext \
   hyprland libqalculate lm_sensors libcups python python-pillow kitty firefox \
   fuzzel btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder \
-  swappy libnotify brightnessctl networkmanager pipewire pipewire-pulse \
+  swappy libnotify brightnessctl networkmanager libnm libsecret pipewire pipewire-pulse \
   wireplumber polkit hyprlock hyprpicker xdg-utils xdg-user-dirs \
   libxml2 adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb
 ```
