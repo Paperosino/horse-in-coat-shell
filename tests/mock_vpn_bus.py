@@ -37,11 +37,14 @@ class Settings(dbus.service.Object):
   log('AddConnection2',data);p=Profile(10+len(profiles),data);profiles[p.path]=p;return p.path,{}
 class Manager(dbus.service.Object):
  failure=False
+ active_state=0
+ @dbus.service.method('org.hics.Test',in_signature='u')
+ def SetActiveState(self,value):Manager.active_state=int(value)
  @dbus.service.method('org.hics.Test',in_signature='b')
  def SetFailure(self,value):Manager.failure=bool(value)
  @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
  def Get(self,iface,prop):
-  if prop=='ActiveConnections':return dbus.Array([],signature='o')
+  if prop=='ActiveConnections':return dbus.Array([ROOT+'/ActiveConnection/1'] if Manager.active_state else [],signature='o')
   raise dbus.exceptions.DBusException('Unknown property')
  @dbus.service.method('org.freedesktop.NetworkManager',in_signature='ooo',out_signature='o')
  def ActivateConnection(self,path,device,specific):
@@ -54,6 +57,11 @@ class Manager(dbus.service.Object):
   if str(path).endswith('/2'):raise dbus.exceptions.DBusException('The connection was not active.',name='org.freedesktop.NetworkManager.ConnectionNotActive')
   if str(path).endswith('/3'):raise dbus.exceptions.DBusException('Permission denied',name='org.freedesktop.NetworkManager.PermissionDenied')
 class Active(dbus.service.Object):
+ @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
+ def Get(self,iface,prop):
+  if prop=='Uuid':return '11111111-2222-4333-8444-555555555555'
+  if prop=='State':return dbus.UInt32(Manager.active_state)
+  raise dbus.exceptions.DBusException('Unknown property')
  @dbus.service.signal('org.freedesktop.NetworkManager.VPN.Connection',signature='uu')
  def VpnStateChanged(self,state,reason):pass
  @dbus.service.signal('org.freedesktop.NetworkManager.Connection.Active',signature='uu')

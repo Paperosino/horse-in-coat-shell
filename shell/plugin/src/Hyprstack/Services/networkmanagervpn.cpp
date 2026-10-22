@@ -633,6 +633,9 @@ QVariantList listProfiles(GDBusConnection *b) {
         b, path, "org.freedesktop.NetworkManager.Connection.Active", "Uuid");
     auto state = property(
         b, path, "org.freedesktop.NetworkManager.Connection.Active", "State");
+    if (g_variant_get_uint32(state.get()) ==
+        NM_ACTIVE_CONNECTION_STATE_DEACTIVATED)
+      continue;
     active[string(uuid.get())] = {{"activePath", path},
                                   {"state", g_variant_get_uint32(state.get())}};
   }
@@ -855,7 +858,19 @@ void NetworkManagerVpn::vpnStateChanged(uint state, uint reason) {
   m_vpnFailureReceived = true;
 }
 void NetworkManagerVpn::activationStateChanged(uint state, uint reason) {
-  if (state != 4 || reason == 2 || (reason == 0 && m_vpnFailureReceived))
+  if (state != NM_ACTIVE_CONNECTION_STATE_DEACTIVATED)
+    return;
+  for (auto &entry : m_profiles) {
+    auto profile = entry.toMap();
+    if (profile.value("activePath").toString() != m_activationPath)
+      continue;
+    profile.remove("activePath");
+    profile["active"] = false;
+    profile["state"] = NM_ACTIVE_CONNECTION_STATE_DEACTIVATED;
+    entry = profile;
+  }
+  emit changed();
+  if (reason == 2 || (reason == 0 && m_vpnFailureReceived))
     return;
   switch (reason) {
   case 3:
@@ -883,8 +898,8 @@ void NetworkManagerVpn::activationStateChanged(uint state, uint reason) {
     m_error = tr("The VPN server rejected authentication");
     break;
   default:
-    m_error = tr("VPN connection failed. Check the server address, credentials "
-                 "and protocol settings.");
+    m_error = tr("The VPN connection failed before completion. See the "
+                 "protocol service log for details.");
     break;
   }
   emit changed();

@@ -142,7 +142,12 @@ int main(int argc, char **argv) {
                    QUrl::fromLocalFile(app.arguments().value(2)));
     wait();
     result = {{"error", vpn.error()}};
-  } else if (mode == "list") {
+  } else if (mode == "list" || mode == "list-disconnected") {
+    auto request = QDBusMessage::createMethodCall(
+        "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+        "org.hics.Test", "SetActiveState");
+    request.setArguments({uint(mode == "list-disconnected" ? 4 : 0)});
+    QDBusConnection::systemBus().call(request);
     vpn.refresh();
     wait();
     result = {{"plugins", vpn.plugins()},

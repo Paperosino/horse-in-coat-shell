@@ -8537,3 +8537,6 @@ msgstr "Не удалось запустить службу IPsec Libreswan. П�
 
 msgid "Libreswan IPsec service did not become ready in time"
 msgstr "Служба IPsec Libreswan не запустилась за отведённое время"
+
+msgid "The VPN connection failed before completion. See the protocol service log for details."
+msgstr "Не удалось завершить подключение к VPN. Подробности — в журнале службы протокола."

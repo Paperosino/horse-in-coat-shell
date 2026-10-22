@@ -96,3 +96,7 @@ class VpnNativeTests(unittest.TestCase):
   self.assertIn('Permission denied',self.run_probe('deactivate-denied')['error'])
  def test_disconnect_active_is_success(self):
   self.assertEqual(self.run_probe('deactivate')['error'],'')
+
+ def test_terminated_connection_is_not_shown_as_connecting(self):
+  result=self.run_probe('list-disconnected');self.assertEqual(result['error'],'')
+  self.assertTrue(result['profiles']);self.assertTrue(all(not p['active'] for p in result['profiles']))
