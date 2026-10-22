@@ -1,5 +1,6 @@
 """Construct system-integration pages headlessly with private config and D-Bus."""
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,6 +20,7 @@ import Hyprstack.Services
 import qs.modules.nexus
 import qs.modules
 import qs.modules.nexus.pages
+import qs.modules.bar.popouts as Popouts
 import qs.modules.nexus.common
 import qs.modules.nexus.pages.services
 import qs.services
@@ -37,6 +39,7 @@ ShellRoot {
   appName: "Test sender"; desktopEntry: "test.sender"
   liveActions: [{identifier:"default", invoke:() => root.defaultActionCount++}, {identifier:"delete", invoke:() => root.otherActionCount++}]
  }
+ property var vpnProtocols: __VPN_PROTOCOLS__
  property int phase: 0
  property var current: null
  property NexusState state: NexusState {}
@@ -77,6 +80,44 @@ ShellRoot {
   }
  }
 
+ property QtObject fakeQuickVpn: QtObject {
+  property bool busy:false
+  property string error:""
+  property string activated
+  property string deactivated
+  property var profiles:Array.from({length:25},(_,i)=>({name:"VPN "+i,path:"/profile/"+i,active:i===0,state:2,activePath:"/active/"+i}))
+  function refresh():void {}
+  function activate(path):void {activated=path}
+  function deactivate(path):void {deactivated=path}
+ }
+ Popouts.PopoutState {id:quickPopoutState;screen:Quickshell.screens[0]}
+ Popouts.Network {id:quickNetwork;parent:host;popouts:quickPopoutState;vpnBackend:root.fakeQuickVpn}
+ Timer {
+  property int step:0
+  interval:400;repeat:true;running:true
+  onTriggered:{
+   const list=quickNetwork.connectionList;
+   if(!list.height||list.count<25)return;
+   if(step===0){
+    if(!root.check(list.count===25,"all quick VPN profiles remain reachable"))return;
+    if(!root.check(list.height<=quickNetwork.rowHeight*10+1&&list.contentHeight>list.height,"network popup is capped at ten scrollable rows"))return;
+    quickNetwork.activateRow(quickNetwork.connectionRows[1]);
+    quickNetwork.activateRow(quickNetwork.connectionRows[0]);
+    if(!root.check(root.fakeQuickVpn.activated==="/profile/1"&&root.fakeQuickVpn.deactivated==="/active/0","quick VPN connect and disconnect"))return;
+    root.fakeQuickVpn.busy=true;quickNetwork.activateRow(quickNetwork.connectionRows[2]);root.fakeQuickVpn.busy=false;
+    if(!root.check(root.fakeQuickVpn.activated==="/profile/1","busy VPN action is not duplicated"))return;
+    list.contentY=quickNetwork.rowHeight*12;list.preferredY=list.contentY;
+    root.fakeQuickVpn.profiles=root.fakeQuickVpn.profiles.map(p=>Object.assign({},p));
+   }else{
+    if(!root.check(Math.abs(list.contentY-quickNetwork.rowHeight*12)<1,"popup scroll survives VPN status refresh"))return;
+    list.positionViewAtEnd();
+    if(!root.check(list.contentY>quickNetwork.rowHeight*10,"VPN connections past the tenth row can be reached"))return;
+    if(!root.check(PageRegistry.route("vpn").id==="network"&&!PageRegistry.navigationPages.some(p=>p.id==="vpn"),"VPN belongs to network settings"))return;
+    console.log("NETWORK_QUICK_VPN_OK");quickNetwork.visible=false;stop();
+   }
+   step++;
+  }
+ }
  VpnAuthentication {}
  StatusIcons {}
  VideoWallpaper { settings: ({kind:"video",source:"",muted:true,volume:0,scaling:"fill"}); paused:true }
@@ -182,13 +223,33 @@ ShellRoot {
    if (component.status !== Component.Ready) { console.error(component.errorString()); Qt.quit(); return; }
    root.current = component.createObject(host, {nState: root.state, width: 1000, height: 900});
    if (!root.current) { console.error("PAGE_CREATION_FAILED", path); Qt.quit(); return; }
+   if(path==="network/VpnEditorPage.qml"){
+    root.current.protocol=root.vpnProtocols.find(p=>p.service===root.current.form.type)??({fields:[]});
+    if(!root.check(!root.current.advanced,"VPN advanced settings start collapsed"))return;
+    const before=JSON.stringify(root.current.form);
+    root.current.advanced=true;root.current.advanced=false;
+    if(!root.check(JSON.stringify(root.current.form)===before,"collapsing advanced VPN settings preserves their data"))return;
+    if(String(root.current.form.type??"").endsWith(".openvpn")){
+     root.current.nested("data","connection-type","password");
+     if(!root.check(root.current.basicFields.some(f=>f.key==="username")&&!root.current.basicFields.some(f=>f.key==="cert"),"password authentication hides TLS-only fields"))return;
+     root.current.nested("data","connection-type","password-tls");
+     if(!root.check(root.current.basicFields.some(f=>f.key==="username")&&root.current.basicFields.some(f=>f.key==="cert"),"combined authentication shows credentials and certificates"))return;
+    }
+    if(String(root.current.form.type??"").endsWith(".l2tp")){
+     root.current.nested("data","user-auth-type","tls");
+     if(!root.check(root.current.basicFields.some(f=>f.key==="user-cert")&&!root.current.basicFields.some(f=>f.key==="password"),"L2TP certificate authentication"))return;
+     root.current.nested("data","ipsec-enabled","yes");root.current.nested("data","machine-auth-type","tls");
+     if(!root.check(root.current.advancedFields.some(f=>f.key==="machine-cert")&&!root.current.advancedFields.some(f=>f.key==="ipsec-psk"),"IPsec certificate and PSK fields are mutually exclusive"))return;
+    }
+    root.current.advanced=true;
+   }
    GlobalConfig.appearance.highContrast = root.phase % 2 === 1;
    GlobalConfig.appearance.reducedMotion = true;
    console.log("PAGE_OK", path);
   }
  }
  Timer { interval: 55000; running: true; onTriggered: { console.error("DESKTOP_UI_TIMEOUT"); Qt.quit(); } }
-}''')
+}'''.replace('__VPN_PROTOCOLS__',json.dumps(json.loads((ROOT/'shell/plugin/src/Hyprstack/Services/vpn-protocols.json').read_text()))))
     tools = base / 'tools'
     tools.mkdir()
     fake = '#!/usr/bin/python3\nimport sys,json\nprint(json.dumps({"error":"Test backend unavailable"}) if "status" in sys.argv or "apply" in sys.argv else "[]")\n'
@@ -244,7 +305,7 @@ ShellRoot {
             'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=60)
         output = run.stdout + run.stderr
         print(output[-24000:])
-        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
+        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
         forbidden = ('TypeError:', 'ReferenceError:', 'Unable to assign', 'PAGE_CREATION_FAILED', 'Cannot assign to non-existent', 'Binding loop', 'NOTIFICATION_TEST_FAILED')
         assert not any(message in output for message in forbidden), 'QML runtime errors'
         import json

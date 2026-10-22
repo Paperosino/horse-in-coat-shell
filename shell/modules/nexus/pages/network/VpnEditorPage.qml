@@ -6,21 +6,30 @@ import Hyprstack.Config
 import Hyprstack.I18n
 import Hyprstack.Services
 import qs.modules.nexus.common
+import "../../../../utils/scripts/vpn-editor.js" as EditorPolicy
 PageBase {
     id:root
     title:Tr.tr("VPN connection")
     property var form:({})
     property var protocol:({})
+    readonly property string policyKey:JSON.stringify({type:form.type??"",data:{"connection-type":form.data?.["connection-type"],"user-auth-type":form.data?.["user-auth-type"],"machine-auth-type":form.data?.["machine-auth-type"],"ipsec-enabled":form.data?.["ipsec-enabled"],method:form.data?.method}})
+    readonly property var basicFields:{const p=JSON.parse(policyKey);return (protocol.fields??[]).filter(f=>EditorPolicy.fieldVisible(p.type,f,p.data,false))}
+    readonly property var advancedFields:{const p=JSON.parse(policyKey);return (protocol.fields??[]).filter(f=>EditorPolicy.fieldVisible(p.type,f,p.data,true))}
     property bool dirty:false
     property bool advanced:false
+    property bool pluginData:false
+    readonly property bool wireguard:form.type==="wireguard"
     property string jsonError
     property string localError
+    property bool deleting:false
+    property bool confirmDelete:false
     property string fileKey
     function load():void {
         if(dirty)return;
         form=JSON.parse(JSON.stringify(NetworkManagerVpn.draft));
         protocol=NetworkManagerVpn.plugins.find(p=>p.service===form.type)??({fields:[]});
-        advanced=!(protocol.fields??[]).length&&form.type!=="wireguard";
+        if(!form.path&&!form.importToken)form=Object.assign({},form,{data:Object.assign({},EditorPolicy.defaults(form.type),form.data??({}))});
+        advanced=false;pluginData=false;
     }
     function set(key,value):void { form=Object.assign({},form,{[key]:value});dirty=true;localError="" }
     function nested(group,key,value):void { set(group,Object.assign({},form[group]??({}),{[key]:value})) }
@@ -34,65 +43,37 @@ PageBase {
     readonly property Connections vpnConnections: Connections {
         target:NetworkManagerVpn
         function onDraftChanged():void {root.load()}
+        function onOperationSucceeded():void {if(root.deleting){root.deleting=false;NetworkManagerVpn.discard();root.nState.closeSubPage()}}
+        function onChanged():void {if(!NetworkManagerVpn.busy&&NetworkManagerVpn.error)root.deleting=false}
         function onSaved():void {root.dirty=false;root.nState.closeSubPage()}
     }
+    readonly property FileDialog exportDialog:FileDialog {id:exporter;title:Tr.tr("Export VPN configuration");fileMode:FileDialog.SaveFile;nameFilters:["NetworkManager (*.nmconnection)","VPN configuration (*.conf *.ovpn)"];defaultSuffix:"nmconnection";onAccepted:NetworkManagerVpn.exportFile(root.form.path,selectedFile)}
     readonly property FileDialog certificateDialog: FileDialog { id:picker;title:Tr.tr("Select certificate or key file");onAccepted:root.nested("data",root.fileKey,decodeURIComponent(selectedFile.toString().replace(/^file:\/\//,""))) }
     ColumnLayout {
         width:root.cappedWidth;anchors.horizontalCenter:parent.horizontalCenter;spacing:Tokens.spacing.extraSmall/2
         InfoRow { first:true;last:true;label:Tr.tr("Protocol");value:root.protocol.name??root.form.type??"" }
-        InfoRow {first:true;last:true;label:Tr.tr("Saved settings");value:Tr.tr("Changes apply the next time you connect.")}
         FeatureError { error:root.localError||root.jsonError||NetworkManagerVpn.error }
         TextFieldRow { label:Tr.tr("Connection name");value:root.form.name??"";onValueEdited:v=>root.set("name",v) }
-        TextFieldRow { label:Tr.tr("Interface name");subtext:Tr.tr("Optional except for a new WireGuard interface");value:root.form.interface??"";onValueEdited:v=>root.set("interface",v) }
+        TextFieldRow { visible:root.wireguard||root.advanced;label:Tr.tr("Interface name");subtext:Tr.tr("Optional except for a new WireGuard interface");value:root.form.interface??"";onValueEdited:v=>root.set("interface",v) }
         ToggleRow { visible:root.form.type==="wireguard";text:Tr.tr("Connect automatically");checked:!!root.form.autoconnect;onToggled:v=>root.set("autoconnect",v) }
-        SectionHeader { text:Tr.tr("Authentication and tunnel") }
+
         Repeater {
-            model:root.protocol.fields??[]
-            ColumnLayout {
-                id:field
+            model:root.basicFields
+            VpnProtocolField {
                 required property var modelData
-                required property int index
-                Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
-                SectionHeader { visible:!!field.modelData.section&&(field.index===0||root.protocol.fields[field.index-1].section!==field.modelData.section);text:field.modelData.section??"" }
-                Loader {
-                    Layout.fillWidth:true
-                    sourceComponent:field.modelData.type==="secret"?secret:field.modelData.type==="file"?file:normal
-                    Component {
-                        id:normal
-                        GenericSettingRow {
-                            spec:field.modelData
-                            value:field.modelData.type==="bool"?root.form.data?.[field.modelData.key]==="yes":(root.form.data?.[field.modelData.key]??"")
-                            onEdited:v=>root.nested("data",field.modelData.key,field.modelData.type==="bool"?(v?"yes":"no"):String(v))
-                        }
-                    }
-                    Component {
-                        id:secret
-                        TextFieldRow {
-                            label:Tr.tr(field.modelData.label)
-                            subtext:Tr.tr("Leave empty to keep the stored credential")
-                            value:root.form.secrets?.[field.modelData.key]??""
-                            field.echoMode:TextInput.Password
-                            onValueEdited:v=>root.nested("secrets",field.modelData.key,v)
-                        }
-                    }
-                    Component {
-                        id:file
-                        ColumnLayout {
-                            TextFieldRow { label:Tr.tr(field.modelData.label);value:root.form.data?.[field.modelData.key]??"";onValueEdited:v=>root.nested("data",field.modelData.key,v) }
-                            RowButton { text:Tr.tr("Choose file");icon:"folder_open";onClicked:{root.fileKey=field.modelData.key;picker.open()} }
-                        }
-                    }
-                }
+                spec:modelData;settings:root.form.data??({});credentials:root.form.secrets??({})
+                onEdited:(k,v)=>root.nested("data",k,v)
+                onCredentialEdited:(k,v)=>root.nested("secrets",k,v)
+                onFileRequested:k=>{root.fileKey=k;picker.open()}
             }
         }
+
+        VpnTextArea {visible:root.wireguard;label:"IPv4 addresses";hint:"One address/prefix per line";value:root.form.ip4?.addresses??"";onEdited:v=>root.nested("ip4","addresses",v)}
+        VpnTextArea {visible:root.wireguard;label:"IPv6 addresses";hint:"One address/prefix per line";value:root.form.ip6?.addresses??"";onEdited:v=>{root.nested("ip6","addresses",v);root.nested("ip6","method",v.trim()?"manual":"disabled")}}
         ColumnLayout {
             visible:root.form.type==="wireguard";Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
             TextFieldRow { label:Tr.tr("WireGuard private key");subtext:Tr.tr("Leave empty to keep the stored credential");value:root.form.secrets?.["private-key"]??"";field.echoMode:TextInput.Password;onValueEdited:v=>root.nested("secrets","private-key",v) }
             RowButton {text:Tr.tr("Generate private key");icon:"key";onClicked:root.nested("secrets","private-key",NetworkManagerVpn.generateWireGuardKey())}
-            GenericSettingRow { spec:({label:"Listen port",type:"int",min:0,max:65535});value:root.form.wireguard?.listenPort??0;onEdited:v=>root.nested("wireguard","listenPort",v) }
-            GenericSettingRow { spec:({label:"MTU",type:"int",min:0,max:65535});value:root.form.wireguard?.mtu??0;onEdited:v=>root.nested("wireguard","mtu",v) }
-            TextFieldRow {label:"FwMark";value:String(root.form.wireguard?.fwmark??0);onValueEdited:v=>root.nested("wireguard","fwmark",Number(v))}
-            ToggleRow {text:Tr.tr("Create routes from allowed IPs");checked:root.form.wireguard?.peerRoutes??true;onToggled:v=>root.nested("wireguard","peerRoutes",v)}
             Repeater {
                 model:root.form.wireguard?.peers?.length??0
                 ColumnLayout {
@@ -105,18 +86,59 @@ PageBase {
                     TextFieldRow {label:Tr.tr("Public key");value:peer.modelData.publicKey??"";onEditingFinished:v=>peer.change("publicKey",v)}
                     TextFieldRow {label:Tr.tr("Endpoint");value:peer.modelData.endpoint??"";onEditingFinished:v=>peer.change("endpoint",v)}
                     TextFieldRow {label:Tr.tr("Allowed IPs");value:peer.modelData.allowedIPs??"";onEditingFinished:v=>peer.change("allowedIPs",v)}
-                    TextFieldRow {label:Tr.tr("Pre-shared key");value:peer.modelData.presharedKey??"";field.echoMode:TextInput.Password;onEditingFinished:v=>peer.change("presharedKey",v)}
-                    GenericSettingRow {spec:({label:"Persistent keepalive",type:"int",min:0,max:65535});value:peer.modelData.keepalive??0;onEdited:v=>peer.change("keepalive",v)}
                     RowButton {text:Tr.tr("Remove peer");icon:"remove";onClicked:{const peers=(root.form.wireguard?.peers??[]).slice();peers.splice(peer.index,1);root.nested("wireguard","peers",peers)}}
                 }
             }
             RowButton {text:Tr.tr("Add peer");icon:"add";onClicked:root.nested("wireguard","peers",[...(root.form.wireguard?.peers??[]),{publicKey:"",endpoint:"",allowedIPs:"",keepalive:0}])}
         }
-        VpnIpSettings { settings:root.form.ip4??({});onEdited:(k,v)=>root.nested("ip4",k,v) }
-        VpnIpSettings { ipv6:true;settings:root.form.ip6??({});onEdited:(k,v)=>root.nested("ip6",k,v) }
-        ToggleRow {visible:root.form.type!=="wireguard";text:Tr.tr("Advanced plugin properties");checked:root.advanced;onToggled:v=>root.advanced=v}
+        RowButton {
+            objectName:"vpnAdvancedToggle";first:true;last:true
+            text:Tr.tr("Advanced settings");icon:"tune";trailingIcon:root.advanced?"expand_less":"expand_more"
+            onClicked:root.advanced=!root.advanced
+        }
+        ColumnLayout {
+            objectName:"vpnAdvancedSettings";visible:root.advanced;Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
+            ColumnLayout {
+                visible:root.wireguard;Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
+            GenericSettingRow { spec:({label:"Listen port",type:"int",min:0,max:65535});value:root.form.wireguard?.listenPort??0;onEdited:v=>root.nested("wireguard","listenPort",v) }
+            GenericSettingRow { spec:({label:"MTU",type:"int",min:0,max:65535});value:root.form.wireguard?.mtu??0;onEdited:v=>root.nested("wireguard","mtu",v) }
+            TextFieldRow {label:"FwMark";value:String(root.form.wireguard?.fwmark??0);onValueEdited:v=>root.nested("wireguard","fwmark",Number(v))}
+            ToggleRow {text:Tr.tr("Create routes from allowed IPs");checked:root.form.wireguard?.peerRoutes??true;onToggled:v=>root.nested("wireguard","peerRoutes",v)}
+                Repeater {
+                    model:root.form.wireguard?.peers?.length??0
+                    ColumnLayout {
+                        id:advancedPeer
+                        required property int index
+                        readonly property var modelData:root.form.wireguard?.peers[index]??({})
+                        Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
+                        function change(key,value):void {const peers=(root.form.wireguard?.peers??[]).slice();peers[index]=Object.assign({},modelData,{[key]:value});root.nested("wireguard","peers",peers)}
+                        SectionHeader {text:Tr.tr("WireGuard peer")+" "+(index+1)}
+                    TextFieldRow {label:Tr.tr("Pre-shared key");value:advancedPeer.modelData.presharedKey??"";field.echoMode:TextInput.Password;onEditingFinished:v=>advancedPeer.change("presharedKey",v)}
+                    GenericSettingRow {spec:({label:"Persistent keepalive",type:"int",min:0,max:65535});value:advancedPeer.modelData.keepalive??0;onEdited:v=>advancedPeer.change("keepalive",v)}
+                    }
+                }
+            }
+            Repeater {
+                model:root.advanced?root.advancedFields:[]
+                VpnProtocolField {
+                    required property var modelData
+                    required property int index
+                    spec:modelData;settings:root.form.data??({});credentials:root.form.secrets??({})
+                    showSection:index===0||root.advancedFields[index-1]?.section!==modelData.section
+                    onEdited:(k,v)=>root.nested("data",k,v)
+                    onCredentialEdited:(k,v)=>root.nested("secrets",k,v)
+                    onFileRequested:k=>{root.fileKey=k;picker.open()}
+                }
+            }
+            VpnIpSettings {settings:root.form.ip4??({});onEdited:(k,v)=>root.nested("ip4",k,v)}
+            VpnIpSettings {ipv6:true;settings:root.form.ip6??({});onEdited:(k,v)=>root.nested("ip6",k,v)}
+            RowButton {visible:!!root.form.path;text:Tr.tr("Export configuration");subtext:Tr.tr("The export contains private credentials. Keep it secure.");icon:"file_save";disabled:NetworkManagerVpn.busy;onClicked:exporter.open()}
+            RowButton {visible:!!root.form.path;text:Tr.tr("Delete connection");icon:"delete";disabled:NetworkManagerVpn.busy;onClicked:root.confirmDelete=!root.confirmDelete}
+            RowButton {visible:root.confirmDelete;text:Tr.tr("Confirm deletion");icon:"delete_forever";disabled:NetworkManagerVpn.busy;onClicked:{root.deleting=true;NetworkManagerVpn.remove(root.form.path)}}
+            ToggleRow {visible:!root.wireguard;text:Tr.tr("Advanced plugin properties");checked:root.pluginData;onToggled:v=>root.pluginData=v}
+        }
         VpnTextArea {
-            visible:root.advanced&&root.form.type!=="wireguard"
+            visible:root.advanced&&root.pluginData&&!root.wireguard
             label:"Plugin data (JSON)";hint:"All plugin-specific keys are preserved. Edit the dictionary for options not shown above."
             value:JSON.stringify(root.form.data??({}),null,2)
             onEdited:v=>{try{const data=JSON.parse(v);if(data&&typeof data==="object"&&!Array.isArray(data)){root.set("data",data);root.jsonError=""}else root.jsonError=Tr.tr("Expected a JSON object")}catch(e){root.jsonError=Tr.tr("Invalid JSON")}}

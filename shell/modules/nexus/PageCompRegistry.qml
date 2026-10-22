@@ -78,6 +78,8 @@ QtObject {
                 Component {
                     SavedNetworksPage {}
                 }
+                Component { VpnEditorPage {} }
+                Component { VpnPluginsPage {} }
             }
         },
         Component {

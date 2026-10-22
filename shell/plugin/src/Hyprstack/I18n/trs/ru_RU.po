@@ -8507,3 +8507,21 @@ msgstr "Порт прослушивания"
 
 msgid "Persistent keepalive"
 msgstr "Интервал keepalive"
+
+msgid "Advanced settings"
+msgstr "Расширенные настройки"
+
+msgid "IPv4 addresses"
+msgstr "Адреса IPv4"
+
+msgid "IPv6 addresses"
+msgstr "Адреса IPv6"
+
+msgid "Network settings"
+msgstr "Настройки сети"
+
+msgid "Open network"
+msgstr "Открытая сеть"
+
+msgid "No connections available"
+msgstr "Нет доступных подключений"

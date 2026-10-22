@@ -14,13 +14,14 @@ PageBase {
     id: root
 
     title: Tr.tr("Network")
+    property bool externalVpnExpanded:false
+    property bool hotspotExpanded:false
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
-        NavRow {first:true;last:true;text:Tr.tr("NetworkManager VPN connections");icon:"vpn_key";subtext:Tr.tr("VPN profiles, protocol plugins, DNS and routes");onClicked:root.nState.openPage("vpn")}
 
         Timer {
             running: root.visible && Nmcli.wifiEnabled
@@ -115,8 +116,15 @@ PageBase {
         }
 
         FeatureError { error: Nmcli.lastError }
-        HotspotSettings {}
+        VpnSection {nState:root.nState;Layout.topMargin:Tokens.spacing.large}
 
+        RowButton {
+            visible:VPN.providers.length>0;first:true;last:true;text:Tr.tr("External VPN applications");icon:"vpn_key"
+            subtext:VPN.connected?Tr.tr("Connected"):Tr.tr("Disconnected")
+            trailingIcon:root.externalVpnExpanded?"expand_less":"expand_more";onClicked:root.externalVpnExpanded=!root.externalVpnExpanded
+        }
+        ColumnLayout {
+            visible:root.externalVpnExpanded;Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
         // ---- External VPN applications -------------------------------------------------------------
         ToggleRow {
             Layout.topMargin: Tokens.spacing.large
@@ -354,6 +362,11 @@ PageBase {
                 root.nState.openSubPage(4); // Add/edit provider sub-page
             }
         }
+
+
+        }
+        RowButton {first:true;last:true;text:Tr.tr("Wi-Fi hotspot");icon:"wifi_tethering";trailingIcon:root.hotspotExpanded?"expand_less":"expand_more";onClicked:root.hotspotExpanded=!root.hotspotExpanded}
+        HotspotSettings {visible:root.hotspotExpanded}
         SectionHeader { text:Tr.tr("Wi-Fi") }
         StepperRow {
             first: true
@@ -366,6 +379,5 @@ PageBase {
             stepSize: 5
             onMoved: v => GlobalConfig.nexus.networkRescanInterval = Math.round(v * 1000)
         }
-
     }
 }

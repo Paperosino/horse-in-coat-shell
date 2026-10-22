@@ -7,7 +7,7 @@ QtObject {
     id: root
 
     function route(id: string): var {
-        return ({canvas: {id:"windows",subPage:1}, themes: {id:"appearance",subPage:4},
+        return ({vpn:{id:"network"},canvas: {id:"windows",subPage:1}, themes: {id:"appearance",subPage:4},
             "live-wallpapers": {id:"appearance",subPage:5}, "system-controls": {id:"windows"},
             "session-services": {id:"services",subPage:2}, cursor: {id:"keyboard",subPage:4},
             gestures: {id:"keyboard",subPage:5}, "statusbar-layout": {id:"panels",subPage:12},
@@ -21,7 +21,7 @@ QtObject {
         ...navigationGroup("personalisation", ["appearance", "panels", "dock", "windows"]),
         ...navigationGroup("devices", ["display", "audio", "printers", "storage"]),
         ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "shortcuts", "accessibility"]),
-        ...navigationGroup("connections", ["network", "vpn", "bluetooth", "sharing"]),
+        ...navigationGroup("connections", ["network", "bluetooth", "sharing"]),
         ...navigationGroup("applications", ["apps", "default-apps", "autostart", "notifications", "plugins", "assistant"]),
         ...navigationGroup("system", ["power", "region", "datetime", "services", "about"])
     ])
