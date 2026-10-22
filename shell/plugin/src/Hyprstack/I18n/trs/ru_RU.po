@@ -8525,3 +8525,15 @@ msgstr "Открытая сеть"
 
 msgid "No connections available"
 msgstr "Нет доступных подключений"
+
+msgid "The VPN service stopped. Check the protocol service and its configuration."
+msgstr "Служба VPN остановилась. Проверьте службу выбранного протокола и её настройки."
+
+msgid "VPN connection failed. Check the server address, credentials and protocol settings."
+msgstr "Не удалось подключиться к VPN. Проверьте адрес сервера, учётные данные и настройки протокола."
+
+msgid "Libreswan IPsec service failed to start. Check ipsec.service."
+msgstr "Не удалось запустить службу IPsec Libreswan. Проверьте ipsec.service."
+
+msgid "Libreswan IPsec service did not become ready in time"
+msgstr "Служба IPsec Libreswan не запустилась за отведённое время"

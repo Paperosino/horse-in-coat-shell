@@ -36,14 +36,38 @@ class Settings(dbus.service.Object):
  def AddConnection2(self,data,flags,args):
   log('AddConnection2',data);p=Profile(10+len(profiles),data);profiles[p.path]=p;return p.path,{}
 class Manager(dbus.service.Object):
+ failure=False
+ @dbus.service.method('org.hics.Test',in_signature='b')
+ def SetFailure(self,value):Manager.failure=bool(value)
  @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
  def Get(self,iface,prop):
   if prop=='ActiveConnections':return dbus.Array([],signature='o')
   raise dbus.exceptions.DBusException('Unknown property')
  @dbus.service.method('org.freedesktop.NetworkManager',in_signature='ooo',out_signature='o')
- def ActivateConnection(self,path,device,specific):log('ActivateConnection',path);return ROOT+'/ActiveConnection/1'
+ def ActivateConnection(self,path,device,specific):
+  log('ActivateConnection',path)
+  if Manager.failure:GLib.timeout_add(150,active.fail);Manager.failure=False
+  return ROOT+'/ActiveConnection/1'
  @dbus.service.method('org.freedesktop.NetworkManager',in_signature='o')
  def DeactivateConnection(self,path):log('DeactivateConnection',path)
+class Active(dbus.service.Object):
+ @dbus.service.signal('org.freedesktop.NetworkManager.VPN.Connection',signature='uu')
+ def VpnStateChanged(self,state,reason):pass
+ @dbus.service.signal('org.freedesktop.NetworkManager.Connection.Active',signature='uu')
+ def StateChanged(self,state,reason):pass
+ def fail(self):self.VpnStateChanged(dbus.UInt32(6),dbus.UInt32(4));self.StateChanged(dbus.UInt32(4),dbus.UInt32(0));return False
+active=Active(bus,ROOT+'/ActiveConnection/1')
+systemd_name=dbus.service.BusName('org.freedesktop.systemd1',bus)
+class Systemd(dbus.service.Object):
+ active=False
+ @dbus.service.method('org.freedesktop.systemd1.Manager',in_signature='s',out_signature='o')
+ def LoadUnit(self,unit):return '/org/freedesktop/systemd1/unit/ipsec_2eservice'
+ @dbus.service.method('org.freedesktop.systemd1.Manager',in_signature='ss',out_signature='o')
+ def StartUnit(self,unit,mode):log('StartUnit',unit);Systemd.active=True;return '/org/freedesktop/systemd1/job/1'
+class IpsecUnit(dbus.service.Object):
+ @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
+ def Get(self,iface,key):return 'active' if Systemd.active else 'inactive'
+systemd=Systemd(bus,'/org/freedesktop/systemd1');ipsec=IpsecUnit(bus,'/org/freedesktop/systemd1/unit/ipsec_2eservice')
 secret_name=dbus.service.BusName('org.freedesktop.secrets',bus)
 class SecretStore(dbus.service.Object):
  @dbus.service.method('org.freedesktop.Secret.Service',in_signature='sv',out_signature='vo')
@@ -64,12 +88,12 @@ class AgentManager(dbus.service.Object):
  @dbus.service.method('org.hics.Test',in_signature='ss',out_signature='s',async_callbacks=('reply','error'))
  def Request(self,mode,sender,reply,error):
   connection=settings();connection['vpn']['service-type']='org.freedesktop.NetworkManager.pptp' if mode=='agent-plugin-submit' else 'org.hics.fixture.no-plugin'
-  if mode=='agent-existing-secrets':connection['vpn']['secrets']=dbus.Dictionary({'password':'system-fixture-password'},signature='ss')
+  if mode in ('agent-existing-secrets','agent-prompt-prefill'):connection['vpn']['secrets']=dbus.Dictionary({'password':'system-fixture-password'},signature='ss')
   if mode=='agent-plugin-submit':connection['vpn']['data']=dbus.Dictionary({'gateway':'vpn.example','user':'fixture','password-flags':'2'},signature='ss')
   agent=dbus.Interface(bus.get_object(sender,'/org/freedesktop/NetworkManager/SecretAgent',introspect=False),'org.freedesktop.NetworkManager.SecretAgent')
   def success(result):reply(json.dumps({'password':str(result.get('vpn',{}).get('secrets',{}).get('password',''))}))
   def failure(exception):reply(json.dumps({'errorName':exception.get_dbus_name()}))
-  agent.GetSecrets(connection,dbus.ObjectPath(ROOT+'/Settings/1'),'vpn',dbus.Array(['password'],signature='s'),dbus.UInt32(0 if mode in ('agent-no-interaction','agent-existing-secrets') else 3),reply_handler=success,error_handler=failure,timeout=10)
+  agent.GetSecrets(connection,dbus.ObjectPath(ROOT+'/Settings/1'),'vpn',dbus.Array(['password'],signature='s'),dbus.UInt32(0 if mode in ('agent-no-interaction','agent-existing-secrets') else (1 if mode=='agent-prompt-prefill' else 3)),reply_handler=success,error_handler=failure,timeout=10)
 agent_manager=AgentManager(bus,ROOT+'/AgentManager')
 profiles={}
 p=Profile(1,settings());profiles[p.path]=p

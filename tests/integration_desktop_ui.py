@@ -85,10 +85,53 @@ ShellRoot {
   property string error:""
   property string activated
   property string deactivated
+  property string removed
+  property var plugins:[]
+  property var draft:({})
+  signal changed()
+  function remove(path):void {removed=path;profiles=profiles.filter(p=>p.path!==path)}
+  function edit(path):void {}
   property var profiles:Array.from({length:25},(_,i)=>({name:"VPN "+i,path:"/profile/"+i,active:i===0,state:2,activePath:"/active/"+i}))
   function refresh():void {}
   function activate(path):void {activated=path}
   function deactivate(path):void {deactivated=path}
+ }
+ VpnPasswordField {id:passwordProbe;parent:host;width:800;label:"Password";value:"saved-fixture-password"}
+ VpnSection {id:deleteProbe;parent:host;width:800;nState:root.state;vpnBackend:root.fakeQuickVpn}
+ property QtObject fakeAuthAgent:QtObject {
+  property var challenge:({requestId:1,name:"VPN fixture",fields:[{key:"password",label:"Password",value:"saved-auth-fixture",secret:true}]})
+  property string error:""
+  signal changed()
+  function submit(values,remember):void {}
+  function cancel():void {if(challenge.name){challenge=({});changed()}}
+ }
+ VpnAuthentication {id:authProbe;agent:root.fakeAuthAgent}
+ function findNamed(item,name):var {
+  if(item.objectName===name)return item;
+  for(const child of item.children??[]){const found=findNamed(child,name);if(found)return found;}
+  return null;
+ }
+ Timer {
+  interval:2000;running:true
+  onTriggered:{
+   if(!root.check(passwordProbe.field.echoMode===TextInput.Password&&passwordProbe.field.text==="saved-fixture-password","stored password is present but masked"))return;
+   passwordProbe.toggleVisibility();
+   if(!root.check(passwordProbe.field.echoMode===TextInput.Normal&&passwordProbe.field.text==="saved-fixture-password","show password preserves the value"))return;
+   passwordProbe.toggleVisibility();
+   if(!root.check(passwordProbe.field.echoMode===TextInput.Password,"password can be hidden again"))return;
+   if(!root.check(authProbe.credentials.password==="saved-auth-fixture","authentication input is prefilled"))return;
+   authProbe.credentials={password:"typed-auth-fixture"};root.fakeAuthAgent.changed();
+   if(!root.check(authProbe.credentials.password==="typed-auth-fixture","authentication updates do not clear input"))return;
+   const removeButton=root.findNamed(deleteProbe,"vpnDeleteButton");
+   if(!root.check(removeButton!==null,"delete action exists beside VPN profiles"))return;
+   removeButton.clicked();
+   if(!root.check(!!deleteProbe.removingPath&&!root.fakeQuickVpn.removed,"deletion requires confirmation"))return;
+   const path=deleteProbe.removingPath;
+   root.findNamed(deleteProbe,"vpnConfirmDelete").clicked(null);
+   if(!root.check(root.fakeQuickVpn.removed===path&&!deleteProbe.removingPath,"confirmed deletion removes exactly the chosen profile"))return;
+   passwordProbe.visible=false;deleteProbe.visible=false;root.fakeAuthAgent.cancel();
+   console.log("VPN_CREDENTIALS_DELETE_OK");
+  }
  }
  Popouts.PopoutState {id:quickPopoutState;screen:Quickshell.screens[0]}
  Popouts.Network {id:quickNetwork;parent:host;popouts:quickPopoutState;vpnBackend:root.fakeQuickVpn}
@@ -305,7 +348,7 @@ ShellRoot {
             'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=60)
         output = run.stdout + run.stderr
         print(output[-24000:])
-        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
+        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'VPN_CREDENTIALS_DELETE_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
         forbidden = ('TypeError:', 'ReferenceError:', 'Unable to assign', 'PAGE_CREATION_FAILED', 'Cannot assign to non-existent', 'Binding loop', 'NOTIFICATION_TEST_FAILED')
         assert not any(message in output for message in forbidden), 'QML runtime errors'
         import json

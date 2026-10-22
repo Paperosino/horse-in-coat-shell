@@ -50,10 +50,12 @@ private:
   QVariantList m_plugins, m_profiles;
   QVariantMap m_draft;
   QString m_activationPath;
+  bool m_vpnFailureReceived = false;
   void run(std::function<QVariantMap()> task,
            std::function<void(const QVariantMap &)> done,
            bool clearError = true);
 private slots:
   void activationStateChanged(uint state, uint reason);
+  void vpnStateChanged(uint state, uint reason);
 };
 } // namespace hyprstack::services

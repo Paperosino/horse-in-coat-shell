@@ -232,8 +232,12 @@ VpnSettings VpnSecretAgent::GetSecrets(const VpnSettings &connection,
   }
   keys.removeDuplicates();
   for (const auto &key : keys)
-    fields << QVariantMap{{"key", key}, {"label", key}};
-  QVariantMap challenge{{"name", connection.value("connection").value("id")},
+    fields << QVariantMap{
+        {"key", key},
+        {"label", key},
+        {"value", (flags & 2) ? QString() : cache.value(key).toString()}};
+  QVariantMap challenge{{"requestId", qulonglong(serial)},
+                        {"name", connection.value("connection").value("id")},
                         {"prompt", prompt},
                         {"fields", fields}};
   if ((flags & 2) && (flags & 1)) {
@@ -416,7 +420,8 @@ bool VpnSecretAgent::startPluginAuthentication(const VpnSettings &connection,
           if (g_key_file_get_boolean(keyfile, groups[i], "ShouldAsk", nullptr))
             fields << QVariantMap{{"key", key},
                                   {"label", value(groups[i], "Label")},
-                                  {"secret", isSecret}};
+                                  {"secret", isSecret},
+                                  {"value", value(groups[i], "Value")}};
           else if (isSecret && !value(groups[i], "Value").isEmpty())
             m_helperValues[key] = value(groups[i], "Value");
         }
@@ -427,7 +432,8 @@ bool VpnSecretAgent::startPluginAuthentication(const VpnSettings &connection,
           reply(m_helperValues);
           return;
         }
-        m_challenge = {{"name", connection.value("connection").value("id")},
+        m_challenge = {{"requestId", qulonglong(serial)},
+                       {"name", connection.value("connection").value("id")},
                        {"prompt", prompt},
                        {"fields", fields}};
         m_error.clear();

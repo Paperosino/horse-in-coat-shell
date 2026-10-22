@@ -72,7 +72,7 @@ PageBase {
         VpnTextArea {visible:root.wireguard;label:"IPv6 addresses";hint:"One address/prefix per line";value:root.form.ip6?.addresses??"";onEdited:v=>{root.nested("ip6","addresses",v);root.nested("ip6","method",v.trim()?"manual":"disabled")}}
         ColumnLayout {
             visible:root.form.type==="wireguard";Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
-            TextFieldRow { label:Tr.tr("WireGuard private key");subtext:Tr.tr("Leave empty to keep the stored credential");value:root.form.secrets?.["private-key"]??"";field.echoMode:TextInput.Password;onValueEdited:v=>root.nested("secrets","private-key",v) }
+            VpnPasswordField { label:Tr.tr("WireGuard private key");subtext:Tr.tr("Leave empty to keep the stored credential");value:root.form.secrets?.["private-key"]??"";onValueEdited:v=>root.nested("secrets","private-key",v) }
             RowButton {text:Tr.tr("Generate private key");icon:"key";onClicked:root.nested("secrets","private-key",NetworkManagerVpn.generateWireGuardKey())}
             Repeater {
                 model:root.form.wireguard?.peers?.length??0
@@ -113,7 +113,7 @@ PageBase {
                         Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
                         function change(key,value):void {const peers=(root.form.wireguard?.peers??[]).slice();peers[index]=Object.assign({},modelData,{[key]:value});root.nested("wireguard","peers",peers)}
                         SectionHeader {text:Tr.tr("WireGuard peer")+" "+(index+1)}
-                    TextFieldRow {label:Tr.tr("Pre-shared key");value:advancedPeer.modelData.presharedKey??"";field.echoMode:TextInput.Password;onEditingFinished:v=>advancedPeer.change("presharedKey",v)}
+                    VpnPasswordField {label:Tr.tr("Pre-shared key");value:advancedPeer.modelData.presharedKey??"";onEditingFinished:v=>advancedPeer.change("presharedKey",v)}
                     GenericSettingRow {spec:({label:"Persistent keepalive",type:"int",min:0,max:65535});value:advancedPeer.modelData.keepalive??0;onEdited:v=>advancedPeer.change("keepalive",v)}
                     }
                 }

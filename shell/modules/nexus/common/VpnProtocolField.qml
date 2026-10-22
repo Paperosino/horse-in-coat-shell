@@ -29,11 +29,10 @@ ColumnLayout {
     }
     Component {
         id:secret
-        TextFieldRow {
+        VpnPasswordField {
             label:Tr.tr(root.spec.label)
             subtext:Tr.tr("Leave empty to keep the stored credential")
             value:root.credentials[root.spec.key]??""
-            field.echoMode:TextInput.Password
             onValueEdited:v=>root.credentialEdited(root.spec.key,v)
         }
     }

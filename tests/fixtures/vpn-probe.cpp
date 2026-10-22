@@ -28,10 +28,18 @@ int main(int argc, char **argv) {
       loop.exec();
   };
   QVariantMap result;
+  QString prefilled;
   if (mode.startsWith("agent-")) {
     VpnSecretAgent agent;
     QObject::connect(&agent, &VpnSecretAgent::changed, &app, [&] {
       if (!agent.challenge().isEmpty()) {
+        prefilled = agent.challenge()
+                        .value("fields")
+                        .toList()
+                        .value(0)
+                        .toMap()
+                        .value("value")
+                        .toString();
         if (mode == "agent-cancel")
           agent.cancel();
         else
@@ -72,6 +80,12 @@ int main(int argc, char **argv) {
                          .toVariant()
                          .toMap();
     }
+    if (mode == "agent-prompt-prefill")
+      result["prefilled"] = prefilled;
+  } else if (mode == "draft") {
+    vpn.edit("/org/freedesktop/NetworkManager/Settings/1");
+    wait();
+    result = {{"draft", vpn.draft()}, {"error", vpn.error()}};
   } else if (mode == "roundtrip-no-secrets") {
     // Explicit host integration mode: never activate the disposable profile.
     QString path;
@@ -200,9 +214,24 @@ int main(int argc, char **argv) {
                    QUrl::fromLocalFile(app.arguments().value(3)));
     wait();
     result = {{"draft", vpn.draft()}, {"error", vpn.error()}};
-  } else if (mode == "activate") {
-    vpn.activate("/org/freedesktop/NetworkManager/Settings/1");
+  } else if (mode == "activate" || mode == "activate-libreswan" ||
+             mode == "activate-failure") {
+    if (mode == "activate-failure") {
+      auto request = QDBusMessage::createMethodCall(
+          "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+          "org.hics.Test", "SetFailure");
+      request.setArguments({true});
+      QDBusConnection::systemBus().call(request);
+    }
+    vpn.activate(mode == "activate-libreswan"
+                     ? "/org/freedesktop/NetworkManager/Settings/3"
+                     : "/org/freedesktop/NetworkManager/Settings/1");
     wait();
+    if (mode == "activate-failure") {
+      QEventLoop loop;
+      QTimer::singleShot(400, &loop, &QEventLoop::quit);
+      loop.exec();
+    }
     result = {{"error", vpn.error()}};
   }
   auto data = QJsonDocument::fromVariant(result).toJson(QJsonDocument::Compact);

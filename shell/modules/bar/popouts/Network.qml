@@ -109,7 +109,7 @@ ColumnLayout {
     StyledText {visible:root.connectionRows.length===0;Layout.fillWidth:true;text:Tr.tr("No connections available");wrapMode:Text.WordWrap;font:Tokens.font.body.small;color:Colours.palette.m3onSurfaceVariant}
     StyledText {
         Layout.fillWidth:true;visible:text.length>0
-        text:root.vpnBackend.error||Nmcli.lastError
+        text:Tr.tr(root.vpnBackend.error||Nmcli.lastError)
         color:Colours.palette.m3error;font:Tokens.font.body.small;wrapMode:Text.Wrap;maximumLineCount:2;elide:Text.ElideRight;textFormat:Text.PlainText
     }
     RowButton {first:true;last:true;objectName:"networkSettingsRow";text:Tr.tr("Network settings");icon:"settings";onClicked:root.openSettings()}

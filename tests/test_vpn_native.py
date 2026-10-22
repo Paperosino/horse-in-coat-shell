@@ -45,7 +45,7 @@ class VpnNativeTests(unittest.TestCase):
  def test_wireguard_import_is_an_unsaved_draft(self):
   import base64
   source=self.base/'wg-fixture.conf';source.write_text('[Interface]\nPrivateKey = '+base64.b64encode(b'a'*32).decode()+'\nAddress = 10.3.0.2/32\nDNS = 9.9.9.9\n\n[Peer]\nPublicKey = '+base64.b64encode(b'b'*32).decode()+'\nAllowedIPs = 0.0.0.0/0\nEndpoint = vpn.example:51820\n')
-  result=self.run_probe('import','wireguard',str(source));self.assertEqual(result['error'],'');self.assertEqual(result['draft']['type'],'wireguard');self.assertNotIn('private-key',result['draft']['secrets']);self.assertEqual(self.calls(),[])
+  result=self.run_probe('import','wireguard',str(source));self.assertEqual(result['error'],'');self.assertEqual(result['draft']['type'],'wireguard');self.assertEqual(result['draft']['secrets']['private-key'],base64.b64encode(b'a'*32).decode());self.assertEqual(self.calls(),[])
 
  def test_secret_agent_requires_trusted_networkmanager_sender(self):
   result=self.run_probe('agent-untrusted');self.assertEqual(result['errorName'],'org.freedesktop.DBus.Error.AccessDenied')
@@ -77,3 +77,15 @@ class VpnNativeTests(unittest.TestCase):
 
  def test_secret_agent_returns_system_credentials_for_noninteractive_editor_reads(self):
   result=self.run_probe('agent-existing-secrets');self.assertEqual(result.get('password'),'system-fixture-password',result)
+
+ def test_editor_loads_saved_credentials_for_masked_password_fields(self):
+  result=self.run_probe('draft');self.assertEqual(result['error'],'');self.assertEqual(result['draft']['secrets']['password'],'stored-password')
+ def test_libreswan_activation_starts_its_ipsec_service_first(self):
+  result=self.run_probe('activate-libreswan');self.assertEqual(result['error'],'')
+  calls=self.calls();start=next(i for i,c in enumerate(calls) if c['method']=='StartUnit');activate=next(i for i,c in enumerate(calls) if c['method']=='ActivateConnection')
+  self.assertLess(start,activate);self.assertEqual(calls[start]['data'],'ipsec.service')
+ def test_interactive_prompt_is_prefilled_with_supplied_password(self):
+  result=self.run_probe('agent-prompt-prefill');self.assertEqual(result.get('prefilled'),'system-fixture-password',result)
+
+ def test_specific_vpn_failure_is_not_replaced_by_generic_reason_zero(self):
+  result=self.run_probe('activate-failure');self.assertIn('service stopped',result['error']);self.assertNotIn('reason 0',result['error'])

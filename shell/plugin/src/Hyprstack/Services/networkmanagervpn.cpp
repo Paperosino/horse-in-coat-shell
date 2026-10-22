@@ -1,6 +1,7 @@
 #include "networkmanagervpn.hpp"
 #include <QDBusConnection>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFutureWatcher>
 #include <QJsonArray>
@@ -11,6 +12,7 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QThread>
 #include <QUuid>
 #include <QtConcurrent>
 #include <cstring>
@@ -85,6 +87,50 @@ V property(GDBusConnection *b, const QString &path, const char *iface,
                     g_variant_new("(ss)", iface, name));
   auto wrapped = child(reply.get());
   return variant(g_variant_get_variant(wrapped.get()));
+}
+void ensureLibreswanService(GDBusConnection *b) {
+  auto systemd = [&](const QString &path, const char *iface, const char *method,
+                     GVariant *args) {
+    GError *error = nullptr;
+    auto reply = variant(g_dbus_connection_call_sync(
+        b, "org.freedesktop.systemd1", path.toUtf8().constData(), iface, method,
+        args, nullptr, G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 30000,
+        nullptr, &error));
+    if (error) {
+      auto detail = text(error->message);
+      g_error_free(error);
+      fail("Cannot start the Libreswan IPsec service: " + detail);
+    }
+    return reply;
+  };
+  auto reply =
+      systemd("/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager",
+              "LoadUnit", g_variant_new("(s)", "ipsec.service"));
+  auto object = child(reply.get());
+  auto path = text(g_variant_get_string(object.get(), nullptr));
+  auto state = [&] {
+    auto reply = systemd(
+        path, "org.freedesktop.DBus.Properties", "Get",
+        g_variant_new("(ss)", "org.freedesktop.systemd1.Unit", "ActiveState"));
+    auto wrapped = child(reply.get());
+    auto value = variant(g_variant_get_variant(wrapped.get()));
+    return text(g_variant_get_string(value.get(), nullptr));
+  };
+  if (state() == "active")
+    return;
+  systemd("/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager",
+          "StartUnit", g_variant_new("(ss)", "ipsec.service", "replace"));
+  QElapsedTimer timer;
+  timer.start();
+  while (timer.elapsed() < 20000) {
+    const auto current = state();
+    if (current == "active")
+      return;
+    if (current == "failed")
+      fail("Libreswan IPsec service failed to start. Check ipsec.service.");
+    QThread::msleep(100);
+  }
+  fail("Libreswan IPsec service did not become ready in time");
 }
 QString string(GVariant *value) {
   return value ? text(g_variant_get_string(value, nullptr)) : QString();
@@ -216,6 +262,16 @@ QVariantMap toDraft(NMConnection *c, const QString &path = {}) {
           static_cast<QVariantMap *>(out)->insert(text(key), text(value));
         },
         &data);
+  QVariantMap credentials;
+  if (vpn)
+    nm_setting_vpn_foreach_secret(
+        vpn,
+        [](const char *key, const char *value, gpointer out) {
+          static_cast<QVariantMap *>(out)->insert(text(key), text(value));
+        },
+        &credentials);
+  else if (auto *wg = getWireGuard(c))
+    credentials["private-key"] = text(nm_setting_wireguard_get_private_key(wg));
   QVariantMap result{
       {"path", path},
       {"uuid", text(nm_connection_get_uuid(c))},
@@ -224,7 +280,7 @@ QVariantMap toDraft(NMConnection *c, const QString &path = {}) {
       {"interface", text(nm_connection_get_interface_name(c))},
       {"autoconnect", bool(nm_setting_connection_get_autoconnect(meta))},
       {"data", data},
-      {"secrets", QVariantMap{}},
+      {"secrets", credentials},
       {"ip4", ipDraft(nm_connection_get_setting_ip4_config(c))},
       {"ip6", ipDraft(nm_connection_get_setting_ip6_config(c))}};
   if (auto *wg = getWireGuard(c)) {
@@ -241,6 +297,7 @@ QVariantMap toDraft(NMConnection *c, const QString &path = {}) {
       peers << QVariantMap{
           {"publicKey", text(nm_wireguard_peer_get_public_key(p))},
           {"endpoint", text(nm_wireguard_peer_get_endpoint(p))},
+          {"presharedKey", text(nm_wireguard_peer_get_preshared_key(p))},
           {"allowedIPs", allowed.join(", ")},
           {"keepalive", int(nm_wireguard_peer_get_persistent_keepalive(p))}};
     }
@@ -680,6 +737,7 @@ void NetworkManagerVpn::edit(const QString &path) {
       [path] {
         auto b = bus();
         auto c = readConnection(b.get(), path);
+        preserveSecrets(b.get(), path, c.get());
         return toDraft(c.get(), path);
       },
       [this](const QVariantMap &draft) {
@@ -753,32 +811,59 @@ void NetworkManagerVpn::activate(const QString &path) {
       [path] {
         auto b = bus();
         auto c = readConnection(b.get(), path);
+        if (auto *vpn = nm_connection_get_setting_vpn(c.get());
+            vpn && text(nm_setting_vpn_get_service_type(vpn)) ==
+                       "org.freedesktop.NetworkManager.libreswan")
+          ensureLibreswanService(b.get());
         auto reply =
             call(b.get(), root, service, "ActivateConnection",
                  g_variant_new("(ooo)", path.toUtf8().constData(), "/", "/"));
         return QVariantMap{{"activePath", string(child(reply.get()).get())}};
       },
       [this](const QVariantMap &result) {
-        if (!m_activationPath.isEmpty())
+        if (!m_activationPath.isEmpty()) {
+          QDBusConnection::systemBus().disconnect(
+              service, m_activationPath,
+              "org.freedesktop.NetworkManager.VPN.Connection",
+              "VpnStateChanged", this, SLOT(vpnStateChanged(uint, uint)));
           QDBusConnection::systemBus().disconnect(
               service, m_activationPath,
               "org.freedesktop.NetworkManager.Connection.Active",
               "StateChanged", this, SLOT(activationStateChanged(uint, uint)));
+        }
+        m_vpnFailureReceived = false;
         m_activationPath = result.value("activePath").toString();
         QDBusConnection::systemBus().connect(
             service, m_activationPath,
             "org.freedesktop.NetworkManager.Connection.Active", "StateChanged",
             this, SLOT(activationStateChanged(uint, uint)));
+        QDBusConnection::systemBus().connect(
+            service, m_activationPath,
+            "org.freedesktop.NetworkManager.VPN.Connection", "VpnStateChanged",
+            this, SLOT(vpnStateChanged(uint, uint)));
         emit operationSucceeded();
         refresh();
       });
 }
+void NetworkManagerVpn::vpnStateChanged(uint state, uint reason) {
+  if (state != NM_VPN_CONNECTION_STATE_FAILED &&
+      state != NM_VPN_CONNECTION_STATE_DISCONNECTED)
+    return;
+  if (reason == NM_VPN_CONNECTION_STATE_REASON_USER_DISCONNECTED)
+    return;
+  activationStateChanged(4, reason);
+  m_vpnFailureReceived = true;
+}
 void NetworkManagerVpn::activationStateChanged(uint state, uint reason) {
-  if (state != 4 || reason == 2)
+  if (state != 4 || reason == 2 || (reason == 0 && m_vpnFailureReceived))
     return;
   switch (reason) {
   case 3:
     m_error = tr("The underlying network disconnected");
+    break;
+  case 4:
+    m_error = tr("The VPN service stopped. Check the protocol service and its "
+                 "configuration.");
     break;
   case 5:
     m_error = tr("The VPN returned an invalid IP configuration");
@@ -798,8 +883,8 @@ void NetworkManagerVpn::activationStateChanged(uint state, uint reason) {
     m_error = tr("The VPN server rejected authentication");
     break;
   default:
-    m_error =
-        tr("VPN activation failed (NetworkManager reason %1)").arg(reason);
+    m_error = tr("VPN connection failed. Check the server address, credentials "
+                 "and protocol settings.");
     break;
   }
   emit changed();
