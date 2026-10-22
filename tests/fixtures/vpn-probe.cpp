@@ -214,6 +214,13 @@ int main(int argc, char **argv) {
                    QUrl::fromLocalFile(app.arguments().value(3)));
     wait();
     result = {{"draft", vpn.draft()}, {"error", vpn.error()}};
+  } else if (mode.startsWith("deactivate")) {
+    vpn.deactivate("/org/freedesktop/NetworkManager/ActiveConnection/" +
+                   QString(mode == "deactivate-inactive" ? "2"
+                           : mode == "deactivate-denied" ? "3"
+                                                         : "1"));
+    wait();
+    result = {{"error", vpn.error()}};
   } else if (mode == "activate" || mode == "activate-libreswan" ||
              mode == "activate-failure") {
     if (mode == "activate-failure") {

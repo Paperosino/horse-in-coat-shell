@@ -89,3 +89,10 @@ class VpnNativeTests(unittest.TestCase):
 
  def test_specific_vpn_failure_is_not_replaced_by_generic_reason_zero(self):
   result=self.run_probe('activate-failure');self.assertIn('service stopped',result['error']);self.assertNotIn('reason 0',result['error'])
+
+ def test_disconnect_already_inactive_is_success(self):
+  self.assertEqual(self.run_probe('deactivate-inactive')['error'],'')
+ def test_disconnect_permission_failure_is_reported(self):
+  self.assertIn('Permission denied',self.run_probe('deactivate-denied')['error'])
+ def test_disconnect_active_is_success(self):
+  self.assertEqual(self.run_probe('deactivate')['error'],'')

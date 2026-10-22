@@ -49,7 +49,10 @@ class Manager(dbus.service.Object):
   if Manager.failure:GLib.timeout_add(150,active.fail);Manager.failure=False
   return ROOT+'/ActiveConnection/1'
  @dbus.service.method('org.freedesktop.NetworkManager',in_signature='o')
- def DeactivateConnection(self,path):log('DeactivateConnection',path)
+ def DeactivateConnection(self,path):
+  log('DeactivateConnection',path)
+  if str(path).endswith('/2'):raise dbus.exceptions.DBusException('The connection was not active.',name='org.freedesktop.NetworkManager.ConnectionNotActive')
+  if str(path).endswith('/3'):raise dbus.exceptions.DBusException('Permission denied',name='org.freedesktop.NetworkManager.PermissionDenied')
 class Active(dbus.service.Object):
  @dbus.service.signal('org.freedesktop.NetworkManager.VPN.Connection',signature='uu')
  def VpnStateChanged(self,state,reason):pass

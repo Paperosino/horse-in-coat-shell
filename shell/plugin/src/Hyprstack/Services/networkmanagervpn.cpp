@@ -935,8 +935,26 @@ void NetworkManagerVpn::deactivate(const QString &path) {
                  .hasMatch())
           fail("Invalid active connection path");
         auto b = bus();
-        call(b.get(), root, service, "DeactivateConnection",
-             g_variant_new("(o)", path.toUtf8().constData()));
+        GError *error = nullptr;
+        auto reply = variant(g_dbus_connection_call_sync(
+            b.get(), service, root, service, "DeactivateConnection",
+            g_variant_new("(o)", path.toUtf8().constData()), nullptr,
+            G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 90000, nullptr,
+            &error));
+        if (error) {
+          // The VPN may finish disconnecting between the UI click and this
+          // call.
+          auto name = g_dbus_error_get_remote_error(error);
+          const bool alreadyInactive =
+              g_strcmp0(name,
+                        "org.freedesktop.NetworkManager.ConnectionNotActive") ==
+              0;
+          g_free(name);
+          if (!alreadyInactive)
+            check(error);
+          else
+            g_error_free(error);
+        }
         return QVariantMap{};
       },
       [this](const QVariantMap &) {
