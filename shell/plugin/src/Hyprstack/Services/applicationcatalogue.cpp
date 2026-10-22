@@ -1,6 +1,7 @@
 #include "applicationcatalogue.hpp"
 #include <QDirIterator>
 #include <QFileInfo>
+#include <QFile>
 #include <QProcess>
 #include <QSet>
 #include <QStandardPaths>
@@ -51,14 +52,43 @@ void DesktopApplication::execute() {
   auto *process = new QProcess(this);
   process->setProgram("gio");
   process->setArguments({"launch", m_path});
+  // gio exits before the application finishes starting. Pipes owned by this
+  // QProcess disappear on deleteLater(), giving the application SIGPIPE on
+  // its next log write. A regular file remains valid in the spawned process.
+  const auto logDirectory = QStandardPaths::writableLocation(
+      QStandardPaths::GenericStateLocation) + "/hics/applications";
+  QDir().mkpath(logDirectory);
+  QFile::setPermissions(logDirectory, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+  const auto logPath = logDirectory + "/" + id() + ".log";
+  if (QFileInfo(logPath).size() > 1024 * 1024) {
+    QFile::remove(logPath + ".old");
+    QFile::rename(logPath, logPath + ".old");
+  }
+  QFile log(logPath);
+  if (!log.open(QIODevice::WriteOnly | QIODevice::Append)) {
+    emit launchFailed(tr("Cannot open application launch log: %1").arg(log.errorString()));
+    process->deleteLater();
+    return;
+  }
+  log.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
+  const auto logOffset = log.size();
+  log.close();
+  process->setProcessChannelMode(QProcess::MergedChannels);
+  process->setStandardOutputFile(logPath, QIODevice::Append);
   connect(process, &QProcess::errorOccurred, this, [this, process] {
     emit launchFailed(process->errorString());
     process->deleteLater();
   });
-  connect(process, &QProcess::finished, this, [this, process](int code) {
-    if (code)
-      emit launchFailed(
-          QString::fromUtf8(process->readAllStandardError()).trimmed());
+  connect(process, &QProcess::finished, this, [this, process, logPath, logOffset](int code) {
+    if (code) {
+      QFile output(logPath);
+      QString detail;
+      if (output.open(QIODevice::ReadOnly)) {
+        output.seek(logOffset);
+        detail = QString::fromUtf8(output.read(16384)).trimmed();
+      }
+      emit launchFailed(detail.isEmpty() ? tr("Application launcher exited with code %1").arg(code) : detail);
+    }
     process->deleteLater();
   });
   process->start();
