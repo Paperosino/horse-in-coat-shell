@@ -23,10 +23,22 @@
         "label": "Authentication",
         "type": "choice",
         "choices": [
-          "tls",
-          "password",
-          "password-tls",
-          "static-key"
+          {
+            "label": "Certificates (TLS)",
+            "value": "tls"
+          },
+          {
+            "label": "Password",
+            "value": "password"
+          },
+          {
+            "label": "Password and certificates",
+            "value": "password-tls"
+          },
+          {
+            "label": "Static key",
+            "value": "static-key"
+          }
         ]
       },
       {
@@ -298,7 +310,7 @@
   },
   {
     "id": "l2tp",
-    "name": "L2TP / IPsec",
+    "name": "L2TP/IPsec",
     "service": "org.freedesktop.NetworkManager.l2tp",
     "package": "networkmanager-l2tp",
     "fields": [
@@ -313,8 +325,14 @@
         "label": "User authentication",
         "type": "choice",
         "choices": [
-          "password",
-          "tls"
+          {
+            "label": "Password",
+            "value": "password"
+          },
+          {
+            "label": "Certificates (TLS)",
+            "value": "tls"
+          }
         ]
       },
       {
@@ -363,8 +381,14 @@
         "label": "Machine authentication",
         "type": "choice",
         "choices": [
-          "psk",
-          "tls"
+          {
+            "label": "Pre-shared key",
+            "value": "psk"
+          },
+          {
+            "label": "Certificates (TLS)",
+            "value": "tls"
+          }
         ],
         "section": "IPsec"
       },
@@ -691,7 +715,7 @@
   },
   {
     "id": "strongswan",
-    "name": "IPsec / IKEv2 (strongSwan)",
+    "name": "IKEv2 (strongSwan)",
     "service": "org.freedesktop.NetworkManager.strongswan",
     "package": "networkmanager-strongswan",
     "fields": [
@@ -706,11 +730,26 @@
         "label": "Authentication",
         "type": "choice",
         "choices": [
-          "eap",
-          "psk",
-          "key",
-          "agent",
-          "smartcard"
+          {
+            "label": "Username and password (EAP)",
+            "value": "eap"
+          },
+          {
+            "label": "Pre-shared key",
+            "value": "psk"
+          },
+          {
+            "label": "Certificate and private key",
+            "value": "key"
+          },
+          {
+            "label": "Certificate with key agent",
+            "value": "agent"
+          },
+          {
+            "label": "Smart card",
+            "value": "smartcard"
+          }
         ]
       },
       {
@@ -777,7 +816,7 @@
   },
   {
     "id": "libreswan",
-    "name": "IPsec (Libreswan)",
+    "name": "IPsec / IKE (Libreswan)",
     "service": "org.freedesktop.NetworkManager.libreswan",
     "package": "networkmanager-libreswan",
     "fields": [
@@ -824,8 +863,23 @@
       },
       {
         "key": "ikev2",
-        "label": "IKEv2 policy",
-        "type": "text"
+        "label": "IKE version",
+        "type": "choice",
+        "choices": [
+          {
+            "label": "IKEv1 (XAuth / PSK)",
+            "value": "no"
+          },
+          {
+            "label": "IKEv2 only",
+            "value": "insist"
+          },
+          {
+            "label": "Prefer IKEv2",
+            "value": "yes"
+          }
+        ],
+        "default": "no"
       },
       {
         "key": "leftcert",

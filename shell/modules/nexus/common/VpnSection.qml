@@ -19,7 +19,8 @@ ColumnLayout {
     property bool choosingType:false
     property bool openingEditor:false
     property string selectedService:"org.freedesktop.NetworkManager.openvpn"
-    readonly property var availableProtocols:root.vpnBackend.plugins.filter(p=>p.installed)
+    readonly property var availableProtocols:root.vpnBackend.plugins
+    readonly property var selectedPlugin:availableProtocols.find(p=>p.service===selectedService)??({})
     onAvailableProtocolsChanged:if(availableProtocols.length&&!availableProtocols.some(p=>p.service===selectedService))selectedService=availableProtocols[0].service
     Layout.fillWidth:true
     spacing:Tokens.spacing.extraSmall/2
@@ -67,9 +68,10 @@ ColumnLayout {
     RowButton {first:true;last:!root.choosingType;text:Tr.tr("Add VPN connection");icon:"add";onClicked:root.choosingType=!root.choosingType}
     ColumnLayout {
         visible:root.choosingType;Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
-        GenericSettingRow {spec:({label:"Protocol",type:"choice",choices:root.availableProtocols.map(p=>({label:p.name,value:p.service}))});value:root.selectedService;onEdited:v=>root.selectedService=v}
-        RowButton {text:Tr.tr("Create a profile");icon:"add";disabled:root.vpnBackend.busy||!root.availableProtocols.some(p=>p.service===root.selectedService);onClicked:root.create()}
-        RowButton {last:true;text:Tr.tr("Import configuration");icon:"file_open";disabled:root.vpnBackend.busy;onClicked:importer.open()}
+        GenericSettingRow {spec:({label:"Protocol",type:"choice",choices:root.availableProtocols.map(p=>({label:p.name+(p.installed?"":" · "+Tr.tr("Not installed")),value:p.service}))});value:root.selectedService;onEdited:v=>root.selectedService=v}
+        RowButton {visible:!root.selectedPlugin.installed&&!!root.selectedPlugin.package;text:Tr.tr("Install plugin")+" · "+(root.selectedPlugin.package??"");icon:"download";disabled:root.vpnBackend.busy;onClicked:root.vpnBackend.installPlugin(root.selectedPlugin.id)}
+        RowButton {text:Tr.tr("Create a profile");icon:"add";disabled:root.vpnBackend.busy||!root.selectedPlugin.installed;onClicked:root.create()}
+        RowButton {last:true;text:Tr.tr("Import configuration");icon:"file_open";disabled:root.vpnBackend.busy||!root.selectedPlugin.installed||!root.selectedPlugin.canImport;onClicked:importer.open()}
     }
     RowButton {first:true;last:true;text:Tr.tr("NetworkManager VPN plugins");icon:"extension";onClicked:root.nState.openSubPage(root.pluginsPage)}
 }

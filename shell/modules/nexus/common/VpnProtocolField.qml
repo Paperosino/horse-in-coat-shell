@@ -23,7 +23,7 @@ ColumnLayout {
         id:normal
         GenericSettingRow {
             spec:root.spec
-            value:root.spec.type==="bool"?root.settings[root.spec.key]==="yes":(root.settings[root.spec.key]??"")
+            value:root.spec.type==="bool"?root.settings[root.spec.key]==="yes":(root.settings[root.spec.key]??root.spec.default??"")
             onEdited:v=>root.edited(root.spec.key,root.spec.type==="bool"?(v?"yes":"no"):String(v))
         }
     }

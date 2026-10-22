@@ -137,6 +137,26 @@ int main(int argc, char **argv) {
       settle();
       result["cleanupError"] = vpn.error();
     }
+  } else if (mode == "change-protocol" || mode == "change-protocol-active") {
+    auto request = QDBusMessage::createMethodCall(
+        "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+        "org.hics.Test", "SetActiveState");
+    request.setArguments({uint(mode == "change-protocol-active" ? 2 : 0)});
+    QDBusConnection::systemBus().call(request);
+    vpn.edit("/org/freedesktop/NetworkManager/Settings/1");
+    wait();
+    auto draft = vpn.draft();
+    auto ip = draft.value("ip4").toMap();
+    ip["priority"] = -88;
+    draft["ip4"] = ip;
+    draft["type"] = "org.freedesktop.NetworkManager.l2tp";
+    draft["data"] = QVariantMap{{"gateway", "vpn.example"},
+                                {"user", "fixture"},
+                                {"ipsec-enabled", "yes"}};
+    draft["secrets"] = QVariantMap{{"password", "new-protocol-password"}};
+    vpn.save(draft);
+    wait();
+    result = {{"error", vpn.error()}};
   } else if (mode == "export") {
     vpn.exportFile("/org/freedesktop/NetworkManager/Settings/1",
                    QUrl::fromLocalFile(app.arguments().value(2)));
@@ -193,9 +213,17 @@ int main(int argc, char **argv) {
     vpn.save(draft);
     wait();
     result = {{"error", vpn.error()}};
-  } else if (mode == "wireguard") {
+  } else if (mode == "wireguard" || mode == "change-wireguard") {
+    QVariantMap original;
+    if (mode == "change-wireguard") {
+      vpn.edit("/org/freedesktop/NetworkManager/Settings/1");
+      wait();
+      original = vpn.draft();
+    }
     vpn.create("wireguard");
     auto draft = vpn.draft();
+    if (!original.isEmpty())
+      draft["path"] = original.value("path");
     draft["name"] = "WireGuard fixture";
     draft["interface"] = "wg-fixture";
     draft["secrets"] =
@@ -213,6 +241,12 @@ int main(int argc, char **argv) {
                       {"keepalive", 25}}}}};
     vpn.save(draft);
     wait();
+    if (!original.isEmpty() && vpn.error().isEmpty()) {
+      if (vpn.busy())
+        wait();
+      vpn.save(original);
+      wait();
+    }
     result = {{"error", vpn.error()}};
   } else if (mode == "import") {
     vpn.importFile(app.arguments().value(2),

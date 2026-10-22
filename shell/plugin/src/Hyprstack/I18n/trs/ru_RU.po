@@ -8540,3 +8540,54 @@ msgstr "Служба IPsec Libreswan не запустилась за отвед
 
 msgid "The VPN connection failed before completion. See the protocol service log for details."
 msgstr "Не удалось завершить подключение к VPN. Подробности — в журнале службы протокола."
+
+msgid "VPN type"
+msgstr "Тип VPN"
+
+msgid "Change VPN type"
+msgstr "Смена типа VPN"
+
+msgid "Use selected VPN type"
+msgstr "Использовать выбранный тип VPN"
+
+msgid "Disconnect the VPN before changing its protocol"
+msgstr "Отключите VPN перед сменой протокола"
+
+msgid "The server address and username are copied where compatible. Enter credentials for the new protocol; the saved connection changes only after saving."
+msgstr "Адрес сервера и имя пользователя переносятся, если совместимы. Введите данные авторизации для нового протокола. Соединение изменится только после сохранения."
+
+msgid "Confirm or cancel the VPN type change first"
+msgstr "Сначала подтвердите или отмените смену типа VPN"
+
+msgid "IKE version"
+msgstr "Версия IKE"
+
+msgid "IKEv1 (XAuth / PSK)"
+msgstr "IKEv1 (XAuth / общий ключ)"
+
+msgid "IKEv2 only"
+msgstr "Только IKEv2"
+
+msgid "Prefer IKEv2"
+msgstr "Предпочитать IKEv2"
+
+msgid "Certificates (TLS)"
+msgstr "Сертификаты (TLS)"
+
+msgid "Password and certificates"
+msgstr "Пароль и сертификаты"
+
+msgid "Static key"
+msgstr "Статический ключ"
+
+msgid "Username and password (EAP)"
+msgstr "Имя пользователя и пароль (EAP)"
+
+msgid "Certificate and private key"
+msgstr "Сертификат и закрытый ключ"
+
+msgid "Certificate with key agent"
+msgstr "Сертификат с агентом ключей"
+
+msgid "Smart card"
+msgstr "Смарт-карта"

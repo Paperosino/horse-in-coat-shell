@@ -432,6 +432,16 @@ C build(const C &base, const QVariantMap &draft) {
   const bool wireguard = type == "wireguard";
   if (!wireguard && !type.startsWith("org.freedesktop.NetworkManager."))
     fail("Invalid VPN service type");
+  const auto *oldVpn =
+      base ? nm_connection_get_setting_vpn(base.get()) : nullptr;
+  const QString oldType = oldVpn ? text(nm_setting_vpn_get_service_type(
+                                       const_cast<NMSettingVpn *>(oldVpn)))
+                                 : (base ? "wireguard" : "");
+  if (base && oldType != type) {
+    // Plugin credentials and settings belong to their original protocol only.
+    nm_connection_remove_setting(c.get(), NM_TYPE_SETTING_VPN);
+    nm_connection_remove_setting(c.get(), NM_TYPE_SETTING_WIREGUARD);
+  }
   auto *meta = nm_connection_get_setting_connection(c.get());
   if (!meta) {
     nm_connection_add_setting(c.get(), nm_setting_connection_new());
@@ -766,7 +776,20 @@ void NetworkManagerVpn::save(const QVariantMap &draft) {
         C base;
         if (!path.isEmpty()) {
           base = readConnection(b.get(), path);
-          preserveSecrets(b.get(), path, base.get());
+          auto *oldVpn = nm_connection_get_setting_vpn(base.get());
+          const QString oldType =
+              oldVpn ? text(nm_setting_vpn_get_service_type(oldVpn))
+                     : "wireguard";
+          if (oldType == draft.value("type").toString())
+            preserveSecrets(b.get(), path, base.get());
+          else {
+            for (const auto &entry : listProfiles(b.get())) {
+              const auto profile = entry.toMap();
+              if (profile.value("path").toString() == path &&
+                  profile.value("active").toBool())
+                fail("Disconnect the VPN before changing its protocol");
+            }
+          }
         } else
           base = state->imported.value(draft.value("importToken").toString());
         auto c = build(base, draft);

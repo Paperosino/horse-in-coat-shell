@@ -80,6 +80,17 @@ ShellRoot {
   }
  }
 
+ property QtObject fakeEditorVpn: QtObject {
+  property bool busy:false
+  property string error:""
+  property var plugins:root.vpnProtocols.map(p=>Object.assign({},p,{installed:true}))
+  property var profiles:[]
+  property var draft:({})
+  signal changed()
+  signal operationSucceeded()
+  signal saved(string path)
+  function refresh():void {}
+ }
  property QtObject fakeQuickVpn: QtObject {
   property bool busy:false
   property string error:""
@@ -282,7 +293,21 @@ ShellRoot {
      root.current.nested("data","user-auth-type","tls");
      if(!root.check(root.current.basicFields.some(f=>f.key==="user-cert")&&!root.current.basicFields.some(f=>f.key==="password"),"L2TP certificate authentication"))return;
      root.current.nested("data","ipsec-enabled","yes");root.current.nested("data","machine-auth-type","tls");
-     if(!root.check(root.current.advancedFields.some(f=>f.key==="machine-cert")&&!root.current.advancedFields.some(f=>f.key==="ipsec-psk"),"IPsec certificate and PSK fields are mutually exclusive"))return;
+     if(!root.check(root.current.basicFields.some(f=>f.key==="machine-cert")&&!root.current.basicFields.some(f=>f.key==="ipsec-psk"),"IPsec certificate and PSK fields are mutually exclusive"))return;
+    }
+    if(!root.check(root.findNamed(root.current,"vpnProtocolSelector")!==null,"existing VPN protocol has an editable selector"))return;
+    root.current.vpnBackend=root.fakeEditorVpn;
+    const original=JSON.parse(JSON.stringify(root.current.form));
+    root.current.requestProtocol("wireguard");
+    if(!root.check(root.current.form.type===original.type,"protocol selection requires confirmation"))return;
+    root.current.pendingProtocol="";
+    if(!root.check(JSON.stringify(root.current.form)===JSON.stringify(original),"cancel protocol change preserves all fields"))return;
+    if(String(original.type??"").endsWith(".openvpn")){
+     root.current.form=Object.assign({},root.current.form,{name:"Keep name",data:Object.assign({},root.current.form.data,{remote:"vpn.example",username:"alice"}),secrets:{password:"old-protocol-secret"}});
+     root.current.requestProtocol("wireguard");root.current.applyProtocol();
+     if(!root.check(root.current.form.type==="wireguard"&&root.current.form.name==="Keep name"&&Object.keys(root.current.form.secrets).length===0,"protocol change clears incompatible secrets and keeps identity"))return;
+     root.current.requestProtocol(original.type);root.current.applyProtocol();
+     if(!root.check(root.current.form.data.remote==="vpn.example"&&root.current.form.secrets.password==="old-protocol-secret","switching back restores unsaved protocol fields"))return;
     }
     root.current.advanced=true;
    }

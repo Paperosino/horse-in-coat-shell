@@ -100,3 +100,22 @@ class VpnNativeTests(unittest.TestCase):
  def test_terminated_connection_is_not_shown_as_connecting(self):
   result=self.run_probe('list-disconnected');self.assertEqual(result['error'],'')
   self.assertTrue(result['profiles']);self.assertTrue(all(not p['active'] for p in result['profiles']))
+
+ def test_protocol_change_replaces_plugin_data_and_credentials(self):
+  self.assertEqual(self.run_probe('change-protocol')['error'],'')
+  data=next(c['data'] for c in self.calls() if c['method']=='Update2')
+  self.assertEqual(data['vpn']['service-type'],'org.freedesktop.NetworkManager.l2tp')
+  self.assertNotIn('vendor-option',data['vpn']['data']);self.assertNotIn('remote',data['vpn']['data'])
+  self.assertEqual(data['vpn']['secrets'],{'password':'new-protocol-password'})
+  self.assertEqual(data['connection']['uuid'],'11111111-2222-4333-8444-555555555555')
+  self.assertEqual(data['ipv4']['dns-priority'],-88)
+ def test_active_protocol_change_is_rejected(self):
+  self.assertIn('Disconnect the VPN',self.run_probe('change-protocol-active')['error'])
+  self.assertFalse(any(c['method']=='Update2' for c in self.calls()))
+
+ def test_protocol_change_between_wireguard_and_vpn_removes_old_settings(self):
+  self.assertEqual(self.run_probe('change-wireguard')['error'],'')
+  updates=[c['data'] for c in self.calls() if c['method']=='Update2']
+  self.assertEqual(len(updates),2)
+  self.assertIn('wireguard',updates[0]);self.assertNotIn('vpn',updates[0])
+  self.assertIn('vpn',updates[1]);self.assertNotIn('wireguard',updates[1])
