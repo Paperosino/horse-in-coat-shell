@@ -42,9 +42,9 @@ ShellRoot {
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
   let buttons=[],titles=[],clocks=[],captures=[];root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
-  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
+  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,membraneCenter:dock.membraneCenter,membraneRadius:dock.membraneRadius,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
    captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
-   buttons:buttons.map(b=>root.box(b)),titles:titles.map(t=>root.box(t))}));
+   buttons:buttons.map(b=>Object.assign(root.box(b),{wave:b.wave,visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
  }}
 }'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))))
     fixtures = ROOT/'tests/fixtures'
@@ -94,6 +94,18 @@ ShellRoot {
         def send(op,x,y):
             pointer.stdin.write(f'{op} {round(x)} {round(y)}\n');pointer.stdin.flush();assert pointer.stdout.readline().strip()=='ok';time.sleep(.1)
         def click(x,y,button=272):send('move',x,y);send('button',button,1);send('button',button,0)
+        initial=read();button=initial['buttons'][0];base_width=initial['dockWidth']
+        send('move',button['x']+button['w']/2,button['y']+button['h']/2)
+        time.sleep(.65)
+        raised=read()
+        assert raised['hoverAmount']>.8,('Dock hover field never activated',raised)
+        assert raised['buttons'][0]['visual']['y'] < raised['buttons'][0]['y']-15,('Icon did not lift',raised)
+        assert abs(raised['dockWidth']-base_width)<1,'Hover changed dock width'
+        image=base/'membrane.png';subprocess.run(['grim',str(image)],env=env,check=True,capture_output=True)
+        shutil.copy2(image,'/tmp/hics-dock-membrane.png')
+        send('move',100,300);time.sleep(.8)
+        assert read()['hoverAmount']<.02,'Dock membrane did not settle after pointer exit'
+        print('PASS: continuous hover raises the icon and membrane without changing dock width',flush=True)
         for attempt in range(2):
             control.write_text('clipboard'+str(attempt))
             snapshot=wait_for(lambda s:s.get('clipboard'))
@@ -138,6 +150,18 @@ ShellRoot {
         click(clock['x']+clock['w']/2,clock['y']+clock['h']/2)
         wait_for(lambda s:s.get('open') is False,3)
         print('PASS: clicking another panel control dismisses the dock popup',flush=True)
+        for side in ('top','left','right','bottom'):
+            (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position=side,iconSize=44)))
+            send('move',100,300);time.sleep(1)
+            button=read()['buttons'][0]
+            send('move',button['x']+button['w']/2,button['y']+button['h']/2);time.sleep(.7)
+            current=read();button=current['buttons'][0];visual=button['visual']
+            delta=(visual['x']-button['x']) if side in ('left','right') else (visual['y']-button['y'])
+            assert current['hoverAmount']>.8 and (delta>15 if side in ('left','top') else delta< -15),(side,current)
+        print('PASS: the liquid wave follows all four dock positions towards the work area',flush=True)
+        (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,animations=False)))
+        time.sleep(.7);current=read();assert all(abs(b['visual']['y']-b['y'])<.5 for b in current['buttons']),current
+        print('PASS: disabling dock animations immediately settles the membrane',flush=True)
         output=(base/'shell.log').read_text()
         assert not any(error in output for error in ('TypeError:', 'ReferenceError:', 'Unable to assign', 'Binding loop')),output[-6000:]
     except Exception:

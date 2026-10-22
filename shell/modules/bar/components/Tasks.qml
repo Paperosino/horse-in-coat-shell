@@ -86,7 +86,7 @@ StyledClippingRect {
         const data = JSON.stringify(targets);
         if (data !== lastTargets) {
             lastTargets = data;
-            Hypr.setTaskTargets(screen.name, targets);
+            Hypr.setTaskTargets(screen.name, targets, "bar");
         }
     }
 
@@ -101,10 +101,11 @@ StyledClippingRect {
     onVisibleChanged: {
         if (!visible) {
             closePopup(); draggedKey = dropKey = "";
-            if (screen) Hypr.setTaskTargets(screen.name, []);
+            if (screen) Hypr.setTaskTargets(screen.name, [], "bar");
         }
         lastTargets = "";
     }
+    Connections {target:Hypr;function onConfigReloaded(){root.lastTargets="";Qt.callLater(root.reportTargets);}}
     onGroupsChanged: Qt.callLater(reportTargets)
     onWidthChanged: Qt.callLater(reportTargets)
     readonly property var groups: {

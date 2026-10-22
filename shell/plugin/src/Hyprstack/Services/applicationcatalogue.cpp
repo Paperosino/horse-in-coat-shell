@@ -2,6 +2,8 @@
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QFile>
+#include <QIcon>
+#include <QCryptographicHash>
 #include <QProcess>
 #include <QSet>
 #include <QStandardPaths>
@@ -93,11 +95,26 @@ void DesktopApplication::execute() {
   });
   process->start();
 }
+QString DesktopApplication::animationIcon() {
+  const auto theme = QIcon::themeName();
+  if (!m_animationIcon.isEmpty() && theme == m_iconTheme) return m_animationIcon;
+  m_iconTheme = theme;
+  const auto image = QFileInfo(icon()).isAbsolute() ? QIcon(icon()) : QIcon::fromTheme(icon());
+  if (image.isNull()) return {};
+  const auto directory = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + "/hics/task-icons";
+  if (!QDir().mkpath(directory)) return {};
+  const auto key = QCryptographicHash::hash((icon() + "\n" + theme).toUtf8(), QCryptographicHash::Sha256).toHex();
+  const auto path = directory + "/" + QString::fromLatin1(key) + ".png";
+  if (!image.pixmap(96,96).save(path)) return {};
+  m_animationIcon = path;
+  return path;
+}
 void DesktopApplication::update(const QVariantMap &data, const QString &path) {
   if (m_data == data && m_path == path)
     return;
   m_data = data;
   m_path = path;
+  m_animationIcon.clear();
   for (auto *action : m_actions)
     action->deleteLater();
   m_actions.clear();

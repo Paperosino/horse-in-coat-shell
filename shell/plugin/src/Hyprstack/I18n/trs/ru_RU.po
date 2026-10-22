@@ -9107,3 +9107,54 @@ msgstr "Завершить принудительно"
 
 msgid "Clipboard capture stopped unexpectedly"
 msgstr "Запись буфера обмена неожиданно остановилась"
+
+msgid "Dock animations"
+msgstr "Анимации дока"
+
+msgid "An elastic wave lifts neighbouring icons inside one liquid surface. Window transitions land on their application icon."
+msgstr "Упругая волна поднимает соседние иконки внутри единой жидкой поверхности. Окна сворачиваются в значок своего приложения."
+
+msgid "Liquid dock"
+msgstr "Жидкий док"
+
+msgid "Lift icons and stretch the shared membrane towards the pointer"
+msgstr "Поднимать иконки и вытягивать общую мембрану к указателю"
+
+msgid "Minimize and restore windows"
+msgstr "Сворачивание и восстановление окон"
+
+msgid "Spring window transitions and icon absorption in stacking mode"
+msgstr "Пружинные переходы окон и отдача иконок в режиме стакинга"
+
+msgid "Icon lift"
+msgstr "Подъём иконок"
+
+msgid "Height of the wave (dp)"
+msgstr "Высота волны (dp)"
+
+msgid "Maximum icon scale (%)"
+msgstr "Максимальный масштаб иконки (%)"
+
+msgid "Wave spread"
+msgstr "Ширина волны"
+
+msgid "How far neighbouring icons follow the pointer (dp)"
+msgstr "Расстояние влияния указателя на соседние иконки (dp)"
+
+msgid "Spring damping"
+msgstr "Затухание пружины"
+
+msgid "Higher values make the landing calmer (%)"
+msgstr "Большее значение делает приземление спокойнее (%)"
+
+msgid "Window transition duration"
+msgstr "Длительность перехода окна"
+
+msgid "Minimize and restore timing (ms)"
+msgstr "Время сворачивания и восстановления (мс)"
+
+msgid "Reduce motion disables the wave and window travel"
+msgstr "Уменьшение движения отключает волну и перемещение окон"
+
+msgid "Reset dock animations"
+msgstr "Сбросить настройки анимаций дока"

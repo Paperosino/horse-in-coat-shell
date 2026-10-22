@@ -498,10 +498,19 @@ end
 
 local function visual_animation(window, operation, box)
     local plugin = hl.plugin.hyprbars
+    local task_operation = operation == "to" or operation == "from" or operation == "busy" or operation == "clear"
+    if task_operation and hl.plugin.hics_motion then plugin = hl.plugin.hics_motion end
     if not plugin or not plugin.animate_window then return false end
+    if operation ~= "to" and operation ~= "from" then
+        return plugin.animate_window(window.address,string.format("%x",window.stable_id),operation,
+            box and box.x,box and box.y,box and (box.width or box.w),box and (box.height or box.h),box and box.bar_top)
+    end
+    local motion = read(config_dir .. "/dock.json")
+    local appearance = read(config_dir .. "/shell.json").appearance or {}
+    local duration = motion.windowAnimations ~= false and not appearance.reducedMotion and (tonumber(motion.animationDuration) or 420) or 0
     return plugin.animate_window(window.address, string.format("%x", window.stable_id), operation,
         box and box.x, box and box.y, box and (box.width or box.w), box and (box.height or box.h),
-        box and box.bar_top)
+        box and box.bar_top, duration, box and box.icon or "", theme_palette.surfaceContainerLow or "211f26", theme_palette.primary or "d0bcff", tonumber(motion.damping) or 0.8)
 end
 
 local function maximized_geometry(window)
@@ -539,14 +548,18 @@ local function set_maximized(window, enabled)
     visual_animation(window, "client-state")
 end
 
-function layouts.set_task_targets(monitor, targets)
-    task_targets[monitor] = targets
+function layouts.set_task_targets(monitor, targets, source)
+    task_targets[monitor] = task_targets[monitor] or {}
+    task_targets[monitor][source or "bar"] = targets
 end
 
 local function task_target(window)
-    for _, target in ipairs(task_targets[window.monitor.name] or {}) do
+    local sources = task_targets[window.monitor.name] or {}
+    local dock = read(config_dir .. "/dock.json")
+    local targets = dock.enabled == true and sources.dock and #sources.dock > 0 and sources.dock or sources.bar or {}
+    for _, target in ipairs(targets) do
         if target.address == window.address and target.id == string.format("%x", window.stable_id) then
-            return { x = target.x, y = target.y, w = target.w, h = target.h, bar_top = target.barTop }
+            return { x = target.x, y = target.y, w = target.w, h = target.h, bar_top = target.barTop, icon = target.icon }
         end
     end
     local monitor = window.monitor
@@ -1582,7 +1595,7 @@ function layouts.restore_window(window, focus)
                 minimize_timers[window.address] = nil
             end
         end
-        minimize_timers[window.address] = hl.timer(finish_restore, { timeout = 240, type = "oneshot" })
+        finish_restore()
     else
         visual_animation(window, "clear")
     end
@@ -1664,7 +1677,7 @@ function layouts.action(operation, address, stable_id)
                 finish_minimize(window, hidden)
             end
         end
-        minimize_timers[window.address] = hl.timer(await_animation, { timeout = 240, type = "oneshot" })
+        await_animation()
         save()
     elseif operation == "maximize" or operation == "maximize-set" or operation == "maximize-unset" or operation == "maximize-snap" then
         if record.minimized then layouts.restore_window(window) end

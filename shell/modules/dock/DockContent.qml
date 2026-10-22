@@ -32,6 +32,69 @@ Item {
     readonly property alias listSurface: appList
     readonly property alias menuSurface: taskMenu
     readonly property alias previewSurface: windowPreview
+    readonly property bool motionEnabled: DockConf.animations && !GlobalConfig.appearance.reducedMotion
+    readonly property real motionPadding: motionEnabled ? (DockConf.lift + root.iconSize * 0.3 + 12 * Tokens.scale) : 0
+    property real wavePosition: vertical ? height / 2 : width / 2
+    property real hoverAmount: motionEnabled && pointerField.hovered && !menuOpen && !listOpen && !draggedKey ? 1 : 0
+    Behavior on wavePosition {enabled:root.motionEnabled; SpringAnimation {spring:4.5;damping:DockConf.damping;epsilon:0.1} }
+    Behavior on hoverAmount {enabled:root.motionEnabled; SpringAnimation {spring:4.0;damping:DockConf.damping;epsilon:0.002} }
+    readonly property real membraneRadius: root.iconSize * 0.5 * (1 + (DockConf.magnification - 1) * hoverAmount)
+    readonly property point membraneCenter: vertical
+        ? Qt.point(width/2 + (DockConf.position === "left" ? 1 : -1) * DockConf.lift * Tokens.scale * hoverAmount, Math.max(iconSize/2,Math.min(height-iconSize/2,wavePosition)))
+        : Qt.point(Math.max(iconSize/2,Math.min(width-iconSize/2,wavePosition)), height/2 + (atBottom ? -1 : 1) * DockConf.lift * Tokens.scale * hoverAmount)
+    property point absorptionCenter: Qt.point(0,0)
+    property real absorptionAmount: 0
+    property string lastTargets: ""
+    function waveWeight(item: Item): real {
+        const p = item.mapToItem(root, item.width/2,item.height/2);
+        const d = (vertical ? p.y : p.x) - wavePosition;
+        const sigma = DockConf.spread * Tokens.scale;
+        return Math.exp(-d*d/(2*sigma*sigma)) * hoverAmount;
+    }
+    function reportTargets(): void {
+        if (!Hypr.stacking || !screen || !QsWindow.window) return;
+        const targets = [];
+        const monitor = Hypr.monitorFor(screen)?.lastIpcObject;
+        const ox = monitor?.x ?? screen.x, oy = monitor?.y ?? screen.y;
+        if (visible) for (let i=0;i<taskRepeater.count;i++) {
+            const button=taskRepeater.itemAt(i);
+            if(!button)continue;
+            const p=button.visual.mapToItem(QsWindow.window.contentItem,button.width/2,button.height/2);
+            const edge=button.mapToItem(root,button.width/2,button.height/2);
+            if ((vertical ? edge.y < 0 || edge.y > height : edge.x < 0 || edge.x > width)) continue;
+            const size=button.width;
+            const icon=button.entry && DockConf.windowAnimations && !GlobalConfig.appearance.reducedMotion ? button.entry.animationIcon() : "";
+            for(const window of button.windows) targets.push({address:window.lastIpcObject.address,id:window.lastIpcObject.stableId,
+                x:ox+p.x-size/2,y:oy+p.y-size/2,w:size,h:size,barTop:oy+p.y+size/2,icon:icon});
+        }
+        const serialized=JSON.stringify(targets);
+        if(serialized!==lastTargets){lastTargets=serialized;Hypr.setTaskTargets(screen.name,targets,"dock");}
+    }
+    function scheduleTargets(): void { if (!targetRefresh.running) targetRefresh.start(); }
+    onXChanged:scheduleTargets()
+    onYChanged:scheduleTargets()
+    onWidthChanged:scheduleTargets()
+    onHeightChanged:scheduleTargets()
+    onGroupsChanged:scheduleTargets()
+    Timer {id:targetRefresh;interval:80;onTriggered:root.reportTargets()}
+    Timer {interval:80;repeat:true;running:Hypr.stacking && root.visible && (pointerField.hovered || root.hoverAmount>0.002);onTriggered:root.reportTargets()}
+    Connections {target:Hypr;function onStackingChanged(){root.scheduleTargets();}function onConfigReloaded(){root.lastTargets="";root.scheduleTargets();}}
+    Connections {target:Hypr.monitorFor(root.screen);function onLastIpcObjectChanged(){root.scheduleTargets();}}
+    Item {
+        z:1000
+        x:-root.motionPadding;y:-root.motionPadding
+        width:root.width+2*root.motionPadding;height:root.height+2*root.motionPadding
+        HoverHandler {
+            id:pointerField
+            blocking:false
+            onPointChanged: if(hovered) root.wavePosition = root.vertical ? point.position.y-root.motionPadding : point.position.x-root.motionPadding
+        }
+    }
+    SequentialAnimation {
+        id:membraneImpulse
+        NumberAnimation {target:root;property:"absorptionAmount";to:1;duration:70}
+        SpringAnimation {target:root;property:"absorptionAmount";to:0;spring:4.5;damping:DockConf.damping;epsilon:0.005}
+    }
     property var previewWindow: null
     property var hoveredWindow: null
     property bool previewWarm: false
@@ -149,7 +212,7 @@ Item {
     visible: DockConf.enabled && panelVisible
     implicitWidth: Math.min(maxWidth, dock.implicitWidth)
     implicitHeight: Math.min(maxHeight, dock.implicitHeight)
-    onVisibleChanged: if (!visible) closePopups()
+    onVisibleChanged: { if (!visible) closePopups(); Qt.callLater(reportTargets); }
     onVerticalChanged: listOpen = false
     Connections {
         target: DockConf
@@ -189,8 +252,13 @@ Item {
 
         Flickable {
             id: taskScroll
-            anchors.fill: parent
+            x:root.vertical && DockConf.position === "right" ? -root.motionPadding : 0
+            y:!root.vertical && root.atBottom ? -root.motionPadding : 0
+            width:parent.width+(root.vertical ? root.motionPadding : 0)
+            height:parent.height+(!root.vertical ? root.motionPadding : 0)
             clip: true
+            onContentXChanged:root.scheduleTargets()
+            onContentYChanged:root.scheduleTargets()
             contentWidth: Math.max(width, taskRow.implicitWidth + Tokens.padding.small * 2)
             contentHeight: Math.max(height, taskRow.implicitHeight + Tokens.padding.small * 2)
             boundsBehavior: Flickable.StopAtBounds
@@ -200,8 +268,8 @@ Item {
                 id: taskRow
                 columns: root.vertical ? 1 : taskRepeater.count + 2
 
-                x: Math.max(Tokens.padding.small, (taskScroll.width - width) / 2)
-                y: Math.max(Tokens.padding.small, (taskScroll.height - height) / 2)
+                x: (root.vertical && DockConf.position === "right" ? root.motionPadding : 0) + Math.max(Tokens.padding.small, (root.width - width) / 2)
+                y: (!root.vertical && root.atBottom ? root.motionPadding : 0) + Math.max(Tokens.padding.small, (root.height - height) / 2)
                 spacing: Tokens.spacing.small
                 move: Transition { Anim { properties: "x,y" } }
 
@@ -240,7 +308,31 @@ Item {
 
                         width: root.iconSize
                         height: root.iconSize
-                        scale: taskMouse.pressed && !taskMouse.dragged ? 0.85 : 1
+                        readonly property alias visual: taskVisual
+                        readonly property real wave: root.motionEnabled ? root.waveWeight(task) : 0
+                        readonly property int minimizedCount: windows.filter(w=>Hypr.isMinimized(w)).length
+                        property bool motionReady: false
+                        property int previousMinimized: minimizedCount
+                        property real impulseScale: 1
+                        property real accentPulse: 0
+                        Component.onCompleted: Qt.callLater(()=>{previousMinimized=minimizedCount;motionReady=true;})
+                        onMinimizedCountChanged: {
+                            if(motionReady && DockConf.windowAnimations && !GlobalConfig.appearance.reducedMotion && Hypr.stacking) {
+                                if(minimizedCount>previousMinimized) absorbDelay.restart(); else absorption.restart();
+                            }
+                            previousMinimized=minimizedCount;
+                        }
+                        Timer {id:absorbDelay;interval:DockConf.animationDuration*0.75;onTriggered:absorption.restart()}
+                        ParallelAnimation {
+                            id:absorption
+                            NumberAnimation {target:task;property:"accentPulse";from:1;to:0;duration:360;easing.type:Easing.OutQuad}
+                            SequentialAnimation {
+                            ScriptAction {script:{root.absorptionCenter=task.mapToItem(root,task.width/2,task.height/2);membraneImpulse.restart();}}
+                            NumberAnimation {target:task;property:"impulseScale";to:0.86;duration:65}
+                            NumberAnimation {target:task;property:"impulseScale";to:1.12;duration:95;easing.type:Easing.OutQuad}
+                            SpringAnimation {target:task;property:"impulseScale";to:1;spring:4.5;damping:DockConf.damping;epsilon:0.002}
+                            }
+                        }
                         opacity: root.draggedKey === task.group.key && !root.externalDrag ? 0.35 : 1
 
                         Behavior on width {
@@ -251,14 +343,42 @@ Item {
                             Anim {}
                         }
 
-                        Behavior on scale {
-                            Anim {
-                                type: Anim.FastSpatial
-                            }
+                        function showMenu(): void {
+                            root.closePopups();
+                            root.menuTask = task;
+                            root.menuOpen = true;
+                            taskMenu.forceActiveFocus();
                         }
 
+                        function act(operation: string, window: HyprlandToplevel): void {
+                            root.reportTargets();
+                            root.closeMenu();
+                            Hypr.windowAction(operation, window);
+                        }
+
+                        function clickAction(): var {
+                            const ordered = windows.slice().sort((a, b) =>
+                                (a.lastIpcObject.focusHistoryID < 0 ? 100000 : a.lastIpcObject.focusHistoryID)
+                                - (b.lastIpcObject.focusHistoryID < 0 ? 100000 : b.lastIpcObject.focusHistoryID));
+                            const current = ordered.find(w => w === Hypr.activeToplevel && !Hypr.isMinimized(w));
+                            return { operation: Hypr.stacking ? "task-click" : "dock-activate", window: current ?? ordered[0] };
+                        }
+
+                        function launch(): void {
+                            root.closeMenu();
+                            if (entry) Apps.launch(entry);
+                        }
+
+                        Item {
+                            id:taskVisual
+                            anchors.fill:parent
+                            transform:[
+                                Translate {x:root.vertical ? (DockConf.position==="left"?1:-1)*DockConf.lift*Tokens.scale*task.wave : 0;y:root.vertical ? 0 : (root.atBottom?-1:1)*DockConf.lift*Tokens.scale*task.wave},
+                                Scale {origin.x:task.width/2;origin.y:task.height/2;xScale:(1+(DockConf.magnification-1)*task.wave)*(GlobalConfig.appearance.reducedMotion?1:task.impulseScale)*(taskMouse.pressed&&!taskMouse.dragged?0.9:1);yScale:xScale}
+                            ]
                         StyledRect {
                             anchors.fill: parent
+                            transform:Scale {origin.x:task.width/2;origin.y:task.height/2;xScale:root.vertical?1+0.08*task.wave:1;yScale:root.vertical?1:1+0.08*task.wave}
                             radius: Tokens.rounding.large
                             color: task.active ? Colours.palette.m3primary
                                 : task.hovered ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : "transparent"
@@ -278,29 +398,11 @@ Item {
                             y: !root.vertical || !root.dropAfter ? 0 : parent.height - height
                         }
 
-                        function showMenu(): void {
-                            root.closePopups();
-                            root.menuTask = task;
-                            root.menuOpen = true;
-                            taskMenu.forceActiveFocus();
-                        }
-
-                        function act(operation: string, window: HyprlandToplevel): void {
-                            root.closeMenu();
-                            Hypr.windowAction(operation, window);
-                        }
-
-                        function clickAction(): var {
-                            const ordered = windows.slice().sort((a, b) =>
-                                (a.lastIpcObject.focusHistoryID < 0 ? 100000 : a.lastIpcObject.focusHistoryID)
-                                - (b.lastIpcObject.focusHistoryID < 0 ? 100000 : b.lastIpcObject.focusHistoryID));
-                            const current = ordered.find(w => w === Hypr.activeToplevel && !Hypr.isMinimized(w));
-                            return { operation: "dock-activate", window: current ?? ordered[0] };
-                        }
-
-                        function launch(): void {
-                            root.closeMenu();
-                            if (entry) Apps.launch(entry);
+                        Rectangle {
+                            anchors.centerIn:parent
+                            width:parent.width*(1+0.45*task.accentPulse);height:width;radius:width/2
+                            color:task.active ? Colours.palette.m3onPrimary : Colours.palette.m3primary
+                            opacity:GlobalConfig.appearance.reducedMotion ? 0 : task.accentPulse*0.22+task.wave*0.06
                         }
 
                         IconImage {
@@ -379,10 +481,13 @@ Item {
                             opacity: task.allMinimized ? 0.55 : 1
                         }
 
+                        }
                         MouseArea {
                             id: taskMouse
-
-                            anchors.fill: parent
+                            x:root.vertical && DockConf.position === "right" ? -DockConf.lift*Tokens.scale*task.wave : 0
+                            y:!root.vertical && root.atBottom ? -DockConf.lift*Tokens.scale*task.wave : 0
+                            width:task.width+(root.vertical ? DockConf.lift*Tokens.scale*task.wave : 0)
+                            height:task.height+(!root.vertical ? DockConf.lift*Tokens.scale*task.wave : 0)
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
@@ -398,7 +503,7 @@ Item {
                                     root.draggedKey = task.group.key;
                                     root.dragIcon = task.iconSource;
                                 }
-                                if (dragged) root.updateDrag(task.mapToItem(root, event.x, event.y));
+                                if (dragged) root.updateDrag(taskMouse.mapToItem(root, event.x, event.y));
                             }
                             onReleased: if (dragged) root.finishDrag()
                             onCanceled: root.cancelDrag()
@@ -415,6 +520,7 @@ Item {
                                 } else {
                                     const action = task.clickAction();
                                     if (action.window) {
+                                        root.reportTargets();
                                         root.closeMenu();
                                         Hypr.windowAction(action.operation, action.window);
                                     }

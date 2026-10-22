@@ -67,9 +67,9 @@ Singleton {
         return !!windowState(toplevel).maximized || toplevel?.lastIpcObject.fullscreen === 1;
     }
 
-    function setTaskTargets(monitor: string, targets: var): void {
+    function setTaskTargets(monitor: string, targets: var, source: string): void {
         if (usingLua)
-            extras.message(`eval hyprstack_layouts.set_task_targets(${JSON.stringify(monitor)}, require("utils.json").decode(${JSON.stringify(JSON.stringify(targets))}))`);
+            extras.message(`eval hyprstack_layouts.set_task_targets(${JSON.stringify(monitor)}, require("utils.json").decode(${JSON.stringify(JSON.stringify(targets))}), ${JSON.stringify(source || "bar")})`);
     }
 
     function taskWindows(screen: ShellScreen): list<HyprlandToplevel> {

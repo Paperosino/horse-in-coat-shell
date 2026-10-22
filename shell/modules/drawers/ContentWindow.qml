@@ -234,6 +234,27 @@ StyledWindow {
             radius: Tokens.rounding.extraLarge
         }
 
+        BlobRect {
+            readonly property var dock: panels.dock
+            visible:dock.visible && dock.motionEnabled && dock.hoverAmount>0.001
+            group:visible ? blobGroup : null
+            deformScale:0
+            x:panels.x+dock.x+dock.membraneCenter.x-dock.membraneRadius
+            y:panels.y+dock.y+dock.membraneCenter.y-dock.membraneRadius
+            implicitWidth:dock.membraneRadius*2;implicitHeight:implicitWidth
+            radius:implicitWidth/2
+        }
+        BlobRect {
+            readonly property var dock:panels.dock
+            readonly property real bumpRadius:dock.iconSize/2*(1+dock.absorptionAmount*0.22)
+            visible:dock.visible && dock.absorptionAmount>0.001 && !GlobalConfig.appearance.reducedMotion
+            group:visible ? blobGroup : null
+            deformScale:0
+            x:panels.x+dock.x+dock.absorptionCenter.x-bumpRadius
+            y:panels.y+dock.y+dock.absorptionCenter.y-bumpRadius
+            implicitWidth:bumpRadius*2;implicitHeight:implicitWidth;radius:bumpRadius
+        }
+
         DockPopupBg { surface: panels.dock.listSurface }
         DockPopupBg { surface: panels.dock.menuSurface }
         BlobRect {

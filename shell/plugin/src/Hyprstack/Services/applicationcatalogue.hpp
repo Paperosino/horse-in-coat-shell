@@ -35,13 +35,14 @@ public:
   QObjectList actions() const { return m_actions; }
   void update(const QVariantMap &data, const QString &path);
   Q_INVOKABLE void execute();
+  Q_INVOKABLE QString animationIcon();
 signals:
   void changed();
   void launchFailed(const QString &message);
 
 private:
   QVariantMap m_data;
-  QString m_path;
+  QString m_path, m_animationIcon, m_iconTheme;
   QObjectList m_actions;
 };
 class DesktopApplicationAction : public QObject {

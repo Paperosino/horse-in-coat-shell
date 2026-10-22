@@ -48,6 +48,10 @@
 !/native/capture/
 /native/capture/*
 !/native/capture/*.cpp
+!/native/motion/
+/native/motion/*
+!/native/motion/*.cpp
+!/native/motion/*.hpp
 !/native/hyprbars/
 /native/hyprbars/*
 !/native/hyprbars/*.cpp

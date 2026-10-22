@@ -13,9 +13,9 @@ spec.loader.exec_module(runner)
 
 
 class CaptureLoaderTests(unittest.TestCase):
-    def invoke(self, replies):
+    def invoke(self, replies, name="hics-capture"):
         with patch.dict(os.environ, {"HICS_DATA_DIR": "/test/hics"}), patch.object(runner.Path, "is_file", return_value=True), patch.object(runner.shutil, "which", return_value="/usr/bin/hyprctl"), patch.object(runner.subprocess, "run", side_effect=replies) as run, patch("sys.stderr", new_callable=io.StringIO) as errors:
-            runner.load_capture_plugin()
+            runner.load_capture_plugin(name)
             return run.call_args_list, errors.getvalue()
 
     def test_loaded_adapter_is_not_reloaded(self):
@@ -35,3 +35,11 @@ class CaptureLoaderTests(unittest.TestCase):
     def test_compositor_timeout_does_not_stop_shell(self):
         _, errors = self.invoke([subprocess.TimeoutExpired('hyprctl', 5)])
         self.assertIn('Unable to load', errors)
+
+    def test_motion_adapter_is_loaded_and_not_replaced_when_present(self):
+        calls, errors = self.invoke([subprocess.CompletedProcess([], 0, '[]', ''), subprocess.CompletedProcess([], 0, 'ok\n', '')], 'hics-motion')
+        self.assertEqual(calls[1].args[0][-1], '/test/hics/native/hics-motion.so')
+        self.assertFalse(errors)
+        calls, errors = self.invoke([subprocess.CompletedProcess([], 0, '[{"name":"hics-motion"}]', '')], 'hics-motion')
+        self.assertEqual(len(calls), 1)
+        self.assertFalse(errors)

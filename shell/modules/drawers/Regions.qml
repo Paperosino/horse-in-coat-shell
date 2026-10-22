@@ -55,6 +55,16 @@ Region {
     }
 
     Region {
+        readonly property var dock:root.panels.dock
+        readonly property real pad:dock.membraneRadius+8
+        x:root.panels.x+dock.x+dock.membraneCenter.x-pad
+        y:root.panels.y+dock.y+dock.membraneCenter.y-pad
+        width:dock.visible && dock.motionEnabled && dock.hoverAmount>0.01 ? pad*2 : 0
+        height:width
+        intersection:Intersection.Subtract
+    }
+
+    Region {
         readonly property var surface: root.panels.dock.listSurface
         x: root.panels.x + root.panels.dock.x + surface.x
         y: root.panels.y + root.panels.dock.y + surface.y

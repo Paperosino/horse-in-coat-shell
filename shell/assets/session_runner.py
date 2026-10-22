@@ -47,20 +47,20 @@ def stop_child_groups(children):
         child.wait()
 
 
-def load_capture_plugin():
+def load_capture_plugin(name="hics-capture"):
     data = Path(os.environ.get("HICS_DATA_DIR", os.environ.get("HYPRSTACK_DATA_DIR", "/usr/share/hics")))
-    plugin = data / "native/hics-capture.so"
+    plugin = data / ("native/" + name + ".so")
     if not plugin.is_file() or not shutil.which("hyprctl"):
         return
     try:
         listed = subprocess.run(["hyprctl", "-j", "plugin", "list"], capture_output=True, text=True, timeout=5, check=True)
-        if any(item.get("name") == "hics-capture" for item in json.loads(listed.stdout)):
+        if any(item.get("name") == name for item in json.loads(listed.stdout)):
             return
         result = subprocess.run(["hyprctl", "plugin", "load", str(plugin)], capture_output=True, text=True, timeout=10)
         if result.returncode or result.stdout.strip() != "ok":
-            print("Unable to load hics window capture:", result.stdout.strip(), result.stderr.strip(), file=sys.stderr)
+            print("Unable to load " + name + ":", result.stdout.strip(), result.stderr.strip(), file=sys.stderr)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
-        print("Unable to load hics window capture:", error, file=sys.stderr)
+        print("Unable to load " + name + ":", error, file=sys.stderr)
 
 
 def run_session():
@@ -114,6 +114,7 @@ def run_session():
                         break
                     if not capture_loaded and time.monotonic() >= capture_load_at:
                         load_capture_plugin()
+                        load_capture_plugin("hics-motion")
                         capture_loaded = True
                     if time.monotonic() >= next_theme_sync:
                         from gtk_theme import sync_new_flatpaks

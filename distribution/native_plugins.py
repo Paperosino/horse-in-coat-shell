@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 PLUGINS = {
+    "hics-motion.so": Path("hics-motion.so"),
     "hics-capture.so": Path("hics-capture.so"),
     "hics-bars.so": Path("hics-bars.so"),
     "libspatialoverview.so": Path("third_party/phantomat/libspatialoverview.so"),
