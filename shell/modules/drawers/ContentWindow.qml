@@ -89,8 +89,11 @@ StyledWindow {
     WlrLayershell.keyboardFocus: screenState.sidebar || screenState.launcher || screenState.session || screenState.clipboard || panels.dock.listOpen || panels.dock.menuOpen
         ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
-    mask: hasFullscreen && !(contentItem.Config.general.showOverFullscreen && focusGrab.active)
-        ? emptyRegion : regions
+    // A dock popup is modal: receive the dismissing click even over client
+    // windows. The normal shaped input region resumes as soon as it closes.
+    mask: panels.dock.menuOpen || panels.dock.listOpen ? null
+        : hasFullscreen && !(contentItem.Config.general.showOverFullscreen && focusGrab.active)
+            ? emptyRegion : regions
 
     anchors.top: true
     anchors.bottom: true
@@ -130,19 +133,10 @@ StyledWindow {
     }
 
     TapHandler {
+        parent: root.contentItem
         acceptedButtons: Qt.AllButtons
-        onPressedChanged: {
-            if (!pressed || !(panels.dock.menuOpen || panels.dock.listOpen)) return;
-            const position = point.position;
-            const dock = panels.dock;
-            const surfaces = dock.menuOpen ? [dock.menuSurface, dock.previewSurface] : [dock, dock.listSurface];
-            const inside = surfaces.some(item => {
-                if (!item.visible) return false;
-                const p = item.mapFromItem(root.contentItem, position.x, position.y);
-                return p.x >= 0 && p.y >= 0 && p.x <= item.width && p.y <= item.height;
-            });
-            if (!inside) dock.closePopups();
-        }
+        onPressedChanged: if (pressed)
+            panels.dock.dismissOutside(root.contentItem, point.position.x, point.position.y)
     }
 
     HyprlandFocusGrab {

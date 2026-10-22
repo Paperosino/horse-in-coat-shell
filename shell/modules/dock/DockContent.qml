@@ -56,6 +56,16 @@ Item {
     property bool menuOpen: false
     function closeMenu(): void { menuOpen = false; previewDelay.stop(); previewReset.stop(); hoveredWindow = previewWindow = null; previewWarm = false; }
     function closePopups(): void { listOpen = false; closeMenu(); }
+    function dismissOutside(item: Item, x: real, y: real): void {
+        if (!menuOpen && !listOpen) return;
+        const surfaces = menuOpen ? [taskMenu, windowPreview] : [root, appList];
+        const inside = surfaces.some(surface => {
+            if (!surface.visible) return false;
+            const p = surface.mapFromItem(item, x, y);
+            return p.x >= 0 && p.y >= 0 && p.x <= surface.width && p.y <= surface.height;
+        });
+        if (!inside) closePopups();
+    }
     readonly property real offsetScale: 0
 
     readonly property real listNaturalWidth: 320 * Tokens.scale
@@ -214,6 +224,7 @@ Item {
 
                     delegate: Item {
                         id: task
+                        objectName: "dockTaskButton"
 
                         required property string modelData
 
@@ -572,11 +583,10 @@ Item {
                     spacing: 2 * Tokens.scale
                     TaskMenuButton {
                         width: parent.width
+                        objectName: "dockWindowTitle"
                         text: menuWindow.modelData?.title ?? ""
                         onClicked: taskMenu.selectedTask.act("dock-activate", menuWindow.modelData)
-                        HoverHandler {
-                            onHoveredChanged: hovered ? root.hoverWindow(menuWindow.modelData) : root.leaveWindow(menuWindow.modelData)
-                        }
+                        onHoveredChanged: hovered ? root.hoverWindow(menuWindow.modelData) : root.leaveWindow(menuWindow.modelData)
                     }
                     Row {
                         spacing: 6 * Tokens.scale
@@ -702,6 +712,7 @@ Item {
         required property string text
 
         signal clicked
+        readonly property bool hovered: click.containsMouse
 
         implicitHeight: 34 * Tokens.scale
         radius: Tokens.rounding.small

@@ -116,7 +116,10 @@ CustomMouseArea {
     acceptedButtons: fullscreen ? Qt.NoButton : Qt.AllButtons
     hoverEnabled: true
 
-    onPressed: event => dragStart = Qt.point(event.x, event.y)
+    onPressed: event => {
+        dragStart = Qt.point(event.x, event.y);
+        panels.dock.dismissOutside(root, event.x, event.y);
+    }
     onContainsMouseChanged: {
         if (!containsMouse)
             popoutLeaveTimer.restart();
