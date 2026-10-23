@@ -26,3 +26,19 @@ class ApplicationCatalogueTests(unittest.TestCase):
             result = subprocess.run([str(base/'probe')], env=env, capture_output=True, text=True, check=True, timeout=10)
             self.assertEqual(json.loads(result.stdout), dict(created=True, updated=True, removed=True, lookup=True))
             self.assertEqual(json.loads((base/'launch').read_text()), ['launch', str(base/'data/applications/org.hics.CatalogueFixture.desktop')])
+
+            apps = base/'system/applications'
+            apps.mkdir(parents=True)
+            for n in range(500):
+                (apps/f'org.hics.Bench{n}.desktop').write_text(f'[Desktop Entry]\nType=Application\nName=Benchmark {n}\nExec=/bin/true\n')
+            executable=base/'try-exec'
+            executable.write_text('#!/bin/sh\n');executable.chmod(0o700)
+            (apps/'org.hics.TryExec.desktop').write_text('[Desktop Entry]\nType=Application\nName=TryExec fixture\nExec=/bin/true\nTryExec='+str(executable)+'\n')
+            env['BENCH_TRYEXEC']=str(executable)
+            benchmark=subprocess.run([str(base/'probe'),'benchmark'],env=env,capture_output=True,text=True,check=True,timeout=15)
+            data=json.loads(benchmark.stdout)
+            self.assertTrue(data['idle'],data)
+            self.assertTrue(data['tryExec'],data)
+            self.assertTrue(data['fallback'],data)
+            self.assertTrue(data['actions'],data)
+            print('Catalogue benchmark (500 apps, 15 scans):',json.dumps(data),flush=True)

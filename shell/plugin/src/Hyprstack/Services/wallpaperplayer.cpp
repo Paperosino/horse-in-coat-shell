@@ -53,7 +53,7 @@ void WallpaperPlayer::setVideoSink(QVideoSink *sink) {
     m_sink = sink; m_player.setVideoSink(sink);
     if (sink) m_frameConnection = connect(sink, &QVideoSink::videoFrameChanged, this, [this](const QVideoFrame &frame) {
         if (!frame.isValid()) return;
-        m_lastFrame.restart(); emit frameReceived();
+        ++m_frames; m_lastFrame.restart(); emit frameReceived();
         if (!m_error.isEmpty()) { m_error.clear(); emit changed(); }
     });
     emit changed();

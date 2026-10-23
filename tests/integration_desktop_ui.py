@@ -229,6 +229,17 @@ ShellRoot {
  function check(condition, message): bool { if (condition) return true; console.error("NOTIFICATION_TEST_FAILED", message); Qt.quit(); return false; }
  property var sources: PageRegistry.navigationPages.map(p => p.pageIndex).concat(["DockPage.qml", "AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml", "network/VpnProfilesPage.qml", "network/VpnEditorPage.qml", "network/VpnPluginsPage.qml", "ClipboardPage.qml", "ShortcutEditorPage.qml", "WorkspaceSessionPage.qml"]).concat(__DESIGN_PAGES__).concat(["wireguard","openvpn","pptp","l2tp","openconnect","vpnc","strongswan","libreswan","sstp","fortisslvpn","ssh"].map(p=>"vpn-test:"+p))
  Component.onCompleted: {
+  const oldVideos=LiveWallpapers.videoStates, oldEngines=LiveWallpapers.engineRunning;
+  LiveWallpapers.reportEngine("fixture",false);const engineState=LiveWallpapers.engineRunning;
+  LiveWallpapers.reportEngine("fixture",false);
+  if(!check(engineState===LiveWallpapers.engineRunning,"unchanged engine status must stay idle"))return;
+  LiveWallpapers.reportVideo("fixture",{frames:10,paused:true,error:""});const videoState=LiveWallpapers.videoStates;
+  LiveWallpapers.reportVideo("fixture",{frames:10,paused:true,error:""});
+  if(!check(videoState===LiveWallpapers.videoStates,"paused video status must stay idle"))return;
+  LiveWallpapers.reportVideo("fixture",{frames:11,paused:false,error:""});
+  if(!check(videoState!==LiveWallpapers.videoStates&&LiveWallpapers.videoStates.fixture.frames===11,"new video frames remain observable"))return;
+  LiveWallpapers.videoStates=oldVideos;LiveWallpapers.engineRunning=oldEngines;
+  console.log("WALLPAPER_IDLE_STATUS_OK");
   if (!check(PageRegistry.pages.length === PageCompRegistry.pageComps.length, "page registry alignment")) return;
   for (const page of PageRegistry.navigationPages) {
    if (!check(PageRegistry.indexOf(page.id) === page.pageIndex, "canonical route " + page.id)) return;

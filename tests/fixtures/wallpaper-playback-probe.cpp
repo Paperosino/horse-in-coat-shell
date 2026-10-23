@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
         QTimer::singleShot(2900, &app, [&] { player.restart(); });
     }
     QTimer::singleShot(watchdog ? 36500 : 4400, &app, [&] {
-        QTextStream(stdout) << QJsonDocument(QJsonObject{{"frames",frames},{"pausedStable",pausedStable},
+        QTextStream(stdout) << QJsonDocument(QJsonObject{{"frames",frames},{"nativeFrames",qint64(player.frames())},{"pausedStable",pausedStable},
             {"recoveries",player.recoveries()},{"error",player.error()}}).toJson(QJsonDocument::Compact) << Qt::endl;
         app.quit();
     });

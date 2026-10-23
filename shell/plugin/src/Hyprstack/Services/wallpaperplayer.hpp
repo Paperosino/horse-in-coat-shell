@@ -33,6 +33,7 @@ public:
     QString error() const { return m_error; }
     int recoveries() const { return m_recoveries; }
     Q_INVOKABLE void restart();
+    Q_INVOKABLE quint64 frames() const { return m_frames; }
     static QUrl resolveVideo(const QString &path);
 signals:
     void changed();
@@ -46,6 +47,7 @@ private:
     QString m_error;
     bool m_paused = false;
     int m_recoveries = 0;
+    quint64 m_frames = 0;
     QElapsedTimer m_lastFrame, m_failureWindow;
     QTimer m_watchdog, m_retry;
     QMetaObject::Connection m_frameConnection;

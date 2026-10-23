@@ -1,6 +1,7 @@
 #include "applicationcatalogue.hpp"
 #include <QDirIterator>
 #include <QFileInfo>
+#include <QDateTime>
 #include <QFile>
 #include <QIcon>
 #include <QCryptographicHash>
@@ -109,9 +110,9 @@ QString DesktopApplication::animationIcon() {
   m_animationIcon = path;
   return path;
 }
-void DesktopApplication::update(const QVariantMap &data, const QString &path) {
-  if (m_data == data && m_path == path)
-    return;
+bool DesktopApplication::update(const QVariantMap &data, const QString &path, bool fileChanged) {
+  if (m_data == data && m_path == path && !fileChanged)
+    return false;
   m_data = data;
   m_path = path;
   m_animationIcon.clear();
@@ -131,6 +132,7 @@ void DesktopApplication::update(const QVariantMap &data, const QString &path) {
     g_object_unref(app);
   }
   emit changed();
+  return true;
 }
 ApplicationCatalogue::ApplicationCatalogue(QObject *parent) : QObject(parent) {
   m_debounce.setSingleShot(true);
@@ -138,11 +140,11 @@ ApplicationCatalogue::ApplicationCatalogue(QObject *parent) : QObject(parent) {
   connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this,
           [this] { m_debounce.start(); });
   connect(&m_watcher, &QFileSystemWatcher::fileChanged, this,
-          [this] { m_debounce.start(); });
-  connect(&m_debounce, &QTimer::timeout, this, &ApplicationCatalogue::refresh);
+          [this](const QString &path) { m_dirtyFiles.insert(path); m_debounce.start(); });
+  connect(&m_debounce, &QTimer::timeout, this, [this] { scan(false); });
   // Reconcile new XDG roots, nested directories and atomically replaced files.
   m_reconcile.setInterval(15000);
-  connect(&m_reconcile, &QTimer::timeout, this, &ApplicationCatalogue::refresh);
+  connect(&m_reconcile, &QTimer::timeout, this, [this] { scan(false); });
   m_reconcile.start();
   refresh();
 }
@@ -166,8 +168,10 @@ QObject *ApplicationCatalogue::heuristicLookup(QString name) const {
   }
   return nullptr;
 }
-void ApplicationCatalogue::refresh() {
-  QSet<QString> seen, watched;
+void ApplicationCatalogue::refresh(bool force) { scan(force); }
+void ApplicationCatalogue::scan(bool force) {
+  QSet<QString> seen, watched, filesSeen;
+  bool entriesChanged = false;
   QObjectList visible;
   for (const auto &root : roots()) {
     if (QDir(root).exists())
@@ -193,35 +197,54 @@ void ApplicationCatalogue::refresh() {
         continue;
       seen.insert(id);
       watched.insert(path);
+      filesSeen.insert(path);
+      const auto info = files.fileInfo();
+      const auto stamp = QByteArray::number(info.size()) + ':' +
+          QByteArray::number(info.lastModified().toMSecsSinceEpoch()) + ':' +
+          QByteArray::number(info.metadataChangeTime().toMSecsSinceEpoch());
+      const auto cached = m_cachedFiles.constFind(path);
+      auto *existing = m_entries.value(id);
+      const bool fileChanged = cached == m_cachedFiles.cend() || cached->stamp != stamp || m_dirtyFiles.contains(path);
+      if (!force && !fileChanged && existing && existing->filePath() == path &&
+          (cached->tryExec.isEmpty() || cached->executable == QStandardPaths::findExecutable(cached->tryExec))) {
+        if (!existing->noDisplay()) visible.append(existing);
+        continue;
+      }
       auto *app =
           g_desktop_app_info_new_from_filename(path.toUtf8().constData());
       if (!app) {
-        if (auto *old = m_entries.take(id))
+        if (auto *old = m_entries.take(id)) {
+          entriesChanged = true;
           old->deleteLater();
+        }
         continue;
       }
       if (g_desktop_app_info_get_is_hidden(app)) {
-        if (auto *old = m_entries.take(id))
+        if (auto *old = m_entries.take(id)) {
+          entriesChanged = true;
           old->deleteLater();
+        }
         g_object_unref(app);
         continue;
       }
-      auto *info = G_APP_INFO(app);
+      const auto tryExec = take(g_desktop_app_info_get_string(app, "TryExec"));
+      m_cachedFiles.insert(path, {stamp, tryExec, tryExec.isEmpty() ? QString{} : QStandardPaths::findExecutable(tryExec)});
+      auto *appInfo = G_APP_INFO(app);
       QVariantMap data{
           {"id", id},
-          {"name", QString::fromUtf8(g_app_info_get_display_name(info))},
-          {"comment", QString::fromUtf8(g_app_info_get_description(info))},
+          {"name", QString::fromUtf8(g_app_info_get_display_name(appInfo))},
+          {"comment", QString::fromUtf8(g_app_info_get_description(appInfo))},
           {"genericName",
            QString::fromUtf8(g_desktop_app_info_get_generic_name(app))},
           {"startupClass",
            QString::fromUtf8(g_desktop_app_info_get_startup_wm_class(app))},
-          {"execString", QString::fromUtf8(g_app_info_get_commandline(info))},
+          {"execString", QString::fromUtf8(g_app_info_get_commandline(appInfo))},
           {"icon", take(g_desktop_app_info_get_string(app, "Icon"))},
           {"workingDirectory",
            take(g_desktop_app_info_get_string(app, "Path"))},
           {"runInTerminal",
            bool(g_desktop_app_info_get_boolean(app, "Terminal"))},
-          {"noDisplay", !bool(g_app_info_should_show(info))},
+          {"noDisplay", !bool(g_app_info_should_show(appInfo))},
           {"categories",
            QString::fromUtf8(g_desktop_app_info_get_categories(app))
                .split(';', Qt::SkipEmptyParts)},
@@ -254,7 +277,7 @@ void ApplicationCatalogue::refresh() {
                   emit errorChanged();
                 });
       }
-      entry->update(data, path);
+      entriesChanged |= entry->update(data, path, fileChanged || force);
       if (!data.value("noDisplay").toBool())
         visible.append(entry);
       g_object_unref(app);
@@ -262,6 +285,7 @@ void ApplicationCatalogue::refresh() {
   }
   for (auto it = m_entries.begin(); it != m_entries.end();) {
     if (!seen.contains(it.key())) {
+      entriesChanged = true;
       it.value()->deleteLater();
       it = m_entries.erase(it);
     } else
@@ -279,7 +303,13 @@ void ApplicationCatalogue::refresh() {
   std::sort(visible.begin(), visible.end(), [](QObject *a, QObject *b) {
     return a->property("id").toString() < b->property("id").toString();
   });
-  m_visible = visible;
-  emit applicationsChanged();
+  for (auto it = m_cachedFiles.begin(); it != m_cachedFiles.end();)
+    if (!filesSeen.contains(it.key())) it = m_cachedFiles.erase(it);
+    else ++it;
+  m_dirtyFiles.clear();
+  if (m_visible != visible || entriesChanged) {
+    m_visible = visible;
+    emit applicationsChanged();
+  }
 }
 } // namespace hyprstack::services

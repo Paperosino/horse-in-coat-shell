@@ -22,7 +22,8 @@ Variants {
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
         color: contentItem.Config.background.wallpaperEnabled && LiveWallpapers.forScreen(screen.name).kind !== "engine" ? "black" : "transparent"
-        surfaceFormat.opaque: false
+        // Static/video wallpapers have an opaque black base over the full output.
+        surfaceFormat.opaque: color.a === 1
 
         anchors.top: true
         anchors.bottom: true

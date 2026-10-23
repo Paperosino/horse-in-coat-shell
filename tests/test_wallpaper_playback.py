@@ -32,6 +32,7 @@ class WallpaperPlayback(unittest.TestCase):
     def test_short_video_loops_pauses_resumes_and_restarts(self):
         data=self.probe()
         self.assertGreater(data['frames'],18,data)
+        self.assertEqual(data['nativeFrames'], data['frames'], data)
         self.assertTrue(data['pausedStable'],data)
         self.assertEqual(data['recoveries'],0,data)
         self.assertEqual(data['error'],'',data)

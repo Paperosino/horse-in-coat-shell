@@ -237,7 +237,7 @@ Item {
                     readonly property int implicitSize: (WorkspaceIcons.size * Tokens.scale)
                     implicitWidth: implicitSize
                     implicitHeight: implicitSize
-                    readonly property string source: Icons.getAppIcon(modelData.lastIpcObject.class, "application-x-executable")
+                    readonly property string source: Icons.getAppIcon(win.modelData?.lastIpcObject?.class ?? "", "application-x-executable")
                     readonly property bool focused: root.focused
                     readonly property color themeColour: Colours.palette.m3primary
                     readonly property color colour: WorkspaceIcons.colour(focused)
@@ -272,7 +272,7 @@ Item {
                         id: symbolIcon
                         MaterialIcon {
                             objectName: "workspaceIconSymbol"
-                            text: Icons.getAppCategoryIcon(win.modelData.lastIpcObject.class, "web_asset")
+                            text: Icons.getAppCategoryIcon(win.modelData?.lastIpcObject?.class ?? "", "web_asset")
                             color: win.colour
                             fontStyle: Tokens.font.icon.size(win.implicitSize * 0.75).build()
                         }

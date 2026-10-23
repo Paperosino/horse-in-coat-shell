@@ -16,9 +16,17 @@ Singleton {
     readonly property string error: backend.error || Object.values(videoStates).find(s => s.error)?.error || playbackError
     readonly property bool busy: backend.busy
     property var videoStates: ({})
-    function reportVideo(name: string, state: var): void { videoStates = Object.assign({}, videoStates, {[name]: state}); }
+    function reportVideo(name: string, state: var): void {
+        const previous = videoStates[name];
+        if (previous && Object.keys(previous).length === Object.keys(state).length
+                && Object.keys(state).every(key => previous[key] === state[key])) return;
+        videoStates = Object.assign({}, videoStates, {[name]: state});
+    }
     property var engineRunning: ({})
-    function reportEngine(name: string, value: bool): void { engineRunning = Object.assign({}, engineRunning, {[name]: value}); }
+    function reportEngine(name: string, value: bool): void {
+        if (engineRunning[name] === value) return;
+        engineRunning = Object.assign({}, engineRunning, {[name]: value});
+    }
     property var restartSerials: ({})
     function restart(name: string): void {
         playbackError = "";

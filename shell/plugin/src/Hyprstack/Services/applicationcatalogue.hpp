@@ -5,6 +5,8 @@
 #include <QQmlEngine>
 #include <QTimer>
 #include <QVariantMap>
+#include <QSet>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 namespace hyprstack::services {
 class DesktopApplication : public QObject {
@@ -33,7 +35,8 @@ Q_PROPERTY(type field READ field NOTIFY changed) public : type field() const { \
 public:
   explicit DesktopApplication(QObject *parent = nullptr) : QObject(parent) {}
   QObjectList actions() const { return m_actions; }
-  void update(const QVariantMap &data, const QString &path);
+  QString filePath() const { return m_path; }
+  bool update(const QVariantMap &data, const QString &path, bool fileChanged = false);
   Q_INVOKABLE void execute();
   Q_INVOKABLE QString animationIcon();
 signals:
@@ -73,12 +76,16 @@ public:
   QString error() const { return m_error; }
   Q_INVOKABLE QObject *byId(QString id) const;
   Q_INVOKABLE QObject *heuristicLookup(QString name) const;
-  Q_INVOKABLE void refresh();
+  Q_INVOKABLE void refresh(bool force = false);
 signals:
   void applicationsChanged();
   void errorChanged();
 
 private:
+  void scan(bool force);
+  struct CachedFile { QByteArray stamp; QString tryExec, executable; };
+  QHash<QString, CachedFile> m_cachedFiles;
+  QSet<QString> m_dirtyFiles;
   QHash<QString, DesktopApplication *> m_entries;
   QObjectList m_visible;
   QFileSystemWatcher m_watcher;
