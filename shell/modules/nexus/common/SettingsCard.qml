@@ -19,6 +19,28 @@ ConnectedRect {
         else expanded=value;
     }
     readonly property bool settingsCard: true
+    readonly property real expansionExtent: viewport.animatedHeight
+    property var motionPage: null
+    property bool motionReady: false
+    Component.onCompleted: Qt.callLater(() => { if (root) root.motionReady = true; })
+    function notifyLayoutMotion(running: bool): void {
+        if (running) {
+            for (let item = root.parent; item; item = item.parent) {
+                if (typeof item.layoutAnimationChanged === "function") {
+                    motionPage = item;
+                    break;
+                }
+            }
+        }
+        if (motionPage && !motionPage.pageDisposing)
+            motionPage.layoutAnimationChanged(root, running, false);
+        if (!running)
+            motionPage = null;
+    }
+    Component.onDestruction: {
+        if (motionPage && !motionPage.pageDisposing)
+            motionPage.layoutAnimationChanged(root, false, true);
+    }
     default property alias contents: body.data
     function expandForSearch(): bool {
         if (!collapsible || expanded)
@@ -39,7 +61,7 @@ ConnectedRect {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: Tokens.padding.large
-        spacing: Tokens.spacing.medium
+        spacing: 0
         Item {
             Layout.fillWidth: true
             implicitHeight: heading.implicitHeight
@@ -116,24 +138,37 @@ ConnectedRect {
             }
         }
         Item {
+            id: viewport
             Layout.fillWidth: true
-            implicitHeight: body.implicitHeight * reveal
-            property real reveal: !root.collapsible || root.expanded ? 1 : 0
-            visible: reveal > 0
+            // Animate a pixel extent so content updates retarget from the
+            // current height instead of multiplying by a changing natural size.
+            readonly property real fullHeight: body.implicitHeight + Tokens.spacing.medium
+            property real animatedHeight: !root.collapsible || root.expanded ? fullHeight : 0
+            readonly property real reveal: root.collapsible ? Math.max(0, Math.min(1, animatedHeight / Math.max(1, fullHeight))) : 1
+            implicitHeight: animatedHeight
+            visible: !root.collapsible || animatedHeight > 0
             enabled: !root.collapsible || root.expanded
-            clip: reveal < 1
-            Behavior on reveal {
+            clip: root.collapsible
+            Behavior on animatedHeight {
+                enabled: root.collapsible && root.motionReady
                 Anim {
-                    type: Anim.FastSpatial
+                    id: heightMotion
+                    type: Anim.Emphasized
+                    duration: GlobalConfig.appearance.reducedMotion ? 0 : Tokens.anim.durations.expressiveDefaultSpatial
+                    onRunningChanged: root.notifyLayoutMotion(running)
                 }
             }
             ColumnLayout {
                 id: body
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.top: parent.top
+                y: Tokens.spacing.medium - (1 - viewport.reveal) * 8 * Tokens.scale
                 spacing: Tokens.spacing.extraSmall
-                opacity: parent.reveal
+                opacity: !root.collapsible || root.expanded ? 1 : 0
+                Behavior on opacity {
+                    enabled: root.collapsible
+                    Anim { type: Anim.DefaultEffects }
+                }
             }
         }
     }

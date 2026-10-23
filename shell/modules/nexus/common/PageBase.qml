@@ -28,6 +28,50 @@ ColumnLayout {
     property real settledContentHeight: 0
     property real preferredContentY: -flickable.topMargin
 
+    property bool pageDisposing: false
+    Component.onDestruction: pageDisposing = true
+    property var layoutAnimations: []
+    property real animatedLayoutBase: 0
+
+    function syncLayoutAnimationFrame(): void {
+        let height = animatedLayoutBase;
+        for (const entry of layoutAnimations) {
+            // A parent card already includes the motion of nested cards.
+            let nested = false;
+            for (let parent = entry.item?.parent; parent; parent = parent.parent)
+                if (layoutAnimations.some(other => other.item === parent)) {
+                    nested = true;
+                    break;
+                }
+            if (!nested && entry.item)
+                height += entry.item.expansionExtent - entry.start;
+        }
+        settledContentHeight = Math.max(0, height);
+        const maximum = Math.max(-flickable.topMargin, settledContentHeight - flickable.height + flickable.bottomMargin);
+        if (!flickable.dragging && flickable.contentY > maximum)
+            flickable.contentY = maximum;
+    }
+    function layoutAnimationChanged(item: Item, running: bool, destroying: bool): void {
+        const wasRunning = layoutAnimations.length > 0;
+        if (wasRunning && !destroying)
+            syncLayoutAnimationFrame();
+        animatedLayoutBase = wasRunning ? settledContentHeight : (contentChild?.implicitHeight ?? 0);
+        const next = layoutAnimations.filter(entry => entry.item && entry.item !== item);
+        if (running)
+            next.push({item: item, start: item.expansionExtent});
+        for (const entry of next)
+            entry.start = entry.item.expansionExtent;
+        layoutAnimations = next;
+        if (next.length > 0)
+            contentLayoutSettled.stop();
+        else if (wasRunning)
+            contentLayoutSettled.restart();
+    }
+    readonly property FrameAnimation layoutMotionFrames: FrameAnimation {
+        running: root.layoutAnimations.length > 0
+        onTriggered: root.syncLayoutAnimationFrame()
+    }
+
     // Repeaters briefly remove their delegates when a refreshed model arrives.
     // Keep that intermediate layout from clamping the current scroll position.
     readonly property FrameAnimation contentLayoutSettled: FrameAnimation {
@@ -56,14 +100,15 @@ ColumnLayout {
     Connections {
         target: root.contentChild
         function onImplicitHeightChanged(): void {
-            root.contentLayoutSettled.restart();
+            if (root.layoutAnimations.length === 0)
+                root.contentLayoutSettled.restart();
         }
     }
 
     function revealSearchTarget(): bool {
         if (!nState.searchTarget && !nState.searchTargetText)
             return true;
-        if (contentLayoutSettled.running)
+        if (contentLayoutSettled.running || layoutAnimations.length > 0)
             return false;
         function find(item) {
             if (root.nState.searchTarget ? item.objectName === root.nState.searchTarget : item.text === root.nState.searchTargetText || item.label === root.nState.searchTargetText || item.label?.text === root.nState.searchTargetText || item.title === root.nState.searchTargetText)

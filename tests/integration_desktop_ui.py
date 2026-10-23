@@ -57,6 +57,58 @@ ShellRoot {
    Repeater { model: scrollProbe.rows; Rectangle { required property var modelData; width: 600; height: 40; color: "transparent" } }
   }
  }
+ PageBase {
+  id: expansionPage; parent:host; visible:false; title:"Expansion regression"; nState:root.state; width:800;height:360
+  Column {
+   width:expansionPage.cappedWidth
+   SettingsCard {
+    id:expansionCard; width:parent.width;title:"Animated section";collapsible:true;expanded:false
+    Rectangle { implicitWidth:600;implicitHeight:700;color:"transparent" }
+   }
+   Rectangle {width:600;height:80;color:"transparent"}
+  }
+ }
+ Component { id: disposableExpansion; SettingsCard { title:"Disposable animation";width:600;collapsible:true;expanded:false;Rectangle {implicitHeight:200;implicitWidth:500;color:"transparent"} } }
+ property var disposableCard:null
+ property int expansionPhase:0
+ property real lastExpansion:0
+ property real expandedPageHeight:0
+ FrameAnimation {
+  running:root.expansionPhase===1 || root.expansionPhase===2
+  onTriggered:{
+   const value=expansionCard.expansionExtent;
+   if(!root.check(value>=-0.1 && value<=700+Tokens.spacing.medium+0.1,"expansion extent bounds: "+value))return;
+   if(root.expansionPhase===1 && !root.check(value>=root.lastExpansion-0.1,"monotonic expansion"))return;
+   if(root.expansionPhase===2 && !root.check(value<=root.lastExpansion+0.1,"monotonic collapse"))return;
+   if(root.expansionPhase===2 && value>80 && value<400 && !root.check(expansionPage.settledContentHeight<root.expandedPageHeight-40,"scroll extent follows collapse"))return;
+   root.lastExpansion=value;
+  }
+ }
+ Timer {
+  interval:50;running:true;repeat:true
+  onTriggered:{
+   if(root.expansionPhase===0 && !expansionPage.contentLayoutSettled.running){root.lastExpansion=0;root.expansionPhase=1;expansionCard.expanded=true;}
+   else if(root.expansionPhase===1 && !expansionPage.layoutAnimations.length && !expansionPage.contentLayoutSettled.running && expansionCard.expansionExtent>690){
+    root.expandedPageHeight=expansionPage.settledContentHeight;
+    expansionPage.flickable.contentY=expansionPage.flickable.contentHeight-expansionPage.flickable.height+expansionPage.flickable.bottomMargin;
+    root.lastExpansion=expansionCard.expansionExtent;root.expansionPhase=2;expansionCard.expanded=false;
+   }else if(root.expansionPhase===2 && !expansionPage.layoutAnimations.length && !expansionPage.contentLayoutSettled.running && expansionCard.expansionExtent<.1){
+    root.expansionPhase=3;expansionCard.expanded=true;
+   }else if(root.expansionPhase===3){
+    const value=expansionCard.expansionExtent;expansionCard.expanded=false;
+    if(!root.check(Math.abs(expansionCard.expansionExtent-value)<1,"continuous animation reversal: "+value+" → "+expansionCard.expansionExtent))return;
+    root.expansionPhase=4;
+   }else if(root.expansionPhase===4){
+    expansionCard.expanded=true;root.expansionPhase=5;
+   }else if(root.expansionPhase===5 && !expansionPage.layoutAnimations.length && !expansionPage.contentLayoutSettled.running){
+    root.disposableCard=disposableExpansion.createObject(expansionPage.contentChild);root.expansionPhase=6;
+   }else if(root.expansionPhase===6){root.disposableCard.expanded=true;root.expansionPhase=7;
+   }else if(root.expansionPhase===7){root.disposableCard.destroy();root.disposableCard=null;root.expansionPhase=8;
+   }else if(root.expansionPhase===8 && !expansionPage.layoutAnimations.length && !expansionPage.contentLayoutSettled.running){
+    root.expansionPhase=9;console.log("SETTINGS_EXPANSION_OK");stop();
+   }
+  }
+ }
  Timer { id: restoreRows; interval: 24; onTriggered: scrollProbe.rows = Array.from({length: 40}, (_, i) => i + 1) }
  Timer {
   property int step: 0
@@ -311,6 +363,7 @@ ShellRoot {
  Timer {
   interval: 500; running: true; repeat: true
   onTriggered: {
+   if (root.expansionPhase < 9) return;
    if (root.current) { root.current.destroy(); root.current = null; }
    if (root.phase >= root.sources.length) {
     const step = root.phase++ - root.sources.length;
@@ -509,7 +562,7 @@ ShellRoot {
             'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=120)
         output = run.stdout + run.stderr
         print(output[-24000:])
-        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'VPN_CREDENTIALS_DELETE_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
+        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'VPN_CREDENTIALS_DELETE_OK' in output and 'SETTINGS_EXPANSION_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
         forbidden = ('TypeError:', 'ReferenceError:', 'Unable to assign', 'PAGE_CREATION_FAILED', 'Cannot assign to non-existent', 'Binding loop', 'NOTIFICATION_TEST_FAILED')
         assert not any(message in output for message in forbidden), 'QML runtime errors'
         import json
