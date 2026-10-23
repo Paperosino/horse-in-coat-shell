@@ -37,13 +37,21 @@ Item {
     property real wavePosition: vertical ? height / 2 : width / 2
     readonly property real hoverAmount: hoverSpring.value
     MotionSpring {id:hoverSpring;target:root.motionEnabled && pointerField.hovered && !root.menuOpen && !root.listOpen && !root.draggedKey ? 1 : 0;enabled:root.motionEnabled;damping:DockConf.damping}
+    readonly property var motionButtons: {
+        const buttons = [];
+        if (startAppsButton.item) buttons.push(startAppsButton.item);
+        for (const item of taskRow.children)
+            if (item.objectName === "dockTaskButton") buttons.push(item);
+        if (endAppsButton.item) buttons.push(endAppsButton.item);
+        return buttons;
+    }
     // Sample actual animated icon geometry, never the cursor coordinate.
     // Seven overlapping lobes cover the wave and fit the shared SDF budget.
     readonly property var membraneShapes: {
         const shapes = [];
         if (!motionEnabled) return shapes;
-        for (let i=0; i<taskRepeater.count; ++i) {
-            const button=taskRepeater.itemAt(i);
+        for (let i=0; i<motionButtons.length; ++i) {
+            const button=motionButtons[i];
             if (!button || button.wave<0.015) continue;
             const p=button.mapToItem(root,button.width/2,button.height/2);
             if ((vertical ? p.y<0 || p.y>height : p.x<0 || p.x>width)) continue;
@@ -122,8 +130,8 @@ Item {
         // layer outside its scene subtree (which also includes hidden drawers).
         if (point.x>=0 && point.x<=width && point.y>=0 && point.y<=height) return null;
         let selected=null, nearest=Infinity;
-        for(let i=0;i<taskRepeater.count;++i) {
-            const task=taskRepeater.itemAt(i);
+        for(let i=0;i<motionButtons.length;++i) {
+            const task=motionButtons[i];
             if(!task || task.wave<0.015)continue;
             const p=task.mapToItem(root,task.width/2,task.height/2);
             if(vertical ? p.y<0 || p.y>height : p.x<0 || p.x>width)continue;
@@ -170,7 +178,7 @@ Item {
         }
         onPositionChanged:event=>{
             const task=root.raisedPressTask;
-            if(!task || !(pressedButtons & Qt.LeftButton))return;
+            if(!task || !task.group || !(pressedButtons & Qt.LeftButton))return;
             const p=mapToItem(root,event.x,event.y);
             if(!dragged && Math.hypot(p.x-pressPoint.x,p.y-pressPoint.y)>8*Tokens.scale) {
                 dragged=true;root.closePopups();root.draggedKey=task.group.key;root.dragIcon=task.iconSource;
@@ -375,6 +383,7 @@ Item {
                 move: Transition { Anim { properties: "x,y" } }
 
                 Loader {
+                    id: startAppsButton
                     active: DockConf.menuButtonPosition === "start"
                     visible: active
                     width: active ? root.iconSize : 0
@@ -658,6 +667,7 @@ Item {
                 DockSeparator { visible: taskRepeater.count > 0 && DockConf.menuButtonPosition !== "start" }
 
                 Loader {
+                    id: endAppsButton
                     active: DockConf.menuButtonPosition !== "start"
                     visible: active
                     width: active ? root.iconSize : 0
@@ -870,45 +880,59 @@ Item {
 
     component AppsButton: Item {
         id: gridButton
-
+        objectName: "dockAppsButton"
         readonly property bool hovered: gridMouse.containsMouse || root.listOpen
-
+        readonly property var group: null
+        readonly property var windows: []
+        readonly property real impulseScale: Math.max(1, pressScale)
+        readonly property real wave: waveSpring.value
+        readonly property real hitScale: (1 + (DockConf.magnification - 1) * wave) * impulseScale
+        property real pressScale: gridMouse.pressed || (raisedInput.pressed && root.raisedPressTask === gridButton) ? 0.85 : 1
+        Behavior on pressScale { Anim { type: Anim.FastSpatial } }
+        readonly property real visualScale: (1 + (DockConf.magnification - 1) * wave) * pressScale
+        readonly property alias visual: gridVisual
+        MotionSpring { id: waveSpring; target: root.motionEnabled ? root.waveWeight(gridButton) : 0; enabled: root.motionEnabled; stiffness: 360; damping: DockConf.damping }
         width: root.iconSize
         height: root.iconSize
-        scale: gridMouse.pressed ? 0.85 : 1
-
-        Behavior on scale {
-            Anim {
-                type: Anim.FastSpatial
-            }
+        function activate(button: int): void {
+            if (button === Qt.LeftButton) root.listOpen = !root.listOpen;
         }
-
-        StyledRect {
+        Item {
+            id: gridVisual
             anchors.fill: parent
-            radius: Tokens.rounding.large
-            color: gridButton.hovered ? Qt.alpha(Colours.palette.m3primary, 0.12) : "transparent"
-
-            Behavior on color {
-                CAnim {}
+            transform: [
+                Translate { x: root.vertical ? (DockConf.position === "left" ? 1 : -1) * DockConf.lift * Tokens.scale * gridButton.wave : 0; y: root.vertical ? 0 : (root.atBottom ? -1 : 1) * DockConf.lift * Tokens.scale * gridButton.wave },
+                Scale { origin.x: gridButton.width / 2; origin.y: gridButton.height / 2; xScale: gridButton.visualScale; yScale: xScale }
+            ]
+            StyledRect {
+                anchors.fill: parent
+                transform: Scale { origin.x: gridButton.width / 2; origin.y: gridButton.height / 2; xScale: root.vertical ? 1 + 0.08 * gridButton.wave : 1; yScale: root.vertical ? 1 : 1 + 0.08 * gridButton.wave }
+                radius: Tokens.rounding.large
+                color: gridButton.hovered ? Qt.alpha(Colours.palette.m3primary, 0.12) : "transparent"
+                Behavior on color { CAnim {} }
+            }
+            MaterialIcon {
+                anchors.centerIn: parent
+                text: "apps"
+                color: Colours.palette.m3primary
+                fontStyle: Tokens.font.icon.medium
             }
         }
-
-        MaterialIcon {
-            anchors.centerIn: parent
-            text: "apps"
-            color: Colours.palette.m3primary
-            fontStyle: Tokens.font.icon.medium
-        }
-
         MouseArea {
             id: gridMouse
-
-            anchors.fill: parent
+            // Keep both the original slot and the raised visual clickable.
+            readonly property real lift: DockConf.lift * Tokens.scale * gridButton.wave * gridButton.hitScale
+            readonly property real dx: root.vertical ? (DockConf.position === "left" ? 1 : -1) * lift : 0
+            readonly property real dy: root.vertical ? 0 : (root.atBottom ? -1 : 1) * lift
+            readonly property real extra: gridButton.width * (gridButton.hitScale - 1) / 2
+            x: Math.min(0, dx - extra)
+            y: Math.min(0, dy - extra)
+            width: Math.max(gridButton.width, dx + gridButton.width + extra) - x
+            height: Math.max(gridButton.height, dy + gridButton.height + extra) - y
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             acceptedButtons: Qt.LeftButton
-
-            onClicked: root.listOpen = !root.listOpen
+            onClicked: gridButton.activate(Qt.LeftButton)
         }
     }
 

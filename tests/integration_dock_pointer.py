@@ -47,9 +47,10 @@ ShellRoot {
  Timer {interval:16;running:true;repeat:true;onTriggered:{
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
-  let buttons=[],titles=[],clocks=[],captures=[];root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
-  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},key:dock.testKey,clicks:dock.testClicks,presses:dock.testPresses,cancels:dock.testCancels,dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,dockBox:root.box(dock),membraneShapes:dock.membraneShapes,membraneBounds:dock.membraneBounds,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
+  let buttons=[],appsButtons=[],titles=[],clocks=[],captures=[];root.find(dock,"dockAppsButton",appsButtons);root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
+  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},key:dock.testKey,clicks:dock.testClicks,presses:dock.testPresses,cancels:dock.testCancels,dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,dockBox:root.box(dock),membraneShapes:dock.membraneShapes,membraneBounds:dock.membraneBounds,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),listOpen:dock.listOpen,open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
    captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
+   appsButtons:appsButtons.map(b=>Object.assign(root.box(b),{wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),
    buttons:buttons.map(b=>Object.assign(root.box(b),{key:b.modelData,wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
  }}
 }'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))))
@@ -111,7 +112,7 @@ ShellRoot {
         assert raised['buttons'][0]['visual']['y'] < raised['buttons'][0]['y']-15,('Icon did not lift',raised)
         assert abs(raised['dockWidth']-base_width)<1,'Hover changed dock width'
         def assert_membrane(snapshot):
-            for button in snapshot['buttons']:
+            for button in snapshot['buttons']+snapshot.get('appsButtons',[]):
                 if button['wave']<.03:continue
                 cx=button['center']['x']-snapshot['dockBox']['x']
                 cy=button['center']['y']-snapshot['dockBox']['y']
@@ -200,6 +201,23 @@ ShellRoot {
             wait_for(lambda s:s.get('open'),3)
             click(12,180);wait_for(lambda s:not s.get('open'),3)
         print('PASS: all four positions accept clicks on raised icon edges and original dock slots',flush=True)
+        for side in ('bottom','top','left','right'):
+            for menu_position in ('start','end'):
+                (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position=side,iconSize=44,menuButtonPosition=menu_position)))
+                send('move',100,300);time.sleep(1)
+                snapshot=wait_for(lambda s:len(s.get('appsButtons',[]))==1)
+                button=snapshot['appsButtons'][0]
+                send('move',button['x']+button['w']/2,button['y']+button['h']/2);time.sleep(.65)
+                current=read();button=current['appsButtons'][0];assert button['wave']>.8,(side,menu_position,current)
+                assert_membrane(current)
+                visual=button['visual'];delta=(visual['x']-button['x']) if side in ('left','right') else (visual['y']-button['y'])
+                assert delta>15 if side in ('left','top') else delta< -15,(side,menu_position,current)
+                offset=button['w']*button['scale']*.3
+                px=button['center']['x']+(offset if side=='left' else -offset if side=='right' else 0)
+                py=button['center']['y']+(offset if side=='top' else -offset if side=='bottom' else 0)
+                click(px,py);wait_for(lambda s:s.get('listOpen'),3)
+                click(12,180);wait_for(lambda s:not s.get('listOpen'),3)
+        print('PASS: apps button lifts with the membrane and accepts raised-edge clicks at both ends on all four sides',flush=True)
         (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,spread=120)))
         for i in range(4):
             processes.append(subprocess.Popen(['kitty','--class',f'org.hics.MembraneFixture{i}','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL))
@@ -219,7 +237,7 @@ ShellRoot {
         send('move',100,300);assert_membrane(read())
         print('PASS: the shared membrane contains neighbouring icons during pointer travel and spring return',flush=True)
         (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,animations=False)))
-        time.sleep(.7);current=read();assert all(abs(b['visual']['y']-b['y'])<.5 for b in current['buttons']),current
+        time.sleep(.7);current=read();assert all(abs(b['visual']['y']-b['y'])<.5 for b in current['buttons']+current.get('appsButtons',[])),current
         print('PASS: disabling dock animations immediately settles the membrane',flush=True)
         output=(base/'shell.log').read_text()
         assert not any(error in output for error in ('TypeError:', 'ReferenceError:', 'Unable to assign', 'Binding loop')),output[-6000:]
