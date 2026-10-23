@@ -45,8 +45,9 @@ def install(prefix):
             Path(temporary).unlink(missing_ok=True)
     subprocess.run(['systemctl', 'daemon-reload'], check=True)
     subprocess.run(['systemctl', 'reload', 'dbus.service'], check=True)
-    subprocess.run(['systemctl', 'try-restart', 'hics-system.service'], check=True)
-    print('System helper installed; D-Bus activates it on demand.')
+    subprocess.run(['systemctl', 'enable', 'hics-system.service'], check=True)
+    subprocess.run(['systemctl', 'restart', 'hics-system.service'], check=True)
+    print('System helper installed, enabled and started.')
 
 
 if __name__ == '__main__':

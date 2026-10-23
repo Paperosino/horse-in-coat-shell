@@ -15,3 +15,6 @@ TimeoutStopSec=10
 # shell share this cgroup until they move to an application scope and must live
 # independently of shell updates.
 KillMode=process
+
+[Install]
+WantedBy=graphical-session.target

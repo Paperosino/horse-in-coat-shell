@@ -2,7 +2,7 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=33
+pkgrel=34
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 install=hic-shell.install
@@ -13,7 +13,9 @@ depends=(hyprland libqalculate lm_sensors pixman libdrm libinput systemd
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
     glib2 libnotify brightnessctl networkmanager libnm libsecret pipewire pipewire-pulse libpulse wireplumber
     polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2
-    adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb)
+    adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb
+    gtk2 gtk3 gtk4 libadwaita gsettings-desktop-schemas
+    xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland)
 makedepends=(base-devel git cmake ninja pkgconf python gettext nlohmann-json
     qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-svg
     qt6-imageformats qt6-multimedia spirv-tools wayland wayland-protocols mesa vulkan-headers

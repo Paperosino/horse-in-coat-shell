@@ -39,6 +39,8 @@ with open(os.environ['HICS_TEST_LOG'],'a') as stream:
  stream.write(json.dumps(args)+'\\n')
 if args and args[0]=='list-units':
  print(os.environ.get('HICS_TEST_UNITS',''))
+elif args and args[-1]=='show-environment':
+ print(os.environ.get('HICS_TEST_MANAGER_ENV',''))
 elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.get('HICS_TEST_FAIL_COMMAND'):
  sys.exit(1)
 ''')
@@ -53,7 +55,7 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
  def test_reload_and_try_restart_each_running_user_manager(self):
   self.env['HICS_TEST_UNITS']+='\nuser@invalid.service loaded active running invalid\nunrelated.service loaded active running other'
   result,commands=self.run_hook()
-  self.assertEqual(commands[1:],[['--user','--machine=1000@.host','daemon-reload'],['--user','--machine=1000@.host','try-restart','hic-session.service'],['--user','--machine=1001@.host','daemon-reload'],['--user','--machine=1001@.host','try-restart','hic-session.service']])
+  self.assertEqual([c for c in commands[1:] if c[-1]!='show-environment'],[['--user','--machine=1000@.host','daemon-reload'],['--user','--machine=1000@.host','try-restart','hic-session.service'],['--user','--machine=1001@.host','daemon-reload'],['--user','--machine=1001@.host','try-restart','hic-session.service']])
   # A plain restart/start would also launch shells in inactive or TTY sessions.
   self.assertFalse(any('restart' in command or 'start' in command for command in commands))
   self.assertEqual(result.stderr,'')
@@ -69,6 +71,23 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
   result,commands=self.run_hook()
   self.assertIn(['--user','--machine=1001@.host','try-restart','hic-session.service'],commands)
   self.assertIn('could not restart the active shell for user 1000',result.stderr)
+ def test_package_enables_and_starts_system_and_session_units(self):
+  import json
+  if not Path('/run/systemd/system').is_dir():self.skipTest('requires systemd installation paths')
+  if not Path('/usr/share/hyprstack').is_symlink():self.skipTest('legacy compatibility link must already exist')
+  result=subprocess.run(['bash','-c','. "$1"; post_install','hook-test',str(ROOT/'packaging/arch/hic-shell.install')],env=self.env,text=True,capture_output=True)
+  self.assertEqual(result.returncode,0,result.stderr)
+  commands=[json.loads(line) for line in self.log.read_text().splitlines()]
+  self.assertIn(['enable','hics-system.service'],commands)
+  self.assertIn(['restart','hics-system.service'],commands)
+  self.assertIn(['--global','enable','hic-session.service'],commands)
+
+ def test_first_install_starts_shell_only_with_hyprland_environment(self):
+  self.env['HICS_TEST_MANAGER_ENV']='HYPRLAND_INSTANCE_SIGNATURE=fixture\nWAYLAND_DISPLAY=wayland-1'
+  result,commands=self.run_hook()
+  self.assertIn(['--user','--machine=1000@.host','restart','hic-session.service'],commands)
+  self.assertIn(['--user','--machine=1001@.host','restart','hic-session.service'],commands)
+
  def test_no_running_user_managers_do_not_start_a_shell(self):
   self.env['HICS_TEST_UNITS']=''
   result,commands=self.run_hook()

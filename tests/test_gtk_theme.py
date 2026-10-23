@@ -98,6 +98,7 @@ class GtkPaletteTests(unittest.TestCase):
                     settings = configparser.ConfigParser()
                     settings.read(root / f"gtk-{version}/settings.ini")
                     self.assertEqual(settings.getboolean("Settings", "gtk-application-prefer-dark-theme"), mode == "dark")
+                    self.assertEqual(settings.get("Settings", "gtk-decoration-layout"), ":minimize,maximize,close")
                 for version in (5, 6):
                     folder = root / f"qt{version}ct"
                     settings = configparser.ConfigParser()

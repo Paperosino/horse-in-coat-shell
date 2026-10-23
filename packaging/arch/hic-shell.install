@@ -1,6 +1,6 @@
 hics_restart_user_sessions() {
-    # Connect only to user managers that are already running. try-restart
-    # leaves inactive sessions alone, including lingering users without a GUI.
+    # Connect only to running user managers. An explicit Hyprland environment
+    # is required before starting a previously inactive graphical shell.
     systemctl list-units --type=service --state=running --no-legend --plain --no-pager 'user@*.service' |
         while read -r hics_unit hics_details; do
             case "$hics_unit" in
@@ -16,7 +16,12 @@ hics_restart_user_sessions() {
                 printf 'hics: could not reload user manager %s; session was not restarted.\n' "$hics_uid" >&2
                 continue
             fi
-            if ! systemctl --user --machine="$hics_uid@.host" try-restart hic-session.service; then
+            hics_action=try-restart
+            if systemctl --user --machine="$hics_uid@.host" show-environment |
+                grep -q '^HYPRLAND_INSTANCE_SIGNATURE=.'; then
+                hics_action=restart
+            fi
+            if ! systemctl --user --machine="$hics_uid@.host" "$hics_action" hic-session.service; then
                 printf 'hics: could not restart the active shell for user %s.\n' "$hics_uid" >&2
             fi
         done
@@ -26,7 +31,9 @@ post_install() {
     if [ -d /run/systemd/system ]; then
         systemctl stop hyprstack-system.service 2>/dev/null || true
         systemctl daemon-reload
-        systemctl try-restart hics-system.service 2>/dev/null || true
+        systemctl enable hics-system.service || return 1
+        systemctl restart hics-system.service || return 1
+        systemctl --global enable hic-session.service || return 1
         # Keep existing compositor configuration paths usable across the rename.
         if [ ! -L /usr/share/hyprstack ]; then
             if [ -e /usr/share/hyprstack ]; then

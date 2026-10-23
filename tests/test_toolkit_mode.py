@@ -14,6 +14,7 @@ class ToolkitModeTests(unittest.TestCase):
     for mode in ('dark','light'):
      run.reset_mock();gtk_theme.apply_palette(colours,config,mode);gtk_theme.sync_session_preference(colours,config,mode)
      calls=[c.args[0]for c in run.call_args_list]
+     self.assertIn(['gsettings','set','org.gnome.desktop.wm.preferences','button-layout',':minimize,maximize,close'],calls)
      self.assertIn(['gsettings','set','org.gnome.desktop.interface','color-scheme','prefer-'+mode],calls)
      self.assertIn(['gsettings','set','org.gnome.desktop.interface','gtk-theme','Adwaita-dark' if mode=='dark' else 'Adwaita'],calls)
      quick=configparser.ConfigParser();quick.read(config/'hics/qtquickcontrols2.conf')

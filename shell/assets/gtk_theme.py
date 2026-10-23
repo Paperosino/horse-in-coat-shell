@@ -137,6 +137,7 @@ def apply_palette(colours, config_root, mode=None):
         update_settings(directory / "settings.ini", "Settings", {
             "gtk-theme-name": "Adwaita-dark" if dark else "Adwaita",
             "gtk-application-prefer-dark-theme": int(dark),
+            "gtk-decoration-layout": ":minimize,maximize,close",
         })
     # QPalette colour-role order, used by both qt5ct and qt6ct. Preserve
     # icon/font preferences while replacing the palette and widget style.
@@ -253,6 +254,7 @@ def sync_session_preference(colours, config_root, mode=None):
         for key, value in (("color-scheme", "prefer-dark" if dark else "prefer-light"),
                            ("gtk-theme", "Adwaita-dark" if dark else "Adwaita")):
             run(["gsettings", "set", "org.gnome.desktop.interface", key, value])
+        run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", ":minimize,maximize,close"])
     target = Path(os.environ.get("XDG_DATA_HOME", Path.home()/".local/share")) / "color-schemes/hics.colors"
     write_kde_scheme(config_root, target)
     environment={"QT_QPA_PLATFORMTHEME":"hics", "QT_QUICK_CONTROLS_CONF":str(Path(config_root)/"hics/qtquickcontrols2.conf")}
