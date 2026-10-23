@@ -110,6 +110,7 @@ def apply_palette(colours, config_root, mode=None):
     previous = gtkrc.read_text() if gtkrc.is_file() else ""
     previous = re.sub(r'(?m)^\s*include\s+"[^"\n]*/?hics\.gtkrc"\s*$', '', previous)
     atomic_text(gtkrc, previous.rstrip() + "\ninclude " + json.dumps(str(gtk2 / "hics.gtkrc")) + "\n")
+    dark = mode == "dark" if mode else sum(int(colours["surface"][i:i+2], 16) * weight for i, weight in ((0,.2126),(2,.7152),(4,.0722))) < 128
     for version in ("3.0", "4.0"):
         directory = Path(config_root) / ("gtk-" + version)
         toolkit_css = css.replace(":focus-within", ":focus") if version == "3.0" else css
@@ -133,9 +134,8 @@ def apply_palette(colours, config_root, mode=None):
         atomic_text(main, '@import url("hics.css");\n')
         # Replace old dark-theme symlinks as well; never write through them.
         atomic_text(directory / "gtk-dark.css", '@import url("hics.css");\n')
-        dark = mode == "dark" if mode else sum(int(colours["surface"][i:i+2], 16) * weight for i, weight in ((0,.2126),(2,.7152),(4,.0722))) < 128
         update_settings(directory / "settings.ini", "Settings", {
-            "gtk-theme-name": "Adwaita",
+            "gtk-theme-name": "Adwaita-dark" if dark else "Adwaita",
             "gtk-application-prefer-dark-theme": int(dark),
         })
     # QPalette colour-role order, used by both qt5ct and qt6ct. Preserve
@@ -174,7 +174,14 @@ def apply_palette(colours, config_root, mode=None):
             "ForegroundLink": rgb("primary"), "DecorationFocus": rgb("primary"),
             "DecorationHover": rgb("primary"),
         })
-    update_settings(Path(config_root) / "kdeglobals", "General", {"ColorScheme": "Hyprstack"})
+    update_settings(Path(config_root) / "kdeglobals", "General", {"ColorScheme": "hics"})
+    # Qt Quick Material/Universal do not derive their mode from a qt*ct palette.
+    # Supply their standard configuration without forcing a different style.
+    quick = Path(config_root) / "hics/qtquickcontrols2.conf"
+    for style in ("Material", "Universal"):
+        update_settings(quick, style, {"Theme": "Dark" if dark else "Light",
+            "Accent": "#" + colours["primary"], "Background": "#" + colours["surface"],
+            "Foreground": "#" + colours["onSurface"]})
 
 
 _synced_flatpaks = set()
@@ -201,20 +208,65 @@ def sync_flatpaks(colours, mode=None, only_new=False):
         base = Path.home() / ".var/app" / app / "config"
         # Do not let configuration symlinks overwrite another application's
         # settings (or a host theme) while synchronising private sandboxes.
-        managed = ("gtk-2.0", "gtk-3.0", "gtk-4.0", "qt5ct", "qt6ct")
+        managed = ("gtk-2.0", "gtk-3.0", "gtk-4.0", "qt5ct", "qt6ct", "hics")
         if any(parent.is_symlink() for parent in (base, base.parent, base.parent.parent, base.parent.parent.parent)) or any((base / name).is_symlink() for name in (*managed, "qt5ct/colors", "qt6ct/colors")):
             print("Skipping symlinked Flatpak config:", app, file=sys.stderr)
             continue
         try:
             apply_palette(colours, base, mode)
+            data = base.parent / "data"
+            if data.is_symlink() or (data/"color-schemes").is_symlink():
+                raise ValueError("Symlinked Flatpak data")
+            write_kde_scheme(base, data/"color-schemes/hics.colors")
+            overrides = Path(os.environ.get("XDG_DATA_HOME", Path.home()/".local/share"))/"flatpak/overrides"
+            if any(parent.is_symlink() for parent in (overrides,overrides.parent,overrides.parent.parent)):
+                raise ValueError("Symlinked Flatpak overrides")
+            update_settings(overrides/app, "Environment", {"QT_QUICK_CONTROLS_CONF":str(base/"hics/qtquickcontrols2.conf")})
         except (OSError, ValueError, configparser.Error) as error:
             print("Unable to theme Flatpak application", app + ":", error, file=sys.stderr)
         else:
             _synced_flatpaks.add(app)
 
 
+def write_kde_scheme(config_root, target):
+    source = configparser.ConfigParser(interpolation=None,strict=False)
+    source.optionxform = str
+    source.read(Path(config_root)/"kdeglobals")
+    scheme=configparser.ConfigParser(interpolation=None)
+    scheme.optionxform=str
+    for group in source.sections():
+        if group.startswith(("Colors:","ColorEffects:")): scheme[group]=dict(source[group])
+    scheme["General"]={"Name":"hics"}
+    stream=io.StringIO();scheme.write(stream,space_around_delimiters=False);atomic_text(target,stream.getvalue())
+
+
+def sync_session_preference(colours, config_root, mode=None):
+    """Publish mode alongside colours for portal/Adwaita and Qt Quick clients."""
+    dark = mode == "dark" if mode else sum(int(colours["surface"][i:i+2],16)*w for i,w in ((0,.2126),(2,.7152),(4,.0722))) < 128
+    def run(argv):
+        try:
+            return subprocess.run(argv, capture_output=True, text=True, timeout=5, check=False)
+        except (OSError, subprocess.SubprocessError) as error:
+            print("Unable to publish desktop appearance:", error, file=sys.stderr)
+    if shutil.which("gsettings"):
+        # The GTK portal forwards these changes to sandboxed GTK/Qt clients.
+        for key, value in (("color-scheme", "prefer-dark" if dark else "prefer-light"),
+                           ("gtk-theme", "Adwaita-dark" if dark else "Adwaita")):
+            run(["gsettings", "set", "org.gnome.desktop.interface", key, value])
+    target = Path(os.environ.get("XDG_DATA_HOME", Path.home()/".local/share")) / "color-schemes/hics.colors"
+    write_kde_scheme(config_root, target)
+    environment={"QT_QPA_PLATFORMTHEME":"qt5ct", "QT_QUICK_CONTROLS_CONF":str(Path(config_root)/"hics/qtquickcontrols2.conf")}
+    atomic_text(Path(config_root)/"environment.d/91-hics-toolkit.conf", "".join(k+"="+json.dumps(v)+"\n" for k,v in environment.items()))
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+        script=";".join("hl.env("+json.dumps(k)+","+json.dumps(v)+")" for k,v in environment.items())
+        run(["hyprctl","repl",script])
+    if os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+        run(["dbus-update-activation-environment","--systemd",*[k+"="+v for k,v in environment.items()]])
+
+
 def apply_desktop_palette(colours, config_root, mode=None):
     apply_palette(colours, config_root, mode)
+    sync_session_preference(colours, config_root, mode)
     sync_flatpaks(colours, mode)
 
 

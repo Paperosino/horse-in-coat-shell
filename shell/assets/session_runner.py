@@ -77,7 +77,8 @@ def run_session():
         os.environ.update(session_environment())
         subprocess.run([sys.executable, str(Path(__file__).with_name('appearance_themes.py')), 'restore'],
                        stdout=subprocess.DEVNULL, timeout=35, check=False)
-    os.environ["QT_QPA_PLATFORMTHEME"] = "qt5ct:qt6ct"
+    os.environ["QT_QPA_PLATFORMTHEME"] = "qt5ct"
+    os.environ["QT_QUICK_CONTROLS_CONF"] = str(Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config"))/"hics/qtquickcontrols2.conf")
     children = []
     event = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     event.connect(str(eventpath))

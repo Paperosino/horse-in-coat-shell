@@ -1,7 +1,8 @@
 local vars = require("variables")
 
 -- Themes
-hl.env("QT_QPA_PLATFORMTHEME", "qt5ct:qt6ct")
+hl.env("QT_QPA_PLATFORMTHEME", "qt5ct")
+hl.env("QT_QUICK_CONTROLS_CONF", (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/hics/qtquickcontrols2.conf")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 hl.env("XCURSOR_THEME", vars.cursorTheme)
 hl.env("XCURSOR_SIZE", vars.cursorSize)
@@ -20,7 +21,7 @@ if appearance_file then
             hl.env("XCURSOR_SIZE", size)
             hl.env("HYPRCURSOR_SIZE", size)
         end
-        if appearance.icons then hl.env("QT_QPA_PLATFORMTHEME", "qt5ct:qt6ct") end
+        if appearance.icons then hl.env("QT_QPA_PLATFORMTHEME", "qt5ct") end
         hl.env("GTK2_RC_FILES", (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/gtk-2.0/gtkrc")
     end
 end

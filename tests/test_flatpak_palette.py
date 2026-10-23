@@ -1,4 +1,5 @@
 import configparser
+import os
 import subprocess
 import sys
 import tempfile
@@ -16,6 +17,8 @@ class FlatpakPaletteTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.home = Path(self.temporary.name)
         self.colours = dict.fromkeys(("surface", "onSurface", "surfaceContainer", "primary", "onPrimary", "outlineVariant"), "112233")
+        environment=patch.dict(os.environ,{"XDG_DATA_HOME":str(self.home/"share")})
+        environment.start();self.addCleanup(environment.stop)
         gtk_theme._synced_flatpaks.clear()
         self.addCleanup(gtk_theme._synced_flatpaks.clear)
 
@@ -41,6 +44,11 @@ class FlatpakPaletteTests(unittest.TestCase):
             settings.read(base / "qt6ct/qt6ct.conf")
             self.assertEqual(settings.get("Appearance", "color_scheme_path"), str(base / "qt6ct/colors/hics.conf"))
             self.assertTrue((base / "gtk-3.0/gtk.css").is_file())
+            self.assertTrue((base.parent / "data/color-schemes/hics.colors").is_file())
+            overrides=configparser.ConfigParser()
+            overrides.read(self.home/"share/flatpak/overrides"/app)
+            self.assertEqual(overrides.get("Environment","QT_QUICK_CONTROLS_CONF"),str(base/"hics/qtquickcontrols2.conf"))
+            self.assertFalse(overrides.has_section("Context"))
 
     def test_periodic_sync_only_configures_new_apps(self):
         with patch("gtk_theme.Path.home", return_value=self.home), patch("gtk_theme.installed_flatpaks", side_effect=[["org.example.One"], ["org.example.One", "org.example.Two"]]), patch("gtk_theme.apply_palette") as apply:
@@ -65,6 +73,6 @@ class FlatpakPaletteTests(unittest.TestCase):
         run.assert_not_called()
 
     def test_flatpak_failure_does_not_prevent_host_theme_changes(self):
-        with patch("gtk_theme.installed_flatpaks", side_effect=subprocess.TimeoutExpired("flatpak", 15)):
+        with patch("gtk_theme.installed_flatpaks", side_effect=subprocess.TimeoutExpired("flatpak", 15)), patch("gtk_theme.sync_session_preference"):
             gtk_theme.apply_desktop_palette(self.colours, self.home / "config")
         self.assertTrue((self.home / "config/gtk-3.0/hics.css").is_file())

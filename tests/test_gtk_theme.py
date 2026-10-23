@@ -18,6 +18,9 @@ class GtkPaletteTests(unittest.TestCase):
             binary.parent.mkdir()
             binary.write_text("#!/bin/sh\nprintf '%s\\n' org.example.Installed\n")
             binary.chmod(0o755)
+            environment.pop("HYPRLAND_INSTANCE_SIGNATURE", None)
+            environment.pop("DBUS_SESSION_BUS_ADDRESS", None)
+            environment["GSETTINGS_BACKEND"] = "memory"
             environment["PATH"] = str(binary.parent) + os.pathsep + os.environ.get("PATH", "")
             helper = Path(__file__).resolve().parents[1] / "shell/assets/gtk_theme.py"
             subprocess.run([sys.executable, str(helper)], env=environment, check=True, capture_output=True)
@@ -62,7 +65,7 @@ class GtkPaletteTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             colours = theme_manager.palette({"background":"101018", "foreground":"e0e0e0", "accent":"aaccee"}, "dark")
-            with patch.object(theme_manager, "STATE", root / "state"), patch("gtk_theme.sync_flatpaks"), patch.dict(os.environ, {"XDG_CONFIG_HOME":str(root / "config")}):
+            with patch.object(theme_manager, "STATE", root / "state"), patch("gtk_theme.sync_flatpaks"), patch("gtk_theme.sync_session_preference"), patch.dict(os.environ, {"XDG_CONFIG_HOME":str(root / "config")}):
                 theme_manager.save_current({"mode":"dark", "colours":colours})
             self.assertTrue((root / "state/scheme.json").exists())
             self.assertIn("#" + colours["primary"], (root / "config/gtk-3.0/hics.css").read_text())
