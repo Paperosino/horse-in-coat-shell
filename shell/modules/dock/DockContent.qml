@@ -512,26 +512,38 @@ Item {
                         }
                         MouseArea {
                             id: taskMouse
-                            x:root.vertical && DockConf.position === "right" ? -DockConf.lift*Tokens.scale*task.wave : 0
-                            y:!root.vertical && root.atBottom ? -DockConf.lift*Tokens.scale*task.wave : 0
-                            width:task.width+(root.vertical ? DockConf.lift*Tokens.scale*task.wave : 0)
-                            height:task.height+(!root.vertical ? DockConf.lift*Tokens.scale*task.wave : 0)
+                            // Union the stable slot with the displayed icon. Qt
+                            // scales its translation too; the old unscaled lift
+                            // left the upper part of the raised icon unclickable.
+                            // Keep the press-shrink inside a stable hitbox so a
+                            // press near the edge cannot cancel its own click.
+                            readonly property real hitScale: (1+(DockConf.magnification-1)*task.wave)*Math.max(1,task.impulseScale)
+                            readonly property real lift: DockConf.lift*Tokens.scale*task.wave*hitScale
+                            readonly property real dx:root.vertical ? (DockConf.position==="left"?1:-1)*lift : 0
+                            readonly property real dy:root.vertical ? 0 : (root.atBottom?-1:1)*lift
+                            readonly property real extraX:task.width*(hitScale-1)/2
+                            readonly property real extraY:task.height*(hitScale-1)/2
+                            x:Math.min(0,dx-extraX)
+                            y:Math.min(0,dy-extraY)
+                            width:Math.max(task.width,dx+task.width+extraX)-x
+                            height:Math.max(task.height,dy+task.height+extraY)-y
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                             preventStealing: true
                             property point pressPoint
                             property bool dragged: false
-                            onPressed: event => { pressPoint = Qt.point(event.x, event.y); dragged = false; }
+                            onPressed: event => { pressPoint = taskMouse.mapToItem(root,event.x,event.y); dragged = false; }
                             onPositionChanged: event => {
                                 if (!(pressedButtons & Qt.LeftButton)) return;
-                                if (!dragged && Math.hypot(event.x - pressPoint.x, event.y - pressPoint.y) > 8 * Tokens.scale) {
+                                const position=taskMouse.mapToItem(root,event.x,event.y);
+                                if (!dragged && Math.hypot(position.x - pressPoint.x, position.y - pressPoint.y) > 8 * Tokens.scale) {
                                     dragged = true;
                                     root.closePopups();
                                     root.draggedKey = task.group.key;
                                     root.dragIcon = task.iconSource;
                                 }
-                                if (dragged) root.updateDrag(taskMouse.mapToItem(root, event.x, event.y));
+                                if (dragged) root.updateDrag(position);
                             }
                             onReleased: if (dragged) root.finishDrag()
                             onCanceled: root.cancelDrag()

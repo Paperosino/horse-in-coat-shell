@@ -177,7 +177,20 @@ ShellRoot {
             delta=(visual['x']-button['x']) if side in ('left','right') else (visual['y']-button['y'])
             assert_membrane(current)
             assert current['hoverAmount']>.8 and (delta>15 if side in ('left','top') else delta< -15),(side,current)
-        print('PASS: the liquid wave follows all four dock positions towards the work area',flush=True)
+            # Click the raised half of the actual icon, beyond the old unscaled
+            # lift hitbox. Its original dock slot must stay clickable as well.
+            cx=button['center']['x'];cy=button['center']['y']
+            offset=button['w']*button['scale']*.3
+            px=cx+(offset if side=='left' else -offset if side=='right' else 0)
+            py=cy+(offset if side=='top' else -offset if side=='bottom' else 0)
+            click(px,py,273)
+            wait_for(lambda s:s.get('open'),3)
+            click(12,180);wait_for(lambda s:not s.get('open'),3)
+            button=read()['buttons'][0]
+            click(button['x']+button['w']/2,button['y']+button['h']/2,273)
+            wait_for(lambda s:s.get('open'),3)
+            click(12,180);wait_for(lambda s:not s.get('open'),3)
+        print('PASS: all four positions accept clicks on raised icon edges and original dock slots',flush=True)
         (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,spread=120)))
         for i in range(4):
             processes.append(subprocess.Popen(['kitty','--class',f'org.hics.MembraneFixture{i}','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL))
