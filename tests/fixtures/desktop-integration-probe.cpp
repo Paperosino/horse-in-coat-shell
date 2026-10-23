@@ -28,6 +28,10 @@ int main(int argc, char **argv) {
         bool succeeded = false;
         QObject::connect(&desktop, &DesktopIntegration::operationSucceeded, &app, [&] { succeeded = true; });
         if (operation == "refresh") desktop.refresh();
+        else if (operation == "monitor") {
+            desktop.refreshMonitoring();
+            desktop.refreshMonitoring(); // overlapping poll must be coalesced
+        }
         else if (operation == "profile") desktop.setCardProfile(request["card"].toString(), request["profile"].toString());
         else if (operation == "hotspot") desktop.startHotspot(request["path"].toString(), request["ssid"].toString(), request["password"].toString());
         else if (operation == "hidden") desktop.connectHiddenNetwork(request["ssid"].toString(), request["password"].toString(), true, true);

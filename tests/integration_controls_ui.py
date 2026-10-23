@@ -32,8 +32,13 @@ import Quickshell
 import qs.modules
 import qs.services
 ShellRoot {
+ id:root
+ property int configReloads:0
+ property var reloadedOptions:({})
+ Connections {target:Hypr.extras;function onConfigOptionsReloaded(){root.configReloads++;const values={};for(const key of Object.keys(GameMode.overrides))values[key]=Hypr.options[key];root.reloadedOptions=values}}
  ShortcutHelp { id: help }
  property int phase: 0
+ property var originalOptions: ({})
  Timer {
   interval: 600; running: true; repeat: true
   onTriggered: {
@@ -42,8 +47,22 @@ ShellRoot {
    else if (phase === 2 && !LayoutModes.busy && LayoutModes.mode === "canvas") {
     console.log("CONTROLS_CANVAS_SELECTED"); LayoutModes.select("scrolling"); phase=3;
    } else if (phase === 3 && !LayoutModes.busy && LayoutModes.mode === "scrolling") {
-    console.log("CONTROLS_SCROLLING_SELECTED"); help.opened=false; phase=4;
-   } else if (phase === 4) { console.log("CONTROLS_UI_OK"); Qt.quit(); }
+    console.log("CONTROLS_SCROLLING_SELECTED"); help.opened=false;
+    Hypr.extras.applyOptions({"general:gaps_in":"3 4 5 6","general:gaps_out":"8 9 10 11"});phase=4;
+   } else if (phase === 4 && Hypr.options["general:gaps_in"] === "3 4 5 6" && Hypr.options["general:gaps_out"] === "8 9 10 11") {
+    const values={};for(const key of Object.keys(GameMode.overrides))values[key]=Hypr.options[key];
+    originalOptions=values;GameMode.enabled=true;phase=5;
+   } else if (phase === 5 && String(Hypr.options["general:gaps_in"]) === "0 0 0 0") {
+    GameMode.enabled=false;phase=6;
+   } else if (phase === 6 && Object.keys(originalOptions).every(key=>Hypr.options[key]===originalOptions[key])) {
+    console.log("CONTROLS_GAME_RESTORE_OK");GameMode.enabled=true;phase=7;
+   } else if (phase === 7 && String(Hypr.options["general:gaps_in"]) === "0 0 0 0") {
+    configReloads=0;Hypr.extras.message("reload");phase=8;
+   } else if (phase === 8 && configReloads > 0 && String(Hypr.options["general:gaps_in"]) === "0 0 0 0") {
+    GameMode.enabled=false;phase=9;
+   } else if (phase === 9 && Object.keys(reloadedOptions).every(key=>Hypr.options[key]===reloadedOptions[key])) {
+    console.log("CONTROLS_UI_OK"); Qt.quit();
+   }
   }
  }
  Timer { interval: 15000; running:true; onTriggered: {console.error("CONTROLS_TIMEOUT");Qt.quit();} }
@@ -80,7 +99,7 @@ try:
     print(output[-7000:])
     assert result == 0 and "CONTROLS_UI_OK" in output, "Shortcut help or layout switching failed"
     assert not any(error in output for error in ("ERROR:", "TypeError:", "ReferenceError:", "Unable to assign", "CONTROLS_TIMEOUT")), "QML runtime errors"
-    print("PASS: shortcut help constructs and follows canvas/scrolling mode changes")
+    print("PASS: shortcut help, layout changes, real game-mode restoration and compositor reload")
 finally:
     if child and child.poll() is None:
         child.terminate(); child.wait(timeout=5)

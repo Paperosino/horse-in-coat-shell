@@ -39,7 +39,13 @@ Singleton {
         root.pendingSets = Object.assign({}, root.pendingSets, {[key]: value});
         flushTimer.restart();
     }
-    function reset(key: string): void { backend.call(["reset", key], null, d => { if (!d.error) reload(); }); }
+    function reset(key: string): void {
+        // A pending slider/text edit must not reapply itself after Reset.
+        const pending = Object.assign({}, pendingSets);
+        delete pending[key];
+        pendingSets = pending;
+        backend.call(["reset", key], null, d => { if (!d.error) reload(); });
+    }
     function reloadAutostart(): void { backend.call(["autostart"], null, d => { if (Array.isArray(d)) autostart = d; }); }
     function setAutostart(id: string, value: bool): void { backend.call(["autostart-set", id, value ? "true" : "false"], null, d => reloadAutostart()); }
     function addAutostart(name: string, command: string): void { backend.call(["autostart-add", name, command], null, d => reloadAutostart()); }

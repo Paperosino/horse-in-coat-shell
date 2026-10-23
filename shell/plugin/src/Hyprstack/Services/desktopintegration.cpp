@@ -73,10 +73,11 @@ void DesktopIntegration::process(const QString &program, const QStringList &args
     auto *timeout = new QTimer(p);
     timeout->setSingleShot(true);
     connect(timeout, &QTimer::timeout, p, &QProcess::kill);
-    connect(p, &QProcess::errorOccurred, this, [this, p, reportError](QProcess::ProcessError error) {
+    connect(p, &QProcess::errorOccurred, this, [this, p, result, reportError](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart) {
             --m_pending;
             if (reportError) fail(p->errorString());
+            else result({});
             emit changed(); p->deleteLater();
         }
     });
@@ -98,8 +99,10 @@ void DesktopIntegration::refresh() {
     auto message = QDBusMessage::createMethodCall(u"org.freedesktop.portal.Desktop"_s,
         u"/org/freedesktop/portal/desktop"_s, u"org.freedesktop.DBus.Properties"_s, u"Get"_s);
     message.setArguments({u"org.freedesktop.portal.ScreenCast"_s, u"AvailableSourceTypes"_s});
+    ++m_pending;
     auto *portal = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(message, 3000), this);
     connect(portal, &QDBusPendingCallWatcher::finished, this, [this, portal] {
+        --m_pending;
         QDBusPendingReply<QDBusVariant> reply = *portal;
         m_portalSourceTypes = reply.isError() ? 0 : reply.value().variant().toInt();
         emit changed(); portal->deleteLater();
@@ -147,12 +150,21 @@ void DesktopIntegration::refresh() {
                 {u"active"_s, card[u"active_profile"_s].toString()}, {u"profiles"_s, profiles}});
         }
     });
+    refreshCapture();
+}
+void DesktopIntegration::refreshMonitoring() {
+    if (busy()) return;
+    refreshDisks();
+    refreshCapture();
+}
+void DesktopIntegration::refreshCapture() {
     m_captureAvailable = !QStandardPaths::findExecutable(u"pw-dump"_s).isEmpty();
-    if (m_captureAvailable) process(u"pw-dump"_s, {}, [this](const QByteArray &raw) {
+    if (!m_captureAvailable) { m_captures.clear(); emit changed(); return; }
+    process(u"pw-dump"_s, {}, [this](const QByteArray &raw) {
         QJsonParseError error;
         auto document = QJsonDocument::fromJson(raw, &error);
         m_captureAvailable = error.error == QJsonParseError::NoError && document.isArray();
-        if (!m_captureAvailable) return;
+        if (!m_captureAvailable) { m_captures.clear(); return; }
         m_captures.clear();
         for (const auto &value : document.array()) {
             auto item = value.toObject();

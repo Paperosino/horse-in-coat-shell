@@ -4,6 +4,8 @@
 #include <QEventLoop>
 #include <QJsonDocument>
 #include <QTimer>
+#include <QDir>
+#include <QFile>
 #include <cstdio>
 using namespace hyprstack::services;
 namespace W=hics::workspace;
@@ -27,6 +29,24 @@ int main(int argc,char **argv){
   }else{
    WorkspaceSession session;session.refresh();
    auto wait=[&]{if(!session.busy())return;QEventLoop loop;QObject::connect(&session,&WorkspaceSession::finished,&loop,&QEventLoop::quit);QTimer::singleShot(15000,&loop,&QEventLoop::quit);loop.exec();};
+   if(mode=="watch-session") {
+    int changes=0, baseline=0;
+    bool created=false, updated=false, retained=false, recovered=false, removed=false;
+    QObject::connect(&session,&WorkspaceSession::changed,&app,[&]{++changes;});
+    const auto path=W::statePath()+"/sessions/watch.json";
+    auto write=[&](const QString &name){W::writeMap(path,{{"name",name},{"windows",QVariantList{QVariantMap{}}}});};
+    QEventLoop loop;
+    QTimer::singleShot(300,&loop,[&]{baseline=changes;});
+    QTimer::singleShot(650,&loop,[&]{result["idle"]=changes==baseline;write("First");});
+    QTimer::singleShot(1000,&loop,[&]{created=session.snapshots().size()==1;write("Second");});
+    QTimer::singleShot(1350,&loop,[&]{updated=session.snapshots().value(0).toMap().value("name")=="Second";QFile f(path);if(f.open(QIODevice::WriteOnly))f.write("{");});
+    QTimer::singleShot(1700,&loop,[&]{retained=session.snapshots().value(0).toMap().value("name")=="Second"&&!session.error().isEmpty();write("Recovered");});
+    QTimer::singleShot(2050,&loop,[&]{recovered=session.snapshots().value(0).toMap().value("name")=="Recovered"&&session.error().isEmpty();QFile::remove(path);});
+    QTimer::singleShot(2400,&loop,[&]{removed=session.snapshots().isEmpty();loop.quit();});
+    loop.exec();
+    result.insert("created",created);result.insert("updated",updated);result.insert("retained",retained);result.insert("recovered",recovered);result.insert("removed",removed);
+    puts(QJsonDocument::fromVariant(result).toJson(QJsonDocument::Compact).constData());return 0;
+   }
    if(mode=="capture-and-autosave"){session.capture("Manual",false);wait();session.capture("Automatic",true);}
    else if(mode=="capture")session.capture(args.value(2,"Fixture"),args.value(3)=="automatic");
    else if(mode=="import-desktop")session.importDesktop(args.value(2));

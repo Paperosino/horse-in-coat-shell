@@ -876,31 +876,69 @@ void ShortcutEditor::importFile(const QUrl &url) {
 }
 
 WorkspaceSession::WorkspaceSession(QObject *parent) : QObject(parent) {
+  m_refreshTimer.setSingleShot(true);
+  m_refreshTimer.setInterval(100);
+  connect(&m_sessionFiles, &QFileSystemWatcher::fileChanged, this,
+          [this] { m_refreshTimer.start(); });
+  connect(&m_sessionFiles, &QFileSystemWatcher::directoryChanged, this,
+          [this] { m_refreshTimer.start(); });
+  connect(&m_refreshTimer, &QTimer::timeout, this, &WorkspaceSession::refresh);
+  connect(this, &WorkspaceSession::finished, this, [this] { m_refreshTimer.start(); });
   QTimer::singleShot(0, this, &WorkspaceSession::refresh);
 }
 QString WorkspaceSession::desktop() const {
   return qEnvironmentVariable("XDG_CURRENT_DESKTOP");
 }
 void WorkspaceSession::refresh() {
+  // Files written by a worker must not publish a partially updated session.
+  if (m_busy) return;
   try {
-    m_settings = W::settings("session");
+    const auto settings = W::settings("session");
     const auto request = W::readMap(W::startupPath());
-    m_startupPending = request.value("pending").toBool() &&
-                       m_settings.value("enabled").toBool();
-    m_snapshots.clear();
+    const bool pending = request.value("pending").toBool() &&
+                         settings.value("enabled").toBool();
+    QVariantList snapshots;
     QDir dir(W::statePath() + "/sessions");
+    QStringList watched{W::configPath(), W::startupPath(), dir.absolutePath()};
     for (const auto &file :
          dir.entryList({"*.json"}, QDir::Files, QDir::Time)) {
       auto snapshot = W::readMap(dir.filePath(file));
       snapshot["id"] = QFileInfo(file).baseName();
       snapshot["count"] = snapshot.value("windows").toList().size();
       snapshot.remove("windows");
-      m_snapshots << snapshot;
+      snapshots << snapshot;
+      watched << dir.filePath(file);
     }
+    // Watch parents too: QSaveFile replaces inodes, and directories may not
+    // exist until the first saved session. Re-arm file watches after each event.
+    const auto paths = watched;
+    for (const auto &path : paths) {
+      auto parent = QFileInfo(path).absoluteDir();
+      while (!parent.exists() && !parent.isRoot())
+        parent = QDir(QFileInfo(parent.absolutePath()).absolutePath());
+      watched << parent.absolutePath();
+    }
+    watched.removeDuplicates();
+    for (const auto &path : watched)
+      if (QFileInfo::exists(path) && !m_sessionFiles.files().contains(path) &&
+          !m_sessionFiles.directories().contains(path)) m_sessionFiles.addPath(path);
+    const bool recovered = !m_refreshError.isEmpty() && m_error == m_refreshError;
+    if (recovered) m_error.clear();
+    m_refreshError.clear();
+    const bool dirty = recovered || m_settings != settings || m_snapshots != snapshots ||
+                       m_startupPending != pending;
+    m_settings = settings;
+    m_snapshots = snapshots;
+    m_startupPending = pending;
+    if (dirty) emit changed();
   } catch (const std::exception &e) {
-    m_error = QString::fromUtf8(e.what());
+    const auto error = QString::fromUtf8(e.what());
+    if (m_error.isEmpty() || m_error == m_refreshError) {
+      const bool dirty = m_error != error;
+      m_error = m_refreshError = error;
+      if (dirty) emit changed();
+    }
   }
-  emit changed();
 }
 void WorkspaceSession::autostart() {
   const auto dir =

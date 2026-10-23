@@ -37,6 +37,8 @@ else:print('ok')
  def config(self,group,**values):
   result=self.probe('settings',group,json.dumps(values));self.assertNotIn('error',result);return result
  def store(self,text,app='fixture'):return self.probe('clipboard-store',text,'text/plain',app)
+ def test_session_file_watches_are_idle_atomic_and_rearmed(self):
+  self.assertEqual(self.probe('watch-session'),dict(idle=True,created=True,updated=True,retained=True,recovered=True,removed=True))
  def test_duplicate_pinning_and_clear_preserve_payload_permissions(self):
   first=self.store('first')['entries'][0];self.store('second');entries=self.store('first')['entries'];self.assertEqual(len(entries),2);self.assertEqual(entries[0]['id'],first['id'])
   self.probe('clipboard-pin',first['id']);self.assertEqual(len(self.probe('clipboard-clear','keep')['entries']),1)

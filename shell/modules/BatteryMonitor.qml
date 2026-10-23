@@ -16,6 +16,7 @@ Scope {
         const p = UPower.displayDevice.percentage * 100;
 
         if (!UPower.onBattery) {
+            hibernateTimer.stop();
             root.lastPercentage = p;
             return;
         }
@@ -29,6 +30,8 @@ Scope {
             }
         }
 
+        if (p > GlobalConfig.general.battery.criticalLevel)
+            hibernateTimer.stop();
         if (!hibernateTimer.running && p <= GlobalConfig.general.battery.criticalLevel) {
             Toaster.toast(Tr.tr("Hibernating in 5 seconds"), Tr.tr("Hibernating to prevent data loss"), "battery_android_alert", Toast.Error);
             hibernateTimer.start();
@@ -47,6 +50,7 @@ Scope {
                     Toaster.toast(Tr.tr("Charger unplugged"), Tr.tr("Battery is discharging"), "power_off");
                 root.handleBatteryWarnings();
             } else {
+                hibernateTimer.stop();
                 if (GlobalConfig.utilities.toasts.chargingChanged)
                     Toaster.toast(Tr.tr("Charger plugged in"), Tr.tr("Battery is charging"), "power");
                 root.lastPercentage = 100;
@@ -80,6 +84,11 @@ Scope {
         id: hibernateTimer
 
         interval: 5000
-        onTriggered: SessionManager.hibernate()
+        onTriggered: {
+            // Charger/battery signals can race with the countdown expiry.
+            if (UPower.displayDevice.ready && UPower.onBattery &&
+                    UPower.displayDevice.percentage * 100 <= GlobalConfig.general.battery.criticalLevel)
+                SessionManager.hibernate();
+        }
     }
 }

@@ -38,7 +38,7 @@ Item {
     }
 
     FrameAnimation {
-        running: root.visible && root.width > 0 && root.height > 0 && (Players.active?.isPlaying ?? false)
+        running: !GameMode.enabled && root.visible && root.width > 0 && root.height > 0 && (Players.active?.isPlaying ?? false)
         onTriggered: {
             const dt = frameTime;
             for (let i = 0; i < shapes.count; i++) {

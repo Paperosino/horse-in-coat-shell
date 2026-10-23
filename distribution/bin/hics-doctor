@@ -12,6 +12,7 @@ if [[ -z $data_dir ]]; then
         data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/hics
     fi
 fi
+export HYPRSTACK_DATA_DIR="$data_dir"
 qs_bin=$data_dir/qs/bin/hics-qs
 if [[ -x $qs_bin ]]; then
     export LD_LIBRARY_PATH="$data_dir/qs/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"

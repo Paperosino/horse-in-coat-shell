@@ -29,11 +29,12 @@ public:
     Q_INVOKABLE void batchMessage(const QStringList& messages);
     Q_INVOKABLE void applyOptions(const QVariantHash& options);
 
-    Q_INVOKABLE void refreshOptions();
+    Q_INVOKABLE void refreshOptions(bool afterReload = false);
     Q_INVOKABLE void refreshDevices();
 
 signals:
     void optionsChanged();
+    void configOptionsReloaded();
     void usingLuaChanged();
 
 private:
@@ -48,6 +49,8 @@ private:
     QVariantHash m_options;
     HyprDevices* const m_devices;
 
+    quint64 m_optionsGeneration = 0;
+    bool m_configOptionsPending = false;
     SocketPtr m_optionsRefresh;
     SocketPtr m_devicesRefresh;
 

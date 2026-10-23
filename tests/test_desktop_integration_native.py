@@ -75,6 +75,15 @@ elif name=='hyprctl':
         self.assertTrue(data['drives'][0]['powerOff'])
         self.assertEqual({s['geometry'] for s in data['sources']}, {'0,0 1920x1080', '10,20 600x400'})
 
+    def test_background_monitor_does_not_enumerate_audio_windows_or_wifi(self):
+        data = self.probe('monitor')
+        self.assertFalse(data['busy'])
+        self.assertEqual(data['cards'], [])
+        self.assertEqual(data['wifi'], [])
+        self.assertEqual(data['sources'], [])
+        self.assertEqual(len(data['captures']), 2)
+        self.assertEqual(len(data['drives']), 1)
+
     def test_profile_uses_literal_arguments(self):
         name = 'card; echo injected'
         self.assertTrue(self.probe('profile', card=name, profile='stereo')['succeeded'])

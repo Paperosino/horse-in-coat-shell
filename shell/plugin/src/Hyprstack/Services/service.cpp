@@ -8,12 +8,13 @@ Service::Service(QObject* parent)
 void Service::ref(QObject* sender) {
     if (!sender || m_refs.contains(sender))
         return;
-    if (m_refs.isEmpty()) {
-        start();
-    }
-
+    const bool first = m_refs.isEmpty();
     QObject::connect(sender, &QObject::destroyed, this, &Service::unref);
     m_refs << sender;
+    // start() can synchronously publish values and instantiate another
+    // subscriber. Publish ownership before calling into the concrete service.
+    if (first)
+        start();
 }
 
 void Service::unref(QObject* sender) {

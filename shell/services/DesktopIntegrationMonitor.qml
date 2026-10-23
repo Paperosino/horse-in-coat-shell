@@ -15,7 +15,7 @@ Singleton {
                 const path = root.pendingVolumes[0];
                 root.pendingVolumes = root.pendingVolumes.slice(1);
                 DesktopIntegration.mountVolume(path);
-            } else DesktopIntegration.refresh();
+            } else if (!DesktopIntegration.busy) DesktopIntegration.refreshMonitoring();
         }
     }
     Connections {

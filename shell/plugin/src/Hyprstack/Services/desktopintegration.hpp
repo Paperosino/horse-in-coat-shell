@@ -43,6 +43,7 @@ public:
     qreal microphoneLevel() const { return m_level; }
     Q_INVOKABLE QUrl wallpaperVideo(const QString &path) const;
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void refreshMonitoring();
     Q_INVOKABLE void setCardProfile(const QString &card, const QString &profile);
     Q_INVOKABLE void startMicrophoneTest();
     Q_INVOKABLE void stopMicrophoneTest();
@@ -66,6 +67,7 @@ private:
     void diskCall(const QString &path, const QString &interface, const QString &method, const QVariantList &args);
     void fail(const QString &message);
     void refreshDisks();
+    void refreshCapture();
     void refreshWifi();
     void awaitActivation(const QString &path, std::function<void(bool)> done);
     int m_pending = 0;

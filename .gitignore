@@ -36,6 +36,7 @@
 /distribution/*
 !/distribution/bin/
 !/distribution/bundle-qt.sh
+!/distribution/profile_shell.py
 !/distribution/check_headers.py
 !/distribution/native_plugins.py
 !/distribution/update.py
@@ -100,6 +101,7 @@
 
 !/docs/
 /docs/*
+!/docs/STABILITY_AUDIT.md
 !/docs/media/
 /docs/media/*
 !/docs/media/README.md

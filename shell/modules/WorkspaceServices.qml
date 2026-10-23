@@ -18,7 +18,6 @@ Scope {
     Component.onCompleted:{ClipboardHistory.setLocked(locked);ShortcutEditor.refresh();WorkspaceSession.refresh();startup.running=true}
     Process {id:startup;command:["hics-workspace","startup"];onExited:WorkspaceSession.refresh()}
     Timer {interval:WorkspaceSession.settings.interval*1000;repeat:true;running:WorkspaceSession.settings.enabled&&WorkspaceSession.settings.autosave&&!WorkspaceSession.busy&&!WorkspaceSession.startupPending;onTriggered:WorkspaceSession.capture(Tr.tr("Automatic checkpoint"),true)}
-    Timer {interval:5000;repeat:true;running:true;onTriggered:if(!WorkspaceSession.busy)WorkspaceSession.refresh()}
     Connections {target:Hypr;function onConfigReloaded():void {ShortcutEditor.refresh()}}
     FloatingWindow {
         id:prompt

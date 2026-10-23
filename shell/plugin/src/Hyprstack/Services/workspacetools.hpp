@@ -142,7 +142,10 @@ private:
   QVariantMap m_settings, m_preview;
   QVariantList m_snapshots, m_report;
   QString m_error;
+  QString m_refreshError;
   bool m_busy = false, m_startupPending = false;
+  QFileSystemWatcher m_sessionFiles;
+  QTimer m_refreshTimer;
   std::shared_ptr<std::atomic_bool> m_cancel =
       std::make_shared<std::atomic_bool>(false);
 };
