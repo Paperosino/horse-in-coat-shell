@@ -15,6 +15,12 @@ with tempfile.TemporaryDirectory(prefix='hics-dock-pointer-') as directory:
     base = Path(directory)
     shell = base/'shell'
     shutil.copytree(ROOT/'shell', shell, ignore=shutil.ignore_patterns('plugin', 'extras', '__pycache__'))
+    dock_source=shell/'modules/dock/DockContent.qml'
+    probe=dock_source.read_text().replace('id: root','id: root\n    property int testClicks: 0\n    property string testKey: ""\n    property int testPresses: 0\n    property int testCancels: 0',1)
+    probe=probe.replace('function activate(button: int): void {','function activate(button: int): void { root.testClicks++;root.testKey=task.modelData;',1)
+    probe=probe.replace('onPressed: event => { pressPoint','onPressed: event => { root.testPresses++; pressPoint',1)
+    probe=probe.replace('onCanceled: root.cancelDrag()','onCanceled: { root.testCancels++; root.cancelDrag(); }',1)
+    dock_source.write_text(probe)
     (base/'config/hics').mkdir(parents=True)
     (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True, position='bottom', iconSize=44)))
     (base/'config/hics/shell.json').write_text(json.dumps({'dashboard':{'enabled':False},'utilities':{'enabled':False}}))
@@ -42,9 +48,9 @@ ShellRoot {
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
   let buttons=[],titles=[],clocks=[],captures=[];root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
-  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,dockBox:root.box(dock),membraneShapes:dock.membraneShapes,membraneBounds:dock.membraneBounds,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
+  status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},key:dock.testKey,clicks:dock.testClicks,presses:dock.testPresses,cancels:dock.testCancels,dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,dockBox:root.box(dock),membraneShapes:dock.membraneShapes,membraneBounds:dock.membraneBounds,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
    captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
-   buttons:buttons.map(b=>Object.assign(root.box(b),{wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
+   buttons:buttons.map(b=>Object.assign(root.box(b),{key:b.modelData,wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
  }}
 }'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))))
     fixtures = ROOT/'tests/fixtures'
@@ -183,6 +189,9 @@ ShellRoot {
             offset=button['w']*button['scale']*.3
             px=cx+(offset if side=='left' else -offset if side=='right' else 0)
             py=cy+(offset if side=='top' else -offset if side=='bottom' else 0)
+            prior=read();click(px,py)
+            delivered=read()
+            assert delivered['clicks']==prior['clicks']+1,('Left click on visible icon was lost',side,prior,delivered)
             click(px,py,273)
             wait_for(lambda s:s.get('open'),3)
             click(12,180);wait_for(lambda s:not s.get('open'),3)
@@ -200,6 +209,10 @@ ShellRoot {
         send('move',target['x']+target['w']/2,target['y']+target['h']/2)
         time.sleep(.4);many=read();assert_membrane(many)
         assert len(many['membraneShapes'])>=3,('Neighbouring icons have no membrane',many)
+        target=many['buttons'][2]
+        click(target['center']['x'],target['center']['y'])
+        delivered=read()
+        assert delivered['clicks']==many['clicks']+1 and delivered['key']==target['key'],('Left click on the middle raised icon missed its application',many,delivered)
         target=buttons[3]
         send('move',target['x']+target['w']/2,target['y']+target['h']/2)
         assert_membrane(read())

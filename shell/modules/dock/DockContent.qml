@@ -116,6 +116,81 @@ Item {
             onPointChanged: if(hovered) root.wavePosition = root.vertical ? point.position.y-root.motionPadding : point.position.x-root.motionPadding
         }
     }
+    property var raisedPressTask: null
+    function raisedTaskAt(point: point): var {
+        // Original slots stay with the scroll view. Raised pixels need a hit
+        // layer outside its scene subtree (which also includes hidden drawers).
+        if (point.x>=0 && point.x<=width && point.y>=0 && point.y<=height) return null;
+        let selected=null, nearest=Infinity;
+        for(let i=0;i<taskRepeater.count;++i) {
+            const task=taskRepeater.itemAt(i);
+            if(!task || task.wave<0.015)continue;
+            const p=task.mapToItem(root,task.width/2,task.height/2);
+            if(vertical ? p.y<0 || p.y>height : p.x<0 || p.x>width)continue;
+            const scale=(1+(DockConf.magnification-1)*task.wave)*Math.max(1,task.impulseScale);
+            const lift=DockConf.lift*Tokens.scale*task.wave*scale;
+            const cx=p.x+(vertical?(DockConf.position==="left"?1:-1)*lift:0);
+            const cy=p.y+(vertical?0:(atBottom?-1:1)*lift);
+            const dx=point.x-cx,dy=point.y-cy;
+            if(Math.abs(dx)<=task.width*scale/2+2 && Math.abs(dy)<=task.height*scale/2+2 && dx*dx+dy*dy<nearest) {
+                selected=task; nearest=dx*dx+dy*dy;
+            }
+        }
+        return selected;
+    }
+    MouseArea {
+        id:raisedInput
+        // Rendering beyond the dock must have input in the same window space,
+        // independently of the scroll view and other drawer contents.
+        parent:root.QsWindow.window?.contentItem ?? root
+        z:9000
+        enabled:root.visible && root.motionEnabled && !root.menuOpen && !root.listOpen
+        property rect pressBounds:Qt.rect(0,0,0,0)
+        property bool holdingBounds:false
+        readonly property rect inputBounds:holdingBounds ? pressBounds : root.membraneBounds
+        readonly property point origin:root.mapToItem(parent,inputBounds.x,inputBounds.y)
+        x:origin.x;y:origin.y
+        width:inputBounds.width;height:inputBounds.height
+        containmentMask:QtObject {
+            function contains(point: point): bool {
+                return raisedInput.pressed || root.raisedTaskAt(raisedInput.mapToItem(root,point.x,point.y))!==null;
+            }
+        }
+        acceptedButtons:Qt.LeftButton|Qt.RightButton|Qt.MiddleButton
+        cursorShape:Qt.PointingHandCursor
+        preventStealing:true
+        property point pressPoint
+        property bool dragged:false
+        onPressed:event=>{
+            pressBounds=root.membraneBounds;holdingBounds=true;
+            pressPoint=mapToItem(root,event.x,event.y);
+            root.raisedPressTask=root.raisedTaskAt(pressPoint);
+            dragged=false;
+            if(!root.raisedPressTask)event.accepted=false;
+        }
+        onPositionChanged:event=>{
+            const task=root.raisedPressTask;
+            if(!task || !(pressedButtons & Qt.LeftButton))return;
+            const p=mapToItem(root,event.x,event.y);
+            if(!dragged && Math.hypot(p.x-pressPoint.x,p.y-pressPoint.y)>8*Tokens.scale) {
+                dragged=true;root.closePopups();root.draggedKey=task.group.key;root.dragIcon=task.iconSource;
+            }
+            if(dragged)root.updateDrag(p);
+        }
+        onReleased:{if(dragged)root.finishDrag();Qt.callLater(()=>holdingBounds=false);}
+        onCanceled:{holdingBounds=false;root.raisedPressTask=null;root.cancelDrag();}
+        onClicked:event=>{
+            const task=root.raisedPressTask;root.raisedPressTask=null;
+            if(task && !dragged)task.activate(event.button);
+        }
+        onWheel:event=>{
+            const task=root.raisedTaskAt(mapToItem(root,event.x,event.y));
+            if(!task || !task.windows.length){event.accepted=false;return;}
+            const current=task.windows.findIndex(w=>w===Hypr.activeToplevel);
+            const next=(current+(event.angleDelta.y>0?1:-1)+task.windows.length)%task.windows.length;
+            task.act("dock-activate",task.windows[next]);event.accepted=true;
+        }
+    }
     SequentialAnimation {
         id:membraneImpulse
         NumberAnimation {target:root;property:"absorptionAmount";to:1;duration:70}
@@ -341,7 +416,7 @@ Item {
                         property bool motionReady: false
                         property int previousMinimized: minimizedCount
                         property real impulseScale: 1
-                        readonly property real visualScale: (1+(DockConf.magnification-1)*wave)*(GlobalConfig.appearance.reducedMotion?1:impulseScale)*(taskMouse.pressed&&!taskMouse.dragged?0.9:1)
+                        readonly property real visualScale: (1+(DockConf.magnification-1)*wave)*(GlobalConfig.appearance.reducedMotion?1:impulseScale)*((taskMouse.pressed&&!taskMouse.dragged)||(raisedInput.pressed && root.raisedPressTask===task && !raisedInput.dragged)?0.9:1)
                         property real accentPulse: 0
                         Component.onCompleted: Qt.callLater(()=>{previousMinimized=minimizedCount;motionReady=true;})
                         onMinimizedCountChanged: {
@@ -510,6 +585,23 @@ Item {
                         }
 
                         }
+                        function activate(button: int): void {
+                                if (button === Qt.RightButton) {
+                                    task.showMenu();
+                                } else if (task.windows.length === 0) {
+                                    task.launch();
+                                } else if (button === Qt.MiddleButton) {
+                                    const window = task.windows.find(w => w === Hypr.activeToplevel) ?? task.windows[0];
+                                    task.act("close", window);
+                                } else {
+                                    const action = task.clickAction();
+                                    if (action.window) {
+                                        root.reportTargets();
+                                        root.closeMenu();
+                                        Hypr.windowAction(action.operation, action.window);
+                                    }
+                                }
+                            }
                         MouseArea {
                             id: taskMouse
                             // Union the stable slot with the displayed icon. Qt
@@ -548,24 +640,7 @@ Item {
                             onReleased: if (dragged) root.finishDrag()
                             onCanceled: root.cancelDrag()
 
-                            onClicked: event => {
-                                if (dragged) return;
-                                if (event.button === Qt.RightButton) {
-                                    task.showMenu();
-                                } else if (task.windows.length === 0) {
-                                    task.launch();
-                                } else if (event.button === Qt.MiddleButton) {
-                                    const window = task.windows.find(w => w === Hypr.activeToplevel) ?? task.windows[0];
-                                    task.act("close", window);
-                                } else {
-                                    const action = task.clickAction();
-                                    if (action.window) {
-                                        root.reportTargets();
-                                        root.closeMenu();
-                                        Hypr.windowAction(action.operation, action.window);
-                                    }
-                                }
-                            }
+                            onClicked: event => { if (!dragged) task.activate(event.button); }
                             onWheel: event => {
                                 if (task.windows.length === 0)
                                     return;

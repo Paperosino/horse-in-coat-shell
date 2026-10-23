@@ -128,11 +128,11 @@ ShellRoot {
  PanelWindow {
   id:win;anchors {top:true;bottom:true;left:true;right:true}
   color:"transparent";exclusionMode:ExclusionMode.Ignore;WlrLayershell.layer:WlrLayer.Top;WlrLayershell.keyboardFocus:WlrKeyboardFocus.None
-  mask:Region{x:dock.x;y:dock.y;width:dock.width;height:dock.height}
+  mask:Region{x:dock.x+Math.min(0,dock.membraneBounds.x);y:dock.y+Math.min(0,dock.membraneBounds.y);width:Math.max(dock.width,dock.membraneBounds.x+dock.membraneBounds.width)-Math.min(0,dock.membraneBounds.x);height:Math.max(dock.height,dock.membraneBounds.y+dock.membraneBounds.height)-Math.min(0,dock.membraneBounds.y)}
   Dock.DockContent {id:dock;screen:win.screen;screenState:state;panelVisible:true;width:implicitWidth;height:implicitHeight;anchors.bottom:parent.bottom;anchors.bottomMargin:20;anchors.horizontalCenter:parent.horizontalCenter}
  }
  FileView{id:output;path:STATUS;printErrors:false}
- Timer{interval:20;repeat:true;running:true;onTriggered:{const t=task(dock);if(t){const p=t.mapToItem(win.contentItem,t.width/2,t.height/2);output.setText(JSON.stringify({x:p.x,y:p.y,scale:t.impulseScale,minimized:t.minimizedCount,icon:t.entry?.animationIcon()??""}));}}}
+ Timer{interval:20;repeat:true;running:true;onTriggered:{const t=task(dock);if(t){const p=t.mapToItem(win.contentItem,t.width/2,t.height/2);const v=t.visual.mapToItem(win.contentItem,t.width/2,t.height/2);output.setText(JSON.stringify({x:p.x,y:p.y,vx:v.x,vy:v.y,scale:t.impulseScale,minimized:t.minimizedCount,icon:t.entry?.animationIcon()??""}));}}}
 }'''.replace('STATUS',json.dumps(str(status))))
         qmlenv=dict(appenv,QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'))
         uilog=(base/'ui.log').open('w');processes.append(subprocess.Popen(['/usr/share/hics/qs/bin/hics-qs','-p',str(ui)],env=qmlenv,stdout=uilog,stderr=subprocess.STDOUT))
@@ -156,7 +156,9 @@ ShellRoot {
             pointer.stdin.write(f'{op} {round(x)} {round(y)}\n');pointer.stdin.flush();assert pointer.stdout.readline().strip()=='ok';time.sleep(.04)
         # Close a focus-less layer shell press into a real stacking task click.
         action('activate');time.sleep(.3)
-        target=ui_state();send('move',target['x'],target['y']);time.sleep(.3);send('button',272,1);send('button',272,0)
+        target=ui_state();send('move',target['x'],target['y']);time.sleep(.3)
+        target=ui_state();assert target['vy']<target['y']-15,target
+        send('move',target['vx'],target['vy']);send('button',272,1);send('button',272,0)
         samples=[]
         for _ in range(50):samples.append(ui_state());time.sleep(.02)
         assert any(s.get('minimized')==1 for s in samples),('Dock click did not minimize',samples)
@@ -164,7 +166,7 @@ ShellRoot {
         assert windows()[0]['workspace']['name'].startswith('special:')
         send('button',272,1);send('button',272,0);time.sleep(.8)
         assert not windows()[0]['workspace']['name'].startswith('special:')
-        print('PASS: real dock clicks minimize/restore and trigger icon absorption with a real exported app glyph',flush=True)
+        print('PASS: left click on a raised icon minimizes/restores the real window and triggers icon absorption',flush=True)
         output=(base/'ui.log').read_text();assert not any(e in output for e in ('TypeError:','ReferenceError:','Binding loop')),output[-3000:]
         pointer.stdin.close();pointer.wait(timeout=3)
         ctl('reload');time.sleep(.5)
