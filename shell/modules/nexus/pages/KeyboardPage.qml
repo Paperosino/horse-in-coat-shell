@@ -117,35 +117,17 @@ PageBase {
 
             NavRow {
                 first: true
-                text: Tr.tr("Mouse")
-                icon: "mouse"
-                subtext: Tr.tr("Sensitivity, buttons and scrolling")
-                onClicked: root.nState.openPage("mouse")
-            }
-            NavRow {
-                text: Tr.tr("Touchpad")
-                icon: "touchpad_mouse"
-                subtext: Tr.tr("Taps, clicks and scrolling")
-                onClicked: root.nState.openPage("touchpad")
-            }
-            NavRow {
                 text: Tr.tr("Cursor")
                 icon: "arrow_selector_tool"
                 subtext: Tr.tr("Visibility, movement and zoom")
                 onClicked: root.nState.openSubPage(4)
             }
             NavRow {
+                last: true
                 text: Tr.tr("Gestures")
                 icon: "swipe"
                 subtext: Tr.tr("Workspace swipes")
                 onClicked: root.nState.openSubPage(5)
-            }
-            NavRow {
-                last: true
-                text: Tr.tr("Keyboard shortcuts")
-                subtext: Tr.tr("Keys and mouse actions in one place")
-                icon: "keyboard_keys"
-                onClicked: root.nState.openPage("shortcuts")
             }
 
             // Layouts

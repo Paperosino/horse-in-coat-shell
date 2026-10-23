@@ -158,14 +158,6 @@ PageBase {
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.large
-        NavRow {
-            first: true
-            last: true
-            text: Tr.tr("Date & time")
-            subtext: Tr.tr("Time zone, network synchronization and system clock")
-            icon: "schedule"
-            onClicked: root.nState.openPage("datetime")
-        }
 
         // Language
         SettingsCard {

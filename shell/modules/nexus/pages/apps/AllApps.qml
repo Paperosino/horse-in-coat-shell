@@ -8,6 +8,7 @@ import Quickshell.Widgets
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
@@ -15,6 +16,7 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
+    property string query
     title: Tr.tr("All apps")
     isSubPage: true
 
@@ -24,10 +26,16 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
+        SearchBar {
+            objectName:"installedAppsSearch"
+            Layout.fillWidth:true
+            placeholderText:Tr.tr("Search applications...")
+            onTextChanged:root.query=text
+        }
         Repeater {
             id: list
 
-            model: [...ApplicationCatalogue.applications.values].sort((a, b) => a.name.localeCompare(b.name))
+            model: [...ApplicationCatalogue.applications.values].filter(a=>!root.query.trim()||[a.name,a.id].join(" ").toLowerCase().includes(root.query.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name))
 
             ConnectedRect {
                 id: appItem

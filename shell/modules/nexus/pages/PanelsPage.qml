@@ -16,27 +16,22 @@ PageBase {
         SettingsGuide {
             icon: "dock_to_bottom"
             title: Tr.tr("Everything within reach")
-            description: Tr.tr("Arrange the statusbar, then choose how your dock and panels appear.")
-            badges: [Tr.tr("Widgets"), Tr.tr("Dock"), Tr.tr("Panels")]
+            description: Tr.tr("Widgets and their order: left, centre and right")
+            badges: [Tr.tr("Widgets"), Tr.tr("Panels")]
         }
         SettingsCard {
-            title: Tr.tr("Statusbar & dock")
+            title: Tr.tr("Statusbar layout")
             icon: "dashboard"
 
             NavRow {
                 first: true
+                last: true
                 text: Tr.tr("Statusbar layout")
                 subtext: Tr.tr("Widgets and their order: left, centre and right")
                 icon: "view_quilt"
                 onClicked: root.nState.openSubPage(12)
             }
-            NavRow {
-                last: true
-                text: Tr.tr("Dock")
-                subtext: Tr.tr("Position, pinned applications and app menu")
-                icon: "dock_to_bottom"
-                onClicked: root.nState.openSubPage(11)
-            }
+
             // Additional Panel Settings Navigation
         }
         SettingsCard {

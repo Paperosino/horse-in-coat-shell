@@ -7,7 +7,7 @@ import qs.modules.nexus.common
 
 PageBase {
     id: root
-    pageIcon: "mouse"
+    pageIcon: groups[0]==="Touchpad" ? "touchpad_mouse" : groups[0]==="Cursor" ? "arrow_selector_tool" : groups[0]==="Gestures" ? "swipe" : "mouse"
     property list<string> groups: []
     readonly property var sections: ({
             Mouse: [
@@ -73,7 +73,7 @@ PageBase {
             delegate: SettingsCard {
                 id: deviceSection
                 title: Tr.tr(modelData.title)
-                icon: root.groups[0] === "Touchpad" ? "touchpad" : "mouse"
+                icon: modelData.title==="Scrolling" ? "swap_vert" : root.pageIcon
                 required property var modelData
                 Layout.fillWidth: true
                 SystemSettingsSection {

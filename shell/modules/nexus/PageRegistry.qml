@@ -16,7 +16,6 @@ QtObject {
     }
     function indexOf(id: string): int { return pages.findIndex(p => p.id === route(id).id); }
 
-
     readonly property var navigationPages: ([
         ...navigationGroup("personalisation", ["appearance", "panels", "dock", "windows"]),
         ...navigationGroup("devices", ["display", "audio", "printers", "storage"]),
@@ -111,7 +110,7 @@ QtObject {
             id: "apps",
             label: Tr.tr("Apps"),
             icon: "apps",
-            description: Tr.tr("Default apps, favourites, hidden apps"),
+            description: Tr.tr("Browse installed apps, set favourites and hidden"),
             category: "shell"
         },
         {
