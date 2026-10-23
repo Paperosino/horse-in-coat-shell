@@ -22,4 +22,9 @@
     <message>Authentication is required to maintain this disk</message><message xml:lang="ru">Для обслуживания диска требуется подтверждение</message>
     <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
   </action>
+  <action id="org.hics.system.memory">
+    <description>Manage compressed memory and swap</description><description xml:lang="ru">Управление сжатой памятью и подкачкой</description>
+    <message>Authentication is required to change memory settings</message><message xml:lang="ru">Для изменения настроек памяти требуется подтверждение</message>
+    <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
+  </action>
 </policyconfig>

@@ -37,7 +37,7 @@ class Update(Installer):
             raise ValueError("No staged build")
         # The privileged broker belongs only in root-owned installation paths.
         for file in self.tree(self.staging / "bin", self.bin):
-            if file.path.name != "hics-systemd":
+            if file.path.name not in ("hics-systemd", "hics-memory"):
                 yield file
         for file in self.tree(self.staging / "share", self.data):
             if not any(file.path.is_relative_to(self.data / name) for name in ("dbus-1", "polkit-1")):

@@ -1,0 +1,22 @@
+[Unit]
+Description=hics adaptive compressed memory controller
+After=swap.target local-fs.target
+[Service]
+ExecStart=/usr/bin/hics-memory
+Restart=on-failure
+RestartSec=10
+UMask=0022
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=-/etc/hics -/etc/systemd/zram-generator.conf.d /var/lib/hics-memory /run/hics-memory /sys
+PrivateTmp=yes
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_SYS_MODULE CAP_DAC_OVERRIDE CAP_FOWNER
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+RuntimeDirectory=hics-memory
+# Active kernel swap survives daemon restarts; preserve its ownership journal.
+RuntimeDirectoryPreserve=yes
+StateDirectory=hics-memory
+StateDirectoryMode=0700
+[Install]
+WantedBy=multi-user.target

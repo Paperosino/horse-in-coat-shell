@@ -8,13 +8,13 @@ class SystemInstaller(unittest.TestCase):
  def test_service_never_executes_user_owned_build(self):
   with tempfile.TemporaryDirectory() as directory:
    prefix=Path(directory);(prefix/'bin').mkdir()
-   for name in ('hics-systemd','hics-systemctl'):(prefix/'bin'/name).write_bytes(b'fixture')
+   for name in ('hics-systemd','hics-systemctl','hics-memory'):(prefix/'bin'/name).write_bytes(b'fixture')
    plan={str(path):(content,mode) for path,content,mode in installer.deployment(prefix)}
-   self.assertEqual(len(plan),6)
+   self.assertEqual(len(plan),8)
    for path,(content,mode) in plan.items():
     self.assertNotIn(directory,path)
     if path.endswith('.service'):
-     self.assertNotIn(directory,content.decode());self.assertIn('/usr/local/bin/hics-systemd',content.decode())
+     self.assertNotIn(directory,content.decode());self.assertIn('/usr/local/bin/hics-memory' if path.endswith('hics-memory.service') else '/usr/local/bin/hics-systemd',content.decode())
     self.assertEqual(mode,0o755 if path.startswith('/usr/local/bin/') else 0o644)
  def test_package_wires_system_service_post_install(self):
   pkg=(ROOT/'packaging/arch/PKGBUILD').read_text()
@@ -45,6 +45,7 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
  sys.exit(1)
 ''')
   command.chmod(0o755)
+  (self.directory/'install').write_text('#!/bin/sh\nexit 0\n');(self.directory/'install').chmod(0o755)
   self.env=dict(os.environ,PATH=str(self.directory)+':'+os.environ['PATH'],HICS_TEST_LOG=str(self.log),HICS_TEST_UNITS='user@1000.service loaded active running User Manager\nuser@1001.service loaded active running User Manager')
  def run_hook(self):
   import json
@@ -79,6 +80,10 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
   self.assertEqual(result.returncode,0,result.stderr)
   commands=[json.loads(line) for line in self.log.read_text().splitlines()]
   self.assertIn(['enable','hics-system.service'],commands)
+  self.assertIn(['enable','hics-memory.service'],commands)
+  self.assertIn(['restart','hics-memory.service'],commands)
+  memory_unit=(ROOT/'distribution/systemd/system/hics-memory.service').read_text()
+  self.assertIn('RuntimeDirectoryPreserve=yes',memory_unit)
   self.assertIn(['restart','hics-system.service'],commands)
   self.assertIn(['--global','enable','hic-session.service'],commands)
 

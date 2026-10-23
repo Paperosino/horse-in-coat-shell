@@ -1,6 +1,10 @@
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../distribution/systemd/system/hics-system.service"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../distribution/systemd/system/hics-memory.service"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../distribution/dbus/org.hics.System1.service")
 find_package(Qt6 REQUIRED COMPONENTS Core DBus)
 find_package(Cups REQUIRED)
-add_library(hics-system-backend STATIC backend.cpp backend.hpp storage.cpp)
+add_library(hics-system-backend STATIC backend.cpp backend.hpp storage.cpp memory.cpp memory.hpp)
 set_target_properties(hics-system-backend PROPERTIES CXX_STANDARD 20)
 target_link_libraries(hics-system-backend PUBLIC Qt6::Core Qt6::DBus Cups::Cups)
 # Resolve fixed executables at build time, including non-/usr Nix installations.
@@ -31,3 +35,19 @@ string(REPLACE "/usr/bin/hics-systemd" "${CMAKE_INSTALL_PREFIX}/bin/hics-systemd
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/org.hics.System1.service" "${dbus_unit}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/org.hics.System1.service" DESTINATION share/dbus-1/system-services)
 install(FILES ../../distribution/polkit/org.hics.system.policy DESTINATION share/polkit-1/actions)
+
+if(CMAKE_INSTALL_PREFIX STREQUAL "/usr" OR CMAKE_INSTALL_PREFIX MATCHES "^/nix/store/")
+    set(memory_helper "${CMAKE_INSTALL_PREFIX}/bin/hics-memory")
+else()
+    # The per-user updater deploys the privileged worker to a root-owned path.
+    set(memory_helper "/usr/local/bin/hics-memory")
+endif()
+target_compile_definitions(hics-system-backend PRIVATE HYPRSTACK_MEMORY_EXECUTABLE="${memory_helper}")
+add_executable(hics-memory memory_worker.cpp)
+set_target_properties(hics-memory PROPERTIES CXX_STANDARD 20 INSTALL_RPATH "$ORIGIN/../share/hics/qs/lib")
+target_link_libraries(hics-memory PRIVATE hics-system-backend)
+install(TARGETS hics-memory RUNTIME DESTINATION bin)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../../distribution/systemd/system/hics-memory.service" memory_unit)
+string(REPLACE "/usr/bin/hics-memory" "${CMAKE_INSTALL_PREFIX}/bin/hics-memory" memory_unit "${memory_unit}")
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/hics-memory.service" "${memory_unit}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/hics-memory.service" DESTINATION lib/systemd/system)

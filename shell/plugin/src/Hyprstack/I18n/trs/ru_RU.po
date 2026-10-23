@@ -9215,3 +9215,135 @@ msgstr "Съёмные накопители"
 
 msgid "Connection preferences and safe removal"
 msgstr "Подключение и безопасное извлечение"
+
+msgid "Memory compression"
+msgstr "Сжатие памяти"
+
+msgid "ZRAM, ZSwap and adaptive memory expansion"
+msgstr "ZRAM, ZSwap и адаптивное расширение памяти"
+
+msgid "Memory and compression"
+msgstr "Оперативная память и сжатие"
+
+msgid "Choose when compressed RAM and disk-backed memory become available. Settings apply system-wide and persist after logout."
+msgstr "Выберите, когда подключать сжатую память и дисковый резерв. Настройки действуют для всей системы и сохраняются после выхода."
+
+msgid "Memory strategy"
+msgstr "Стратегия управления памятью"
+
+msgid "The system strategy keeps your existing swap configuration. Select another strategy to let hics manage memory."
+msgstr "Системная стратегия сохраняет существующие настройки подкачки. Выберите другую стратегию, чтобы передать управление оболочке hics."
+
+msgid "System settings"
+msgstr "Системные настройки"
+
+msgid "No swap"
+msgstr "Без подкачки"
+
+msgid "ZRAM only"
+msgstr "Только ZRAM"
+
+msgid "ZSwap only"
+msgstr "Только ZSwap"
+
+msgid "Smart mode"
+msgstr "Умный режим"
+
+msgid "Current stage"
+msgstr "Текущий этап"
+
+msgid "RAM only"
+msgstr "Только ОЗУ"
+
+msgid "ZSwap + disk reserve"
+msgstr "ZSwap и дисковый резерв"
+
+msgid "Adaptive stages"
+msgstr "Адаптивное включение"
+
+msgid "RAM only → ZRAM → ZSwap with disk reserve. RAM pressure uses available memory, excluding reclaimable cache. The second threshold measures logical ZRAM usage."
+msgstr "Только ОЗУ → ZRAM → ZSwap с дисковым резервом. Загрузка ОЗУ учитывает доступную память, исключая освобождаемый кэш. Второй порог относится к заполнению логического объёма ZRAM."
+
+msgid "Enable ZRAM at RAM usage (%)"
+msgstr "Включать ZRAM при загрузке ОЗУ (%)"
+
+msgid "Enable ZSwap at ZRAM usage (%)"
+msgstr "Включать ZSwap при заполнении ZRAM (%)"
+
+msgid "Return to RAM only when pressure falls"
+msgstr "Возвращаться к ОЗУ при снижении нагрузки"
+
+msgid "Recovery margin (percentage points)"
+msgstr "Запас для отключения (процентных пунктов)"
+
+msgid "Low-pressure delay (seconds)"
+msgstr "Задержка после снижения нагрузки (секунд)"
+
+msgid "A compressed swap device in RAM. The logical capacity is a limit; physical memory is allocated as pages arrive."
+msgstr "Сжатое устройство подкачки в ОЗУ. Логический объём задаёт предел, а физическая память выделяется по мере заполнения."
+
+msgid "ZRAM logical capacity (MiB)"
+msgstr "Логический объём ZRAM (МиБ)"
+
+msgid "ZSwap and disk reserve"
+msgstr "ZSwap и дисковый резерв"
+
+msgid "ZSwap grows its compressed cache automatically up to the RAM limit. Backing swap files are added in chunks; active files are never resized. Reaching a limit stops growth."
+msgstr "Сжатый кэш ZSwap растёт по необходимости до заданного предела ОЗУ. Дисковая подкачка добавляется частями; активные файлы не изменяют размер. При достижении лимита расширение останавливается."
+
+msgid "ZSwap RAM limit (%)"
+msgstr "Предел ОЗУ для ZSwap (%)"
+
+msgid "Disk growth step (MiB)"
+msgstr "Шаг расширения на диске (МиБ)"
+
+msgid "Maximum disk swap (MiB)"
+msgstr "Максимальная подкачка на диске (МиБ)"
+
+msgid "Grow disk reserve at usage (%)"
+msgstr "Расширять дисковый резерв при заполнении (%)"
+
+msgid "Keep free disk space (MiB)"
+msgstr "Оставлять свободными на диске (МиБ)"
+
+msgid "ZSwap is a global kernel cache and can also cache pages sent to ZRAM. Combining them can add compression overhead."
+msgstr "ZSwap — глобальный кэш ядра; он может кэшировать и страницы, направляемые в ZRAM. Совместный режим способен увеличить затраты на сжатие."
+
+msgid "Compression algorithm"
+msgstr "Алгоритм сжатия"
+
+msgid "Switching from the system strategy"
+msgstr "Передача управления оболочке"
+
+msgid "Existing systemd ZRAM0 can be transferred to hics. Other external swap must be disabled first. Turning swap off waits for sufficient free RAM; no forced page eviction is used."
+msgstr "Существующий ZRAM0 от systemd можно передать hics. Другую внешнюю подкачку необходимо предварительно отключить. Для отключения подкачки оболочка проверяет запас свободной ОЗУ."
+
+msgid "Take over systemd ZRAM0"
+msgstr "Передать системный ZRAM0 под управление hics"
+
+msgid "Apply memory settings"
+msgstr "Применить настройки памяти"
+
+msgid "Reset changes"
+msgstr "Отменить изменения"
+
+msgid "Not enough free RAM to safely turn off swap. Close applications and try again."
+msgstr "Недостаточно свободной ОЗУ для безопасного отключения подкачки. Закройте приложения и повторите попытку."
+
+msgid "Another swap manager is active. hics can take over systemd ZRAM0; disable other swap devices before enabling this mode."
+msgstr "Работает другой менеджер подкачки. hics может принять системный ZRAM0; другую подкачку нужно предварительно отключить."
+
+msgid "This kernel does not support ZSwap"
+msgstr "Текущее ядро не поддерживает ZSwap"
+
+msgid "Disk reserve prevents adding more swap"
+msgstr "Расширение подкачки остановлено для сохранения свободного места на диске"
+
+msgid "Managed swap requires Btrfs, ext4 or XFS"
+msgstr "Управляемая подкачка требует Btrfs, ext4 или XFS"
+
+msgid "ZRAM size must not exceed twice the physical RAM"
+msgstr "Объём ZRAM не должен превышать удвоенный объём физической ОЗУ"
+
+msgid "RAM"
+msgstr "ОЗУ"

@@ -1,4 +1,5 @@
 #include "backend.hpp"
+#include "memory.hpp"
 #include <QDBusArgument>
 #include <QDBusInterface>
 #include <QDBusMessage>
@@ -250,6 +251,8 @@ QJsonObject status(const QString &domain, uint uid) {
     return printers(uid);
   if (domain == "printer-discovery")
     return discoverPrinters();
+  if (domain == "memory")
+    return memoryStatus();
   if (domain == "storage")
     return storageStatus();
   if (domain == "datetime")
@@ -259,6 +262,10 @@ QJsonObject status(const QString &domain, uint uid) {
   throw Failure("invalid", "Unknown system settings section");
 }
 void validate(const QString &d, const QString &op, const QJsonObject &o) {
+  if (d == "memory") {
+    if (op != "configure") throw Failure("invalid", "Unknown memory operation");
+    Memory::validate(o); return;
+  }
   if (d == "storage") {
     validateStorage(op, o);
     return;
@@ -360,6 +367,7 @@ static void printerAction(const QString &op, const QJsonObject &o, uint uid) {
 }
 void apply(const QString &d, const QString &op, const QJsonObject &o,
            uint uid) {
+  if (d == "memory") { memoryApply(o); return; }
   if (d == "storage") {
     storageMaintenance(op, o);
     return;

@@ -33,6 +33,9 @@ post_install() {
         systemctl daemon-reload
         systemctl enable hics-system.service || return 1
         systemctl restart hics-system.service || return 1
+        install -d -m755 /etc/hics /etc/systemd/zram-generator.conf.d
+        systemctl enable hics-memory.service || return 1
+        systemctl restart hics-memory.service || return 1
         systemctl --global enable hic-session.service || return 1
         # Keep existing compositor configuration paths usable across the rename.
         if [ ! -L /usr/share/hyprstack ]; then

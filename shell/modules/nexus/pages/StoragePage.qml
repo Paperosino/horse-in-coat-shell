@@ -83,6 +83,15 @@ PageBase {
         FeatureError {
             error: root.backend.error
         }
+        SettingsCard {
+            id: memoryCard
+            title: Tr.tr("Memory compression")
+            description: Tr.tr("ZRAM, ZSwap and adaptive memory expansion")
+            icon: "memory"
+            collapsible: true
+            expanded: false
+            MemorySection { watching: root.visible && memoryCard.expanded }
+        }
         RowLayout {
             Layout.fillWidth: true
             ColumnLayout {
