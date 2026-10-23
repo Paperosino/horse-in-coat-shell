@@ -1,4 +1,5 @@
 #include "applicationcatalogue.hpp"
+#include "util/applicationenv.hpp"
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QDateTime>
@@ -45,6 +46,12 @@ void DesktopApplicationAction::execute() {
   if (!app)
     return;
   auto *context = g_app_launch_context_new();
+  const auto environment = hics::util::applicationEnvironment();
+  for (const auto *key : {"LD_LIBRARY_PATH", "LD_PRELOAD", "QT_PLUGIN_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH"}) {
+    if (environment.contains(QString::fromLatin1(key)))
+      g_app_launch_context_setenv(context, key, environment.value(QString::fromLatin1(key)).toUtf8().constData());
+    else g_app_launch_context_unsetenv(context, key);
+  }
   g_desktop_app_info_launch_action(app, m_id.toUtf8().constData(), context);
   g_object_unref(context);
   g_object_unref(app);
@@ -53,6 +60,8 @@ void DesktopApplication::execute() {
   // GIO handles DBusActivatable, quoting, field codes and the current desktop
   // file. This is deliberately the same path as `gio launch FILE`.
   auto *process = new QProcess(this);
+  process->setUnixProcessParameters(QProcess::UnixProcessFlag::CreateNewSession);
+  process->setProcessEnvironment(hics::util::applicationEnvironment());
   process->setProgram("gio");
   process->setArguments({"launch", m_path});
   // gio exits before the application finishes starting. Pipes owned by this

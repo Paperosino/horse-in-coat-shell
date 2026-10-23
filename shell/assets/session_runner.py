@@ -23,11 +23,14 @@ def paths():
     return Path(runtime) / ("hics-session-" + signature), Path(runtime) / "hypr" / signature / ".socket2.sock"
 
 
-def stop_child_groups(children):
-    """Stop owned helpers and their descendants, preserving detached apps."""
+def stop_child_groups(children, session_disconnected=False):
+    """Stop shell leaders on reload; groups belong to the entire login session."""
     for child in reversed(children):
         try:
-            os.killpg(child.pid, signal.SIGTERM)
+            if session_disconnected:
+                os.killpg(child.pid, signal.SIGTERM)
+            elif child.poll() is None:
+                child.terminate()
         except ProcessLookupError:
             pass
     deadline = time.monotonic() + 5
@@ -36,12 +39,12 @@ def stop_child_groups(children):
             child.wait(timeout=max(.1, deadline - time.monotonic()))
         except subprocess.TimeoutExpired:
             pass
-    # A helper can exit before its subprocesses; clean the group even when the
-    # original leader is gone. execDetached/QProcess::startDetached applications
-    # start a new session and are outside these owned groups.
     for child in reversed(children):
         try:
-            os.killpg(child.pid, signal.SIGKILL)
+            if session_disconnected:
+                os.killpg(child.pid, signal.SIGKILL)
+            elif child.poll() is None:
+                child.kill()
         except ProcessLookupError:
             pass
         child.wait()
@@ -77,7 +80,7 @@ def run_session():
         os.environ.update(session_environment())
         subprocess.run([sys.executable, str(Path(__file__).with_name('appearance_themes.py')), 'restore'],
                        stdout=subprocess.DEVNULL, timeout=35, check=False)
-    os.environ["QT_QPA_PLATFORMTHEME"] = "qt5ct"
+    os.environ["QT_QPA_PLATFORMTHEME"] = "hics"
     os.environ["QT_QUICK_CONTROLS_CONF"] = str(Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config"))/"hics/qtquickcontrols2.conf")
     children = []
     event = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -134,7 +137,7 @@ def run_session():
                             if signal.SIGTERM in signals or signal.SIGINT in signals:
                                 done = True
         finally:
-            stop_child_groups(children)
+            stop_child_groups(children, session_disconnected)
             if session_disconnected and shutil.which("hics-workspace"):
                 subprocess.run(["hics-workspace","cleanup"],timeout=5,check=False)
             event.close()

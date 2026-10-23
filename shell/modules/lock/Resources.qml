@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import Hyprstack
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -190,7 +191,7 @@ StyledRect {
 
         function exec(): void {
             if (!SessionManager.exec(command))
-                Quickshell.execDetached(command);
+                CUtils.execDetached(command);
         }
 
         Layout.fillWidth: true

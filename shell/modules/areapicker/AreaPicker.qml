@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import Hyprstack
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -38,8 +39,8 @@ Scope {
                 return;
             }
             if (!clipboardOnly)
-                Quickshell.execDetached(["env", "GDK_BACKEND=wayland", "swappy", "-f", imagePath]);
-            Quickshell.execDetached(["notify-send", "-a", "hyprstack", "-i", "image-x-generic-symbolic",
+                CUtils.execDetached(["env", "GDK_BACKEND=wayland", `GTK_THEME=${Colours.currentLight ? "Adwaita" : "Adwaita:dark"}`, "swappy", "-f", imagePath]);
+            CUtils.execDetached(["notify-send", "-a", "hyprstack", "-i", "image-x-generic-symbolic",
                 "-h", "string:image-path:" + imagePath, "-h", "boolean:x-hyprstack-screenshot:true",
                 Tr.tr("Screenshot taken"), Tr.tr("Screenshot copied to clipboard")]);
         }

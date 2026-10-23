@@ -1,5 +1,6 @@
 pragma Singleton
 
+import Hyprstack
 import ".."
 import QtQuick
 import Quickshell
@@ -93,7 +94,7 @@ Searcher {
 
         function onClicked(list: AppList): void {
             list.screenState.launcher = false;
-            Quickshell.execDetached(["hics", "scheme", "set", "-n", name, "-f", flavour]);
+            CUtils.execDetached(["hics", "scheme", "set", "-n", name, "-f", flavour]);
         }
     }
 }

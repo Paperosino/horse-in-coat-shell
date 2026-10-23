@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import Hyprstack
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -227,7 +228,7 @@ PageBase {
                                     visible: !!partition.modelData.mountPoint
                                     text: Tr.tr("Open")
                                     type: TextButton.Filled
-                                    onClicked: Quickshell.execDetached(["xdg-open", Paths.fileUrl(partition.modelData.mountPoint)])
+                                    onClicked: CUtils.execDetached(["xdg-open", Paths.fileUrl(partition.modelData.mountPoint)])
                                 }
                                 TextButton {
                                     visible: !partition.modelData.mountPoint || root.canUnmount(partition.modelData)

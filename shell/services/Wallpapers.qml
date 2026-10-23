@@ -1,5 +1,6 @@
 pragma Singleton
 
+import Hyprstack
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -29,12 +30,12 @@ Searcher {
     }
 
     function setRandom(): void {
-        Quickshell.execDetached(["hics", "wallpaper", "-r", ...smartArg]);
+        CUtils.execDetached(["hics", "wallpaper", "-r", ...smartArg]);
     }
 
     function setWallpaper(path: string): void {
         actualCurrent = path;
-        Quickshell.execDetached(["hics", "wallpaper", "-f", path, ...smartArg]);
+        CUtils.execDetached(["hics", "wallpaper", "-f", path, ...smartArg]);
     }
 
     function preview(path: string): void {

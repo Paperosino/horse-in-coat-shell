@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import Hyprstack
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -156,7 +157,7 @@ PageBase {
                         icon: modelData.icon ?? "play_arrow"
                         onClicked: {
                             if (Array.isArray(modelData.command))
-                                Quickshell.execDetached(modelData.command);
+                                CUtils.execDetached(modelData.command);
                             else if (modelData.url)
                                 Quickshell.openUrlExternally(modelData.url);
                         }

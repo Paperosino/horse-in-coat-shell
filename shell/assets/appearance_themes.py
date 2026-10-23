@@ -210,7 +210,7 @@ def session_environment():
     state=current()
     return {'XCURSOR_THEME':state['cursors'],'XCURSOR_SIZE':str(state['size']),
         'HYPRCURSOR_THEME':state['cursors'],'HYPRCURSOR_SIZE':str(state['size']),
-        'QT_QPA_PLATFORMTHEME':'qt5ct',
+        'QT_QPA_PLATFORMTHEME':'hics',
         'QT_QUICK_CONTROLS_CONF':str(CONFIG/'hics/qtquickcontrols2.conf'),
         'GTK2_RC_FILES':str(CONFIG/'gtk-2.0/gtkrc')}
 

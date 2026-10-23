@@ -1,5 +1,6 @@
 pragma Singleton
 
+import Hyprstack
 import ".."
 import QtQuick
 import Quickshell
@@ -51,7 +52,7 @@ Searcher {
             } else {
                 list.screenState.launcher = false;
                 if (!SessionManager.exec(command))
-                    Quickshell.execDetached(command);
+                    CUtils.execDetached(command);
             }
         }
     }

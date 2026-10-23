@@ -68,9 +68,9 @@ def apply_palette(colours, config_root, mode=None):
     error = "#" + colours.get("error", colours["primary"])
     on_error = "#" + colours.get("onError", colours["onPrimary"])
     rules = [
-        f"window, window.background, window.dialog, messagedialog, dialog, .dialog, .background {{ background-color: {surface}; color: {ink}; }}",
-        f".view, viewport, treeview, iconview, textview, textview text, list, flowbox, gridview, columnview, .content-view, notebook > stack {{ background-color: {surface}; color: {ink}; }}",
-        f"headerbar, toolbar, actionbar, statusbar, .toolbar, .sidebar, .navigation-sidebar, notebook > header {{ background-color: {container}; color: {ink}; }}",
+        f"window, window.background, window.dialog, messagedialog, dialog, .dialog, .background {{ background-color: {surface}; background-image: none; color: {ink}; }}",
+        f".view, viewport, treeview, iconview, textview, textview text, list, flowbox, gridview, columnview, .content-view, notebook > stack {{ background-color: {surface}; background-image: none; color: {ink}; }}",
+        f"headerbar, toolbar, actionbar, statusbar, .toolbar, .sidebar, .navigation-sidebar, notebook > header {{ background-color: {container}; background-image: none; color: {ink}; }}",
         f"popover > contents, menu, menuitem, .menu, tooltip > box, tooltip > decoration, .card, .boxed-list, .boxed-list > row {{ background-color: {container}; color: {ink}; }}",
         f"window.popup, window.popup.background, window.tooltip, tooltip, popover, popover.background {{ background-color: transparent; background-image: none; box-shadow: none; }}",
         f"tooltip > box {{ background-color: {container}; color: {ink}; border-radius: 8px; }}",
@@ -255,7 +255,7 @@ def sync_session_preference(colours, config_root, mode=None):
             run(["gsettings", "set", "org.gnome.desktop.interface", key, value])
     target = Path(os.environ.get("XDG_DATA_HOME", Path.home()/".local/share")) / "color-schemes/hics.colors"
     write_kde_scheme(config_root, target)
-    environment={"QT_QPA_PLATFORMTHEME":"qt5ct", "QT_QUICK_CONTROLS_CONF":str(Path(config_root)/"hics/qtquickcontrols2.conf")}
+    environment={"QT_QPA_PLATFORMTHEME":"hics", "QT_QUICK_CONTROLS_CONF":str(Path(config_root)/"hics/qtquickcontrols2.conf")}
     atomic_text(Path(config_root)/"environment.d/91-hics-toolkit.conf", "".join(k+"="+json.dumps(v)+"\n" for k,v in environment.items()))
     if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
         script=";".join("hl.env("+json.dumps(k)+","+json.dumps(v)+")" for k,v in environment.items())

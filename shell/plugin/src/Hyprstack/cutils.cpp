@@ -1,4 +1,6 @@
 #include "cutils.hpp"
+#include "util/applicationenv.hpp"
+#include <QProcess>
 
 #include <qdir.h>
 #include <qfileinfo.h>
@@ -20,6 +22,19 @@ Q_LOGGING_CATEGORY(lcCUtils, "hyprstack.cutils", QtInfoMsg)
 } // namespace
 
 namespace hyprstack {
+
+bool CUtils::execDetached(const QStringList &command, const QString &workingDirectory) {
+    if (command.isEmpty()) return false;
+    QProcess process;
+    process.setProgram(command.first());
+    process.setArguments(command.mid(1));
+    process.setWorkingDirectory(workingDirectory);
+    process.setProcessEnvironment(hics::util::applicationEnvironment());
+    return process.startDetached();
+}
+bool CUtils::execDetached(const QVariantMap &options) {
+    return execDetached(options.value(QStringLiteral("command")).toStringList(), options.value(QStringLiteral("workingDirectory")).toString());
+}
 
 void CUtils::saveItem(QQuickItem* target, const QUrl& path, const QJSValue& onSaved, const QJSValue& onFailed) {
     this->saveItem(target, path, QRect(), onSaved, onFailed);

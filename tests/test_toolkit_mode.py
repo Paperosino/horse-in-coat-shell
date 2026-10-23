@@ -44,3 +44,34 @@ class RealQtModeTests(unittest.TestCase):
       gtk_theme.apply_palette(colours,config,mode)
       run=subprocess.run([str(binary),style],env=dict(env,QT_QUICK_CONTROLS_STYLE=style,QT_QUICK_CONTROLS_CONF=str(config/'hics/qtquickcontrols2.conf')),capture_output=True,text=True,timeout=8,check=True)
       data=json.loads(run.stdout);self.assertEqual(data['dark'],mode=='dark',data);self.assertEqual(data['window'],'#101018')
+
+class PlatformThemeTests(unittest.TestCase):
+ def test_native_palette_and_automatic_scheme_agree(self):
+  import shlex,subprocess
+  with tempfile.TemporaryDirectory() as directory:
+   base=Path(directory);source=base/'probe.cpp'
+   source.write_text('''#include <QApplication>
+#include <QPalette>
+#include <QStyleHints>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <cstdio>
+int main(int argc,char**argv){QApplication app(argc,argv);QJsonObject r{{"window",app.palette().color(QPalette::Window).name()}};
+#if QT_VERSION >= QT_VERSION_CHECK(6,5,0)
+r["scheme"]=int(app.styleHints()->colorScheme());
+#endif
+puts(QJsonDocument(r).toJson(QJsonDocument::Compact).constData());}''')
+   for version in (5,6):
+    with self.subTest(qt=version):
+     plugins=ROOT/f'build/qt-themes/qt{version}'
+     if not list((plugins/'platformthemes').glob('*.so')):self.fail('Build the Qt theme adapter first')
+     flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs',f'Qt{version}Widgets'],text=True));binary=base/f'probe{version}'
+     subprocess.run(['c++','-fPIC',str(source),*flags,'-o',str(binary)],check=True)
+     config=base/f'config{version}'
+     env=dict(os.environ,QT_QPA_PLATFORM='offscreen',QT_QPA_PLATFORMTHEME='hics',QT_PLUGIN_PATH=str(plugins),XDG_CONFIG_HOME=str(config));env.pop('LD_LIBRARY_PATH',None)
+     for mode,surface,scheme in [('dark','101018',2),('light','f5f5f5',1)]:
+      colours=dict(surface=surface,onSurface='808080',surfaceContainer=surface,primary='aaccee',onPrimary='102030',outlineVariant='505060')
+      gtk_theme.apply_palette(colours,config,mode)
+      run=subprocess.run([str(binary)],env=env,capture_output=True,text=True,check=True,timeout=5);result=json.loads(run.stdout)
+      self.assertEqual(result['window'],'#'+surface,result)
+      if version==6:self.assertEqual(result['scheme'],scheme,result)

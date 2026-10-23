@@ -17,7 +17,7 @@ class ApplicationCatalogueTests(unittest.TestCase):
             flags = shlex.split(subprocess.check_output(['pkg-config', '--cflags', '--libs', 'Qt6Core', 'Qt6Gui', 'Qt6Qml', 'gio-unix-2.0'], text=True))
             moc = Path(subprocess.check_output(['pkg-config', '--variable=libexecdir', 'Qt6Core'], text=True).strip()) / 'moc'
             subprocess.run([str(moc), str(SERVICES/'applicationcatalogue.hpp'), '-o', str(base/'moc.cpp')], check=True)
-            subprocess.run(['c++', '-std=c++20', '-fPIC', str(ROOT/'tests/fixtures/application-catalogue-probe.cpp'), str(SERVICES/'applicationcatalogue.cpp'), str(base/'moc.cpp'), '-I', str(SERVICES), *flags, '-o', str(base/'probe')], check=True)
+            subprocess.run(['c++', '-std=c++20', '-fPIC', str(ROOT/'tests/fixtures/application-catalogue-probe.cpp'), str(SERVICES/'applicationcatalogue.cpp'), str(base/'moc.cpp'), '-I', str(SERVICES), '-I', str(ROOT/'shell/plugin/include'), *flags, '-o', str(base/'probe')], check=True)
             (base/'bin').mkdir()
             gio = base/'bin/gio'
             gio.write_text('#!/usr/bin/python3\nimport json,os,sys\nopen(os.environ["LAUNCH_LOG"],"w").write(json.dumps(sys.argv[1:]))\n')

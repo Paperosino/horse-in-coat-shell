@@ -24,7 +24,7 @@ Singleton {
             if (GlobalConfig.services.openRemovableVolumes && !root.pendingVolumes.includes(path)) root.pendingVolumes = [...root.pendingVolumes, path];
         }
         function onVolumeMounted(path: string): void {
-            if (GlobalConfig.services.openRemovableVolumes && path) Quickshell.execDetached(["xdg-open", Paths.fileUrl(path)]);
+            if (GlobalConfig.services.openRemovableVolumes && path) CUtils.execDetached(["xdg-open", Paths.fileUrl(path)]);
         }
     }
 }

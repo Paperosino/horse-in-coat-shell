@@ -113,6 +113,8 @@
 !/docs/media/trackpad-swipes.gif
 
 # Native helpers and bundled canvas are required by fresh source installations.
+!/native/qt-theme/
+!/native/qt-theme/**
 !/native/system/
 !/third_party/phantomat/
 !/distribution/dbus/

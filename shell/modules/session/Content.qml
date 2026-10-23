@@ -87,7 +87,7 @@ Column {
 
         function exec(): void {
             if (!SessionManager.exec(command))
-                Quickshell.execDetached(command);
+                CUtils.execDetached(command);
         }
 
         implicitWidth: Tokens.sizes.session.button

@@ -11,7 +11,7 @@ ExecStart=%h/.local/bin/hics-session-runner
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=10
-# The runner stops its own process groups. Desktop applications launched by the
+# The runner stops shell leaders on reload and groups only at logout. Desktop applications launched by the
 # shell share this cgroup until they move to an application scope and must live
 # independently of shell updates.
 KillMode=process

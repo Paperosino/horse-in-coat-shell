@@ -1,5 +1,6 @@
 pragma Singleton
 
+import Hyprstack
 import Quickshell
 import Hyprstack.Services
 import Hyprstack.Config
@@ -13,7 +14,7 @@ Searcher {
         appDb.incrementFrequency(entry.id);
 
         if (entry.runInTerminal)
-            Quickshell.execDetached({
+            CUtils.execDetached({
                 command: [...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, ...entry.command],
                 workingDirectory: entry.workingDirectory
             });

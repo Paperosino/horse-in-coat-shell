@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import Hyprstack
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -105,7 +106,7 @@ ColumnLayout {
                 onClicked: {
                     root.screenState.utilities = false;
                     root.screenState.sidebar = false;
-                    Quickshell.execDetached([...GlobalConfig.general.apps.playback, recording.modelData.path]);
+                    CUtils.execDetached([...GlobalConfig.general.apps.playback, recording.modelData.path]);
                 }
             }
 
@@ -115,7 +116,7 @@ ColumnLayout {
                 onClicked: {
                     root.screenState.utilities = false;
                     root.screenState.sidebar = false;
-                    Quickshell.execDetached([...GlobalConfig.general.apps.explorer, recording.modelData.path]);
+                    CUtils.execDetached([...GlobalConfig.general.apps.explorer, recording.modelData.path]);
                 }
             }
 

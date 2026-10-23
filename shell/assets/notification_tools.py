@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime
+from application_environment import application_environment
 import hashlib
 import json
 import os
@@ -79,10 +80,10 @@ def screenshot_action(action: str, primary: str, fallback: str) -> dict:
         subprocess.run(["wl-copy", "--type", "image/" + kind], input=data, check=True)
     elif action == "open":
         subprocess.Popen(["xdg-open", str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                         start_new_session=True)
+                         start_new_session=True, env=application_environment())
     elif action == "reveal":
         subprocess.Popen(["xdg-open", str(path.parent)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                         start_new_session=True)
+                         start_new_session=True, env=application_environment())
     else:
         pictures = os.environ.get("XDG_PICTURES_DIR")
         if not pictures:

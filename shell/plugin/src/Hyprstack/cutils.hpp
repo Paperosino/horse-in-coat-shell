@@ -17,6 +17,9 @@ class CUtils : public QObject {
     Q_PROPERTY(QString qtVersion READ qtVersion CONSTANT)
 
 public:
+    Q_INVOKABLE bool execDetached(const QStringList &command, const QString &workingDirectory = QString());
+    Q_INVOKABLE bool execDetached(const QVariantMap &options);
+
     Q_INVOKABLE void saveItem(
         QQuickItem* target, const QUrl& path, const QJSValue& onSaved = {}, const QJSValue& onFailed = {});
     Q_INVOKABLE void saveItem(QQuickItem* target, const QUrl& path, const QRect& rect, const QJSValue& onSaved = {},

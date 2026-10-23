@@ -25,6 +25,7 @@ set(M3SHAPES_INSTALL_DEVELOPMENT OFF CACHE BOOL "Install development files" FORC
 add_subdirectory(third_party/m3shapes)
 add_subdirectory(shell)
 add_subdirectory(native/system)
+add_subdirectory(native/qt-theme)
 
 if(HYPRSTACK_BUILD_NATIVE)
     execute_process(COMMAND Hyprland --version-json OUTPUT_VARIABLE hypr_version

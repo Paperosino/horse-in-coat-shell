@@ -1,6 +1,7 @@
 pragma Singleton
 pragma ComponentBehavior: Bound
 
+import Hyprstack
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -212,11 +213,11 @@ Singleton {
             brightness = value;
 
             if (isAppleDisplay)
-                Quickshell.execDetached(["asdbctl", "set", rounded]);
+                CUtils.execDetached(["asdbctl", "set", rounded]);
             else if (isDdc)
-                Quickshell.execDetached(["ddcutil", "-b", busNum, "setvcp", "10", rounded]);
+                CUtils.execDetached(["ddcutil", "-b", busNum, "setvcp", "10", rounded]);
             else
-                Quickshell.execDetached(["brightnessctl", "s", `${rounded}%`]);
+                CUtils.execDetached(["brightnessctl", "s", `${rounded}%`]);
 
             if (isDdc)
                 timer.restart();
