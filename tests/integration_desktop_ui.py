@@ -214,6 +214,42 @@ ShellRoot {
    step++;
   }
  }
+ QtObject {
+  id:fakeStorage
+  property bool busy:false
+  property string error:""
+  property var state:({volumes:[
+   {path:"/mock/p1",drivePath:"/mock/d1",driveSize:200000000000,device:"/dev/test1",model:"Fixture SSD",label:"Files",filesystem:"ext4",size:100000000000,total:100000000000,free:60000000000,mountPoint:"/mnt/files",ssd:true,removable:false,mountEditable:true,mountDirectory:"/mnt/files",mountOptions:"",smart:{supported:false}},
+   {path:"/mock/p2",drivePath:"/mock/d1",driveSize:200000000000,device:"/dev/test2",model:"Fixture SSD",filesystem:"ext4",size:100000000000,mountPoint:"",ssd:true,removable:false,mountEditable:true,mountDirectory:"/mnt/extra",mountOptions:"",smart:{supported:false}},
+   {path:"/mock/p3",drivePath:"/mock/d2",device:"/dev/test3",model:"Fixture USB",filesystem:"ext4",size:50000000000,mountPoint:"/",removable:false,smart:{supported:false}}
+  ]})
+  function reload(){}
+  function apply(operation,options){}
+  signal applied(string operation)
+ }
+ StoragePage {id:storageProbe;parent:host;visible:false;width:800;height:600;nState:root.state;backend:fakeStorage}
+ property var storageEditor:null
+ function namedChild(item,name){if(item.objectName===name)return item;for(const child of item.children??[]){const found=namedChild(child,name);if(found)return found;}return null}
+ Timer {
+  property int step:0
+  interval:150;running:true;repeat:true
+  onTriggered:{
+   if(step===0){
+    if(!root.check(storageProbe.drives.length===2&&storageProbe.drives[0].volumes.length===2,"group physical disks and their volumes"))return;
+    if(!root.check(!storageProbe.canUnmount(fakeStorage.state.volumes[2]),"protect the system mount"))return;
+    storageProbe.inspect(fakeStorage.state.volumes[0]);
+   }else if(step===1){
+    root.storageEditor=root.namedChild(storageProbe,"storageVolumeSettings");
+    if(!root.check(!!root.storageEditor,"selected volume inspector"))return;
+    root.storageEditor.edit("automatic",true);
+    fakeStorage.state={volumes:fakeStorage.state.volumes.map(v=>Object.assign({},v))};
+   }else{
+    if(!root.check(root.storageEditor===root.namedChild(storageProbe,"storageVolumeSettings")&&root.storageEditor.dirty&&root.storageEditor.draft.automatic,"storage draft survives background refresh"))return;
+    storageProbe.selectedPath="";console.log("STORAGE_DESIGN_OK");stop();
+   }
+   step++;
+  }
+ }
  VpnAuthentication {}
  StatusIcons {}
  VideoWallpaper { settings: ({kind:"video",source:"",muted:true,volume:0,scaling:"fill"}); paused:true }

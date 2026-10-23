@@ -9158,3 +9158,60 @@ msgstr "Уменьшение движения отключает волну и �
 
 msgid "Reset dock animations"
 msgstr "Сбросить настройки анимаций дока"
+
+msgid "Your drives, available space and device health"
+msgstr "Накопители, свободное место и состояние устройств"
+
+msgid "Drives and volumes"
+msgstr "Диски и разделы"
+
+msgid "Select a volume to view its health and connection settings"
+msgstr "Выберите раздел для проверки состояния и настройки подключения"
+
+msgid "Looking for drives…"
+msgstr "Поиск накопителей…"
+
+msgid "No volumes found"
+msgstr "Разделы не найдены"
+
+msgid "Connect a drive or unlock an encrypted volume below"
+msgstr "Подключите накопитель или разблокируйте зашифрованный том ниже"
+
+msgid "Drive"
+msgstr "Накопитель"
+
+msgid "Internal drive"
+msgstr "Внутренний накопитель"
+
+msgid "System volume"
+msgstr "Системный раздел"
+
+msgid "Not mounted"
+msgstr "Не подключён"
+
+msgid "%1 available of %2"
+msgstr "Свободно %1 из %2"
+
+msgid "Details and settings"
+msgstr "Сведения и настройки"
+
+msgid "Device identity and filesystem identifiers"
+msgstr "Модель устройства и идентификаторы файловой системы"
+
+msgid "Choose how this volume connects to your system"
+msgstr "Способ подключения раздела к системе"
+
+msgid "Health indicators and non-destructive self-tests"
+msgstr "Показатели состояния и самопроверки без изменения файлов"
+
+msgid "Available tools depend on the drive and filesystem"
+msgstr "Доступные инструменты зависят от накопителя и файловой системы"
+
+msgid "Unlock a volume to access its files"
+msgstr "Разблокируйте том для доступа к файлам"
+
+msgid "Removable drives"
+msgstr "Съёмные накопители"
+
+msgid "Connection preferences and safe removal"
+msgstr "Подключение и безопасное извлечение"

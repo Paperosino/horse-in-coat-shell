@@ -168,13 +168,25 @@ QJsonObject storageStatus() {
              "org.freedesktop.DBus.ObjectManager", "GetManagedObjects")
           .value(0));
   QJsonArray volumes;
+  QHash<QString, quint64> driveSizes;
+  for (auto device = objects.cbegin(); device != objects.cend(); ++device) {
+    const auto block = device.value().value(B);
+    const auto path = qdbus_cast<QDBusObjectPath>(block.value("Drive")).path();
+    if (!path.isEmpty() && path != "/" && !device.value().contains("org.freedesktop.UDisks2.Partition"))
+      driveSizes[path] = std::max(driveSizes.value(path), block.value("Size").toULongLong());
+  }
   for (auto it = objects.cbegin(); it != objects.cend(); ++it) {
     auto fs = it.value().value(F), b = it.value().value(B);
     if (fs.isEmpty() || b.value("HintIgnore").toBool())
       continue;
     auto mount = mountOf(fs), uuid = b.value("IdUUID").toString();
-    auto interfaces =
-        objects.value(qdbus_cast<QDBusObjectPath>(b.value("Drive")));
+    auto drivePath = qdbus_cast<QDBusObjectPath>(b.value("Drive")).path();
+    if (drivePath.isEmpty() || drivePath == "/") {
+      const auto backing = objects.value(qdbus_cast<QDBusObjectPath>(b.value("CryptoBackingDevice"))).value(B);
+      drivePath = qdbus_cast<QDBusObjectPath>(backing.value("Drive")).path();
+    }
+    auto interfaces = objects.value(QDBusObjectPath(drivePath.isEmpty() ? "/" : drivePath));
+    const auto driveSize = driveSizes.value(drivePath);
     auto drive = interfaces.value("org.freedesktop.UDisks2.Drive");
     auto all = configs(b);
     QVariantMap entry;
@@ -187,12 +199,14 @@ QJsonObject storageStatus() {
     QJsonObject v{
         {"path", it.key().path()},
         {"device", bytes(b.value("PreferredDevice"))},
+        {"drivePath", drivePath},
+        {"driveSize", double(driveSize)},
         {"uuid", uuid},
         {"label", b.value("IdLabel").toString()},
         {"filesystem", fsType},
         {"size", double(b.value("Size").toULongLong())},
         {"mountPoint", mount},
-        {"removable", drive.value("Removable").toBool()},
+        {"removable", drive.value("Removable").toBool() || drive.value("ConnectionBus").toString() == "usb"},
         {"readOnly", b.value("ReadOnly").toBool()},
         {"model", drive.value("Model").toString()},
         {"serial", drive.value("Serial").toString()},
@@ -214,7 +228,7 @@ QJsonObject storageStatus() {
     if (interfaces.contains(N) &&
         v["smart"].toObject()["updated"].toDouble() > 0) {
       try {
-        auto p = qdbus_cast<QDBusObjectPath>(b.value("Drive")).path();
+        auto p = drivePath;
         auto attr = qdbus_cast<QVariantMap>(
             invoke(U, p, N, "SmartGetAttributes", {QVariantMap{}}).value(0));
         auto health = v["smart"].toObject();
