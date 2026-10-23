@@ -50,12 +50,27 @@ QString text(const char *value) {
 [[noreturn]] void fail(const QString &message) {
   throw std::runtime_error(message.toStdString());
 }
+class BusCallError final : public std::runtime_error {
+public:
+  BusCallError(const QString &message, bool vanished)
+      : std::runtime_error(message.toStdString()), objectVanished(vanished) {}
+  const bool objectVanished;
+};
 void check(GError *error) {
-  if (error) {
-    QString message = text(error->message);
-    g_error_free(error);
-    fail(message);
-  }
+  if (!error)
+    return;
+  const QString message = text(error->message);
+  auto *name = g_dbus_error_get_remote_error(error);
+  const bool vanished =
+      g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_OBJECT) ||
+      g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD) ||
+      g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_INTERFACE) ||
+      g_strcmp0(name, "org.freedesktop.DBus.Error.UnknownObject") == 0 ||
+      g_strcmp0(name, "org.freedesktop.DBus.Error.UnknownMethod") == 0 ||
+      g_strcmp0(name, "org.freedesktop.DBus.Error.UnknownInterface") == 0;
+  g_free(name);
+  g_error_free(error);
+  throw BusCallError(message, vanished);
 }
 const char *service = "org.freedesktop.NetworkManager";
 const char *root = "/org/freedesktop/NetworkManager";
@@ -639,15 +654,27 @@ QVariantList listProfiles(GDBusConnection *b) {
   QMap<QString, QVariantMap> active;
   for (gsize i = 0; i < g_variant_n_children(activePaths.get()); ++i) {
     auto path = string(child(activePaths.get(), i).get());
-    auto uuid = property(
-        b, path, "org.freedesktop.NetworkManager.Connection.Active", "Uuid");
-    auto state = property(
-        b, path, "org.freedesktop.NetworkManager.Connection.Active", "State");
-    if (g_variant_get_uint32(state.get()) ==
-        NM_ACTIVE_CONNECTION_STATE_DEACTIVATED)
-      continue;
-    active[string(uuid.get())] = {{"activePath", path},
-                                  {"state", g_variant_get_uint32(state.get())}};
+    try {
+      // ActiveConnections is a list of ephemeral object paths. NetworkManager
+      // may retire any one of them before the next D-Bus call, including a
+      // non-VPN connection. Read each object's properties in one snapshot.
+      auto reply = call(b, path, "org.freedesktop.DBus.Properties", "GetAll",
+                       g_variant_new("(s)",
+                         "org.freedesktop.NetworkManager.Connection.Active"));
+      auto properties = child(reply.get());
+      const char *uuid = nullptr;
+      guint32 state = NM_ACTIVE_CONNECTION_STATE_UNKNOWN;
+      if (!g_variant_lookup(properties.get(), "Uuid", "&s", &uuid) ||
+          !g_variant_lookup(properties.get(), "State", "u", &state) ||
+          !uuid || !*uuid || state == NM_ACTIVE_CONNECTION_STATE_DEACTIVATED)
+        continue;
+      active[text(uuid)] = {{"activePath", path}, {"state", state}};
+    } catch (const BusCallError &error) {
+      if (!error.objectVanished)
+        throw;
+      // Skip only a vanished active object. Permission and transport errors
+      // must still reach the UI, and the saved VPN profiles must still load.
+    }
   }
   auto reply = call(b, settings, "org.freedesktop.NetworkManager.Settings",
                     "ListConnections");
@@ -686,8 +713,10 @@ void NetworkManagerVpn::run(std::function<QVariantMap()> task,
   if (m_busy)
     return;
   m_busy = true;
-  if (clearError)
+  if (clearError) {
     m_error.clear();
+    m_refreshError = false;
+  }
   emit changed();
   auto *watcher = new QFutureWatcher<QVariantMap>(this);
   connect(watcher, &QFutureWatcher<QVariantMap>::finished, this,
@@ -695,8 +724,17 @@ void NetworkManagerVpn::run(std::function<QVariantMap()> task,
             auto result = watcher->result();
             watcher->deleteLater();
             m_busy = false;
-            if (clearError || result.contains("error"))
-              m_error = result.value("error").toString();
+            if (result.contains("error")) {
+              // A background read must not replace an actionable connection
+              // failure. Its own transient error clears after the next good read.
+              if (clearError || m_error.isEmpty() || m_refreshError) {
+                m_error = result.value("error").toString();
+                m_refreshError = !clearError;
+              }
+            } else if (clearError || m_refreshError) {
+              m_error.clear();
+              m_refreshError = false;
+            }
             emit changed();
             if (!result.contains("error"))
               done(result);
@@ -895,6 +933,7 @@ void NetworkManagerVpn::activationStateChanged(uint state, uint reason) {
   emit changed();
   if (reason == 2 || (reason == 0 && m_vpnFailureReceived))
     return;
+  m_refreshError = false;
   switch (reason) {
   case 3:
     m_error = tr("The underlying network disconnected");

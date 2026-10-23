@@ -31,6 +31,26 @@ class VpnNativeTests(unittest.TestCase):
  def calls(self):return [json.loads(line) for line in Path(self.env['VPN_TEST_LOG']).read_text().splitlines()]
  def test_dynamic_plugin_catalog_and_only_vpn_profiles(self):
   result=self.run_probe('list');self.assertEqual(result['error'],'');self.assertTrue(any(p['service']=='wireguard' and p['installed'] for p in result['plugins']));self.assertTrue(all(p['type']!='802-3-ethernet' for p in result['profiles']))
+ def test_vanished_active_object_does_not_break_saved_profiles(self):
+  for mode in ('vanished','unknown-object'):
+   with self.subTest(mode=mode):
+    result=self.run_probe('snapshot-'+mode)
+    self.assertEqual(result['error'],'')
+    self.assertTrue(result['profiles'])
+    self.assertTrue(any(p['active'] and p['state']==2 for p in result['profiles']))
+ def test_active_object_permission_error_is_not_ignored(self):
+  result=self.run_probe('snapshot-active-denied')
+  self.assertIn('Active state access denied',result['error'])
+ def test_successful_refresh_clears_only_the_previous_read_error(self):
+  result=self.run_probe('snapshot-root-denied')
+  self.assertIn('Network state access denied',result['before'])
+  self.assertEqual(result['error'],'')
+  self.assertTrue(result['profiles'])
+ def test_background_refresh_preserves_a_real_operation_failure(self):
+  result=self.run_probe('snapshot-operation-error')
+  self.assertIn('Permission denied',result['before'])
+  self.assertEqual(result['before'],result['during'])
+  self.assertEqual(result['before'],result['error'])
  def test_edit_preserves_password_unknown_plugin_data_and_route_attributes(self):
   self.assertEqual(self.run_probe('edit')['error'],'');update=next(c['data'] for c in self.calls() if c['method']=='Update2')
   self.assertEqual(update['vpn']['data']['vendor-option'],'keep-me');self.assertEqual(update['vpn']['secrets']['password'],'stored-password');self.assertEqual(update['ipv4']['route-data'][0]['table'],123);self.assertEqual(update['ipv4']['dns-priority'],-50)

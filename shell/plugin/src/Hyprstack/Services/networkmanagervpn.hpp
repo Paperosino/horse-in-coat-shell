@@ -47,6 +47,7 @@ private:
   std::shared_ptr<State> m_state;
   bool m_busy = false;
   QString m_error;
+  bool m_refreshError = false;
   QVariantList m_plugins, m_profiles;
   QVariantMap m_draft;
   QString m_activationPath;

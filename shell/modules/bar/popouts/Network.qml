@@ -99,7 +99,7 @@ ColumnLayout {
                     StyledText {Layout.fillWidth:true;text:row.modelData.name;elide:Text.ElideRight;maximumLineCount:1;font:Tokens.font.body.medium}
                     StyledText {
                         Layout.fillWidth:true;elide:Text.ElideRight;maximumLineCount:1;font:Tokens.font.body.small;color:Colours.palette.m3onSurfaceVariant
-                        text:row.modelData.pending?Tr.tr("Connecting"):row.modelData.active?Tr.tr("Connected"):row.modelData.kind==="vpn"?Tr.tr("VPN"):row.modelData.kind==="ethernet"?Tr.tr("Ethernet"):row.modelData.data.isSecure?Tr.tr("Secured"):Tr.tr("Open network")
+                        text:row.modelData.pending?Tr.tr("Connecting"):row.modelData.active?Tr.trCtx("Connected","network connected"):row.modelData.kind==="vpn"?Tr.tr("VPN"):row.modelData.kind==="ethernet"?Tr.tr("Ethernet"):row.modelData.data.isSecure?Tr.trCtx("Secured","network filter"):Tr.tr("Open network")
                     }
                 }
                 MaterialIcon {text:row.modelData.pending?"sync":row.modelData.active?"link_off":"link";color:row.modelData.active?Colours.palette.m3primary:Colours.palette.m3onSurfaceVariant}

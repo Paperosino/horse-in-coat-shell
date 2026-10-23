@@ -162,12 +162,44 @@ int main(int argc, char **argv) {
                    QUrl::fromLocalFile(app.arguments().value(2)));
     wait();
     result = {{"error", vpn.error()}};
-  } else if (mode == "list" || mode == "list-disconnected") {
-    auto request = QDBusMessage::createMethodCall(
-        "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
-        "org.hics.Test", "SetActiveState");
-    request.setArguments({uint(mode == "list-disconnected" ? 4 : 0)});
-    QDBusConnection::systemBus().call(request);
+  } else if (mode.startsWith("snapshot-")) {
+    auto setMode = [&](const QString &value) {
+      auto request = QDBusMessage::createMethodCall(
+          "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+          "org.hics.Test", "SetSnapshotMode");
+      request.setArguments({value});
+      QDBusConnection::systemBus().call(request);
+    };
+    if (mode == "snapshot-operation-error") {
+      vpn.deactivate("/org/freedesktop/NetworkManager/ActiveConnection/3");
+      wait();
+      result["before"] = vpn.error();
+      setMode("root-denied");
+      vpn.refresh(); wait();
+      result["during"] = vpn.error();
+      setMode("normal");
+      vpn.refresh(); wait();
+    } else {
+      setMode(mode.mid(9));
+      vpn.refresh(); wait();
+      result["before"] = vpn.error();
+      if (mode == "snapshot-root-denied") {
+        setMode("normal");
+        vpn.refresh(); wait();
+      }
+    }
+    result["error"] = vpn.error();
+    result["profiles"] = vpn.profiles();
+    setMode("normal");
+  } else if (mode == "list" || mode == "list-disconnected" ||
+             mode == "list-host") {
+    if (mode != "list-host") {
+      auto request = QDBusMessage::createMethodCall(
+          "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+          "org.hics.Test", "SetActiveState");
+      request.setArguments({uint(mode == "list-disconnected" ? 4 : 0)});
+      QDBusConnection::systemBus().call(request);
+    }
     vpn.refresh();
     wait();
     result = {{"plugins", vpn.plugins()},

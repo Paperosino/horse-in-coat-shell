@@ -38,13 +38,22 @@ class Settings(dbus.service.Object):
 class Manager(dbus.service.Object):
  failure=False
  active_state=0
+ snapshot_mode="normal"
  @dbus.service.method('org.hics.Test',in_signature='u')
- def SetActiveState(self,value):Manager.active_state=int(value)
+ def SetActiveState(self,value):Manager.active_state=int(value);Manager.snapshot_mode="normal"
+ @dbus.service.method('org.hics.Test',in_signature='s')
+ def SetSnapshotMode(self,value):
+  Manager.snapshot_mode=str(value);Manager.active_state=2 if str(value) in ('vanished','unknown-object','active-denied') else 0
  @dbus.service.method('org.hics.Test',in_signature='b')
  def SetFailure(self,value):Manager.failure=bool(value)
  @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
  def Get(self,iface,prop):
-  if prop=='ActiveConnections':return dbus.Array([ROOT+'/ActiveConnection/1'] if Manager.active_state else [],signature='o')
+  if prop=='ActiveConnections':
+   if Manager.snapshot_mode=='root-denied':raise dbus.exceptions.DBusException('Network state access denied',name='org.freedesktop.DBus.Error.AccessDenied')
+   paths=[ROOT+'/ActiveConnection/1'] if Manager.active_state else []
+   if Manager.snapshot_mode=='vanished':paths.insert(0,ROOT+'/ActiveConnection/99')
+   if Manager.snapshot_mode=='unknown-object':paths.insert(0,ROOT+'/ActiveConnection/98')
+   return dbus.Array(paths,signature='o')
   raise dbus.exceptions.DBusException('Unknown property')
  @dbus.service.method('org.freedesktop.NetworkManager',in_signature='ooo',out_signature='o')
  def ActivateConnection(self,path,device,specific):
@@ -59,15 +68,27 @@ class Manager(dbus.service.Object):
 class Active(dbus.service.Object):
  @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
  def Get(self,iface,prop):
+  if Manager.snapshot_mode=='active-denied':raise dbus.exceptions.DBusException('Active state access denied',name='org.freedesktop.DBus.Error.AccessDenied')
   if prop=='Uuid':return '11111111-2222-4333-8444-555555555555'
   if prop=='State':return dbus.UInt32(Manager.active_state)
   raise dbus.exceptions.DBusException('Unknown property')
+ @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='s',out_signature='a{sv}')
+ def GetAll(self,iface):
+  if Manager.snapshot_mode=='active-denied':raise dbus.exceptions.DBusException('Active state access denied',name='org.freedesktop.DBus.Error.AccessDenied')
+  return {'Uuid':'11111111-2222-4333-8444-555555555555','State':dbus.UInt32(Manager.active_state)}
  @dbus.service.signal('org.freedesktop.NetworkManager.VPN.Connection',signature='uu')
  def VpnStateChanged(self,state,reason):pass
  @dbus.service.signal('org.freedesktop.NetworkManager.Connection.Active',signature='uu')
  def StateChanged(self,state,reason):pass
  def fail(self):self.VpnStateChanged(dbus.UInt32(6),dbus.UInt32(4));self.StateChanged(dbus.UInt32(4),dbus.UInt32(0));return False
 active=Active(bus,ROOT+'/ActiveConnection/1')
+class VanishedActive(dbus.service.Object):
+ @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
+ def Get(self,iface,key):raise dbus.exceptions.DBusException('Connection disappeared',name='org.freedesktop.DBus.Error.UnknownObject')
+ @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='s',out_signature='a{sv}')
+ def GetAll(self,iface):raise dbus.exceptions.DBusException('Connection disappeared',name='org.freedesktop.DBus.Error.UnknownObject')
+vanished=VanishedActive(bus,ROOT+'/ActiveConnection/98')
+
 systemd_name=dbus.service.BusName('org.freedesktop.systemd1',bus)
 class Systemd(dbus.service.Object):
  active=False
