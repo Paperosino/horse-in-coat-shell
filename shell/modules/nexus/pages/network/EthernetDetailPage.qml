@@ -14,6 +14,7 @@ import qs.modules.nexus.common
 // ethernet row on NetworkPage.
 PageBase {
     id: root
+    pageIcon: "lan"
 
     readonly property string ifaceName: nState.selectedEthernetInterface
     readonly property Nmcli.EthernetDevice device: Nmcli.ethernetDevices.find(d => d.iface === root.ifaceName) ?? null
@@ -109,7 +110,7 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         // ---- Action button --------------------------------------------------
         ButtonRow {
@@ -160,187 +161,188 @@ PageBase {
         }
 
         // ---- Connection info ------------------------------------------------
-        SectionHeader {
-            first: true
-            text: Tr.tr("Connection")
-        }
+        SettingsCard {
+            title: Tr.tr("Connection")
+            icon: "tune"
 
-        InfoRow {
-            first: true
-            icon: "link"
-            label: Tr.tr("Status")
-            value: root.device?.connected ? Tr.trCtx("Connected", "ethernet link state") : Tr.trCtx("Not connected", "ethernet link state")
-        }
+            InfoRow {
+                first: true
+                icon: "link"
+                label: Tr.tr("Status")
+                value: root.device?.connected ? Tr.trCtx("Connected", "ethernet link state") : Tr.trCtx("Not connected", "ethernet link state")
+            }
 
-        InfoRow {
-            icon: "settings_ethernet"
-            label: Tr.trCtx("Interface", "network interface")
-            value: root.ifaceName || "—"
-        }
+            InfoRow {
+                icon: "settings_ethernet"
+                label: Tr.trCtx("Interface", "network interface")
+                value: root.ifaceName || "—"
+            }
 
-        InfoRow {
-            icon: "speed"
-            label: Tr.tr("Speed")
-            visible: Nmcli.ethernetSpeed.length > 0
-            value: Nmcli.ethernetSpeed
-        }
+            InfoRow {
+                icon: "speed"
+                label: Tr.tr("Speed")
+                visible: Nmcli.ethernetSpeed.length > 0
+                value: Nmcli.ethernetSpeed
+            }
 
-        InfoRow {
-            icon: "lan"
-            label: Tr.tr("IP address")
-            value: root.details?.ipAddress || "—"
-        }
-
-        InfoRow {
-            icon: "router"
-            label: Tr.tr("Gateway")
-            value: root.details?.gateway || "—"
-        }
-
-        InfoRow {
-            last: true
-            icon: "memory"
-            label: Tr.tr("MAC address")
-            value: root.details?.macAddress || "—"
-        }
-
-        // ---- IPv4 ------------------------------------------------------------
-        SectionHeader {
-            text: Tr.tr("IPv4")
-        }
-
-        SelectRow {
-            id: methodSelect
-
-            Layout.fillWidth: true
-            first: true
-            last: root.ipMethod === "auto"
-            label: Tr.tr("IP assignment")
-            fallbackText: Tr.tr("Automatic (DHCP)")
-            fallbackIcon: "lan"
-
-            menuItems: [autoItem, autoDnsItem, manualItem]
-
-            onSelected: item => root.ipMethod = item === manualItem ? "manual" : (item === autoDnsItem ? "auto-dns" : "auto")
-
-            MenuItem {
-                id: autoItem
-
+            InfoRow {
                 icon: "lan"
-                text: Tr.tr("Automatic (DHCP)")
+                label: Tr.tr("IP address")
+                value: root.details?.ipAddress || "—"
             }
 
-            MenuItem {
-                id: autoDnsItem
-
-                icon: "dns"
-                text: Tr.tr("Automatic, DNS only")
+            InfoRow {
+                icon: "router"
+                label: Tr.tr("Gateway")
+                value: root.details?.gateway || "—"
             }
 
-            MenuItem {
-                id: manualItem
-
-                icon: "edit"
-                text: Tr.trCtx("Manual", "ip configuration method")
+            InfoRow {
+                last: true
+                icon: "memory"
+                label: Tr.tr("MAC address")
+                value: root.details?.macAddress || "—"
             }
+
+            // ---- IPv4 ------------------------------------------------------------
         }
+        SettingsCard {
+            title: Tr.tr("IPv4")
+            icon: "tune"
 
-        ColumnLayout {
-            Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.large
-            spacing: Tokens.spacing.large
-            visible: root.ipMethod === "manual" || root.ipMethod === "auto-dns"
-
-            StyledTextField {
-                id: addressField
+            SelectRow {
+                id: methodSelect
 
                 Layout.fillWidth: true
-                visible: root.ipMethod === "manual"
-                placeholderText: Tr.tr("Address (CIDR)")
-                leadingIcon: "router"
-                supportingText: Tr.tr("IP and prefix, e.g. 192.168.1.50/24")
-                errorText: Tr.tr("Enter a valid address in CIDR notation")
-                inputMethodHints: Qt.ImhNoPredictiveText
-                validate: /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\/(?:3[0-2]|[12]?\d)$/
-            }
+                first: true
+                last: root.ipMethod === "auto"
+                label: Tr.tr("IP assignment")
+                fallbackText: Tr.tr("Automatic (DHCP)")
+                fallbackIcon: "lan"
 
-            StyledTextField {
-                id: gatewayField
+                menuItems: [autoItem, autoDnsItem, manualItem]
 
-                Layout.fillWidth: true
-                visible: root.ipMethod === "manual"
-                placeholderText: Tr.tr("Gateway")
-                leadingIcon: "exit_to_app"
-                errorText: Tr.tr("Enter a valid gateway address")
-                inputMethodHints: Qt.ImhNoPredictiveText
-                validate: /^$|^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/
-            }
+                onSelected: item => root.ipMethod = item === manualItem ? "manual" : (item === autoDnsItem ? "auto-dns" : "auto")
 
-            StyledTextField {
-                id: dnsField
+                MenuItem {
+                    id: autoItem
 
-                Layout.fillWidth: true
-                placeholderText: Tr.tr("DNS servers")
-                leadingIcon: "dns"
-                supportingText: Tr.tr("Comma-separated")
-                errorText: Tr.tr("Enter valid DNS server addresses")
-                inputMethodHints: Qt.ImhNoPredictiveText
-                validate: /^$|^\s*(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\s*,\s*(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d))*\s*$/
-            }
-        }
-
-        // Apply button — swaps to a loading spinner while applying. Shown only
-        // when the IP assignment has unsaved changes.
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.large
-            spacing: Tokens.spacing.medium
-            visible: root.hasChanges || root.savingIp
-
-            Item {
-                Layout.fillWidth: true
-            }
-
-            ButtonBase {
-                id: applyBtn
-
-                shapeMorph: true
-                isRound: true
-                inactiveColour: Colours.palette.m3primary
-                inactiveOnColour: Colours.palette.m3onPrimary
-                stateLayer.disabled: !root.ipLoaded || root.savingIp
-
-                implicitWidth: applyContent.implicitWidth + Tokens.padding.extraLarge * 2
-                implicitHeight: applyContent.implicitHeight + Tokens.padding.medium * 2
-
-                onClicked: if (root.ipLoaded && !root.savingIp)
-                    root.saveIpConfig()
-
-                AnimLoader {
-                    id: applyContent
-
-                    anchors.centerIn: parent
-                    sourceComp: root.savingIp ? applyLoadingComp : applyTextComp
-                    outAnimType: Anim.SlowEffects
-                    inAnimType: Anim.SlowEffects
+                    icon: "lan"
+                    text: Tr.tr("Automatic (DHCP)")
                 }
 
-                Component {
-                    id: applyLoadingComp
+                MenuItem {
+                    id: autoDnsItem
 
-                    LoadingIndicator {
-                        implicitSize: Math.round(Tokens.font.body.medium.pointSize * 1.4)
-                        color: applyBtn.onColour
+                    icon: "dns"
+                    text: Tr.tr("Automatic, DNS only")
+                }
+
+                MenuItem {
+                    id: manualItem
+
+                    icon: "edit"
+                    text: Tr.trCtx("Manual", "ip configuration method")
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: Tokens.spacing.large
+                spacing: Tokens.spacing.large
+                visible: root.ipMethod === "manual" || root.ipMethod === "auto-dns"
+
+                StyledTextField {
+                    id: addressField
+
+                    Layout.fillWidth: true
+                    visible: root.ipMethod === "manual"
+                    placeholderText: Tr.tr("Address (CIDR)")
+                    leadingIcon: "router"
+                    supportingText: Tr.tr("IP and prefix, e.g. 192.168.1.50/24")
+                    errorText: Tr.tr("Enter a valid address in CIDR notation")
+                    inputMethodHints: Qt.ImhNoPredictiveText
+                    validate: /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\/(?:3[0-2]|[12]?\d)$/
+                }
+
+                StyledTextField {
+                    id: gatewayField
+
+                    Layout.fillWidth: true
+                    visible: root.ipMethod === "manual"
+                    placeholderText: Tr.tr("Gateway")
+                    leadingIcon: "exit_to_app"
+                    errorText: Tr.tr("Enter a valid gateway address")
+                    inputMethodHints: Qt.ImhNoPredictiveText
+                    validate: /^$|^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/
+                }
+
+                StyledTextField {
+                    id: dnsField
+
+                    Layout.fillWidth: true
+                    placeholderText: Tr.tr("DNS servers")
+                    leadingIcon: "dns"
+                    supportingText: Tr.tr("Comma-separated")
+                    errorText: Tr.tr("Enter valid DNS server addresses")
+                    inputMethodHints: Qt.ImhNoPredictiveText
+                    validate: /^$|^\s*(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\s*,\s*(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d))*\s*$/
+                }
+            }
+
+            // Apply button — swaps to a loading spinner while applying. Shown only
+            // when the IP assignment has unsaved changes.
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: Tokens.spacing.large
+                spacing: Tokens.spacing.medium
+                visible: root.hasChanges || root.savingIp
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                ButtonBase {
+                    id: applyBtn
+
+                    shapeMorph: true
+                    isRound: true
+                    inactiveColour: Colours.palette.m3primary
+                    inactiveOnColour: Colours.palette.m3onPrimary
+                    stateLayer.disabled: !root.ipLoaded || root.savingIp
+
+                    implicitWidth: applyContent.implicitWidth + Tokens.padding.extraLarge * 2
+                    implicitHeight: applyContent.implicitHeight + Tokens.padding.medium * 2
+
+                    onClicked: if (root.ipLoaded && !root.savingIp)
+                        root.saveIpConfig()
+
+                    AnimLoader {
+                        id: applyContent
+
+                        anchors.centerIn: parent
+                        sourceComp: root.savingIp ? applyLoadingComp : applyTextComp
+                        outAnimType: Anim.SlowEffects
+                        inAnimType: Anim.SlowEffects
                     }
-                }
 
-                Component {
-                    id: applyTextComp
+                    Component {
+                        id: applyLoadingComp
 
-                    StyledText {
-                        text: Tr.tr("Apply")
-                        color: applyBtn.onColour
-                        animate: true
+                        LoadingIndicator {
+                            implicitSize: Math.round(Tokens.font.body.medium.pointSize * 1.4)
+                            color: applyBtn.onColour
+                        }
+                    }
+
+                    Component {
+                        id: applyTextComp
+
+                        StyledText {
+                            text: Tr.tr("Apply")
+                            color: applyBtn.onColour
+                            animate: true
+                        }
                     }
                 }
             }

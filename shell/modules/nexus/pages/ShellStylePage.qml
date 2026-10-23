@@ -13,6 +13,7 @@ import qs.modules.nexus.common
 
 PageBase {
     id: root
+    pageIcon: "style"
 
     title: Tr.tr("Shell appearance")
 
@@ -76,9 +77,6 @@ PageBase {
             onToggled: Tiling.set("gaps", checked)
         }
 
-
-
-
         StepperRow {
             Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
             objectName: "appearanceFocusBorderWidth"
@@ -97,7 +95,10 @@ PageBase {
             subtext: Tr.tr("Scrolling mode; choose a colour from the current scheme independently of the theme accent")
             value: Tiling.focusBorderColor
             palette: Colours.current
-            choices: Tiling.borderColorChoices.map(choice => ({role: choice.role, label: Tr.tr(choice.label)}))
+            choices: Tiling.borderColorChoices.map(choice => ({
+                        role: choice.role,
+                        label: Tr.tr(choice.label)
+                    }))
             onSelected: role => Tiling.set("focusBorderColor", role)
         }
 
@@ -121,86 +122,93 @@ PageBase {
             onToggled: Colours.setMode(checked ? "dark" : "light")
         }
 
-        SectionHeader { text: Tr.tr("Window gaps") }
+        SettingsCard {
+            title: Tr.tr("Window gaps")
+            icon: "style"
 
-        StepperRow {
-            first: true
-            objectName: "appearanceGapsIn"
-            label: Tr.tr("Inner gaps")
-            subtext: Tr.tr("Padding on each side of a tiled window, in pixels")
-            value: Tiling.gapsIn
-            from: 0
-            to: 100
-            onMoved: v => Tiling.set("gapsIn", v)
+            StepperRow {
+                first: true
+                objectName: "appearanceGapsIn"
+                label: Tr.tr("Inner gaps")
+                subtext: Tr.tr("Padding on each side of a tiled window, in pixels")
+                value: Tiling.gapsIn
+                from: 0
+                to: 100
+                onMoved: v => Tiling.set("gapsIn", v)
+            }
+
+            StepperRow {
+                Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+                last: true
+                objectName: "appearanceGapsOut"
+                label: Tr.tr("Outer gaps")
+                subtext: Tr.tr("Padding at the workspace edges, in pixels; identical for every window count")
+                value: Tiling.gapsOut
+                from: 0
+                to: 100
+                onMoved: v => Tiling.set("gapsOut", v)
+            }
         }
+        SettingsCard {
+            title: Tr.tr("Shadows")
+            icon: "style"
 
-        StepperRow {
-            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
-            last: true
-            objectName: "appearanceGapsOut"
-            label: Tr.tr("Outer gaps")
-            subtext: Tr.tr("Padding at the workspace edges, in pixels; identical for every window count")
-            value: Tiling.gapsOut
-            from: 0
-            to: 100
-            onMoved: v => Tiling.set("gapsOut", v)
+            ToggleRow {
+                first: true
+                objectName: "appearanceWindowShadows"
+                text: Tr.tr("Window shadows")
+                subtext: Tr.tr("The same shadow for active and inactive windows")
+                checked: Effects.windowShadows
+                onToggled: Effects.set("windowShadows", checked)
+            }
+
+            ToggleRow {
+                Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+                objectName: "appearanceUiShadows"
+                text: Tr.tr("Interface shadows")
+                subtext: Tr.tr("Panels, menus and desktop widgets")
+                checked: Effects.uiShadows
+                onToggled: Effects.set("uiShadows", checked)
+            }
+
+            StepperRow {
+                Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+                objectName: "appearanceShadowSize"
+                label: Tr.tr("Shadow size")
+                subtext: Tr.tr("Pixels; 0 disables shadows")
+                value: Effects.shadowSize
+                from: 0
+                to: 60
+                onMoved: v => Effects.set("shadowSize", v)
+            }
+
+            SliderRow {
+                Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+                last: true
+                objectName: "appearanceShadowOpacity"
+                icon: "shadow"
+                label: Tr.tr("Shadow intensity")
+                valueLabel: `${Math.round(value * 100)}%`
+                value: Effects.shadowOpacity
+                onMoved: v => Effects.set("shadowOpacity", v)
+            }
         }
+        SettingsCard {
+            title: Tr.tr("Interface scale")
+            icon: "style"
 
-        SectionHeader { text: Tr.tr("Shadows") }
-
-        ToggleRow {
-            first: true
-            objectName: "appearanceWindowShadows"
-            text: Tr.tr("Window shadows")
-            subtext: Tr.tr("The same shadow for active and inactive windows")
-            checked: Effects.windowShadows
-            onToggled: Effects.set("windowShadows", checked)
-        }
-
-        ToggleRow {
-            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
-            objectName: "appearanceUiShadows"
-            text: Tr.tr("Interface shadows")
-            subtext: Tr.tr("Panels, menus and desktop widgets")
-            checked: Effects.uiShadows
-            onToggled: Effects.set("uiShadows", checked)
-        }
-
-        StepperRow {
-            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
-            objectName: "appearanceShadowSize"
-            label: Tr.tr("Shadow size")
-            subtext: Tr.tr("Pixels; 0 disables shadows")
-            value: Effects.shadowSize
-            from: 0
-            to: 60
-            onMoved: v => Effects.set("shadowSize", v)
-        }
-
-        SliderRow {
-            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
-            last: true
-            objectName: "appearanceShadowOpacity"
-            icon: "shadow"
-            label: Tr.tr("Shadow intensity")
-            valueLabel: `${Math.round(value * 100)}%`
-            value: Effects.shadowOpacity
-            onMoved: v => Effects.set("shadowOpacity", v)
-        }
-
-        SectionHeader { text: Tr.tr("Interface scale") }
-
-        StepperRow {
-            first: true
-            last: true
-            objectName: "appearanceShellScale"
-            label: Tr.tr("Shell scale")
-            subtext: Tr.tr("Panel, menus, text and desktop widgets, in percent")
-            value: Math.round(GlobalConfig.appearance.scale * 100)
-            from: 50
-            to: 200
-            stepSize: 5
-            onMoved: v => GlobalConfig.appearance.scale = v / 100
+            StepperRow {
+                first: true
+                last: true
+                objectName: "appearanceShellScale"
+                label: Tr.tr("Shell scale")
+                subtext: Tr.tr("Panel, menus, text and desktop widgets, in percent")
+                value: Math.round(GlobalConfig.appearance.scale * 100)
+                from: 50
+                to: 200
+                stepSize: 5
+                onMoved: v => GlobalConfig.appearance.scale = v / 100
+            }
         }
     }
 }

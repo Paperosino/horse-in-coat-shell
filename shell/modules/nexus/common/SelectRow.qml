@@ -1,10 +1,10 @@
+import Hyprstack.Config
 import QtQuick
 import QtQuick.Layouts
-import Hyprstack.Config
 import qs.components
 import qs.components.controls
-import qs.services
 import qs.modules.nexus.common
+import qs.services
 
 ConnectedRect {
     id: root
@@ -18,32 +18,34 @@ ConnectedRect {
     property alias menuOnTop: splitButton.menuOnTop
     property alias updateActiveOnSelection: splitButton.menu.updateActiveOnSelection
 
-    signal selected(item: MenuItem)
+    signal selected(MenuItem item)
 
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + rowLayout.anchors.margins * 2
     clip: false
     z: splitButton.expanded ? 1 : 0
 
-    RowLayout {
+    GridLayout {
         id: rowLayout
 
+        columns: root.width < 440 * Tokens.scale ? 1 : 2
         anchors.fill: parent
         anchors.margins: Tokens.padding.medium
         anchors.leftMargin: Tokens.padding.largeIncreased
         anchors.rightMargin: Tokens.padding.largeIncreased
-        spacing: Tokens.spacing.medium
+        rowSpacing: Tokens.spacing.medium
+        columnSpacing: Tokens.spacing.medium
 
         ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            spacing: 0
+            spacing: 3 * Tokens.scale
 
             StyledText {
                 id: label
 
                 Layout.fillWidth: true
-                font: Tokens.font.body.small
+                font: Tokens.font.body.medium
                 Layout.minimumWidth: 0
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
@@ -52,8 +54,8 @@ ConnectedRect {
                 Layout.fillWidth: true
                 visible: root.subtext
                 text: root.subtext
-                color: Colours.palette.m3outline
-                font: Tokens.font.label.small
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
                 Layout.minimumWidth: 0
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
@@ -62,11 +64,13 @@ ConnectedRect {
         SplitButton {
             id: splitButton
 
-            Layout.maximumWidth: rowLayout.width * 0.5
+            Layout.maximumWidth: root.width < 440 * Tokens.scale ? rowLayout.width : rowLayout.width * 0.5
             Layout.minimumWidth: Math.min(implicitWidth, 100 * Tokens.scale)
             type: SplitButton.Tonal
             stateLayer.onClicked: splitButton.expanded = !splitButton.expanded
-            menu.onItemSelected: item => root.selected(item)
+            menu.onItemSelected: item => {
+                return root.selected(item);
+            }
         }
     }
 }

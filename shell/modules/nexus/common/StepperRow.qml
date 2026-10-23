@@ -23,25 +23,27 @@ ConnectedRect {
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + rowLayout.anchors.margins * 2
 
-    RowLayout {
+    GridLayout {
         id: rowLayout
+        columns: root.width < 440 * Tokens.scale ? 1 : 2
 
         anchors.fill: parent
         anchors.margins: Tokens.padding.medium
         anchors.leftMargin: Tokens.padding.largeIncreased
         anchors.rightMargin: Tokens.padding.largeIncreased
-        spacing: Tokens.spacing.medium
+        rowSpacing: Tokens.spacing.medium
+        columnSpacing: Tokens.spacing.medium
 
         ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            spacing: 0
+            spacing: 3 * Tokens.scale
 
             StyledText {
                 id: label
 
                 Layout.fillWidth: true
-                font: Tokens.font.body.small
+                font: Tokens.font.body.medium
                 Layout.minimumWidth: 0
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
@@ -50,14 +52,15 @@ ConnectedRect {
                 Layout.fillWidth: true
                 visible: root.subtext
                 text: root.subtext
-                color: Colours.palette.m3outline
-                font: Tokens.font.label.small
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
                 Layout.minimumWidth: 0
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
         }
 
         StyledSpinBox {
+            Layout.alignment: Qt.AlignRight
             from: root.from
             to: root.to
             stepSize: root.stepSize

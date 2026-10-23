@@ -227,7 +227,7 @@ ShellRoot {
  }
  function sendNotification(): void { notifier.exec(["notify-send", "--app-name=Integration test", "--expire-time=10000", "Integration notification"]); }
  function check(condition, message): bool { if (condition) return true; console.error("NOTIFICATION_TEST_FAILED", message); Qt.quit(); return false; }
- property var sources: PageRegistry.navigationPages.map(p => p.pageIndex).concat(["DockPage.qml", "AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml", "network/VpnProfilesPage.qml", "network/VpnEditorPage.qml", "network/VpnPluginsPage.qml", "ClipboardPage.qml", "ShortcutEditorPage.qml", "WorkspaceSessionPage.qml"]).concat(["wireguard","openvpn","pptp","l2tp","openconnect","vpnc","strongswan","libreswan","sstp","fortisslvpn","ssh"].map(p=>"vpn-test:"+p))
+ property var sources: PageRegistry.navigationPages.map(p => p.pageIndex).concat(["DockPage.qml", "AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml", "network/VpnProfilesPage.qml", "network/VpnEditorPage.qml", "network/VpnPluginsPage.qml", "ClipboardPage.qml", "ShortcutEditorPage.qml", "WorkspaceSessionPage.qml"]).concat(__DESIGN_PAGES__).concat(["wireguard","openvpn","pptp","l2tp","openconnect","vpnc","strongswan","libreswan","sstp","fortisslvpn","ssh"].map(p=>"vpn-test:"+p))
  Component.onCompleted: {
   if (!check(PageRegistry.pages.length === PageCompRegistry.pageComps.length, "page registry alignment")) return;
   for (const page of PageRegistry.navigationPages) {
@@ -401,7 +401,7 @@ ShellRoot {
   }
  }
  Timer { interval: 55000; running: true; onTriggered: { console.error("DESKTOP_UI_TIMEOUT"); Qt.quit(); } }
-}'''.replace('__VPN_PROTOCOLS__',json.dumps(json.loads((ROOT/'shell/plugin/src/Hyprstack/Services/vpn-protocols.json').read_text()))))
+}'''.replace('__DESIGN_PAGES__',json.dumps([str(p.relative_to(ROOT/'shell/modules/nexus/pages')) for p in (ROOT/'shell/modules/nexus/pages').rglob('*.qml') if 'PageBase {' in p.read_text() and any(part in str(p.relative_to(ROOT/'shell/modules/nexus/pages')) for part in ('panels/', 'keyboard/', 'audio/', 'network/NetworkDetail', 'network/EthernetDetail', 'network/SavedNetworks', 'network/AllNetworks', 'network/AddVpn'))])).replace('__VPN_PROTOCOLS__',json.dumps(json.loads((ROOT/'shell/plugin/src/Hyprstack/Services/vpn-protocols.json').read_text()))))
     tools = base / 'tools'
     tools.mkdir()
     fake = '#!/usr/bin/python3\nimport sys,json\nprint(json.dumps({"error":"Test backend unavailable"}) if "status" in sys.argv or "apply" in sys.argv else "[]")\n'
@@ -459,7 +459,7 @@ ShellRoot {
         if instances:
             env['HYPRLAND_INSTANCE_SIGNATURE'] = instances[0].name
         run = subprocess.run(['dbus-run-session', '--', 'python3', str(runner),
-            'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=60)
+            'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=120)
         output = run.stdout + run.stderr
         print(output[-24000:])
         assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'VPN_CREDENTIALS_DELETE_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'

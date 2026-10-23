@@ -5,6 +5,7 @@ import Hyprstack.I18n
 import qs.modules.nexus.common
 // Compatibility for the old saved page index. Public VPN links route to Network.
 PageBase {
+    pageIcon: "vpn_key"
     id:root
     title:Tr.tr("VPN")
     ColumnLayout {

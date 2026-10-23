@@ -37,7 +37,7 @@ PageBase {
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: Tokens.spacing.extraSmall / 2
+            spacing: Tokens.spacing.large
 
             Repeater {
                 model: root.filtered

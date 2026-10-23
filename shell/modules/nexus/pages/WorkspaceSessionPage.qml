@@ -11,6 +11,7 @@ import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
+    pageIcon: "restore"
     id:root
     title:Tr.tr("Session recovery")
     property var backend:WorkspaceSession

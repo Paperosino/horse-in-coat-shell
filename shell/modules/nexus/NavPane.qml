@@ -19,7 +19,8 @@ ColumnLayout {
     }
 
     function choose(result: var): void {
-        if (!result) return;
+        if (!result)
+            return;
         searchField.text = "";
         searchField.focus = false;
         nState.currentPageIdx = result.page;
@@ -31,6 +32,22 @@ ColumnLayout {
 
     spacing: Tokens.spacing.large
 
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.leftMargin: Tokens.padding.small
+        spacing: Tokens.spacing.small
+        MaterialIcon {
+            text: "tune"
+            color: Colours.palette.m3primary
+            fontStyle: Tokens.font.icon.medium
+        }
+        StyledText {
+            text: Tr.tr("Settings")
+            font: Tokens.font.title.medium
+            Layout.fillWidth: true
+        }
+    }
+
     SearchBar {
         id: searchField
         objectName: "settingsSearchField"
@@ -38,7 +55,7 @@ ColumnLayout {
         Layout.fillWidth: true
 
         placeholderText: Tr.tr("Search settings")
-        font: Tokens.font.body.large
+        font: Tokens.font.body.medium
 
         bg.color: Colours.tPalette.m3surfaceContainerLowest
         bg.border.color: Colours.palette.m3outlineVariant
@@ -64,7 +81,10 @@ ColumnLayout {
             root.nState.searchResultIdx = Math.max(0, root.nState.searchResultIdx - 1);
             event.accepted = true;
         }
-        Keys.onEscapePressed: event => { clear(); event.accepted = true; }
+        Keys.onEscapePressed: event => {
+            clear();
+            event.accepted = true;
+        }
     }
 
     NavLocations {

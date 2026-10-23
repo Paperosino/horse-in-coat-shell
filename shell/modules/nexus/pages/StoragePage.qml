@@ -8,6 +8,7 @@ import Hyprstack.Services
 import qs.modules.nexus.common
 import qs.utils
 PageBase {
+    pageIcon: "hard_drive"
     id: root
     title: Tr.tr("Storage")
     property string selectedPath
@@ -16,7 +17,7 @@ PageBase {
     ColumnLayout {
         width: root.cappedWidth
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
         NativeSystemBackend { id: system; section: "storage"; watching: root.visible }
         Connections {
             target: DesktopIntegration

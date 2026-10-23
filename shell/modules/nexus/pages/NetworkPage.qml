@@ -12,16 +12,17 @@ import qs.modules.nexus.common
 
 PageBase {
     id: root
+    pageIcon: "wifi"
 
     title: Tr.tr("Network")
-    property bool externalVpnExpanded:false
-    property bool hotspotExpanded:false
+    property bool externalVpnExpanded: false
+    property bool hotspotExpanded: false
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         Timer {
             running: root.visible && Nmcli.wifiEnabled
@@ -59,325 +60,350 @@ PageBase {
             }
         }
 
-        ToggleRow {
-            Layout.topMargin: Nmcli.hasAvailableEthernet ? Tokens.spacing.large : 0
-            first: true
-            text: Tr.tr("Wi-Fi")
-            font: Tokens.font.body.medium
-            horizontalPadding: Tokens.padding.largeIncreased
-            checked: Nmcli.wifiEnabled
-            onToggled: Nmcli.enableWifi(checked)
-        }
-
-        NetworkList {
-            Layout.bottomMargin: Nmcli.wifiEnabled && Nmcli.networks.length > GlobalConfig.nexus.maxNetworksShown ? 0 : -parent.spacing
-            nState: root.nState
-            limit: GlobalConfig.nexus.maxNetworksShown
-
-            Behavior on Layout.bottomMargin {
-                Anim {
-                    type: Anim.DefaultEffects
-                }
-            }
-        }
-
-        // All networks button, only when > max networks
-        RowButton {
-            Layout.preferredHeight: Nmcli.wifiEnabled && Nmcli.networks.length > GlobalConfig.nexus.maxNetworksShown ? implicitHeight : 0
-            clip: true
-
-            icon: "expand_content"
-            // TRANSLATORS: %1 = number of networks found
-            text: Tr.tr("Show all networks (%1)").arg(Nmcli.networks.length)
-            trailingIcon: "chevron_right"
-            onClicked: root.nState.openSubPage(5) // All networks sub-page
-
-            Behavior on Layout.preferredHeight {
-                Anim {
-                    type: Anim.DefaultEffects
-                }
-            }
-        }
-
-        // Saved networks button
-        RowButton {
-            icon: "bookmark"
-            text: Tr.tr("Saved networks")
-            trailingIcon: "chevron_right"
-            onClicked: root.nState.openSubPage(6) // Saved networks sub-page
-        }
-
-        RowButton {
-            last: true
-            icon: "add"
-            text: Tr.tr("Add network")
-            disabled: !Nmcli.wifiEnabled
-            onClicked: root.nState.openSubPage(2) // Add network sub-page
-        }
-
-        FeatureError { error: Nmcli.lastError }
-        VpnSection {nState:root.nState;Layout.topMargin:Tokens.spacing.large}
-
-        RowButton {
-            visible:VPN.providers.length>0;first:true;last:true;text:Tr.tr("External VPN applications");icon:"vpn_key"
-            subtext:VPN.connected?Tr.tr("Connected"):Tr.tr("Disconnected")
-            trailingIcon:root.externalVpnExpanded?"expand_less":"expand_more";onClicked:root.externalVpnExpanded=!root.externalVpnExpanded
-        }
-        ColumnLayout {
-            visible:root.externalVpnExpanded;Layout.fillWidth:true;spacing:Tokens.spacing.extraSmall/2
-        // ---- External VPN applications -------------------------------------------------------------
-        ToggleRow {
-            Layout.topMargin: Tokens.spacing.large
-            Layout.fillWidth: true
-            first: true
-            text: Tr.tr("External VPN applications")
-            font: Tokens.font.body.medium
-            horizontalPadding: Tokens.padding.largeIncreased
-            checked: VPN.connected
-            // Connectable as long as there's a provider and we're not mid-switch.
-            disabled: VPN.connecting || VPN.disconnecting || VPN.providers.length === 0
-            onToggled: VPN.toggle()
-
-            Timer {
-                running: root.visible
-                repeat: true
-                triggeredOnStart: true
-                interval: 5000
-                onTriggered: {
-                    VPN.checkStatus();
-                    if (VPN.connected)
-                        VPN.refreshStats();
-                }
-            }
-        }
-
-        ItemList {
-            id: providerList
-
-            showList: true
-            placeholderIcon: "add_circle"
-            placeholderText: Tr.tr("No VPN providers configured")
-
-            model: ScriptModel {
-                values: [...VPN.providers]
+        SettingsCard {
+            title: Tr.tr("Wi-Fi")
+            icon: "wifi"
+            ToggleRow {
+                first: true
+                text: Tr.tr("Wi-Fi")
+                font: Tokens.font.body.medium
+                horizontalPadding: Tokens.padding.largeIncreased
+                checked: Nmcli.wifiEnabled
+                onToggled: Nmcli.enableWifi(checked)
             }
 
-            delegate: Item {
-                id: provider
+            NetworkList {
+                Layout.bottomMargin: Nmcli.wifiEnabled && Nmcli.networks.length > GlobalConfig.nexus.maxNetworksShown ? 0 : -parent.spacing
+                nState: root.nState
+                limit: GlobalConfig.nexus.maxNetworksShown
 
-                required property var modelData // QML types are annoying (causes null errors on destruction if typed correctly)
-                required property int index
-                readonly property bool isSelected: modelData.id === VPN.selectedProvider
-                readonly property bool isConnected: isSelected && VPN.connected
-
-                anchors.left: providerList.list.contentItem.left
-                anchors.right: providerList.list.contentItem.right
-                implicitHeight: providerLayout.implicitHeight + providerLayout.anchors.margins * 2
-
-                StateLayer {
-                    disabled: provider.isSelected
-                    radius: Tokens.rounding.extraSmall
-                    onClicked: {
-                        if (!provider.isSelected)
-                            VPN.setActiveProvider(provider.index);
+                Behavior on Layout.bottomMargin {
+                    Anim {
+                        type: Anim.DefaultEffects
                     }
                 }
+            }
 
-                RowLayout {
-                    id: providerLayout
+            // All networks button, only when > max networks
+            RowButton {
+                Layout.preferredHeight: Nmcli.wifiEnabled && Nmcli.networks.length > GlobalConfig.nexus.maxNetworksShown ? implicitHeight : 0
+                clip: true
 
-                    anchors.fill: parent
-                    anchors.margins: Tokens.padding.medium
-                    anchors.leftMargin: Tokens.padding.largeIncreased
-                    anchors.rightMargin: Tokens.padding.medium
-                    spacing: Tokens.spacing.medium
+                icon: "expand_content"
+                // TRANSLATORS: %1 = number of networks found
+                text: Tr.tr("Show all networks (%1)").arg(Nmcli.networks.length)
+                trailingIcon: "chevron_right"
+                onClicked: root.nState.openSubPage(5) // All networks sub-page
 
-                    StyledRect {
-                        implicitWidth: implicitHeight
-                        implicitHeight: providerIcon.implicitHeight + Tokens.padding.small * 2
-                        radius: Tokens.rounding.full
-                        color: provider.isConnected ? Colours.palette.m3primaryContainer : provider.isSelected ? Colours.palette.m3secondaryContainer : Colours.palette.m3surfaceContainerHighest
+                Behavior on Layout.preferredHeight {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+            }
 
-                        MaterialIcon {
-                            id: providerIcon
+            // Saved networks button
+            RowButton {
+                icon: "bookmark"
+                text: Tr.tr("Saved networks")
+                trailingIcon: "chevron_right"
+                onClicked: root.nState.openSubPage(6) // Saved networks sub-page
+            }
 
-                            anchors.centerIn: parent
-                            text: provider.isConnected || provider.isSelected ? "vpn_key" : "vpn_key_off"
-                            fill: provider.isConnected ? 1 : 0
-                            color: provider.isConnected ? Colours.palette.m3onPrimaryContainer : provider.isSelected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
-                            fontStyle: Tokens.font.icon.medium
-                            animate: true
+            RowButton {
+                last: true
+                icon: "add"
+                text: Tr.tr("Add network")
+                disabled: !Nmcli.wifiEnabled
+                onClicked: root.nState.openSubPage(2) // Add network sub-page
+            }
+        }
+        FeatureError {
+            error: Nmcli.lastError
+        }
+        SettingsCard {
+            title: Tr.tr("VPN")
+            icon: "vpn_key"
+            VpnSection {
+                nState: root.nState
+                showHeader: false
+            }
+        }
+
+        SettingsCard {
+            title: Tr.tr("External VPN applications")
+            icon: "vpn_key"
+            visible: VPN.providers.length > 0
+            collapsible: true
+            expanded: root.externalVpnExpanded
+            expansionHandler: value => root.externalVpnExpanded = value
+
+            // ---- External VPN applications -------------------------------------------------------------
+            ToggleRow {
+                Layout.topMargin: Tokens.spacing.large
+                Layout.fillWidth: true
+                first: true
+                text: Tr.tr("External VPN applications")
+                font: Tokens.font.body.medium
+                horizontalPadding: Tokens.padding.largeIncreased
+                checked: VPN.connected
+                // Connectable as long as there's a provider and we're not mid-switch.
+                disabled: VPN.connecting || VPN.disconnecting || VPN.providers.length === 0
+                onToggled: VPN.toggle()
+
+                Timer {
+                    running: root.visible
+                    repeat: true
+                    triggeredOnStart: true
+                    interval: 5000
+                    onTriggered: {
+                        VPN.checkStatus();
+                        if (VPN.connected)
+                            VPN.refreshStats();
+                    }
+                }
+            }
+
+            ItemList {
+                id: providerList
+
+                showList: true
+                placeholderIcon: "add_circle"
+                placeholderText: Tr.tr("No VPN providers configured")
+
+                model: ScriptModel {
+                    values: [...VPN.providers]
+                }
+
+                delegate: Item {
+                    id: provider
+
+                    required property var modelData // QML types are annoying (causes null errors on destruction if typed correctly)
+                    required property int index
+                    readonly property bool isSelected: modelData.id === VPN.selectedProvider
+                    readonly property bool isConnected: isSelected && VPN.connected
+
+                    anchors.left: providerList.list.contentItem.left
+                    anchors.right: providerList.list.contentItem.right
+                    implicitHeight: providerLayout.implicitHeight + providerLayout.anchors.margins * 2
+
+                    StateLayer {
+                        disabled: provider.isSelected
+                        radius: Tokens.rounding.extraSmall
+                        onClicked: {
+                            if (!provider.isSelected)
+                                VPN.setActiveProvider(provider.index);
                         }
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
+                    RowLayout {
+                        id: providerLayout
 
-                        StyledText {
+                        anchors.fill: parent
+                        anchors.margins: Tokens.padding.medium
+                        anchors.leftMargin: Tokens.padding.largeIncreased
+                        anchors.rightMargin: Tokens.padding.medium
+                        spacing: Tokens.spacing.medium
+
+                        StyledRect {
+                            implicitWidth: implicitHeight
+                            implicitHeight: providerIcon.implicitHeight + Tokens.padding.small * 2
+                            radius: Tokens.rounding.full
+                            color: provider.isConnected ? Colours.palette.m3primaryContainer : provider.isSelected ? Colours.palette.m3secondaryContainer : Colours.palette.m3surfaceContainerHighest
+
+                            MaterialIcon {
+                                id: providerIcon
+
+                                anchors.centerIn: parent
+                                text: provider.isConnected || provider.isSelected ? "vpn_key" : "vpn_key_off"
+                                fill: provider.isConnected ? 1 : 0
+                                color: provider.isConnected ? Colours.palette.m3onPrimaryContainer : provider.isSelected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
+                                fontStyle: Tokens.font.icon.medium
+                                animate: true
+                            }
+                        }
+
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            text: provider.modelData.displayName || provider.modelData.name
-                            font: Tokens.font.body.medium
-                            elide: Text.ElideRight
-                        }
+                            spacing: 0
 
-                        StyledText {
-                            Layout.fillWidth: true
-                            text: {
-                                if (!provider.isSelected)
-                                    return Tr.tr("Tap to select");
-                                if (VPN.connecting)
-                                    return Tr.tr("Connecting...");
-                                if (VPN.disconnecting)
-                                    return Tr.tr("Disconnecting...");
-                                switch (VPN.status.state) {
-                                case "connected":
-                                    return Tr.trCtx("Connected", "vpn state");
-                                case "needs-auth":
-                                    return VPN.status.reason ? Tr.trMarked(VPN.status.reason) : Tr.tr("Authentication required");
-                                case "error":
-                                    return VPN.status.reason ? Tr.trMarked(VPN.status.reason) : Tr.tr("An error occurred");
-                                default:
-                                    return Tr.tr("Selected");
-                                }
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: provider.modelData.displayName || provider.modelData.name
+                                font: Tokens.font.body.medium
+                                elide: Text.ElideRight
                             }
-                            color: {
-                                if (!provider.isSelected)
-                                    return Colours.palette.m3onSurfaceVariant;
-                                switch (VPN.status.state) {
-                                case "connected":
-                                    return Colours.palette.m3primary;
-                                case "needs-auth":
-                                case "error":
-                                    return Colours.palette.m3error;
-                                default:
-                                    return Colours.palette.m3secondary;
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: {
+                                    if (!provider.isSelected)
+                                        return Tr.tr("Tap to select");
+                                    if (VPN.connecting)
+                                        return Tr.tr("Connecting...");
+                                    if (VPN.disconnecting)
+                                        return Tr.tr("Disconnecting...");
+                                    switch (VPN.status.state) {
+                                    case "connected":
+                                        return Tr.trCtx("Connected", "vpn state");
+                                    case "needs-auth":
+                                        return VPN.status.reason ? Tr.trMarked(VPN.status.reason) : Tr.tr("Authentication required");
+                                    case "error":
+                                        return VPN.status.reason ? Tr.trMarked(VPN.status.reason) : Tr.tr("An error occurred");
+                                    default:
+                                        return Tr.tr("Selected");
+                                    }
                                 }
-                            }
-                            font: Tokens.font.label.small
-                            elide: Text.ElideRight
-                            animate: true
-                        }
-                    }
-
-                    Item {
-                        Layout.rightMargin: Tokens.spacing.small
-                        opacity: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth ? 1 : 0
-                        visible: opacity > 0
-
-                        implicitWidth: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth ? providerDetailRow.implicitWidth : 0
-                        implicitHeight: providerDetailRow.implicitHeight
-
-                        Behavior on opacity {
-                            Anim {
-                                type: Anim.DefaultEffects
+                                color: {
+                                    if (!provider.isSelected)
+                                        return Colours.palette.m3onSurfaceVariant;
+                                    switch (VPN.status.state) {
+                                    case "connected":
+                                        return Colours.palette.m3primary;
+                                    case "needs-auth":
+                                    case "error":
+                                        return Colours.palette.m3error;
+                                    default:
+                                        return Colours.palette.m3secondary;
+                                    }
+                                }
+                                font: Tokens.font.label.small
+                                elide: Text.ElideRight
+                                animate: true
                             }
                         }
 
-                        RowLayout {
-                            id: providerDetailRow
+                        Item {
+                            Layout.rightMargin: Tokens.spacing.small
+                            opacity: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth ? 1 : 0
+                            visible: opacity > 0
 
-                            anchors.right: parent.right
-                            spacing: Tokens.spacing.large
+                            implicitWidth: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth ? providerDetailRow.implicitWidth : 0
+                            implicitHeight: providerDetailRow.implicitHeight
 
-                            ColumnLayout {
-                                spacing: 0
-
-                                StyledText {
-                                    Layout.alignment: Qt.AlignRight
-                                    text: Tr.trCtx("Interface", "network interface")
-                                    color: Colours.palette.m3onSurfaceVariant
-                                    font: Tokens.font.label.small
-                                    elide: Text.ElideRight
-                                    horizontalAlignment: Text.AlignRight
-                                }
-
-                                StyledText {
-                                    Layout.alignment: Qt.AlignRight
-                                    text: provider.modelData.interface
-                                    color: Colours.palette.m3outline
-                                    font: Tokens.font.label.small
-                                    elide: Text.ElideRight
-                                    horizontalAlignment: Text.AlignRight
+                            Behavior on opacity {
+                                Anim {
+                                    type: Anim.DefaultEffects
                                 }
                             }
 
-                            ColumnLayout {
-                                spacing: 0
+                            RowLayout {
+                                id: providerDetailRow
 
-                                StyledText {
-                                    Layout.alignment: Qt.AlignRight
-                                    text: Tr.trCtx("Current ping", "round-trip latency to the VPN endpoint")
-                                    color: Colours.palette.m3onSurfaceVariant
-                                    font: Tokens.font.label.small
-                                    elide: Text.ElideRight
-                                    horizontalAlignment: Text.AlignRight
-                                }
+                                anchors.right: parent.right
+                                spacing: Tokens.spacing.large
 
-                                RowLayout {
-                                    Layout.alignment: Qt.AlignRight
-                                    spacing: Tokens.spacing.small
+                                ColumnLayout {
+                                    spacing: 0
 
-                                    StyledRect {
-                                        Layout.alignment: Qt.AlignVCenter
-                                        implicitWidth: Math.round(Tokens.font.body.small.pointSize * 0.7)
-                                        implicitHeight: implicitWidth
-                                        radius: Tokens.rounding.full
-                                        color: VPN.pingMs <= 80 ? Colours.palette.m3primary : VPN.pingMs <= 150 ? Colours.palette.m3tertiary : Colours.palette.m3error
+                                    StyledText {
+                                        Layout.alignment: Qt.AlignRight
+                                        text: Tr.trCtx("Interface", "network interface")
+                                        color: Colours.palette.m3onSurfaceVariant
+                                        font: Tokens.font.label.small
+                                        elide: Text.ElideRight
+                                        horizontalAlignment: Text.AlignRight
                                     }
 
                                     StyledText {
-                                        text: Tr.tr("%1 ms").arg(VPN.pingMs)
+                                        Layout.alignment: Qt.AlignRight
+                                        text: provider.modelData.interface
                                         color: Colours.palette.m3outline
                                         font: Tokens.font.label.small
                                         elide: Text.ElideRight
                                         horizontalAlignment: Text.AlignRight
                                     }
                                 }
+
+                                ColumnLayout {
+                                    spacing: 0
+
+                                    StyledText {
+                                        Layout.alignment: Qt.AlignRight
+                                        text: Tr.trCtx("Current ping", "round-trip latency to the VPN endpoint")
+                                        color: Colours.palette.m3onSurfaceVariant
+                                        font: Tokens.font.label.small
+                                        elide: Text.ElideRight
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+
+                                    RowLayout {
+                                        Layout.alignment: Qt.AlignRight
+                                        spacing: Tokens.spacing.small
+
+                                        StyledRect {
+                                            Layout.alignment: Qt.AlignVCenter
+                                            implicitWidth: Math.round(Tokens.font.body.small.pointSize * 0.7)
+                                            implicitHeight: implicitWidth
+                                            radius: Tokens.rounding.full
+                                            color: VPN.pingMs <= 80 ? Colours.palette.m3primary : VPN.pingMs <= 150 ? Colours.palette.m3tertiary : Colours.palette.m3error
+                                        }
+
+                                        StyledText {
+                                            text: Tr.tr("%1 ms").arg(VPN.pingMs)
+                                            color: Colours.palette.m3outline
+                                            font: Tokens.font.label.small
+                                            elide: Text.ElideRight
+                                            horizontalAlignment: Text.AlignRight
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
 
-                    IconButton {
-                        implicitWidth: implicitHeight + (Tokens.padding.large - padding) * 2
-                        type: IconButton.Tonal
-                        isRound: true
-                        icon: "edit"
-                        onClicked: {
-                            root.nState.editingVpnIndex = provider.index;
-                            root.nState.openSubPage(4); // Add/edit provider sub-page
+                        IconButton {
+                            implicitWidth: implicitHeight + (Tokens.padding.large - padding) * 2
+                            type: IconButton.Tonal
+                            isRound: true
+                            icon: "edit"
+                            onClicked: {
+                                root.nState.editingVpnIndex = provider.index;
+                                root.nState.openSubPage(4); // Add/edit provider sub-page
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // Add provider
-        RowButton {
-            last: true
-            icon: "add"
-            text: Tr.tr("Add provider")
-            onClicked: {
-                root.nState.editingVpnIndex = -1;
-                root.nState.openSubPage(4); // Add/edit provider sub-page
+            // Add provider
+            RowButton {
+                last: true
+                icon: "add"
+                text: Tr.tr("Add provider")
+                onClicked: {
+                    root.nState.editingVpnIndex = -1;
+                    root.nState.openSubPage(4); // Add/edit provider sub-page
+                }
+            }
+        }
+        SettingsCard {
+            title: Tr.tr("Wi-Fi hotspot")
+            icon: "wifi_tethering"
+            collapsible: true
+            expanded: root.hotspotExpanded
+            expansionHandler: value => root.hotspotExpanded = value
+            HotspotSettings {
+                visible: root.hotspotExpanded
             }
         }
 
+        SettingsCard {
+            title: Tr.tr("Advanced settings")
+            icon: "settings"
+            collapsible: true
+            expanded: false
 
-        }
-        RowButton {first:true;last:true;text:Tr.tr("Wi-Fi hotspot");icon:"wifi_tethering";trailingIcon:root.hotspotExpanded?"expand_less":"expand_more";onClicked:root.hotspotExpanded=!root.hotspotExpanded}
-        HotspotSettings {visible:root.hotspotExpanded}
-        SectionHeader { text:Tr.tr("Wi-Fi") }
-        StepperRow {
-            first: true
-            last: true
-            label: Tr.tr("Wi-Fi rescan")
-            subtext: Tr.tr("How often available networks are rescanned (seconds)")
-            value: GlobalConfig.nexus.networkRescanInterval / 1000
-            from: 5
-            to: 120
-            stepSize: 5
-            onMoved: v => GlobalConfig.nexus.networkRescanInterval = Math.round(v * 1000)
+            StepperRow {
+                first: true
+                last: true
+                label: Tr.tr("Wi-Fi rescan")
+                subtext: Tr.tr("How often available networks are rescanned (seconds)")
+                value: GlobalConfig.nexus.networkRescanInterval / 1000
+                from: 5
+                to: 120
+                stepSize: 5
+                onMoved: v => GlobalConfig.nexus.networkRescanInterval = Math.round(v * 1000)
+            }
         }
     }
 }

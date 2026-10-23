@@ -48,7 +48,7 @@ ConnectedRect {
                     id: label
 
                     Layout.fillWidth: true
-                    font: Tokens.font.body.small
+                    font: Tokens.font.body.medium
                     Layout.minimumWidth: 0
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 }
@@ -56,8 +56,8 @@ ConnectedRect {
                 StyledText {
                     id: valueLabel
 
-                    color: Colours.palette.m3outline
-                    font: Tokens.font.body.small
+                    color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.body.medium
                 }
             }
 

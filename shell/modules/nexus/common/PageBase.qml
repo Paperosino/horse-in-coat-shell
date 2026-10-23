@@ -15,6 +15,9 @@ ColumnLayout {
 
     required property string title
     required property NexusState nState
+    readonly property var pageInfo: PageRegistry.pages.find(p => p.label === title) ?? PageRegistry.pages[nState.currentPageIdx] ?? ({})
+    property string pageIcon: pageInfo.icon ?? "tune"
+    property string pageDescription: isSubPage ? (pageInfo.label ?? "") : (pageInfo.description ?? "")
     property bool isSubPage: nState.subPageIdxStack.length > 0
     readonly property int cappedWidth: Math.min(Tokens.sizes.nexus.maxContentWidth, width)
     readonly property alias flickable: flickable
@@ -52,30 +55,38 @@ ColumnLayout {
 
     Connections {
         target: root.contentChild
-        function onImplicitHeightChanged(): void { root.contentLayoutSettled.restart(); }
+        function onImplicitHeightChanged(): void {
+            root.contentLayoutSettled.restart();
+        }
     }
 
     function revealSearchTarget(): bool {
-        if (!nState.searchTarget && !nState.searchTargetText) return true;
-        if (contentLayoutSettled.running) return false;
+        if (!nState.searchTarget && !nState.searchTargetText)
+            return true;
+        if (contentLayoutSettled.running)
+            return false;
         function find(item) {
-            if (root.nState.searchTarget ? item.objectName === root.nState.searchTarget
-                : item.text === root.nState.searchTargetText || item.label === root.nState.searchTargetText
-                    || item.label?.text === root.nState.searchTargetText)
+            if (root.nState.searchTarget ? item.objectName === root.nState.searchTarget : item.text === root.nState.searchTargetText || item.label === root.nState.searchTargetText || item.label?.text === root.nState.searchTargetText || item.title === root.nState.searchTargetText)
                 return item;
             for (const child of item.children ?? []) {
                 const result = find(child);
-                if (result) return result;
+                if (result)
+                    return result;
             }
             return null;
         }
         const item = find(contentChild);
-        if (!item || item.height <= 0 || flickable.height <= 0) return false;
+        if (!item)
+            return false;
+        let expanded = false;
+        for (let ancestor = item.parent; ancestor; ancestor = ancestor.parent)
+            if (typeof ancestor.expandForSearch === "function")
+                expanded = ancestor.expandForSearch() || expanded;
+        if (expanded || item.height <= 0 || flickable.height <= 0)
+            return false;
         const point = item.mapToItem(flickable.contentItem, 0, 0);
         flickable.cancelFlick();
-        flickable.contentY = Math.max(-flickable.topMargin,
-            Math.min(Math.max(-flickable.topMargin, flickable.contentHeight - flickable.height + flickable.bottomMargin),
-                point.y - (flickable.height - item.height) / 2));
+        flickable.contentY = Math.max(-flickable.topMargin, Math.min(Math.max(-flickable.topMargin, flickable.contentHeight - flickable.height + flickable.bottomMargin), point.y - (flickable.height - item.height) / 2));
         searchHighlight = item;
         highlightExpiry.restart();
         return true;
@@ -83,14 +94,16 @@ ColumnLayout {
 
     Component.onCompleted: {
         contentLayoutSettled.restart();
-        if (nState.searchTarget || nState.searchTargetText) searchRetry.start();
+        if (nState.searchTarget || nState.searchTargetText)
+            searchRetry.start();
     }
 
     readonly property Timer searchRetry: Timer {
         interval: 50
         repeat: true
         onTriggered: {
-            if (root.revealSearchTarget() || ++root.searchAttempts >= 20) stop();
+            if (root.revealSearchTarget() || ++root.searchAttempts >= 20)
+                stop();
         }
     }
 
@@ -101,50 +114,64 @@ ColumnLayout {
 
     spacing: Tokens.spacing.extraLargeIncreased
 
-    MouseArea { // Prevent clicks from reaching flickable
-        z: 1
+    StyledRect {
         Layout.fillWidth: true
-        Layout.minimumWidth: 0
-        implicitWidth: header.implicitWidth
-        implicitHeight: header.implicitHeight - Layout.bottomMargin
-        Layout.bottomMargin: -flickable.topMargin // Extra height to block clicks on flickable top margin
-        onClicked: focus = true
-
+        implicitHeight: header.implicitHeight + Tokens.padding.large * 2
+        radius: Tokens.rounding.extraLarge
+        color: Colours.tPalette.m3surfaceContainerLow
         RowLayout {
             id: header
-
             anchors.left: parent.left
             anchors.right: parent.right
-            spacing: Tokens.spacing.largeIncreased
-
-            Loader {
-                visible: active
-                active: root.isSubPage || root.nState.canGoBack
-                asynchronous: true
-                sourceComponent: IconButton {
-                    icon: "arrow_back"
-                    font: Tokens.font.icon.medium
-                    type: IconButton.Tonal
-                    isRound: true
-                    inactiveColour: Colours.tPalette.m3surfaceContainerHigh
-                    inactiveOnColour: Colours.palette.m3onSurfaceVariant
-                    Accessible.name: Tr.tr("Back")
-                    onClicked: root.nState.goBack()
+            anchors.top: parent.top
+            anchors.margins: Tokens.padding.large
+            spacing: Tokens.spacing.medium
+            IconButton {
+                visible: root.isSubPage || root.nState.canGoBack
+                icon: "arrow_back"
+                type: IconButton.Tonal
+                isRound: true
+                Accessible.name: Tr.tr("Back")
+                onClicked: root.nState.goBack()
+            }
+            StyledRect {
+                implicitWidth: 52 * Tokens.scale
+                implicitHeight: implicitWidth
+                radius: Tokens.rounding.extraLarge
+                color: Colours.palette.m3primaryContainer
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: root.pageIcon
+                    color: Colours.palette.m3onPrimaryContainer
+                    fontStyle: Tokens.font.icon.large
                 }
             }
-
-            StyledText {
+            ColumnLayout {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                text: root.title
-                font: Tokens.font.title.large
-                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                spacing: 4 * Tokens.scale
+                StyledText {
+                    Layout.fillWidth: true
+                    text: root.title
+                    font: Tokens.font.headline.small
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    Accessible.role: Accessible.Heading
+                }
+                StyledText {
+                    Layout.fillWidth: true
+                    visible: !!root.pageDescription
+                    text: root.pageDescription
+                    font: Tokens.font.body.small
+                    color: Colours.palette.m3onSurfaceVariant
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                }
             }
         }
     }
 
     VerticalFadeFlickable {
         id: flickable
+        fadeAmount:Math.min(0.1,24*Tokens.scale/Math.max(1,height))
 
         Layout.fillWidth: true
         Layout.fillHeight: true

@@ -15,21 +15,45 @@ PageBase {
     isSubPage: true
 
     readonly property list<MenuItem> iconModes: [
-        MenuItem { text: Tr.tr("Application colours"); icon: "palette"; value: "original" },
-        MenuItem { text: Tr.tr("Tinted application icons"); icon: "format_color_fill"; value: "tinted" },
-        MenuItem { text: Tr.tr("Standard symbols"); icon: "apps"; value: "symbols" }
+        MenuItem {
+            text: Tr.tr("Application colours")
+            icon: "palette"
+            value: "original"
+        },
+        MenuItem {
+            text: Tr.tr("Tinted application icons")
+            icon: "format_color_fill"
+            value: "tinted"
+        },
+        MenuItem {
+            text: Tr.tr("Standard symbols")
+            icon: "apps"
+            value: "symbols"
+        }
     ]
     readonly property list<MenuItem> indicatorModes: [
-        MenuItem { text: Tr.tr("Shapes"); icon: "shapes"; value: BarWorkspaceDisplay.Shapes },
-        MenuItem { text: Tr.tr("Numbers / labels"); icon: "123"; value: BarWorkspaceDisplay.Text },
-        MenuItem { text: Tr.tr("Workspace icons"); icon: "grid_view"; value: BarWorkspaceDisplay.Icons }
+        MenuItem {
+            text: Tr.tr("Shapes")
+            icon: "shapes"
+            value: BarWorkspaceDisplay.Shapes
+        },
+        MenuItem {
+            text: Tr.tr("Numbers / labels")
+            icon: "123"
+            value: BarWorkspaceDisplay.Text
+        },
+        MenuItem {
+            text: Tr.tr("Workspace icons")
+            icon: "grid_view"
+            value: BarWorkspaceDisplay.Icons
+        }
     ]
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         StepperRow {
             first: true
@@ -106,62 +130,69 @@ PageBase {
             onMoved: v => GlobalConfig.bar.workspaces.maxWindowIcons = v
         }
 
-        SectionHeader { text: Tr.tr("Icon appearance") }
+        SettingsCard {
+            title: Tr.tr("Icon appearance")
+            icon: "tune"
 
-        SelectRow {
-            first: true
-            objectName: "workspaceIndicatorStyle"
-            updateActiveOnSelection: false
-            label: Tr.tr("Workspace indicator")
-            menuItems: root.indicatorModes
-            active: root.indicatorModes.find(i => i.value === Config.bar.workspaces.displayType)
-            onSelected: item => GlobalConfig.bar.workspaces.displayType = item.value
-        }
-
-        SelectRow {
-            objectName: "workspaceIconStyle"
-            updateActiveOnSelection: false
-            label: Tr.tr("Window icons")
-            menuItems: root.iconModes
-            active: root.iconModes.find(i => i.value === WorkspaceIcons.mode)
-            onSelected: item => WorkspaceIcons.set("mode", item.value)
-        }
-
-        StepperRow {
-            objectName: "workspaceIconSize"
-            label: Tr.tr("Window icon size")
-            value: WorkspaceIcons.size
-            from: 12
-            to: 32
-            onMoved: v => WorkspaceIcons.set("size", v)
-        }
-
-        PaletteRow {
-            objectName: "workspaceActiveIconColour"
-            label: Tr.tr("Active icon colour")
-            subtext: Tr.tr("Tinted icons and symbols; choose a colour from the current scheme")
-            value: WorkspaceIcons.activeSelection
-            palette: Colours.palette
-            choices: WorkspaceIcons.colourChoices
-            choicePrefix: "workspaceActiveIconColour_"
-            onSelected: role => {
-                if (role.startsWith("#")) WorkspaceIcons.set("activeColour", role);
-                else WorkspaceIcons.set("activeColourRole", role);
+            SelectRow {
+                first: true
+                objectName: "workspaceIndicatorStyle"
+                updateActiveOnSelection: false
+                label: Tr.tr("Workspace indicator")
+                menuItems: root.indicatorModes
+                active: root.indicatorModes.find(i => i.value === Config.bar.workspaces.displayType)
+                onSelected: item => GlobalConfig.bar.workspaces.displayType = item.value
             }
-        }
 
-        PaletteRow {
-            last: true
-            objectName: "workspaceInactiveIconColour"
-            label: Tr.tr("Inactive icon colour")
-            subtext: Tr.tr("Tinted icons and symbols; choose a colour from the current scheme")
-            value: WorkspaceIcons.inactiveSelection
-            palette: Colours.palette
-            choices: WorkspaceIcons.colourChoices
-            choicePrefix: "workspaceInactiveIconColour_"
-            onSelected: role => {
-                if (role.startsWith("#")) WorkspaceIcons.set("inactiveColour", role);
-                else WorkspaceIcons.set("inactiveColourRole", role);
+            SelectRow {
+                objectName: "workspaceIconStyle"
+                updateActiveOnSelection: false
+                label: Tr.tr("Window icons")
+                menuItems: root.iconModes
+                active: root.iconModes.find(i => i.value === WorkspaceIcons.mode)
+                onSelected: item => WorkspaceIcons.set("mode", item.value)
+            }
+
+            StepperRow {
+                objectName: "workspaceIconSize"
+                label: Tr.tr("Window icon size")
+                value: WorkspaceIcons.size
+                from: 12
+                to: 32
+                onMoved: v => WorkspaceIcons.set("size", v)
+            }
+
+            PaletteRow {
+                objectName: "workspaceActiveIconColour"
+                label: Tr.tr("Active icon colour")
+                subtext: Tr.tr("Tinted icons and symbols; choose a colour from the current scheme")
+                value: WorkspaceIcons.activeSelection
+                palette: Colours.palette
+                choices: WorkspaceIcons.colourChoices
+                choicePrefix: "workspaceActiveIconColour_"
+                onSelected: role => {
+                    if (role.startsWith("#"))
+                        WorkspaceIcons.set("activeColour", role);
+                    else
+                        WorkspaceIcons.set("activeColourRole", role);
+                }
+            }
+
+            PaletteRow {
+                last: true
+                objectName: "workspaceInactiveIconColour"
+                label: Tr.tr("Inactive icon colour")
+                subtext: Tr.tr("Tinted icons and symbols; choose a colour from the current scheme")
+                value: WorkspaceIcons.inactiveSelection
+                palette: Colours.palette
+                choices: WorkspaceIcons.colourChoices
+                choicePrefix: "workspaceInactiveIconColour_"
+                onSelected: role => {
+                    if (role.startsWith("#"))
+                        WorkspaceIcons.set("inactiveColour", role);
+                    else
+                        WorkspaceIcons.set("inactiveColourRole", role);
+                }
             }
         }
     }

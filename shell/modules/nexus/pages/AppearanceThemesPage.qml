@@ -8,6 +8,7 @@ import qs.components.controls
 import qs.services
 import qs.modules.nexus.common
 PageBase {
+    pageIcon: "palette"
     id: root
     property bool cursorThemes: false
     readonly property string kind: cursorThemes ? "cursors" : "icons"

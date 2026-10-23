@@ -1,35 +1,36 @@
-import QtQuick
-import QtQuick.Layouts
-import Quickshell.Io
 import Hyprstack
 import Hyprstack.Config
 import Hyprstack.I18n
+import QtQuick
+import QtQuick.Layouts
+import Quickshell.Io
 import qs.components
+import qs.modules.nexus.common
 import qs.services
 import qs.utils
-import qs.modules.nexus.common
 
 PageBase {
     id: root
 
     // Plugin support is not wired up yet; always 0 for now
     readonly property int pluginCount: 0
-
     property string quickshellVersion
     property string cliVersion
 
+    pageIcon: "info"
     title: Tr.tr("About")
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         // e.g. "Quickshell 0.3.0 (revision ...)"
         Process {
             running: true
             command: ["quickshell", "--version"]
+
             stdout: StdioCollector {
                 onStreamFinished: root.quickshellVersion = text.trim().split(" ")[1] ?? ""
             }
@@ -38,6 +39,7 @@ PageBase {
         Process {
             running: true
             command: ["hics", "--version"]
+
             stdout: StdioCollector {
                 onStreamFinished: {
                     const m = text.match(/hics\s+(\d+(?:\.\d+)*)/);
@@ -83,75 +85,80 @@ PageBase {
         }
 
         // System
-        SectionHeader {
-            text: Tr.tr("System")
+        SettingsCard {
+            // Software
+
+            title: Tr.tr("System")
+            icon: "info"
+
+            InfoRow {
+                first: true
+                label: Tr.tr("Hostname")
+                value: SysInfo.hostname
+            }
+
+            InfoRow {
+                label: Tr.trCtx("Device", "system model name")
+                value: SysInfo.device
+            }
+
+            InfoRow {
+                label: Tr.tr("Distro")
+                value: SysInfo.osPrettyName || SysInfo.osName
+            }
+
+            InfoRow {
+                label: Tr.tr("Kernel")
+                value: SysInfo.kernel
+            }
+
+            InfoRow {
+                last: true
+                // TRANSLATORS: BIOS or UEFI firmware version
+                label: Tr.tr("Firmware")
+                value: SysInfo.firmware
+            }
         }
 
-        InfoRow {
-            first: true
-            label: Tr.tr("Hostname")
-            value: SysInfo.hostname
+        SettingsCard {
+            // Plugins
+
+            title: Tr.tr("Software")
+            icon: "info"
+
+            InfoRow {
+                first: true
+                label: Tr.trCtx("Shell", "the hics shell itself, not a unix shell")
+                value: CUtils.version || "…"
+            }
+
+            InfoRow {
+                label: Tr.trCtx("CLI", "the hics command line tool")
+                value: root.cliVersion || "…"
+            }
+
+            InfoRow {
+                label: "Quickshell"
+                value: root.quickshellVersion || "…"
+            }
+
+            InfoRow {
+                last: true
+                label: "Qt"
+                value: CUtils.qtVersion || "…"
+            }
         }
 
-        InfoRow {
-            label: Tr.trCtx("Device", "system model name")
-            value: SysInfo.device
-        }
+        SettingsCard {
+            title: Tr.tr("Plugins")
+            icon: "info"
 
-        InfoRow {
-            label: Tr.tr("Distro")
-            value: SysInfo.osPrettyName || SysInfo.osName
-        }
-
-        InfoRow {
-            label: Tr.tr("Kernel")
-            value: SysInfo.kernel
-        }
-
-        InfoRow {
-            last: true
-            // TRANSLATORS: BIOS or UEFI firmware version
-            label: Tr.tr("Firmware")
-            value: SysInfo.firmware
-        }
-
-        // Software
-        SectionHeader {
-            text: Tr.tr("Software")
-        }
-
-        InfoRow {
-            first: true
-            label: Tr.trCtx("Shell", "the hics shell itself, not a unix shell")
-            value: CUtils.version || "…"
-        }
-
-        InfoRow {
-            label: Tr.trCtx("CLI", "the hics command line tool")
-            value: root.cliVersion || "…"
-        }
-
-        InfoRow {
-            label: "Quickshell"
-            value: root.quickshellVersion || "…"
-        }
-
-        InfoRow {
-            last: true
-            label: "Qt"
-            value: CUtils.qtVersion || "…"
-        }
-
-        // Plugins
-        SectionHeader {
-            text: Tr.tr("Plugins")
-        }
-
-        InfoRow {
-            first: true
-            last: true
-            label: Tr.tr("Loaded plugins")
-            value: root.pluginCount.toString()
+            InfoRow {
+                first: true
+                last: true
+                label: Tr.tr("Loaded plugins")
+                value: root.pluginCount.toString()
+            }
         }
     }
 }

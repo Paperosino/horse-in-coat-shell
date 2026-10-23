@@ -16,29 +16,29 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
-        SectionHeader {
-            first: true
-            text: Tr.tr("General")
-        }
+        SettingsCard {
+            title: Tr.tr("General")
+            icon: "tune"
 
-        ToggleRow {
-            first: true
-            text: Tr.trCtx("Enabled", "toggle label")
-            checked: Config.sidebar.enabled
-            onToggled: GlobalConfig.sidebar.enabled = checked
-        }
+            ToggleRow {
+                first: true
+                text: Tr.trCtx("Enabled", "toggle label")
+                checked: Config.sidebar.enabled
+                onToggled: GlobalConfig.sidebar.enabled = checked
+            }
 
-        StepperRow {
-            last: true
-            label: Tr.tr("Drag threshold")
-            subtext: Tr.tr("Pixels dragged before the sidebar opens")
-            value: Config.sidebar.dragThreshold
-            from: 0
-            to: 200
-            stepSize: 5
-            onMoved: v => GlobalConfig.sidebar.dragThreshold = v
+            StepperRow {
+                last: true
+                label: Tr.tr("Drag threshold")
+                subtext: Tr.tr("Pixels dragged before the sidebar opens")
+                value: Config.sidebar.dragThreshold
+                from: 0
+                to: 200
+                stepSize: 5
+                onMoved: v => GlobalConfig.sidebar.dragThreshold = v
+            }
         }
     }
 }

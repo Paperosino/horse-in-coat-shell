@@ -13,6 +13,7 @@ import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
+    pageIcon: "bluetooth"
     id: root
 
     readonly property BluetoothAdapter adapter: Bluetooth.defaultAdapter // qmllint disable unresolved-type
@@ -24,7 +25,7 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         ToggleRow {
             first: true

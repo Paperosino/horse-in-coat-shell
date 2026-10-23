@@ -5,27 +5,34 @@ import qs.modules.nexus
 
 Item {
     id: root
-
     required property NexusState nState
-
-    property int lastPageIdx
-    property int animOff
+    property int lastPageIdx: nState.currentPageIdx
+    property int generation: 0
     property Item currentItem
-
     function loadPage(idx: int): void {
-        if (currentItem)
-            currentItem.destroy();
-
-        const comp = PageCompRegistry.pageComps[idx] ?? PageCompRegistry.placeholderComp;
-        const incubator = comp.incubateObject(container, {
+        // Commit the active editor before constructing a page which may read it.
+        container.forceActiveFocus();
+        const request = ++generation;
+        const component = PageCompRegistry.pageComps[idx] ?? PageCompRegistry.placeholderComp;
+        const incubator = component.incubateObject(container, {
             nState
         });
-
         const attach = () => {
+            if (request !== root.generation) {
+                incubator.object.destroy();
+                return;
+            }
+            const previous = currentItem;
             incubator.object.anchors.fill = container;
             currentItem = incubator.object;
+            if (previous)
+                previous.destroy();
+            entrance.stop();
+            container.opacity = GlobalConfig.appearance.reducedMotion ? 1 : 0;
+            movement.y = GlobalConfig.appearance.reducedMotion ? 0 : (idx >= lastPageIdx ? 1 : -1) * 12 * Tokens.scale;
+            lastPageIdx = idx;
+            entrance.restart();
         };
-
         if (incubator.status === Component.Ready)
             attach();
         else
@@ -34,70 +41,37 @@ Item {
                     attach();
             };
     }
-
     Item {
         id: container
-
         objectName: "PageContainer"
         anchors.fill: parent
-        layer.enabled: opacity < 1
+        transform: Translate {
+            id: movement
+        }
         Component.onCompleted: root.loadPage(root.nState.currentPageIdx)
     }
-
     Connections {
-        function onSearchRequested(): void {
-            switchAnim.stop();
-            container.opacity = 1;
-            container.anchors.topMargin = container.anchors.bottomMargin = 0;
+        target: root.nState
+        function onCurrentPageIdxChanged(): void {
             root.loadPage(root.nState.currentPageIdx);
         }
-
-        function onCurrentPageIdxChanged(): void {
-            switchAnim.complete();
-            root.animOff = root.Tokens.padding.extraLarge * (root.nState.currentPageIdx > root.lastPageIdx ? 1 : -1);
-            switchAnim.start();
-            root.lastPageIdx = root.nState.currentPageIdx;
+        function onSearchRequested(): void {
+            root.loadPage(root.nState.currentPageIdx);
         }
-
-        target: root.nState
     }
-
-    SequentialAnimation {
-        id: switchAnim
-
+    ParallelAnimation {
+        id: entrance
         Anim {
             target: container
             property: "opacity"
+            to: 1
+            type: Anim.FastEffects
+        }
+        Anim {
+            target: movement
+            property: "y"
             to: 0
-            type: Anim.DefaultEffects
-        }
-        ScriptAction {
-            script: root.loadPage(root.nState.currentPageIdx)
-        }
-        PropertyAction {
-            target: container.anchors
-            property: "topMargin"
-            value: root.animOff
-        }
-        PropertyAction {
-            target: container.anchors
-            property: "bottomMargin"
-            value: -root.animOff
-        }
-        ParallelAnimation {
-            Anim {
-                target: container
-                property: "opacity"
-                from: 0
-                to: 1
-                type: Anim.SlowEffects
-            }
-            Anim {
-                target: container.anchors
-                properties: "topMargin,bottomMargin"
-                to: 0
-                type: Anim.SlowEffects
-            }
+            type: Anim.FastSpatial
         }
     }
 }

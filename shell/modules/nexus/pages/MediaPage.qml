@@ -10,6 +10,7 @@ import qs.modules.nexus.common
 
 PageBase {
     id: root
+    pageIcon: "music_note"
     title: Tr.tr("Media & lyrics")
     // Lyrics backends, ordered to match config::LyricsBackend (Auto, Local, LRCLIB, NetEase)
     readonly property list<MenuItem> lyricsItems: [
@@ -30,7 +31,7 @@ PageBase {
     ColumnLayout {
         width: root.cappedWidth
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
         // Detected running players, used as default-player options
         Variants {
             id: playerVariants
@@ -47,56 +48,64 @@ PageBase {
         }
 
         // Media & lyrics
-        SectionHeader {
-            text: Tr.tr("Media & lyrics")
-        }
+        SettingsCard {
+            title: Tr.tr("Media & lyrics")
+            icon: "music_note"
 
-        SelectRow {
-            first: true
-            label: Tr.tr("Lyrics backend")
-            subtext: Tr.tr("Source used to fetch synced lyrics")
-            menuItems: root.lyricsItems
-            active: root.lyricsItems[Lyrics.preferredBackend] ?? root.lyricsItems[0]
-            onSelected: item => Lyrics.preferredBackend = root.lyricsItems.indexOf(item)
-        }
+            SelectRow {
+                first: true
+                label: Tr.tr("Lyrics backend")
+                subtext: Tr.tr("Source used to fetch synced lyrics")
+                menuItems: root.lyricsItems
+                active: root.lyricsItems[Lyrics.preferredBackend] ?? root.lyricsItems[0]
+                onSelected: item => Lyrics.preferredBackend = root.lyricsItems.indexOf(item)
+            }
 
-        SelectRow {
-            last: true
-            label: Tr.tr("Default player")
-            subtext: Tr.tr("Preferred media player when several are open")
-            menuItems: playerVariants.instances
-            active: menuItems.find(i => i.text === GlobalConfig.services.defaultPlayer) ?? null
-            fallbackIcon: "music_note"
-            fallbackText: GlobalConfig.services.defaultPlayer || Tr.trCtx("Auto", "default media player")
-            onSelected: item => GlobalConfig.services.defaultPlayer = item.text
+            SelectRow {
+                last: true
+                label: Tr.tr("Default player")
+                subtext: Tr.tr("Preferred media player when several are open")
+                menuItems: playerVariants.instances
+                active: menuItems.find(i => i.text === GlobalConfig.services.defaultPlayer) ?? null
+                fallbackIcon: "music_note"
+                fallbackText: GlobalConfig.services.defaultPlayer || Tr.trCtx("Auto", "default media player")
+                onSelected: item => GlobalConfig.services.defaultPlayer = item.text
+            }
         }
+        SettingsCard {
+            title: Tr.tr("Polling")
+            icon: "monitor_heart"
+            collapsible: true
+            expanded: false
 
-        SectionHeader { text:Tr.tr("Polling") }
-        StepperRow {
-            first: true
-            label: Tr.tr("Media refresh")
-            // TRANSLATORS: ms is the millisecond unit, leave it untranslated
-            subtext: Tr.tr("How often the media position updates (ms)")
-            value: GlobalConfig.dashboard.mediaUpdateInterval
-            from: 100
-            to: 2000
-            stepSize: 50
-            onMoved: v => GlobalConfig.dashboard.mediaUpdateInterval = v
+            StepperRow {
+                first: true
+                label: Tr.tr("Media refresh")
+                // TRANSLATORS: ms is the millisecond unit, leave it untranslated
+                subtext: Tr.tr("How often the media position updates (ms)")
+                value: GlobalConfig.dashboard.mediaUpdateInterval
+                from: 100
+                to: 2000
+                stepSize: 50
+                onMoved: v => GlobalConfig.dashboard.mediaUpdateInterval = v
+            }
         }
+        SettingsCard {
+            title: Tr.tr("Service tuning")
+            icon: "music_note"
 
-        SectionHeader { text:Tr.tr("Service tuning") }
-        StepperRow {
-            first: true
-            // TRANSLATORS: bars of a spectrum analyser, not the taskbar
-            label: Tr.tr("Visualiser bars")
-            enabled: Audio.visualiserAvailable
-            subtext: Tr.tr("Number of bars in the audio visualisers")
-            value: GlobalConfig.services.visualiserBars
-            from: 10
-            to: 120
-            stepSize: 2
-            onMoved: v => GlobalConfig.services.visualiserBars = v
+            StepperRow {
+                first: true
+                // TRANSLATORS: bars of a spectrum analyser, not the taskbar
+                label: Tr.tr("Visualiser bars")
+                enabled: Audio.visualiserAvailable
+                subtext: Tr.tr("Number of bars in the audio visualisers")
+                value: GlobalConfig.services.visualiserBars
+                from: 10
+                to: 120
+                stepSize: 2
+                onMoved: v => GlobalConfig.services.visualiserBars = v
+            }
         }
-
     }
 }

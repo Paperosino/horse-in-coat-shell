@@ -31,6 +31,12 @@ Item {
         CAnim {}
     }
 
+    StyledRect {
+        anchors.fill:parent
+        radius:Tokens.rounding.extraLarge
+        color:Colours.tPalette.m3surface
+    }
+
     TapHandler {
         onTapped: root.focus = true
     }

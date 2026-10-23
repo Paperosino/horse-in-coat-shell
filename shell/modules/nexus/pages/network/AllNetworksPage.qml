@@ -10,6 +10,7 @@ import qs.services
 import qs.modules.nexus.common
 
 PageBase {
+    pageIcon: "wifi_find"
     id: root
 
     title: Tr.tr("All networks")
@@ -20,7 +21,7 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         Timer {
             running: root.visible && Nmcli.wifiEnabled

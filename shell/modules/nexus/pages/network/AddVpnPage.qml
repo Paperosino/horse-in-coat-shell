@@ -13,6 +13,7 @@ import qs.modules.nexus.common
 // Add or edit a VPN provider. editingVpnIndex (-1 = add) is read from NexusState.
 PageBase {
     id: root
+    pageIcon: "vpn_key"
 
     readonly property int editIndex: nState.editingVpnIndex
     readonly property bool editing: editIndex >= 0
@@ -143,83 +144,84 @@ PageBase {
             onAccepted: connectField.forceActiveFocus()
         }
 
-        SectionHeader {
-            text: Tr.tr("Custom commands (optional)")
-        }
+        SettingsCard {
+            title: Tr.tr("Custom commands (optional)")
+            icon: "tune"
 
-        StyledTextField {
-            id: connectField
+            StyledTextField {
+                id: connectField
 
-            Layout.fillWidth: true
-            placeholderText: Tr.tr("Connect command")
-            leadingIcon: "play_arrow"
-            supportingText: Tr.tr("Leave empty to use the built-in default")
-            inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
-
-            onAccepted: disconnectField.forceActiveFocus()
-        }
-
-        StyledTextField {
-            id: disconnectField
-
-            Layout.fillWidth: true
-            placeholderText: Tr.tr("Disconnect command")
-            leadingIcon: "stop"
-            supportingText: Tr.tr("Leave empty to use the built-in default")
-            inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
-
-            onAccepted: root.submit()
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.topMargin: (root.editing ? Tokens.spacing.medium : Tokens.spacing.extraSmall) - parent.spacing
-            spacing: Tokens.spacing.small
-
-            IconTextButton {
-                visible: root.editing
-                isRound: true
-                horizontalPadding: Tokens.padding.extraLarge
-                verticalPadding: Tokens.padding.medium
-                inactiveColour: Colours.palette.m3errorContainer
-                inactiveOnColour: Colours.palette.m3onErrorContainer
-                iconLabel.fill: 1
-                iconLabel.grade: 25
-                icon: "delete_forever"
-                text: Tr.tr("Delete")
-                onClicked: {
-                    if (root.existing.id === VPN.selectedProvider && VPN.connected)
-                        VPN.disconnect();
-                    VPN.deleteProvider(root.editIndex);
-                    root.nState.closeSubPage();
-                }
-            }
-
-            Item {
                 Layout.fillWidth: true
+                placeholderText: Tr.tr("Connect command")
+                leadingIcon: "play_arrow"
+                supportingText: Tr.tr("Leave empty to use the built-in default")
+                inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+
+                onAccepted: disconnectField.forceActiveFocus()
             }
 
-            ButtonRow {
-                spacing: parent.spacing
+            StyledTextField {
+                id: disconnectField
 
-                TextButton {
+                Layout.fillWidth: true
+                placeholderText: Tr.tr("Disconnect command")
+                leadingIcon: "stop"
+                supportingText: Tr.tr("Leave empty to use the built-in default")
+                inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+
+                onAccepted: root.submit()
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: (root.editing ? Tokens.spacing.medium : Tokens.spacing.extraSmall) - parent.spacing
+                spacing: Tokens.spacing.small
+
+                IconTextButton {
+                    visible: root.editing
                     isRound: true
-                    shapeMorph: true
                     horizontalPadding: Tokens.padding.extraLarge
                     verticalPadding: Tokens.padding.medium
-                    type: TextButton.Tonal
-                    text: Tr.trCtx("Cancel", "button")
-                    onClicked: root.nState.closeSubPage()
+                    inactiveColour: Colours.palette.m3errorContainer
+                    inactiveOnColour: Colours.palette.m3onErrorContainer
+                    iconLabel.fill: 1
+                    iconLabel.grade: 25
+                    icon: "delete_forever"
+                    text: Tr.tr("Delete")
+                    onClicked: {
+                        if (root.existing.id === VPN.selectedProvider && VPN.connected)
+                            VPN.disconnect();
+                        VPN.deleteProvider(root.editIndex);
+                        root.nState.closeSubPage();
+                    }
                 }
 
-                TextButton {
-                    isRound: true
-                    shapeMorph: true
-                    horizontalPadding: Tokens.padding.extraLarge
-                    verticalPadding: Tokens.padding.medium
-                    text: root.editing ? Tr.trCtx("Save", "button") : Tr.trCtx("Add", "button")
-                    disabled: !nameField.text.trim()
-                    onClicked: root.submit()
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                ButtonRow {
+                    spacing: parent.spacing
+
+                    TextButton {
+                        isRound: true
+                        shapeMorph: true
+                        horizontalPadding: Tokens.padding.extraLarge
+                        verticalPadding: Tokens.padding.medium
+                        type: TextButton.Tonal
+                        text: Tr.trCtx("Cancel", "button")
+                        onClicked: root.nState.closeSubPage()
+                    }
+
+                    TextButton {
+                        isRound: true
+                        shapeMorph: true
+                        horizontalPadding: Tokens.padding.extraLarge
+                        verticalPadding: Tokens.padding.medium
+                        text: root.editing ? Tr.trCtx("Save", "button") : Tr.trCtx("Add", "button")
+                        disabled: !nameField.text.trim()
+                        onClicked: root.submit()
+                    }
                 }
             }
         }

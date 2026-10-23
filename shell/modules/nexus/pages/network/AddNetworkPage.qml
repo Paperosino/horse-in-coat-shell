@@ -13,6 +13,7 @@ import qs.modules.nexus.common
 // Sub-page for manually adding a (typically hidden) Wi-Fi network. Reached from
 // the "Add network" row on NetworkPage via nState.openSubPage.
 PageBase {
+    pageIcon: "wifi_add"
     id: root
 
     // Security model: index 0 = none, 1 = WPA/WPA2/WPA3 personal.

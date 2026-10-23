@@ -59,7 +59,7 @@ ConnectedRect {
 
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            spacing: 0
+            spacing: 3 * Tokens.scale
 
             StyledText {
                 id: label
@@ -67,7 +67,7 @@ ConnectedRect {
                 anchors.left: parent.left
                 anchors.right: parent.right
 
-                font: Tokens.font.body.small
+                font: Tokens.font.body.medium
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
 
@@ -78,8 +78,8 @@ ConnectedRect {
                 anchors.right: parent.right
 
                 visible: text
-                color: Colours.palette.m3outline
-                font: Tokens.font.label.small
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
         }

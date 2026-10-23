@@ -11,6 +11,7 @@ import qs.services
 import qs.modules.nexus.common
 
 PageBase {
+    pageIcon: "assistant"
     id: root
     title: Tr.tr("AI assistant")
     objectName: "assistantPage"

@@ -44,6 +44,8 @@ TextFieldBase {
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: root.leftPadding
 
+        width:Math.max(0,root.width-root.leftPadding-root.rightPadding)
+        elide:Text.ElideRight
         text: root.placeholderText
         color: root.placeholderTextColor
         font: root.font

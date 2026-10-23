@@ -35,112 +35,114 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         // General
-        SectionHeader {
-            first: true
-            text: Tr.tr("General")
-        }
+        SettingsCard {
+            title: Tr.tr("General")
+            icon: "tune"
 
-        ToggleRow {
-            first: true
-            last: true
-            text: Tr.trCtx("Enabled", "toggle label")
-            subtext: Tr.tr("Show the utilities panel")
-            checked: Config.utilities.enabled
-            onToggled: GlobalConfig.utilities.enabled = checked
-        }
+            ToggleRow {
+                first: true
+                last: true
+                text: Tr.trCtx("Enabled", "toggle label")
+                subtext: Tr.tr("Show the utilities panel")
+                checked: Config.utilities.enabled
+                onToggled: GlobalConfig.utilities.enabled = checked
+            }
 
-        // Cards
-        SectionHeader {
-            text: Tr.tr("Cards")
+            // Cards
         }
+        SettingsCard {
+            title: Tr.tr("Cards")
+            icon: "tune"
 
-        ToggleRow {
-            first: true
-            text: Tr.tr("Keep awake")
-            subtext: Tr.tr("Show the idle inhibitor card")
-            checked: Config.utilities.cards.keepAwake
-            onToggled: GlobalConfig.utilities.cards.keepAwake = checked
+            ToggleRow {
+                first: true
+                text: Tr.tr("Keep awake")
+                subtext: Tr.tr("Show the idle inhibitor card")
+                checked: Config.utilities.cards.keepAwake
+                onToggled: GlobalConfig.utilities.cards.keepAwake = checked
+            }
+
+            ToggleRow {
+                text: Tr.tr("Screen recorder")
+                subtext: Tr.tr("Show the screen recorder card")
+                checked: Config.utilities.cards.recorder
+                onToggled: GlobalConfig.utilities.cards.recorder = checked
+            }
+
+            ToggleRow {
+                last: true
+                text: Tr.tr("Quick toggles")
+                subtext: Tr.tr("Show the quick toggles card")
+                checked: Config.utilities.cards.quickToggles
+                onToggled: GlobalConfig.utilities.cards.quickToggles = checked
+            }
+
+            // Quick toggles
         }
+        SettingsCard {
+            title: Tr.tr("Quick toggles")
+            icon: "tune"
 
-        ToggleRow {
-            text: Tr.tr("Screen recorder")
-            subtext: Tr.tr("Show the screen recorder card")
-            checked: Config.utilities.cards.recorder
-            onToggled: GlobalConfig.utilities.cards.recorder = checked
-        }
+            ToggleRow {
+                first: true
+                text: Tr.tr("Wi-Fi")
+                subtext: Tr.tr("Toggle wireless networking")
+                disabled: !Config.utilities.cards.quickToggles
+                checked: root.isToggleOn("wifi")
+                onToggled: root.setToggleOn("wifi", checked)
+            }
 
-        ToggleRow {
-            last: true
-            text: Tr.tr("Quick toggles")
-            subtext: Tr.tr("Show the quick toggles card")
-            checked: Config.utilities.cards.quickToggles
-            onToggled: GlobalConfig.utilities.cards.quickToggles = checked
-        }
+            ToggleRow {
+                text: Tr.tr("Bluetooth")
+                subtext: Tr.tr("Toggle the Bluetooth adapter")
+                disabled: !Config.utilities.cards.quickToggles
+                checked: root.isToggleOn("bluetooth")
+                onToggled: root.setToggleOn("bluetooth", checked)
+            }
 
-        // Quick toggles
-        SectionHeader {
-            text: Tr.tr("Quick toggles")
-        }
+            ToggleRow {
+                text: Tr.tr("Microphone")
+                subtext: Tr.tr("Mute or unmute the default source")
+                disabled: !Config.utilities.cards.quickToggles
+                checked: root.isToggleOn("mic")
+                onToggled: root.setToggleOn("mic", checked)
+            }
 
-        ToggleRow {
-            first: true
-            text: Tr.tr("Wi-Fi")
-            subtext: Tr.tr("Toggle wireless networking")
-            disabled: !Config.utilities.cards.quickToggles
-            checked: root.isToggleOn("wifi")
-            onToggled: root.setToggleOn("wifi", checked)
-        }
+            ToggleRow {
+                text: Tr.tr("Settings")
+                subtext: Tr.tr("Open the settings window")
+                disabled: !Config.utilities.cards.quickToggles
+                checked: root.isToggleOn("settings")
+                onToggled: root.setToggleOn("settings", checked)
+            }
 
-        ToggleRow {
-            text: Tr.tr("Bluetooth")
-            subtext: Tr.tr("Toggle the Bluetooth adapter")
-            disabled: !Config.utilities.cards.quickToggles
-            checked: root.isToggleOn("bluetooth")
-            onToggled: root.setToggleOn("bluetooth", checked)
-        }
+            ToggleRow {
+                text: Tr.tr("Game mode")
+                subtext: Tr.tr("Toggle game mode")
+                disabled: !Config.utilities.cards.quickToggles
+                checked: root.isToggleOn("gameMode")
+                onToggled: root.setToggleOn("gameMode", checked)
+            }
 
-        ToggleRow {
-            text: Tr.tr("Microphone")
-            subtext: Tr.tr("Mute or unmute the default source")
-            disabled: !Config.utilities.cards.quickToggles
-            checked: root.isToggleOn("mic")
-            onToggled: root.setToggleOn("mic", checked)
-        }
+            ToggleRow {
+                text: Tr.tr("Do not disturb")
+                subtext: Tr.tr("Silence notifications")
+                disabled: !Config.utilities.cards.quickToggles
+                checked: root.isToggleOn("dnd")
+                onToggled: root.setToggleOn("dnd", checked)
+            }
 
-        ToggleRow {
-            text: Tr.tr("Settings")
-            subtext: Tr.tr("Open the settings window")
-            disabled: !Config.utilities.cards.quickToggles
-            checked: root.isToggleOn("settings")
-            onToggled: root.setToggleOn("settings", checked)
-        }
-
-        ToggleRow {
-            text: Tr.tr("Game mode")
-            subtext: Tr.tr("Toggle game mode")
-            disabled: !Config.utilities.cards.quickToggles
-            checked: root.isToggleOn("gameMode")
-            onToggled: root.setToggleOn("gameMode", checked)
-        }
-
-        ToggleRow {
-            text: Tr.tr("Do not disturb")
-            subtext: Tr.tr("Silence notifications")
-            disabled: !Config.utilities.cards.quickToggles
-            checked: root.isToggleOn("dnd")
-            onToggled: root.setToggleOn("dnd", checked)
-        }
-
-        ToggleRow {
-            last: true
-            text: Tr.tr("VPN")
-            subtext: Tr.tr("Connect or disconnect the VPN")
-            disabled: !Config.utilities.cards.quickToggles
-            checked: root.isToggleOn("vpn")
-            onToggled: root.setToggleOn("vpn", checked)
+            ToggleRow {
+                last: true
+                text: Tr.tr("VPN")
+                subtext: Tr.tr("Connect or disconnect the VPN")
+                disabled: !Config.utilities.cards.quickToggles
+                checked: root.isToggleOn("vpn")
+                onToggled: root.setToggleOn("vpn", checked)
+            }
         }
     }
 }

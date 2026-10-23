@@ -6,11 +6,12 @@ import Hyprstack.I18n
 import Hyprstack.Services
 import qs.modules.nexus.common
 PageBase {
+    pageIcon: "extension"
     id:root
     title:Tr.tr("NetworkManager VPN plugins")
     Component.onCompleted:NetworkManagerVpn.refresh()
     ColumnLayout {
-        width:root.cappedWidth;anchors.horizontalCenter:parent.horizontalCenter;spacing:Tokens.spacing.extraSmall/2
+        width:root.cappedWidth;anchors.horizontalCenter:parent.horizontalCenter;spacing:Tokens.spacing.large
         FeatureError {error:NetworkManagerVpn.error}
         InfoRow {first:true;last:true;label:Tr.tr("Plugin support");value:Tr.tr("Installed NetworkManager plugins are discovered automatically. WireGuard is built into NetworkManager.")}
         Repeater {

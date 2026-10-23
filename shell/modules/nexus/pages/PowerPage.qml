@@ -12,6 +12,7 @@ import qs.modules.nexus.common
 
 PageBase {
     id: root
+    pageIcon: "battery_charging_full"
 
     title: Tr.tr("Power & lock")
 
@@ -19,72 +20,75 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         PowerProfilesSection {}
 
         // Lock
-        SectionHeader {
-            first: true
-            text: Tr.tr("Lock screen")
-        }
+        SettingsCard {
+            title: Tr.tr("Lock screen")
+            icon: "lock"
 
-        IdleTimeoutChooser {
-            idleAction: "lock"
-            title: Tr.tr("Lock screen after")
-            subtext: Tr.tr("Lock the session after a period of inactivity")
-            presetMinutes: [1, 2, 3, 5, 10, 15]
-        }
+            IdleTimeoutChooser {
+                idleAction: "lock"
+                title: Tr.tr("Lock screen after")
+                subtext: Tr.tr("Lock the session after a period of inactivity")
+                presetMinutes: [1, 2, 3, 5, 10, 15]
+            }
 
-        // Screen
-        SectionHeader {
-            text: Tr.tr("Screen")
+            // Screen
         }
+        SettingsCard {
+            title: Tr.tr("Screen")
+            icon: "monitor"
 
-        IdleTimeoutChooser {
-            idleAction: "dpms off"
-            title: Tr.tr("Turn off screen after")
-            subtext: Tr.tr("Put displays to sleep; they wake on input")
-            presetMinutes: [1, 2, 3, 5, 10, 15, 30]
+            IdleTimeoutChooser {
+                idleAction: "dpms off"
+                title: Tr.tr("Turn off screen after")
+                subtext: Tr.tr("Put displays to sleep; they wake on input")
+                presetMinutes: [1, 2, 3, 5, 10, 15, 30]
+            }
+
+            // Suspend
         }
+        SettingsCard {
+            title: Tr.tr("Power")
+            icon: "battery_charging_full"
 
-        // Suspend
-        SectionHeader {
-            text: Tr.tr("Power")
+            IdleTimeoutChooser {
+                idleAction: ["suspend"]
+                title: Tr.tr("Suspend after")
+                subtext: Tr.tr("System sleeps after a period of inactivity")
+                presetMinutes: [5, 10, 15, 30, 45, 60, 120]
+            }
+
+            // Idle behaviour
         }
+        SettingsCard {
+            title: Tr.tr("Idle behaviour")
+            icon: "bedtime"
 
-        IdleTimeoutChooser {
-            idleAction: ["suspend"]
-            title: Tr.tr("Suspend after")
-            subtext: Tr.tr("System sleeps after a period of inactivity")
-            presetMinutes: [5, 10, 15, 30, 45, 60, 120]
-        }
+            ToggleRow {
+                first: true
+                text: Tr.tr("Lock before suspending")
+                checked: GlobalConfig.general.idle.lockBeforeSleep
+                onToggled: GlobalConfig.general.idle.lockBeforeSleep = checked
+            }
 
-        // Idle behaviour
-        SectionHeader {
-            text: Tr.tr("Idle behaviour")
-        }
+            ToggleRow {
+                text: Tr.tr("Inhibit idle while media is playing")
+                subtext: Tr.tr("Playback keeps the session awake")
+                checked: GlobalConfig.general.idle.inhibitWhenAudio
+                onToggled: GlobalConfig.general.idle.inhibitWhenAudio = checked
+            }
 
-        ToggleRow {
-            first: true
-            text: Tr.tr("Lock before suspending")
-            checked: GlobalConfig.general.idle.lockBeforeSleep
-            onToggled: GlobalConfig.general.idle.lockBeforeSleep = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Inhibit idle while media is playing")
-            subtext: Tr.tr("Playback keeps the session awake")
-            checked: GlobalConfig.general.idle.inhibitWhenAudio
-            onToggled: GlobalConfig.general.idle.inhibitWhenAudio = checked
-        }
-
-        ToggleRow {
-            last: true
-            text: Tr.tr("Inhibit idle while charging")
-            subtext: Tr.tr("The system stays awake while plugged in")
-            checked: GlobalConfig.general.idle.inhibitWhenCharging
-            onToggled: GlobalConfig.general.idle.inhibitWhenCharging = checked
+            ToggleRow {
+                last: true
+                text: Tr.tr("Inhibit idle while charging")
+                subtext: Tr.tr("The system stays awake while plugged in")
+                checked: GlobalConfig.general.idle.inhibitWhenCharging
+                onToggled: GlobalConfig.general.idle.inhibitWhenCharging = checked
+            }
         }
     }
 

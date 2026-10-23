@@ -11,6 +11,7 @@ import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
+    pageIcon: "bookmark"
     id: root
 
     title: Tr.tr("Saved networks")
@@ -22,7 +23,7 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         ItemList {
             id: savedList

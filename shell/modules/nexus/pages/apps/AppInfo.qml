@@ -37,7 +37,7 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
 
         // Header
         RowLayout {
@@ -75,56 +75,57 @@ PageBase {
         }
 
         // Launcher
-        SectionHeader {
-            first: true
-            text: Tr.tr("Launcher")
-        }
+        SettingsCard {
+            title: Tr.tr("Launcher")
+            icon: "tune"
 
-        ToggleRow {
-            first: true
-            text: Tr.tr("Favourite")
-            subtext: root.favouriteByRegex ? Tr.tr("Matched by a regex in favouriteApps — edit the config file to change") : Tr.tr("Pin to the top of the launcher")
-            enabled: !root.favouriteByRegex
-            checked: root.app && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.app.id)
-            onToggled: {
-                const apps = GlobalConfig.launcher.favouriteApps;
-                GlobalConfig.launcher.favouriteApps = checked ? [...apps, root.app.id] : apps.filter(a => a !== root.app.id);
+            ToggleRow {
+                first: true
+                text: Tr.tr("Favourite")
+                subtext: root.favouriteByRegex ? Tr.tr("Matched by a regex in favouriteApps — edit the config file to change") : Tr.tr("Pin to the top of the launcher")
+                enabled: !root.favouriteByRegex
+                checked: root.app && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.app.id)
+                onToggled: {
+                    const apps = GlobalConfig.launcher.favouriteApps;
+                    GlobalConfig.launcher.favouriteApps = checked ? [...apps, root.app.id] : apps.filter(a => a !== root.app.id);
+                }
             }
-        }
 
-        ToggleRow {
-            last: true
-            text: Tr.tr("Hidden")
-            subtext: root.hiddenByRegex ? Tr.tr("Matched by a regex in hiddenApps — edit the config file to change") : Tr.tr("Hide from the launcher")
-            enabled: !root.hiddenByRegex
-            checked: root.app && Strings.testRegexList(GlobalConfig.launcher.hiddenApps, root.app.id)
-            onToggled: {
-                const apps = GlobalConfig.launcher.hiddenApps;
-                GlobalConfig.launcher.hiddenApps = checked ? [...apps, root.app.id] : apps.filter(a => a !== root.app.id);
+            ToggleRow {
+                last: true
+                text: Tr.tr("Hidden")
+                subtext: root.hiddenByRegex ? Tr.tr("Matched by a regex in hiddenApps — edit the config file to change") : Tr.tr("Hide from the launcher")
+                enabled: !root.hiddenByRegex
+                checked: root.app && Strings.testRegexList(GlobalConfig.launcher.hiddenApps, root.app.id)
+                onToggled: {
+                    const apps = GlobalConfig.launcher.hiddenApps;
+                    GlobalConfig.launcher.hiddenApps = checked ? [...apps, root.app.id] : apps.filter(a => a !== root.app.id);
+                }
             }
+
+            // Details
         }
+        SettingsCard {
+            title: Tr.tr("Details")
+            icon: "tune"
 
-        // Details
-        SectionHeader {
-            text: Tr.tr("Details")
-        }
+            WrapInfoRow {
+                id: appId
 
-        WrapInfoRow {
-            id: appId
+                first: true
+                label: Tr.tr("App ID")
+                value: root.app?.id ?? ""
+                labelComp.Layout.preferredWidth: Math.max(labelComp.implicitWidth, command.labelComp.implicitWidth)
+            }
 
-            first: true
-            label: Tr.tr("App ID")
-            value: root.app?.id ?? ""
-            labelComp.Layout.preferredWidth: Math.max(labelComp.implicitWidth, command.labelComp.implicitWidth)
-        }
+            WrapInfoRow {
+                id: command
 
-        WrapInfoRow {
-            id: command
-
-            last: true
-            label: Tr.tr("Command")
-            value: (root.app?.command ?? []).join(" ")
-            labelComp.Layout.preferredWidth: Math.max(labelComp.implicitWidth, appId.labelComp.implicitWidth)
+                last: true
+                label: Tr.tr("Command")
+                value: (root.app?.command ?? []).join(" ")
+                labelComp.Layout.preferredWidth: Math.max(labelComp.implicitWidth, appId.labelComp.implicitWidth)
+            }
         }
     }
 

@@ -10,6 +10,7 @@ import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
+    pageIcon: "content_paste"
     id:root
     title:Tr.tr("Clipboard history")
     property var backend:ClipboardHistory

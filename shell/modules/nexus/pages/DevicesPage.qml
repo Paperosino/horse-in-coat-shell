@@ -9,7 +9,7 @@ PageBase {
     ColumnLayout {
         width: root.cappedWidth
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Tokens.spacing.extraSmall / 2
+        spacing: Tokens.spacing.large
         NavRow { first: true; text: Tr.tr("Printers"); subtext: Tr.tr("Printer queues, default printer and print jobs"); icon: "print"; onClicked: root.nState.openSubPage(1) }
         NavRow { last: true; text: Tr.tr("Storage"); subtext: Tr.tr("Disk space, filesystems and removable volumes"); icon: "storage"; onClicked: root.nState.openSubPage(2) }
     }

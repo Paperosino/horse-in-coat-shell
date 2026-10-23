@@ -9,7 +9,7 @@ StackView {
 
     required property NexusState nState
     default property list<Component> pages
-    readonly property int animMovement: Tokens.padding.extraExtraLarge * 2
+    readonly property int animMovement: 12 * Tokens.scale
 
     function openSubPage(idx: int, immediate: bool): void {
         const page = pages[idx];
@@ -38,19 +38,19 @@ StackView {
                 value: 0
             }
             PauseAnimation {
-                duration: Tokens.anim.durations.expressiveDefaultEffects
+                duration: 0
             }
             ParallelAnimation {
                 Anim {
                     property: "opacity"
                     to: 1
-                    type: Anim.SlowEffects
+                    type: Anim.FastSpatial
                 }
                 Anim {
                     property: "x"
                     from: root.animMovement
                     to: 0
-                    type: Anim.SlowEffects
+                    type: Anim.FastSpatial
                 }
             }
         }
@@ -71,19 +71,19 @@ StackView {
                 value: 0
             }
             PauseAnimation {
-                duration: Tokens.anim.durations.expressiveDefaultEffects
+                duration: 0
             }
             ParallelAnimation {
                 Anim {
                     property: "opacity"
                     to: 1
-                    type: Anim.SlowEffects
+                    type: Anim.FastSpatial
                 }
                 Anim {
                     property: "x"
                     from: -root.animMovement
                     to: 0
-                    type: Anim.SlowEffects
+                    type: Anim.FastSpatial
                 }
             }
         }
@@ -114,7 +114,8 @@ StackView {
                 console.log(logCat, "Attempted to close page while depth < stack depth. Ignoring.");
                 return;
             }
-            if (root.depth > 1) root.pop();
+            if (root.depth > 1)
+                root.pop();
         }
 
         target: root.nState

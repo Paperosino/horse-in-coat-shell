@@ -48,13 +48,13 @@ ConnectedRect {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            spacing: 0
+            spacing: 3 * Tokens.scale
 
             StyledText {
                 id: label
 
                 Layout.fillWidth: true
-                font: Tokens.font.body.small
+                font: Tokens.font.body.medium
                 Layout.minimumWidth: 0
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
@@ -63,8 +63,8 @@ ConnectedRect {
                 Layout.fillWidth: true
                 visible: root.subtext
                 text: root.subtext
-                color: Colours.palette.m3outline
-                font: Tokens.font.label.small
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
                 Layout.minimumWidth: 0
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
@@ -77,7 +77,7 @@ ConnectedRect {
             Layout.minimumWidth: 0
             horizontalAlignment: Text.AlignRight
             color: Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.body.small
+            font: Tokens.font.body.medium
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
         }
     }

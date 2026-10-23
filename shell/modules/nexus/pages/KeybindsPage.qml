@@ -12,11 +12,14 @@ import "../../../services/Keybinds.js" as Bindings
 
 PageBase {
     id: root
+    pageIcon: "keyboard_keys"
 
     title: Tr.tr("Keyboard shortcuts")
     objectName: "keyboardShortcutsPage"
     property string query
-    function translated(text: string): string { return Bindings.translateDescription(text, value => Tr.tr(value)); }
+    function translated(text: string): string {
+        return Bindings.translateDescription(text, value => Tr.tr(value));
+    }
     readonly property var filtered: Keybinds.bindings.filter(b => (b.category !== "Canvas" || LayoutModes.mode === "canvas") && Bindings.matches(b, query, translated))
 
     Component.onCompleted: Keybinds.reload()
@@ -27,8 +30,12 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall
 
-        WindowModeSelector { Layout.fillWidth: true }
-        FeatureError { error: LayoutModes.error }
+        WindowModeSelector {
+            Layout.fillWidth: true
+        }
+        FeatureError {
+            error: LayoutModes.error
+        }
 
         StyledText {
             Layout.fillWidth: true
@@ -98,9 +105,7 @@ PageBase {
                         }
                         StyledText {
                             Layout.fillWidth: true
-                            text: entry.modelData.shortcuts.map(value => Bindings.translateShortcut(value, text => Tr.tr(text))).join("   /   ")
-                                + (entry.modelData.submap ? " · " + (entry.modelData.submap === "hyprstack-switcher"
-                                    ? Tr.tr("Window switcher") : entry.modelData.submap) : "")
+                            text: entry.modelData.shortcuts.map(value => Bindings.translateShortcut(value, text => Tr.tr(text))).join("   /   ") + (entry.modelData.submap ? " · " + (entry.modelData.submap === "hyprstack-switcher" ? Tr.tr("Window switcher") : entry.modelData.submap) : "")
                             textFormat: Text.PlainText
                             color: Colours.palette.m3primary
                             font: Tokens.font.body.small

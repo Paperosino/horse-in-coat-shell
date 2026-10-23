@@ -14,6 +14,7 @@ import qs.services
 import "../../../services/Keybinds.js" as Bindings
 
 PageBase {
+    pageIcon: "keyboard"
     id:root
     title:Tr.tr("Keyboard shortcuts")
     property var backend:ShortcutEditor

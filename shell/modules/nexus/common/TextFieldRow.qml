@@ -37,26 +37,28 @@ ConnectedRect {
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + Tokens.padding.medium + Math.max(0, Tokens.padding.large - input.verticalPadding) * 2
 
-    RowLayout {
+    GridLayout {
         id: rowLayout
+        columns: root.width < 440 * Tokens.scale ? 1 : 2
 
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: Tokens.padding.largeIncreased
         anchors.rightMargin: Tokens.padding.largeIncreased
-        spacing: Tokens.spacing.medium
+        rowSpacing: Tokens.spacing.medium
+        columnSpacing: Tokens.spacing.medium
 
         ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            spacing: 0
+            spacing: 3 * Tokens.scale
 
             StyledText {
                 id: label
 
                 Layout.fillWidth: true
-                font: Tokens.font.body.small
+                font: Tokens.font.body.medium
                 Layout.minimumWidth: 0
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
@@ -65,8 +67,8 @@ ConnectedRect {
                 Layout.fillWidth: true
                 visible: root.subtext
                 text: input.isError && root.errorText ? root.errorText : root.subtext
-                color: input.isError && root.errorText ? Colours.palette.m3error : Colours.palette.m3outline
-                font: Tokens.font.label.small
+                color: input.isError && root.errorText ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
                 Layout.minimumWidth: 0
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 animate: root.errorText
@@ -77,7 +79,7 @@ ConnectedRect {
             id: input
 
             Layout.preferredWidth: root.smallField ? Tokens.sizes.nexus.smallTextFieldWidth : Tokens.sizes.nexus.textFieldWidth
-            Layout.maximumWidth: root.width / 2
+            Layout.maximumWidth: root.width < 440 * Tokens.scale ? rowLayout.width : root.width / 2
             Layout.alignment: Qt.AlignVCenter
             verticalPadding: Tokens.padding.small
 
