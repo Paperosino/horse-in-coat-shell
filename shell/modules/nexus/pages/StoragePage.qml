@@ -144,8 +144,8 @@ PageBase {
                             Rectangle {
                                 required property var modelData
                                 required property int index
-                                width: Math.max(0, parent.width * modelData.size / Math.max(1, disk.modelData.size))
-                                height: parent.height
+                                width: Math.max(0, (parent?.width ?? 0) * modelData.size / Math.max(1, disk.modelData.size))
+                                height: parent?.height ?? 0
                                 radius: height / 2
                                 color: index % 2 ? Colours.palette.m3tertiary : Colours.palette.m3primary
                                 border.width: 1 * Tokens.scale
