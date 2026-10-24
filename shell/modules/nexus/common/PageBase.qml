@@ -23,6 +23,7 @@ ColumnLayout {
     readonly property alias flickable: flickable
 
     default property Item contentChild
+    property bool explicitWheelScrolling: Onboarding.running
     property Item searchHighlight
     property int searchAttempts
     property real settledContentHeight: 0
@@ -229,6 +230,7 @@ ColumnLayout {
             if (!root.contentLayoutSettled.running || dragging)
                 root.preferredContentY = contentY;
         }
+        StyledScrollBar.vertical: StyledScrollBar {flickable:root.flickable;visible:root.explicitWheelScrolling;shouldBeActive:root.explicitWheelScrolling}
         contentHeight: root.settledContentHeight
         contentItem.children: [root.contentChild, searchOutline]
 
@@ -246,6 +248,22 @@ ColumnLayout {
             z: 10
         }
 
+        WheelHandler {
+            enabled: root.explicitWheelScrolling
+            target: null
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            acceptedModifiers: Qt.NoModifier
+            onWheel: event => {
+                const delta = event.pixelDelta.y || event.angleDelta.y / 120 * 64 * Tokens.scale;
+                const minimum = -flickable.topMargin;
+                const maximum = Math.max(minimum, flickable.contentHeight - flickable.height + flickable.bottomMargin);
+                if (!delta || maximum <= minimum) { event.accepted = false; return; }
+                flickable.cancelFlick();
+                flickable.contentY = Math.max(minimum, Math.min(maximum, flickable.contentY - delta));
+                root.preferredContentY = flickable.contentY;
+                event.accepted = true;
+            }
+        }
         TapHandler {
             onTapped: flickable.focus = true
         }

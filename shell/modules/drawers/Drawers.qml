@@ -9,7 +9,7 @@ import Quickshell.Wayland
 import Hyprstack.Config
 
 Variants {
-    model: Screens.screens
+    model: Onboarding.running?[]:Screens.screens
 
     Scope {
         id: scope

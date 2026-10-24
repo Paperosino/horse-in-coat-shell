@@ -18,7 +18,7 @@ Scope {
         // qmllint enable unresolved-type
         name: "nexus"
         description: "Open nexus"
-        onPressed: WindowFactory.create()
+        onPressed: {if(!Onboarding.running)WindowFactory.create();}
     }
 
     // qmllint disable unresolved-type
@@ -27,6 +27,7 @@ Scope {
         name: "showall"
         description: "Toggle launcher, dashboard and osd"
         onPressed: {
+            if (Onboarding.running) return;
             if (root.hasFullscreen)
                 return;
             const v = ShellState.forActive();
@@ -40,6 +41,7 @@ Scope {
         name: "dashboard"
         description: "Toggle dashboard"
         onReleased: {
+            if (Onboarding.running) return;
             if (root.hasFullscreen)
                 return;
             const screenState = ShellState.forActive();
@@ -56,6 +58,7 @@ Scope {
         name: "session"
         description: "Toggle session menu"
         onPressed: {
+            if (Onboarding.running) return;
             if (root.hasFullscreen)
                 return;
             const screenState = ShellState.forActive();
@@ -69,6 +72,7 @@ Scope {
         name: "clipboard"
         description: "Toggle clipboard history"
         onPressed: {
+            if (Onboarding.running) return;
             if (root.hasFullscreen)
                 return;
             const screenState = ShellState.forActive();
@@ -78,13 +82,14 @@ Scope {
     }
 
     // qmllint disable unresolved-type
-    CustomShortcut {name:"clipboardPasteLatest";description:"Paste latest clipboard entry";onPressed:ClipboardHistory.pasteLatest()}
+    CustomShortcut {name:"clipboardPasteLatest";description:"Paste latest clipboard entry";onPressed:{if(!Onboarding.running)ClipboardHistory.pasteLatest();}}
 
     CustomShortcut {
         // qmllint enable unresolved-type
         name: "clipboardDelete"
         description: "Delete latest clipboard entry"
         onPressed: {
+            if (Onboarding.running) return;
             const entries=Clipboard.entries.filter(e=>!e.pinned).sort((a,b)=>b.timestamp-a.timestamp);
             if(entries.length)Clipboard.deleteEntry(entries[0]);
         }
@@ -96,6 +101,7 @@ Scope {
         name: "launcher"
         description: "Toggle launcher"
         onPressed: {
+            if (Onboarding.running) return;
             // A chord can lose its release when a layer surface takes focus.
             // Open on the compositor's press, before requesting keyboard focus.
             if (!root.hasFullscreen) {
@@ -111,7 +117,7 @@ Scope {
         // qmllint enable unresolved-type
         name: "launcherInterrupt"
         description: "Interrupt launcher keybind"
-        onPressed: root.launcherInterrupted = true
+        onPressed: {if(!Onboarding.running)root.launcherInterrupted = true;}
     }
 
     // qmllint disable unresolved-type
@@ -120,6 +126,7 @@ Scope {
         name: "sidebar"
         description: "Toggle sidebar"
         onPressed: {
+            if (Onboarding.running) return;
             if (root.hasFullscreen)
                 return;
             const screenState = ShellState.forActive();
@@ -133,6 +140,7 @@ Scope {
         name: "utilities"
         description: "Toggle utilities"
         onPressed: {
+            if (Onboarding.running) return;
             if (root.hasFullscreen)
                 return;
             const screenState = ShellState.forActive();
@@ -142,6 +150,7 @@ Scope {
 
     IpcHandler {
         function toggle(drawer: string): void {
+            if (Onboarding.running) return;
             if (list().split("\n").includes(drawer)) {
                 if (root.hasFullscreen && ["launcher", "session", "dashboard"].includes(drawer))
                     return;

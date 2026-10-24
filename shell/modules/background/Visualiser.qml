@@ -15,8 +15,8 @@ Item {
     required property ShellScreen screen
     required property Item wallpaper
 
-    readonly property bool shouldBeActive: !GameMode.enabled && Audio.visualiserAvailable && Config.background.visualiser.enabled && (!Config.background.visualiser.autoHide || (Hypr.monitorFor(screen)?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true))
-    property real offset: shouldBeActive ? 0 : screen.height * 0.2
+    readonly property bool shouldBeActive: !!screen && !GameMode.enabled && Audio.visualiserAvailable && Config.background.visualiser.enabled && (!Config.background.visualiser.autoHide || (Hypr.monitorFor(screen)?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true))
+    property real offset: shouldBeActive ? 0 : (screen?.height??0) * 0.2
 
     opacity: shouldBeActive ? 1 : 0
 

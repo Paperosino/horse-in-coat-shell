@@ -1,16 +1,22 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
+import qs.utils
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
 Singleton {
  id:root
+ property string screenName:""
+ readonly property string primaryScreen:Quickshell.screens.find(s=>s.name===screenName)?.name??Quickshell.screens[0]?.name??""
  property bool running:false
+ onRunningChanged:if(running){screenName=Hypr.focusedMonitor?.name??"";Overview.close(false);WindowSwitcher.close();for(const screen of Quickshell.screens){const state=ShellState.forScreen(screen);for(const key of ["launcher","dashboard","sidebar","session","clipboard","utilities","osd"])state[key]=false;}}
  property bool initialized:false
  property int step:0
  property var data:({settings:{showDemos:true},wallpapers:[]})
- readonly property string error:backend.error||downloads.error
+ property string guardError:""
+ readonly property string error:backend.error||downloads.error||Tr.tr(guardError)
  readonly property bool downloading:downloads.busy
  readonly property var steps:[
   {id:"welcome",title:Tr.tr("Welcome to hics"),icon:"waving_hand",demo:"stacking",description:Tr.tr("A desktop that follows your way of working. Discover the dock, the panel and four ways to arrange your windows.")},
@@ -34,6 +40,16 @@ Singleton {
  function finish():void {running=false;backend.call(["finish"],{},accept);}
  function configure(value:var):void {backend.call(["configure"],value,accept);}
  function downloadWallpapers():void {if(!downloading)downloads.call(["wallpapers"],null,accept);}
+ function poster(id:string):url {const language=Tr.language.startsWith("ru")?"ru_RU":"en_US";return Qt.resolvedUrl("../assets/tour/"+language+"/"+id+".jpg");}
+ function video(id:string):url {const language=Tr.language.startsWith("ru")?"ru_RU":"en_US";return Qt.resolvedUrl("../assets/tour/"+language+"/"+id+".mp4");}
+ Process {
+  command:["python3",Paths.toLocalFile(Qt.resolvedUrl("../assets/onboarding_guard.py"))]
+  running:root.running;stdinEnabled:true
+  stdout:StdioCollector {}
+  stderr:StdioCollector {id:guardStderr}
+  onStarted:root.guardError=""
+  onExited:if(root.running)root.guardError=guardStderr.text.trim()||"Unable to isolate desktop shortcuts"
+ }
  function demo(id:string):url {const language=Tr.language.startsWith("ru")?"ru_RU":"en_US";return Qt.resolvedUrl("../assets/tour/"+language+"/"+id+".gif");}
  Component.onCompleted:backend.call(["status"],null,accept)
  FeatureBackend {id:backend;helper:"onboarding_manager.py"}

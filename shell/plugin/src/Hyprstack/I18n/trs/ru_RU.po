@@ -10184,3 +10184,9 @@ msgstr "Начать работу с hics"
 
 msgid "Choose a supported UTF-8 system locale"
 msgstr "Выберите поддерживаемую системную локаль UTF-8"
+
+msgid "Unable to isolate desktop shortcuts"
+msgstr "Не удалось временно заблокировать сочетания рабочего стола"
+
+msgid "Continue"
+msgstr "Далее"

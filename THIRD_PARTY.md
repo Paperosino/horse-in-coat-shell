@@ -70,7 +70,7 @@ The recorded tour includes the GNOME Backgrounds artwork **Glass Chip (dark)**,
 [CC BY-SA 3.0 US](https://creativecommons.org/licenses/by-sa/3.0/us/).
 Source: [gnome-backgrounds](https://github.com/GNOME/gnome-backgrounds/tree/76ad782dd3afd1e16b14022872a3aa9561577355).
 The artwork is visible behind the recorded shell and applications; the
-wallpaper-containing GIF recordings are distributed under the same CC BY-SA
+wallpaper-containing GIF and MP4 recordings are distributed under the same CC BY-SA
 license. Shell source code retains its own license. Recordings were resized and
 palette-quantized, and are real screen captures rather than rendered mockups.
 

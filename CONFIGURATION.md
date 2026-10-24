@@ -709,7 +709,12 @@ Libreswan 5 по умолчанию запрещает устаревший IKEv
 
 ## First launch and desktop recovery
 
-The optional first-launch guide is available again under **First steps**. It
+The optional first-launch guide is available again under **First steps**. It runs
+in a full-output layer on every monitor, with the interactive guide on the
+selected monitor. Panels are hidden and compositor shortcuts are isolated while
+it is open. Skip and Escape exit the guide. An independent pipe-controlled
+worker restores the previous shortcut submap even after a hard shell crash.
+Authorization and display-confirmation overlays remain accessible. It
 covers shell language, the system UTF-8 locale, multiple keyboard layouts and
 their switch shortcut, protected display setup, all four window modes, colours,
 wallpapers, disks and memory. Closing the guide or choosing **Skip setup**
@@ -719,7 +724,8 @@ authorization; existing applications use the new locale after the next login.
 
 Demonstrations are recordings of the production shell running in isolated
 Hyprland sessions with real applications, recorded separately in Russian and
-English. Animations pause with reduced motion or the demonstration toggle.
+English. The compact demonstration cards play 960-pixel, 24-fps video, with GIF fallback.
+Animations pause with reduced motion or the demonstration toggle.
 distribution/record_tour.py reproduces these recordings using Hyprland, kitty,
 grim and ffmpeg. The pinned GNOME Backgrounds collection downloads to the normal
 wallpaper directory; originals, attribution and license remain alongside JPEG

@@ -7,23 +7,24 @@ import qs.services
 Item {
     id: root
     required property ShellScreen screen
-    readonly property var settings: LiveWallpapers.forScreen(screen.name)
+    readonly property string outputName: screen?.name ?? ""
+    readonly property var settings: LiveWallpapers.forScreen(outputName)
     readonly property bool fullscreen: Hypr.layoutMode !== "canvas" && (Hypr.monitorFor(screen)?.activeWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false)
     readonly property url videoSource: LiveWallpapers.videoSource(settings)
     readonly property bool outputOff: Hypr.monitorFor(screen)?.lastIpcObject?.dpmsStatus === false
-    readonly property bool engineWanted: root.visible && root.settings.kind === "engine" && !videoSource.toString() && !!root.settings.source && !root.paused
+    readonly property bool engineWanted: !!root.screen && root.visible && root.settings.kind === "engine" && !videoSource.toString() && !!root.settings.source && !root.paused
     property int failures: 0
     property double failureWindow: Date.now()
     property double engineStarted: 0
-    readonly property int restartSerial: LiveWallpapers.restartSerials[screen.name] ?? 0
+    readonly property int restartSerial: LiveWallpapers.restartSerials[outputName] ?? 0
     onRestartSerialChanged: { failures = 0; retry.stop(); engine.running = false; restartEngine.restart(); }
     readonly property bool paused: outputOff || GameMode.enabled || (settings.pauseBattery && UPower.onBattery) || (settings.pauseFullscreen && fullscreen)
     Loader {
         id: videoLoader
         anchors.fill: parent
-        active: root.visible && !!root.videoSource.toString()
+        active: !!root.screen && root.visible && !!root.videoSource.toString()
         onLoaded: {
-            item.outputName = root.screen.name;
+            item.outputName = root.outputName;
             item.settings = Qt.binding(() => root.settings);
             item.paused = Qt.binding(() => root.paused);
             item.restartSerial = Qt.binding(() => root.restartSerial);
@@ -56,7 +57,7 @@ Item {
     // Process startup precedes the first mapped Wayland layer. Keep the static
     // fallback until the renderer actually has a surface on this output.
     Timer {
-        interval: LiveWallpapers.engineRunning[root.screen.name] ? 2000 : 300
+        interval: LiveWallpapers.engineRunning[root.outputName] ? 2000 : 300
         running: engine.running
         repeat: true
         onTriggered: if (!layers.running) layers.running = true
@@ -68,21 +69,21 @@ Item {
             onStreamFinished: {
                 if (!engine.running) return;
                 try {
-                    const levels = JSON.parse(text)[root.screen.name]?.levels ?? {};
+                    const levels = JSON.parse(text)[root.outputName]?.levels ?? {};
                     const mapped = Object.values(levels).some(list => list.some(layer =>
                         layer.namespace === "linux-wallpaperengine" && Number(layer.pid) === Number(engine.processId)));
-                    LiveWallpapers.reportEngine(root.screen.name, mapped);
+                    LiveWallpapers.reportEngine(root.outputName, mapped);
                     if (!mapped && Date.now() - root.engineStarted > 30000) root.recover();
-                } catch (_) { LiveWallpapers.reportEngine(root.screen.name, false); }
+                } catch (_) { LiveWallpapers.reportEngine(root.outputName, false); }
             }
         }
     }
     Process {
         id: engine
-        command: LiveWallpapers.engineCommand(root.screen.name)
+        command: LiveWallpapers.engineCommand(root.outputName)
         onCommandChanged: if (running) { running = false; restartEngine.restart(); }
         onRunningChanged: {
-            if (!running) LiveWallpapers.reportEngine(root.screen.name, false);
+            if (!running) LiveWallpapers.reportEngine(root.outputName, false);
             else { root.engineStarted = Date.now(); if (!layers.running) layers.running = true; }
         }
         running: false

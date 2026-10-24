@@ -18,10 +18,11 @@ Variants {
         required property ShellScreen modelData
 
         screen: modelData
+        readonly property string outputName: screen?.name ?? ""
         name: "background"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
-        color: contentItem.Config.background.wallpaperEnabled && LiveWallpapers.forScreen(screen.name).kind !== "engine" ? "black" : "transparent"
+        color: contentItem.Config.background.wallpaperEnabled && LiveWallpapers.forScreen(outputName).kind !== "engine" ? "black" : "transparent"
         // Static/video wallpapers have an opaque black base over the full output.
         surfaceFormat.opaque: color.a === 1
 
@@ -47,7 +48,7 @@ Variants {
                 asynchronous: true
 
                 anchors.fill: parent
-                active: Config.background.wallpaperEnabled && (LiveWallpapers.forScreen(win.screen.name).kind === "static" || LiveWallpapers.forScreen(win.screen.name).kind === "engine" && !LiveWallpapers.videoSource(LiveWallpapers.forScreen(win.screen.name)).toString() && !LiveWallpapers.engineRunning[win.screen.name])
+                active: !!win.screen && Config.background.wallpaperEnabled && (LiveWallpapers.forScreen(win.outputName).kind === "static" || LiveWallpapers.forScreen(win.outputName).kind === "engine" && !LiveWallpapers.videoSource(LiveWallpapers.forScreen(win.outputName)).toString() && !LiveWallpapers.engineRunning[win.outputName])
 
                 sourceComponent: Wallpaper {}
             }
