@@ -4,6 +4,8 @@
 //@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 //@ pragma IconTheme Adwaita
 
+import "modules/onboarding" as OnboardingModule
+import "modules/configuration" as Configuration
 import "modules/displays" as Displays
 import "modules/extensions"
 import "modules"
@@ -36,6 +38,8 @@ ShellRoot {
     ServiceLoader {}
     PluginHost {}
     Displays.Confirmation {}
+    Configuration.Confirmation {}
+    OnboardingModule.Wizard {}
     PolkitModule.Polkit { id: authentication }
 
     Background {}

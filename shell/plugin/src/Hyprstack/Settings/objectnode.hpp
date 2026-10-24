@@ -14,6 +14,9 @@ class ObjectNode : public Node {
 public:
     explicit ObjectNode(ObjectNode* fallback, QObject* parent = nullptr, bool globalOnly = false);
 
+    Q_INVOKABLE QVariantList settingsRows() const;
+    Q_INVOKABLE bool resetSetting(const QString& path);
+    Q_INVOKABLE bool editSetting(const QString& path, const QVariant& value);
     Q_INVOKABLE void resetOption(const QString& key);
     [[nodiscard]] Q_INVOKABLE Descriptor descriptorFor(const QString& key) const;
 

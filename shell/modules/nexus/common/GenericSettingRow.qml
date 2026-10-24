@@ -29,7 +29,7 @@ RowLayout {
             valueLabel: currentNum.toFixed(2)
             value: (Number(root.value) - root.spec.min) / (root.spec.max - root.spec.min)
             onMoved: v => {
-                const nextVal = Math.round((root.spec.min + v * (root.spec.max - root.spec.min)) * 100) / (root.spec.step ? (1 / root.spec.step) : 100);
+                const nextVal = Math.round((root.spec.min + v * (root.spec.max - root.spec.min)) / (root.spec.step ?? 0.01)) * (root.spec.step ?? 0.01);
                 currentNum = nextVal;
                 root.edited(nextVal);
             }

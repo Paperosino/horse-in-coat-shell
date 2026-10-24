@@ -1,0 +1,37 @@
+[
+  {
+    "id": "google",
+    "label": "Google",
+    "url": "https://www.google.com/search?q=%s"
+  },
+  {
+    "id": "duckduckgo",
+    "label": "DuckDuckGo",
+    "url": "https://duckduckgo.com/?q=%s"
+  },
+  {
+    "id": "yandex",
+    "label": "Яндекс",
+    "url": "https://ya.ru/search/?text=%s"
+  },
+  {
+    "id": "ecosia",
+    "label": "Ecosia",
+    "url": "https://www.ecosia.org/search?q=%s"
+  },
+  {
+    "id": "bing",
+    "label": "Bing",
+    "url": "https://www.bing.com/search?q=%s"
+  },
+  {
+    "id": "brave",
+    "label": "Brave",
+    "url": "https://search.brave.com/search?q=%s"
+  },
+  {
+    "id": "mojeek",
+    "label": "Mojeek",
+    "url": "https://www.mojeek.com/search?q=%s"
+  }
+]

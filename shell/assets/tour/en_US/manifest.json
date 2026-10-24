@@ -1,0 +1,96 @@
+{
+  "recordings": [
+    {
+      "id": "stacking",
+      "file": "tour/en_US/stacking.gif",
+      "sha256": "1b222e71ff3917fba8d96f53f6cf2f89068b98f0a988b59a50ad4935e9f0a3db",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 145146,
+      "framesCaptured": 46,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    },
+    {
+      "id": "tiling",
+      "file": "tour/en_US/tiling.gif",
+      "sha256": "3e1de9412f1830fa40ae87399150c7b15d7071ec192eff598ee523711f3b842e",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 379503,
+      "framesCaptured": 35,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    },
+    {
+      "id": "scrolling",
+      "file": "tour/en_US/scrolling.gif",
+      "sha256": "015b4950b65a0c27ca10ce9ad8af9318b209123a05278f4a00a8184940bc0160",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 309743,
+      "framesCaptured": 35,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    },
+    {
+      "id": "canvas",
+      "file": "tour/en_US/canvas.gif",
+      "sha256": "47f673e03e22c887eccb76e383d39cc19ac7d276de807ca15fff339ebd261a8d",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 96227,
+      "framesCaptured": 35,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    },
+    {
+      "id": "features",
+      "file": "tour/en_US/features.gif",
+      "sha256": "4278cd1e462283c4f1d7e988ceae454d122fe5533e28f5800ed0359d6ac85ac2",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 210050,
+      "framesCaptured": 40,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    },
+    {
+      "id": "keyboard",
+      "file": "tour/en_US/keyboard.gif",
+      "sha256": "37f125ce2a68593135184fe427661fcf2018dfed46e6e3a3f84578271b14f687",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 322493,
+      "framesCaptured": 36,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    },
+    {
+      "id": "displays",
+      "file": "tour/en_US/displays.gif",
+      "sha256": "78cb420bdd4e42f76829e639bb60c0649af80dd0bc7df61edbc36ab2ebc08981",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 815616,
+      "framesCaptured": 39,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    },
+    {
+      "id": "themes",
+      "file": "tour/en_US/themes.gif",
+      "sha256": "10e390ef3cd8414a3876d56939268d2df2beeb219f4cbabd6e6cbcc802256323",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 460520,
+      "framesCaptured": 43,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    },
+    {
+      "id": "storage",
+      "file": "tour/en_US/storage.gif",
+      "sha256": "a215a70a8eaf358639dbb3846b8fc5104712cd1b8b05e2ec2efdc4bfb2b9af0f",
+      "language": "en_US",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 343640,
+      "framesCaptured": 41,
+      "capture": "Wayland screencopy via grim; timestamps retained"
+    }
+  ],
+  "version": 1,
+  "recorded": 1792851731
+}

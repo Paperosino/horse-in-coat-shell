@@ -706,3 +706,56 @@ Libreswan 5 по умолчанию запрещает устаревший IKEv
 экземпляра Hyprland. Пакет устанавливает и активирует службу автоматически;
 при пользовательской установке её запускает сеанс оболочки. Распознавание
 слушает события композитора, без периодического опроса списка мониторов.
+
+## First launch and desktop recovery
+
+The optional first-launch guide is available again under **First steps**. It
+covers shell language, the system UTF-8 locale, multiple keyboard layouts and
+their switch shortcut, protected display setup, all four window modes, colours,
+wallpapers, disks and memory. Closing the guide or choosing **Skip setup**
+dismisses it without preventing desktop use. Completed choices remain editable
+in their normal settings pages. Generating a system locale requires Polkit
+authorization; existing applications use the new locale after the next login.
+
+Demonstrations are recordings of the production shell running in isolated
+Hyprland sessions with real applications, recorded separately in Russian and
+English. Animations pause with reduced motion or the demonstration toggle.
+distribution/record_tour.py reproduces these recordings using Hyprland, kitty,
+grim and ffmpeg. The pinned GNOME Backgrounds collection downloads to the normal
+wallpaper directory; originals, attribution and license remain alongside JPEG
+previews.
+
+**Desktop profiles** preserve panels, dock, widget geometry, typography, palette,
+icon and cursor selections, wallpapers, effects and window mode. Import shows
+affected sections before application; exports embed static JPEG/PNG/WebP
+wallpapers up to 4 MiB. Animated wallpapers and external icon/cursor themes must
+also be installed on the destination. Imports accept whitelisted data sections
+and never enable extension code or import Lua. Monitor profiles are preserved as
+data; active output changes always use the separate display confirmation guard.
+
+**Configuration history** captures debounced changes and login checkpoints in
+private compressed files under $XDG_STATE_HOME/hics/configuration-history.
+Retention and maximum size are configurable. Credentials, assistant keys and
+clipboard payloads are excluded. A checkpoint can restore selected sections,
+including defaults for managed sections absent when captured. Profile changes
+have a 30-second confirmation period. hics-configuration.service restores
+unconfirmed settings on timeout, shell termination or its own restart, retaining
+unrelated JSON edits made during the preview. Display and appearance previews
+cannot run concurrently.
+
+**Application rules** match an existing application's class and optional title,
+with exact matching or regular expressions. Initial monitor/workspace, floating
+geometry, fullscreen, centering, pinning, opacity and idle inhibition use native
+Hyprland rules. Initial placement takes effect when a new window opens.
+**Input devices** adds per-device keyboard, mouse and touchpad overrides;
+clearing a device override restores the global configuration. Invalid compositor
+rules are rolled back with their previous files and loader hook.
+
+**Settings workbench** displays effective schema values, defaults and overrides,
+and resets individual settings or whole sections. **Desktop health** shows
+component checks and service states, offers explicit service restarts, and writes
+local reports. Recent logs are opt-in; credentials and home paths are redacted.
+Reports are never uploaded automatically. Screen-reader support depends on
+application accessibility support; session imports from GNOME/KDE preserve the
+information exposed by those desktops and cannot recreate arbitrary private
+application state.

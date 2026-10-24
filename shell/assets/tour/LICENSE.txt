@@ -1,0 +1,10 @@
+These GIFs record actual hics UI and real applications in isolated Hyprland.
+Background artwork: Glass Chip (dark), copyright Jakub Steiner, 2024.
+GNOME Backgrounds revision 76ad782dd3afd1e16b14022872a3aa9561577355.
+https://github.com/GNOME/gnome-backgrounds
+https://creativecommons.org/licenses/by-sa/3.0/us/
+Recordings containing this artwork are distributed under CC-BY-SA-3.0-US.
+Changes: screen capture, resize to 640 px wide, palette quantization, GIF encoding.
+Shell source code retains its separate source license.
+Reproduce: python3 distribution/record_tour.py
+Per-language manifests record checksums and source capture information.

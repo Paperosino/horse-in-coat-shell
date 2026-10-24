@@ -1,6 +1,7 @@
 #include "objectnode.hpp"
 
 #include <qjsonobject.h>
+#include <functional>
 
 #include "util/i18n.hpp"
 #include "codecs.hpp"
@@ -11,6 +12,76 @@ using Qt::StringLiterals::operator""_s;
 
 ObjectNode::ObjectNode(ObjectNode* fallback, QObject* parent, bool globalOnly)
     : Node(fallback, parent, globalOnly) {}
+
+QVariantList ObjectNode::settingsRows() const {
+  QVariantList rows;
+  std::function<void(const Node *, QString)> visit = [&](const Node *node,
+                                                         QString prefix) {
+    for (const auto &desc : node->schema().descriptors()) {
+      const auto path =
+          prefix.isEmpty() ? desc.key : prefix + u"."_s + desc.key;
+      auto val = node->value(desc.key);
+      if (desc.isNode) {
+        const auto *child = val.value<Node *>();
+        if (qobject_cast<const ObjectNode *>(child))
+          visit(child, path);
+        else if (child)
+          rows << QVariantMap{{u"path"_s, path},
+                              {u"type"_s, u"json"_s},
+                              {u"value"_s, child->toJson(false).toVariant()},
+                              {u"overridden"_s, node->isOverride(desc.key)}};
+      } else
+        rows << QVariantMap{
+            {u"path"_s, path},
+            {u"type"_s, desc.typeString()},
+            {u"value"_s, val},
+            {u"default"_s, node->fallbackNode()
+                               ? node->fallbackNode()->value(desc.key)
+                               : desc.defaultValue()},
+            {u"overridden"_s, node->isOverride(desc.key)}};
+    }
+  };
+  visit(this, {});
+  return rows;
+}
+bool ObjectNode::resetSetting(const QString &path) {
+  auto parts = path.split(u'.');
+  ObjectNode *node = this;
+  for (qsizetype i = 0; i + 1 < parts.size(); ++i) {
+    const auto *d = node->schema().get(parts[i]);
+    if (!d || !d->isNode)
+      return false;
+    node = qobject_cast<ObjectNode *>(node->value(parts[i]).value<Node *>());
+    if (!node)
+      return false;
+  }
+  if (parts.isEmpty() || !node->schema().get(parts.last()))
+    return false;
+  node->resetOption(parts.last());
+  return true;
+}
+bool ObjectNode::editSetting(const QString &path, const QVariant &value) {
+  auto parts = path.split(u'.');
+  ObjectNode *node = this;
+  for (qsizetype i = 0; i + 1 < parts.size(); ++i) {
+    const auto *d = node->schema().get(parts[i]);
+    if (!d || !d->isNode)
+      return false;
+    node = qobject_cast<ObjectNode *>(node->value(parts[i]).value<Node *>());
+    if (!node)
+      return false;
+  }
+  if (parts.isEmpty())
+    return false;
+  const auto *d = node->schema().get(parts.last());
+  if (!d || d->isNode)
+    return false;
+  auto converted = value;
+  if (d->type.id() != QMetaType::QVariant && !converted.convert(d->type))
+    return false;
+  const WriteScope scope(node, WriteOrigin::Qml);
+  return node->setValue(parts.last(), converted);
+}
 
 void ObjectNode::resetOption(const QString& key) {
     const auto* desc = schema().get(key);

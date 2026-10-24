@@ -9,6 +9,7 @@ Scope {
     Component.onCompleted: {
         // Force certain singletons to load on shell init instead of lazily
 
+        DesktopConfiguration;
         DisplayProfiles;
         LayoutModes;
         Plugins;

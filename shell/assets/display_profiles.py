@@ -6,7 +6,7 @@ only explicit confirmation commits the managed block.
 from __future__ import annotations
 import argparse, collections, fcntl, hashlib, json, math, os, re, selectors, signal, socket, subprocess, sys, tempfile, time, uuid
 from pathlib import Path
-from feature_common import CONFIG, atomic_json, read_json, output
+from feature_common import CONFIG, STATE, atomic_json, read_json, output
 from application_environment import application_environment
 
 REGISTRY = CONFIG / 'display-profiles.json'
@@ -190,6 +190,7 @@ class Manager:
         return profile
     def start(self,rows,label='',profile_id='',automatic=False):
         if self.pending:raise ValueError('Confirm or revert the current display changes first')
+        if read_json(STATE/'configuration-preview.json'):raise ValueError('Confirm the desktop profile preview before changing displays')
         self.monitors=connected();rows=validate(rows,self.monitors);self.error=''
         if not automatic:
             self.attempt=topology(self.monitors,True);atomic_json(self.folder/'automatic.json',{'attempt':self.attempt},private=True)

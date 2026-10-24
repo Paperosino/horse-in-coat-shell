@@ -252,7 +252,14 @@ QtObject {
         Component { StackPage { Component { VpnProfilesPage {} } Component { VpnEditorPage {} } Component { VpnPluginsPage {} } } },
         Component { StackPage { Component { ClipboardPage {} } } },
         Component { StackPage { Component { WorkspaceSessionPage {} } } },
-        Component { StackPage { Component { WorkspaceSessionPage { projectsOnly:true } } } }
+        Component { StackPage { Component { WorkspaceSessionPage { projectsOnly:true } } } },
+        Component { StackPage { Component { ConfigurationPage { profilesOnly:true } } } },
+        Component { StackPage { Component { ConfigurationPage {} } } },
+        Component { StackPage { Component { DesktopRulesPage {} } } },
+        Component { StackPage { Component { DesktopRulesPage { devicesOnly:true } } } },
+        Component { StackPage { Component { SettingsWorkbenchPage {} } } },
+        Component { StackPage { Component { DiagnosticsPage {} } } },
+        Component { StackPage { Component { OnboardingPage {} } } }
     ]
 
     readonly property Component placeholderComp: Component {

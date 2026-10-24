@@ -1,0 +1,17 @@
+[Unit]
+Description=hics configuration history and profile preview protection
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=HYPRLAND_INSTANCE_SIGNATURE
+StartLimitIntervalSec=60
+StartLimitBurst=5
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/hics-configuration-service
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=25
+MemoryMax=128M
+TasksMax=32
+[Install]
+WantedBy=graphical-session.target

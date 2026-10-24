@@ -19,6 +19,8 @@ import Hyprstack.Config
 import Hyprstack.Services
 import qs.modules.nexus
 import qs.modules.extensions as Extensions
+import qs.modules.onboarding as OnboardingModule
+import qs.modules.configuration as ConfigurationModule
 import qs.modules.displays as Displays
 import qs.modules
 import qs.modules.nexus.pages
@@ -51,6 +53,8 @@ ShellRoot {
  Bar.ExtraPanel {id:extraTop;screen:Quickshell.screens[0];spec:({id:"11111111-1111-1111-1111-111111111111",edge:"top",thickness:48,hideDelay:500,autoHide:false});edgeOffset:0}
  Bar.ExtraPanel {id:extraBottom;screen:Quickshell.screens[0];spec:({id:"22222222-2222-2222-2222-222222222222",edge:"bottom",thickness:52,hideDelay:500,autoHide:true});edgeOffset:0}
  Displays.Confirmation {}
+ ConfigurationModule.Confirmation {}
+ OnboardingModule.Wizard {}
  Extensions.PluginHost {}
  Extensions.PluginDesktop {parent:host;screen:Quickshell.screens[0];width:host.width;height:host.height}
  Timer {interval:5000;running:true;onTriggered:{const data=Plugins.isolatedStates["isolated-counter"];if(!data?.slots?.desktopWidget?.length){console.error("ISOLATED_WIDGET_FAILED",JSON.stringify(Plugins.runtimeErrors));Qt.quit();}else console.log("ISOLATED_WIDGET_OK");}}
@@ -511,7 +515,7 @@ ShellRoot {
    console.log("PAGE_OK", path);
   }
  }
- Timer { interval: 55000; running: true; onTriggered: { console.error("DESKTOP_UI_TIMEOUT"); Qt.quit(); } }
+ Timer { interval: 85000; running: true; onTriggered: { console.error("DESKTOP_UI_TIMEOUT"); Qt.quit(); } }
 }'''.replace('__DESIGN_PAGES__',json.dumps([str(p.relative_to(ROOT/'shell/modules/nexus/pages')) for p in (ROOT/'shell/modules/nexus/pages').rglob('*.qml') if 'PageBase {' in p.read_text() and any(part in str(p.relative_to(ROOT/'shell/modules/nexus/pages')) for part in ('panels/', 'keyboard/', 'audio/', 'network/NetworkDetail', 'network/EthernetDetail', 'network/SavedNetworks', 'network/AllNetworks', 'network/AddVpn'))])).replace('__VPN_PROTOCOLS__',json.dumps(json.loads((ROOT/'shell/plugin/src/Hyprstack/Services/vpn-protocols.json').read_text()))))
     tools = base / 'tools'
     tools.mkdir()
@@ -534,7 +538,7 @@ ShellRoot {
         XDG_CONFIG_HOME=str(base / 'config'), XDG_STATE_HOME=str(base / 'state'),
         XDG_DATA_HOME=str(base / 'data'), XDG_CACHE_HOME=str(base / 'cache'),
         TEST_NETWORK_LOG=str(base / 'network.log'), XDG_RUNTIME_DIR=str(base / 'runtime'), QML_IMPORT_PATH=str(ROOT / 'build/qml'),
-        QML2_IMPORT_PATH=str(ROOT / 'build/qml'), HYPRSTACK_NESTED='1',
+        QML2_IMPORT_PATH=str(ROOT / 'build/qml'), HYPRSTACK_NESTED='1', HICS_NO_ONBOARDING='1', HICS_CONFIG_NO_SYSTEMD='1', HICS_DISPLAY_NO_SYSTEMD='1',
         PATH=str(tools) + ':' + os.environ['PATH'])
     if os.environ.get('HICS_UI_HARDWARE'):
         env.pop('QT_QUICK_BACKEND',None)

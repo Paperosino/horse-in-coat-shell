@@ -163,3 +163,9 @@
 # These two files are empty extension points, with no machine configuration.
 !/distribution/defaults/hics/monitors.lua
 !/distribution/defaults/hics/local.lua
+
+# First-run setup data and recordings of the real shell.
+!/shell/assets/tour/
+!/shell/assets/feature_data/
+
+!/distribution/record_tour.py

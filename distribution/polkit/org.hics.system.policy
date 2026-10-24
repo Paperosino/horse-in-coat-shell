@@ -27,4 +27,9 @@
     <message>Authentication is required to change memory settings</message><message xml:lang="ru">Для изменения настроек памяти требуется подтверждение</message>
     <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
   </action>
+  <action id="org.hics.system.region">
+    <description>Change system language and regional formats</description><description xml:lang="ru">Изменение системного языка и региональных форматов</description>
+    <message>Authentication is required to change system locale</message><message xml:lang="ru">Для изменения системной локали требуется подтверждение</message>
+    <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
+  </action>
 </policyconfig>

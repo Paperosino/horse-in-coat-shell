@@ -19,6 +19,9 @@ void validate(const QString &domain, const QString &operation,
 void authorize(const QString &sender, const QString &action, uint uid);
 void apply(const QString &domain, const QString &operation,
            const QJsonObject &options, uint uid);
+QJsonObject regionStatus();
+void validateRegion(const QString&,const QJsonObject&);
+void applyRegion(const QString&,const QJsonObject&);
 QJsonObject storageStatus();
 void validateStorage(const QString &operation, const QJsonObject &options);
 void storageMaintenance(const QString &operation, const QJsonObject &options);

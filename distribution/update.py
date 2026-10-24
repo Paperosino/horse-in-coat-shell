@@ -50,6 +50,8 @@ class Update(Installer):
             yield file
         yield from self.tree(ROOT / "distribution/systemd/user/hic-session.service",
                              self.config / "systemd/user/hic-session.service")
+        yield from self.tree(ROOT / "distribution/systemd/user/hics-configuration.service",
+                             self.config / "systemd/user/hics-configuration.service")
         yield from self.tree(ROOT / "distribution/systemd/user/hics-displays.service",
                              self.config / "systemd/user/hics-displays.service")
         yield from self.tree(ROOT / "distribution/systemd/user/hics-screen-reader.service",

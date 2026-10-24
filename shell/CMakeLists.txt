@@ -75,7 +75,7 @@ if("shell" IN_LIST ENABLE_MODULES)
     endforeach()
 
     install(DIRECTORY
-        assets/google-sans-flex assets/material-symbols assets/schemes assets/hyprland assets/feature_data
+        assets/google-sans-flex assets/material-symbols assets/schemes assets/hyprland assets/feature_data assets/tour
         DESTINATION "${INSTALL_QSCONFDIR}/assets"
         PATTERN "__pycache__" EXCLUDE PATTERN "*.pyc" EXCLUDE
         PATTERN "README.md" EXCLUDE)

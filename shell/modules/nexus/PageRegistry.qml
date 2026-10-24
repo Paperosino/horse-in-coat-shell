@@ -17,12 +17,12 @@ QtObject {
     function indexOf(id: string): int { return pages.findIndex(p => p.id === route(id).id); }
 
     readonly property var navigationPages: ([
-        ...navigationGroup("personalisation", ["appearance", "panels", "dock", "windows"]),
+        ...navigationGroup("personalisation", ["appearance", "desktop-profiles", "panels", "dock", "windows", "application-rules"]),
         ...navigationGroup("devices", ["display", "audio", "printers", "storage"]),
-        ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "shortcuts", "clipboard", "accessibility"]),
+        ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "input-devices", "shortcuts", "clipboard", "accessibility"]),
         ...navigationGroup("connections", ["network", "bluetooth", "sharing"]),
-        ...navigationGroup("applications", ["apps", "default-apps", "autostart", "session-recovery", "notifications", "plugins", "assistant"]),
-        ...navigationGroup("system", ["power", "region", "datetime", "services", "about"])
+        ...navigationGroup("applications", ["apps", "default-apps", "autostart", "session-recovery", "projects", "notifications", "plugins", "assistant"]),
+        ...navigationGroup("system", ["power", "region", "datetime", "configuration-history", "settings-workbench", "desktop-health", "services", "first-steps", "about"])
     ])
     function navigationGroup(category: string, ids: list<string>): var {
         return ids.map(id => {
@@ -186,6 +186,13 @@ QtObject {
         {id:"vpn", label:Tr.tr("VPN"), icon:"vpn_key", description:Tr.tr("NetworkManager profiles, protocols, DNS and routing"), category:"connectivity"},
         {id:"clipboard",label:Tr.tr("Clipboard history"),icon:"content_paste",description:Tr.tr("History, pins, privacy and retention"),category:"shell"},
         {id:"session-recovery",label:Tr.tr("Session recovery"),icon:"restore",description:Tr.tr("Snapshots, application recovery and desktop compatibility"),category:"shell"},
-        {id:"projects",label:Tr.tr("Workspace projects"),icon:"workspaces",description:Tr.tr("Named application sets, window layouts and project colours"),category:"shell"}
+        {id:"projects",label:Tr.tr("Workspace projects"),icon:"workspaces",description:Tr.tr("Named application sets, window layouts and project colours"),category:"shell"},
+        {id:"desktop-profiles",label:Tr.tr("Desktop profiles"),icon:"style",description:Tr.tr("Complete appearance presets, previews and sharing"),category:"appearance"},
+        {id:"configuration-history",label:Tr.tr("Configuration history"),icon:"history",description:Tr.tr("Checkpoints and selective recovery"),category:"shell"},
+        {id:"application-rules",label:Tr.tr("Application rules"),icon:"rule",description:Tr.tr("Window matching, placement and behaviour"),category:"shell"},
+        {id:"input-devices",label:Tr.tr("Individual input devices"),icon:"devices",description:Tr.tr("Independent keyboard and pointer overrides"),category:"connectivity"},
+        {id:"settings-workbench",label:Tr.tr("Settings workbench"),icon:"tune",description:Tr.tr("Changed values, defaults and section resets"),category:"shell"},
+        {id:"desktop-health",label:Tr.tr("Desktop health"),icon:"monitor_heart",description:Tr.tr("Checks, service recovery and local reports"),category:"shell"},
+        {id:"first-steps",label:Tr.tr("First steps"),icon:"explore",description:Tr.tr("Introduction, initial setup and recorded demonstrations"),category:"shell"}
     ]
 }

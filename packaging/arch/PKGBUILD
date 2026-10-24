@@ -2,13 +2,13 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=42
+pkgrel=43
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 install=hic-shell.install
 url="https://github.com/Paperosino/horse-in-coat-shell"
-license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT)
-depends=(hyprland libqalculate lm_sensors pixman libdrm libinput systemd
+license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US)
+depends=('ffmpeg' hyprland libqalculate lm_sensors pixman libdrm libinput systemd
     wayland libxkbcommon pango cairo libcups python python-pillow kitty firefox fuzzel
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
     glib2 libnotify brightnessctl networkmanager libnm libsecret pipewire pipewire-pulse libpulse wireplumber
@@ -25,7 +25,7 @@ makedepends=(base-devel git cmake ninja pkgconf python gettext nlohmann-json
 # The package is self-contained: the pinned quickshell v0.3.2 and the Qt
 # runtime it needs are built from source and bundled, so system quickshell and
 # qt6-* updates can never break the running shell.
-optdepends=('networkmanager-openvpn: OpenVPN profiles' 'networkmanager-pptp: PPTP profiles' 'networkmanager-l2tp: L2TP and IPsec profiles' 'networkmanager-openconnect: OpenConnect profiles' 'networkmanager-vpnc: Cisco IPsec profiles' 'networkmanager-fortisslvpn: Fortinet profiles' 'networkmanager-libreswan: Libreswan IPsec profiles' 'networkmanager-strongswan: alternative IKEv2 backend' 'networkmanager-ssh: SSH tunnels' 'linux-wallpaperengine: Wallpaper Engine scenes' 'ollama: local AI models' 'hyprsunset: night-light extension' 'ffmpeg: wallpaper previews' 'cups: printer queues and IPP printing' 'e2fsprogs: ext4 defragmentation' 'util-linux: SSD TRIM' 'power-profiles-daemon: hardware power profiles')
+optdepends=('networkmanager-openvpn: OpenVPN profiles' 'networkmanager-pptp: PPTP profiles' 'networkmanager-l2tp: L2TP and IPsec profiles' 'networkmanager-openconnect: OpenConnect profiles' 'networkmanager-vpnc: Cisco IPsec profiles' 'networkmanager-fortisslvpn: Fortinet profiles' 'networkmanager-libreswan: Libreswan IPsec profiles' 'networkmanager-strongswan: alternative IKEv2 backend' 'networkmanager-ssh: SSH tunnels' 'linux-wallpaperengine: Wallpaper Engine scenes' 'ollama: local AI models' 'hyprsunset: night-light extension' 'cups: printer queues and IPP printing' 'e2fsprogs: ext4 defragmentation' 'util-linux: SSD TRIM' 'power-profiles-daemon: hardware power profiles')
 conflicts=()
 provides=()
 source=()

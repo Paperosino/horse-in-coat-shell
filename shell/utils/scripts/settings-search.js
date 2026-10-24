@@ -4157,3 +4157,17 @@ function find(query, translate) {
     result.sort((a, b) => a.score - b.score || a.page - b.page);
     return result.slice(0, 60);
 }
+
+catalogue.push({"page": 32, "subpages": [], "path": ["Desktop profiles"], "label": "Desktop profiles", "context": "", "target": "", "match": "", "keywords": "profiles appearance import export preview оформление профиль импорт экспорт"});
+
+catalogue.push({"page": 33, "subpages": [], "path": ["Configuration history"], "label": "Configuration history", "context": "", "target": "", "match": "", "keywords": "history checkpoint restore rollback снимок история восстановление откат"});
+
+catalogue.push({"page": 34, "subpages": [], "path": ["Application rules"], "label": "Application rules", "context": "", "target": "", "match": "", "keywords": "window rules opacity placement приложения правила окна прозрачность"});
+
+catalogue.push({"page": 35, "subpages": [], "path": ["Individual input devices"], "label": "Individual input devices", "context": "", "target": "", "match": "", "keywords": "mouse touchpad keyboard devices мышь тачпад клавиатура устройства"});
+
+catalogue.push({"page": 36, "subpages": [], "path": ["Settings workbench"], "label": "Settings workbench", "context": "", "target": "", "match": "", "keywords": "reset defaults schema overrides настройки сброс умолчанию"});
+
+catalogue.push({"page": 37, "subpages": [], "path": ["Desktop health"], "label": "Desktop health", "context": "", "target": "", "match": "", "keywords": "diagnostics logs report service диагностика журналы службы отчёт"});
+
+catalogue.push({"page": 38, "subpages": [], "path": ["First steps"], "label": "First steps", "context": "", "target": "", "match": "", "keywords": "welcome onboarding tour locale guide первое знакомство тур локаль"});

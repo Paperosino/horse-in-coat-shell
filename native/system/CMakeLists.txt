@@ -4,7 +4,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/../../distribution/dbus/org.hics.System1.service")
 find_package(Qt6 REQUIRED COMPONENTS Core DBus)
 find_package(Cups REQUIRED)
-add_library(hics-system-backend STATIC backend.cpp backend.hpp storage.cpp memory.cpp memory.hpp)
+add_library(hics-system-backend STATIC backend.cpp region.cpp backend.hpp storage.cpp memory.cpp memory.hpp)
 set_target_properties(hics-system-backend PROPERTIES CXX_STANDARD 20)
 target_link_libraries(hics-system-backend PUBLIC Qt6::Core Qt6::DBus Cups::Cups)
 # Resolve fixed executables at build time, including non-/usr Nix installations.

@@ -159,6 +159,7 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
+        RegionSection {}
         // Language
         SettingsCard {
             title: Tr.tr("Language")

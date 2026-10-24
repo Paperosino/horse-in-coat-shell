@@ -18,5 +18,5 @@ Singleton {
     function clearAll():void {ClipboardHistory.clear(true)}
     function decodeEntry(id,callback):void {callback(ClipboardHistory.decode(id))}
     function saveEditedText(id,text,callback):void {ClipboardHistory.edit(id,text);callback(!ClipboardHistory.error)}
-    function closeDrawer():void {for(const s of ShellState.states.instances)s.clipboard=false}
+    function closeDrawer():void {for(const screen of Quickshell.screens){const s=ShellState.forScreen(screen);if(s)s.clipboard=false}}
 }

@@ -247,6 +247,8 @@ static QJsonObject powerStatus() {
           {"degraded", p.value("PerformanceDegraded").toString()}};
 }
 QJsonObject status(const QString &domain, uint uid) {
+  if (domain == "region")
+    return regionStatus();
   if (domain == "printers")
     return printers(uid);
   if (domain == "printer-discovery")
@@ -262,6 +264,10 @@ QJsonObject status(const QString &domain, uint uid) {
   throw Failure("invalid", "Unknown system settings section");
 }
 void validate(const QString &d, const QString &op, const QJsonObject &o) {
+  if (d == "region") {
+    validateRegion(op, o);
+    return;
+  }
   if (d == "memory") {
     if (op != "configure") throw Failure("invalid", "Unknown memory operation");
     Memory::validate(o); return;
@@ -367,6 +373,10 @@ static void printerAction(const QString &op, const QJsonObject &o, uint uid) {
 }
 void apply(const QString &d, const QString &op, const QJsonObject &o,
            uint uid) {
+  if (d == "region") {
+    applyRegion(op, o);
+    return;
+  }
   if (d == "memory") { memoryApply(o); return; }
   if (d == "storage") {
     storageMaintenance(op, o);

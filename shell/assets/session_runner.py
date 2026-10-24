@@ -73,6 +73,10 @@ def run_session():
         subprocess.run([sys.executable,str(Path(__file__).with_name("display_profiles.py")),"status"],stdout=subprocess.DEVNULL,timeout=20,check=False)
     except (OSError,subprocess.SubprocessError) as error:
         print("Unable to initialize display protection:",error,file=sys.stderr)
+    try:
+        subprocess.run([sys.executable,str(Path(__file__).with_name("configuration_manager.py")),"status"],stdout=subprocess.DEVNULL,timeout=20,check=False)
+    except (OSError,subprocess.SubprocessError) as error:
+        print("Unable to initialize configuration recovery:",error,file=sys.stderr)
     from gtk_theme import restore as restore_gtk_theme
     try:
         restore_gtk_theme()

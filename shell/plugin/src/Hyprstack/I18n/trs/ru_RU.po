@@ -9719,3 +9719,468 @@ msgstr "Вернуть прежние"
 
 msgid "Display protection service did not become ready"
 msgstr "Служба защиты экрана не завершила запуск"
+
+msgid "A collection to start with"
+msgstr "Коллекция для начала"
+
+msgid "A continuous row of windows that follows your focus."
+msgstr "Непрерывная лента окон, которая следует за фокусом."
+
+msgid "A desktop that follows your way of working. Discover the dock, the panel and four ways to arrange your windows."
+msgstr "Рабочее окружение под ваш способ работы. Познакомьтесь с доком, панелью и четырьмя способами расположения окон."
+
+msgid "A structured layout that gives each window its own space."
+msgstr "Упорядоченная раскладка, в которой у каждого окна есть своё место."
+
+msgid "A view you enjoy"
+msgstr "Приятный вид на рабочий стол"
+
+msgid "Add every layout you use, arrange their order and choose a switching shortcut. These are the same settings used throughout the desktop."
+msgstr "Добавьте нужные раскладки, задайте их порядок и сочетание переключения. Эти настройки общие для всего рабочего окружения."
+
+msgid "All your keyboard layouts"
+msgstr "Все нужные раскладки"
+
+msgid "Application class"
+msgstr "Класс приложения"
+
+msgid "Apply system locale"
+msgstr "Применить системную локаль"
+
+msgid "Arrange screens, choose their native refresh rates and save profiles. Every change has a confirmation timer and an independent rollback guard."
+msgstr "Расположите экраны, выберите их частоты и сохраните профили. Каждое изменение защищено таймером подтверждения и независимой службой отката."
+
+msgid "Arrange windows on a spatial desktop, pan, zoom and return to remembered groups."
+msgstr "Расположите окна на пространственном рабочем столе, перемещайте камеру, меняйте масштаб и возвращайтесь к сохранённым группам."
+
+msgid "Automatic configuration checkpoints"
+msgstr "Автоматические снимки настроек"
+
+msgid "Capture a checkpoint when signing in"
+msgstr "Создавать снимок при входе"
+
+msgid "Center floating windows"
+msgstr "Центрировать плавающие окна"
+
+msgid "Changed"
+msgstr "Изменено"
+
+msgid "Choose how windows live"
+msgstr "Выберите поведение окон"
+
+msgid "Choose the shell language and the system locale for language, dates and numbers. Existing applications pick up a new system locale after signing in again."
+msgstr "Выберите язык оболочки и системную локаль для языка, дат и чисел. Уже запущенные приложения подхватят новую локаль после повторного входа."
+
+msgid "Clipboard history, shortcuts, projects and recoverable settings are built in. Extensions add more, and a safe startup helps isolate failures."
+msgstr "История буфера, горячие клавиши, проекты и восстановление настроек уже встроены. Расширения добавляют возможности, а безопасный запуск помогает найти причину сбоя."
+
+msgid "Colours across the desktop"
+msgstr "Общие цвета для всей системы"
+
+msgid "Compositor configuration"
+msgstr "Конфигурация композитора"
+
+msgid "Configuration history"
+msgstr "История конфигурации"
+
+msgid "Create a rule manually"
+msgstr "Создать правило вручную"
+
+msgid "Current system locale"
+msgstr "Текущая системная локаль"
+
+msgid "Current value"
+msgstr "Действующее значение"
+
+msgid "Default value"
+msgstr "Значение по умолчанию"
+
+msgid "Delete application rule"
+msgstr "Удалить правило приложения"
+
+msgid "Delete selected item"
+msgstr "Удалить выбранное"
+
+msgid "Desktop health"
+msgstr "Диагностика окружения"
+
+msgid "Desktop services"
+msgstr "Службы рабочего окружения"
+
+msgid "Download wallpaper collection"
+msgstr "Скачать коллекцию обоев"
+
+msgid "Downloading wallpaper collection…"
+msgstr "Загрузка коллекции обоев…"
+
+msgid "Every setting has a way back"
+msgstr "У каждой настройки есть путь назад"
+
+msgid "Everything remains available in Settings. Replay this guide whenever you want, or start working now."
+msgstr "Всё остаётся доступным в настройках. Вернитесь к этому руководству в любой момент или начните работу прямо сейчас."
+
+msgid "Explore a curated collection of light and dark wallpapers. The original artwork, its author metadata and license are kept alongside the images."
+msgstr "Попробуйте коллекцию светлых и тёмных обоев. Оригиналы, сведения об авторах и лицензия сохраняются рядом с изображениями."
+
+msgid "Explore a topic"
+msgstr "Выберите тему знакомства"
+
+msgid "Export desktop profile"
+msgstr "Экспортировать профиль окружения"
+
+msgid "Familiar overlapping windows, a task dock and expressive minimize animations."
+msgstr "Привычные перекрывающиеся окна, док приложений и выразительные анимации сворачивания."
+
+msgid "Find a keyboard layout"
+msgstr "Найти раскладку"
+
+msgid "Find a locale"
+msgstr "Найти локаль"
+
+msgid "Find a setting"
+msgstr "Найти параметр"
+
+msgid "Find your way around hics"
+msgstr "Освойтесь в hics"
+
+msgid "First steps"
+msgstr "Первое знакомство"
+
+msgid "Floating"
+msgstr "Плавающее окно"
+
+msgid "Follow the desktop mode"
+msgstr "Следовать режиму окружения"
+
+msgid "Four ways to work"
+msgstr "Четыре способа работы"
+
+msgid "Generating locale…"
+msgstr "Генерация локали…"
+
+msgid "History policy"
+msgstr "Хранение истории"
+
+msgid "Import desktop profile"
+msgstr "Импортировать профиль окружения"
+
+msgid "Include recent service logs"
+msgstr "Включить последние журналы служб"
+
+msgid "Initial floating geometry"
+msgstr "Начальное положение плавающего окна"
+
+msgid "Inspect desktop components and prepare a local issue report. Reports are never sent automatically; logs are optional and private paths are redacted."
+msgstr "Проверьте компоненты окружения и подготовьте локальный отчёт. Он не отправляется автоматически; журналы добавляются по выбору, личные пути скрываются."
+
+msgid "Inspect effective values, defaults and explicit overrides. Reset a single setting or its entire section using the same native schema as the shell."
+msgstr "Посмотрите действующие значения, значения по умолчанию и переопределения. Сбросьте отдельный параметр или раздел через ту же схему, которую использует оболочка."
+
+msgid "Inspect services and prepare a private diagnostic report when something needs attention."
+msgstr "Проверьте службы и подготовьте приватный диагностический отчёт, если что-то требует внимания."
+
+msgid "Installation checks"
+msgstr "Проверки установки"
+
+msgid "Keep useful tools close"
+msgstr "Полезные инструменты под рукой"
+
+msgid "Keyboard layouts (comma separated)"
+msgstr "Раскладки через запятую"
+
+msgid "Keyboard options"
+msgstr "Параметры клавиатуры"
+
+msgid "Keyboard variants"
+msgstr "Варианты раскладок"
+
+msgid "Layout switching shortcut"
+msgstr "Сочетание смены раскладки"
+
+msgid "Left handed"
+msgstr "Для левшей"
+
+msgid "Make room on your screens"
+msgstr "Обустройте свои экраны"
+
+msgid "Make the desktop yours"
+msgstr "Оформите рабочий стол по-своему"
+
+msgid "Match using regular expressions"
+msgstr "Использовать регулярные выражения"
+
+msgid "Maximum checkpoints"
+msgstr "Максимум снимков"
+
+msgid "Maximum history size (MiB)"
+msgstr "Максимальный размер истории (МиБ)"
+
+msgid "One palette connects the shell and GTK and Qt applications. Complete desktop profiles can also preserve panels, typography and effects."
+msgstr "Одна палитра объединяет оболочку и приложения GTK и Qt. Полные профили сохраняют также панели, шрифты и эффекты."
+
+msgid "Open desktop settings"
+msgstr "Открыть настройки окружения"
+
+msgid "Pin useful text and images, control retention and pause capture for private work."
+msgstr "Закрепляйте текст и изображения, настраивайте срок хранения и приостанавливайте захват для приватной работы."
+
+msgid "Play demonstrations"
+msgstr "Воспроизводить демонстрации"
+
+msgid "Play recorded demonstrations"
+msgstr "Воспроизводить записи демонстраций"
+
+msgid "Pointer acceleration"
+msgstr "Ускорение указателя"
+
+msgid "Prevent idle sleep"
+msgstr "Запретить засыпание"
+
+msgid "Recent logs"
+msgstr "Последние журналы"
+
+msgid "Record shortcuts, resolve conflicts and keep original window-management actions."
+msgstr "Записывайте сочетания, устраняйте конфликты и сохраняйте исходные действия управления окнами."
+
+msgid "Recorded in a real hics session. You can skip any step and change everything later."
+msgstr "Записано в настоящем сеансе hics. Любой шаг можно пропустить, а настройки — изменить позже."
+
+msgid "Reduce interface motion"
+msgstr "Уменьшить движение в интерфейсе"
+
+msgid "Refresh connected devices and windows"
+msgstr "Обновить устройства и окна"
+
+msgid "Refresh values"
+msgstr "Обновить значения"
+
+msgid "Replay the introduction, revisit initial setup or jump to a particular topic. Skipping never prevents you from using the desktop."
+msgstr "Повторите знакомство, вернитесь к первоначальным настройкам или выберите отдельную тему. Пропуск не мешает пользоваться окружением."
+
+msgid "Reset this section"
+msgstr "Сбросить этот раздел"
+
+msgid "Reset to default"
+msgstr "Вернуть значение по умолчанию"
+
+msgid "Resume from the last step"
+msgstr "Продолжить с последнего шага"
+
+msgid "Review volumes, safe removal and memory compression. Disk changes are optional; administrative actions ask for authorization."
+msgstr "Проверьте тома, безопасное извлечение и сжатие памяти. Настраивать диски необязательно; административные действия требуют подтверждения."
+
+msgid "Review what changes"
+msgstr "Проверьте изменения"
+
+msgid "Rule details"
+msgstr "Параметры правила"
+
+msgid "Rule enabled"
+msgstr "Правило включено"
+
+msgid "Rule name"
+msgstr "Название правила"
+
+msgid "Run checks"
+msgstr "Запустить проверки"
+
+msgid "Save a set of applications and their arrangement as a named project."
+msgstr "Сохраните набор приложений и расположение их окон как именованный проект."
+
+msgid "Save application rule"
+msgstr "Сохранить правило приложения"
+
+msgid "Save device overrides"
+msgstr "Сохранить настройки устройства"
+
+msgid "Save diagnostic report"
+msgstr "Сохранить диагностический отчёт"
+
+msgid "Saved application rules"
+msgstr "Сохранённые правила приложений"
+
+msgid "Scroll speed"
+msgstr "Скорость прокрутки"
+
+msgid "Section"
+msgstr "Раздел"
+
+msgid "See what needs attention"
+msgstr "Посмотрите, что требует внимания"
+
+msgid "Selected layouts"
+msgstr "Выбранные раскладки"
+
+msgid "Set the language and regional formats for the system. Locale generation is handled by the system service with authorization."
+msgstr "Задайте язык и региональные форматы системы. Генерацию локали выполняет системная служба после подтверждения прав."
+
+msgid "Settings workbench"
+msgstr "Все параметры и сброс"
+
+msgid "Shell language"
+msgstr "Язык оболочки"
+
+msgid "Show changed settings only"
+msgstr "Только изменённые параметры"
+
+msgid "Show more settings"
+msgstr "Показать ещё параметры"
+
+msgid "Show on every workspace"
+msgstr "Показывать на всех рабочих столах"
+
+msgid "Show setup on the next launch"
+msgstr "Показать мастер при следующем запуске"
+
+msgid "Skip setup"
+msgstr "Пропустить знакомство"
+
+msgid "Small tools, less friction"
+msgstr "Маленькие инструменты для удобной работы"
+
+msgid "Speak your language"
+msgstr "На вашем языке"
+
+msgid "Stack familiar windows, tile them, scroll through columns or explore an infinite canvas. You can switch modes later from the panel."
+msgstr "Расположите окна привычными стопками, плиткой, лентой или на бесконечном холсте. Позже режим можно сменить с панели."
+
+msgid "Start fullscreen"
+msgstr "Открывать на весь экран"
+
+msgid "Start the introduction"
+msgstr "Начать знакомство"
+
+msgid "Starting points"
+msgstr "Готовые варианты"
+
+msgid "Step %1 of %2"
+msgstr "Шаг %1 из %2"
+
+msgid "System locale"
+msgstr "Системная локаль"
+
+msgid "The dock brings applications and window previews together. The panel opens quick controls. Settings keep your devices, appearance and recovery tools in one place."
+msgstr "Док объединяет приложения и предпросмотр окон. Панель открывает быстрые настройки. Центр настроек собирает устройства, оформление и восстановление в одном месте."
+
+msgid "Tiled"
+msgstr "Плиточное окно"
+
+msgid "Try changes knowing that your previous configuration has a way back."
+msgstr "Пробуйте изменения, зная, что предыдущую конфигурацию можно вернуть."
+
+msgid "Use global settings for this device"
+msgstr "Использовать общие настройки устройства"
+
+msgid "Use the same locale for dates and numbers"
+msgstr "Та же локаль для дат и чисел"
+
+msgid "Value"
+msgstr "Значение"
+
+msgid "Welcome to hics"
+msgstr "Добро пожаловать в hics"
+
+msgid "Window opacity"
+msgstr "Прозрачность окна"
+
+msgid "Window placement"
+msgstr "Размещение окна"
+
+msgid "Window title (optional)"
+msgstr "Заголовок окна — необязательно"
+
+msgid "Workspace (0 follows defaults)"
+msgstr "Рабочий стол (0 — по умолчанию)"
+
+msgid "Your desktop is ready"
+msgstr "Ваше окружение готово"
+
+msgid "Your disks and memory"
+msgstr "Ваши диски и память"
+
+msgid "Your whole desktop, together"
+msgstr "Всё оформление в одном профиле"
+
+msgid "A way back from every change"
+msgstr "Путь назад после каждого изменения"
+
+msgid "Panels, dock, widgets, typography, colours, wallpapers and window mode travel together. Try a profile before keeping it."
+msgstr "Панели, док, виджеты, шрифты, цвета, обои и режим окон сохраняются вместе. Проверьте профиль перед подтверждением."
+
+msgid "Automatic checkpoints record configuration changes without clipboard contents or assistant credentials. Restore only the sections you need."
+msgstr "Автоматические снимки сохраняют изменения без содержимого буфера и ключей ассистента. Восстанавливайте только нужные разделы."
+
+msgid "Save desktop profile"
+msgstr "Сохранить профиль окружения"
+
+msgid "Create checkpoint"
+msgstr "Создать снимок"
+
+msgid "Saved profiles"
+msgstr "Сохранённые профили"
+
+msgid "Checkpoints"
+msgstr "Снимки настроек"
+
+msgid "Import reviewed profile"
+msgstr "Импортировать проверенный профиль"
+
+msgid "Try selected sections"
+msgstr "Проверить выбранные разделы"
+
+msgid "A different feel for each device"
+msgstr "Свои настройки для каждого устройства"
+
+msgid "Choose a window to build a rule"
+msgstr "Выберите окно для создания правила"
+
+msgid "Device overrides follow the device name. Reset an individual value to inherit the global setting again."
+msgstr "Настройки привязаны к имени устройства. Сбросьте отдельный параметр, чтобы снова использовать общее значение."
+
+msgid "Rules match the application rather than its temporary window address. Placement rules apply to new windows; dynamic effects also update matching windows."
+msgstr "Правила сопоставляют приложение по классу и заголовку. Размещение применяется к новым окнам, динамические эффекты — и к уже открытым."
+
+msgid "Laptop"
+msgstr "Ноутбук"
+
+msgid "Workstation"
+msgstr "Рабочая станция"
+
+msgid "Minimal"
+msgstr "Минималистичный"
+
+msgid "Compact controls and restrained motion"
+msgstr "Компактные элементы и спокойные анимации"
+
+msgid "Persistent panel and a spatial canvas"
+msgstr "Постоянная панель и пространственный холст"
+
+msgid "Stacking windows and a bottom dock"
+msgstr "Привычные окна и нижний док"
+
+msgid "An unobtrusive panel and keyboard navigation"
+msgstr "Ненавязчивая панель и управление клавиатурой"
+
+msgid "Keep this desktop profile?"
+msgstr "Сохранить этот профиль окружения?"
+
+msgid "Desktop profile"
+msgstr "Профиль окружения"
+
+msgid "Explore the desktop before keeping this appearance. Your previous configuration is ready to return."
+msgstr "Оцените оформление перед сохранением. Прежнюю конфигурацию можно вернуть."
+
+msgid "The previous desktop returns in %1 seconds."
+msgstr "Прежнее оформление вернётся через %1 секунд."
+
+msgid "A few choices, then your desktop"
+msgstr "Несколько решений — и можно работать"
+
+msgid "You stay in control"
+msgstr "Вы управляете своим окружением"
+
+msgid "Start using hics"
+msgstr "Начать работу с hics"
+
+msgid "Choose a supported UTF-8 system locale"
+msgstr "Выберите поддерживаемую системную локаль UTF-8"

@@ -86,7 +86,7 @@ if(HYPRSTACK_BUNDLE_RUNTIME)
 endif()
 
 install(DIRECTORY distribution/defaults/ DESTINATION "${CMAKE_INSTALL_DATADIR}/hics/defaults")
-install(PROGRAMS distribution/bin/hics distribution/bin/hics-shell distribution/bin/hics-session distribution/bin/hics-session-runner distribution/bin/hics-doctor distribution/bin/hics-display-service DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(PROGRAMS distribution/bin/hics distribution/bin/hics-shell distribution/bin/hics-session distribution/bin/hics-session-runner distribution/bin/hics-doctor distribution/bin/hics-display-service distribution/bin/hics-configuration-service DESTINATION "${CMAKE_INSTALL_BINDIR}")
 install(FILES distribution/systemd/user/hic-session.service DESTINATION "${CMAKE_INSTALL_DATADIR}/hics/systemd")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/distribution/systemd/user/hic-session.service")
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/distribution/systemd/user/hic-session.service" session_unit)
@@ -109,3 +109,9 @@ file(READ "${CMAKE_CURRENT_SOURCE_DIR}/distribution/systemd/user/hics-displays.s
 string(REPLACE "ExecStart=%h/.local/bin/hics-display-service" "ExecStart=/usr/bin/hics-display-service" DISPLAY_UNIT "${DISPLAY_UNIT}")
 file(WRITE "${CMAKE_BINARY_DIR}/hics-displays.service" "${DISPLAY_UNIT}")
 install(FILES "${CMAKE_BINARY_DIR}/hics-displays.service" DESTINATION lib/systemd/user)
+
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/distribution/systemd/user/hics-configuration.service")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/distribution/systemd/user/hics-configuration.service" CONFIGURATION_UNIT)
+string(REPLACE "ExecStart=%h/.local/bin/hics-configuration-service" "ExecStart=/usr/bin/hics-configuration-service" CONFIGURATION_UNIT "${CONFIGURATION_UNIT}")
+file(WRITE "${CMAKE_BINARY_DIR}/hics-configuration.service" "${CONFIGURATION_UNIT}")
+install(FILES "${CMAKE_BINARY_DIR}/hics-configuration.service" DESTINATION lib/systemd/user)
