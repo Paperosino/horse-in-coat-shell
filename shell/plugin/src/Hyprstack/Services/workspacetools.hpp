@@ -1,5 +1,6 @@
 #pragma once
 #include <QFileSystemWatcher>
+#include <QFuture>
 #include <QObject>
 #include <QProcess>
 #include <QQmlEngine>
@@ -107,7 +108,7 @@ class WorkspaceSession : public QObject {
   Q_PROPERTY(QString desktop READ desktop CONSTANT)
 public:
   explicit WorkspaceSession(QObject *parent = nullptr);
-  ~WorkspaceSession() override { m_cancel->store(true); }
+  ~WorkspaceSession() override;
   QVariantMap settings() const { return m_settings; }
   QVariantList snapshots() const { return m_snapshots; }
   QVariantMap preview() const { return m_preview; }
@@ -146,6 +147,7 @@ private:
   QString m_error;
   QString m_refreshError;
   bool m_busy = false, m_startupPending = false;
+  QFuture<QVariantMap> m_task;
   QFileSystemWatcher m_sessionFiles;
   QTimer m_refreshTimer;
   std::shared_ptr<std::atomic_bool> m_cancel =

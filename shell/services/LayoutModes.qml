@@ -31,7 +31,7 @@ Singleton {
             GlobalConfig.bar.layoutSwitcherConfigured = true;
         }
     }
-    FeatureBackend { id: backend; helper: "layout_controls.py" }
+    FeatureBackend { id: backend; helper: "layout_controls.py"; coalescePatches: ["save"] }
     FileView { path: `${Paths.config}/layouts.json`; printErrors:false;watchChanges:true;onFileChanged:root.reload() }
     IpcHandler { target:"layouts";function mode(value:string):void{root.select(value);}function state():string{return JSON.stringify({mode:root.mode,busy:root.busy,error:root.error,config:root.config});} }
 }

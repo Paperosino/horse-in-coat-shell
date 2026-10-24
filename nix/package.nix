@@ -28,7 +28,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
 
   cmakeBuildType = "Release";
   cmakeFlags = [
-    "-DHYPRSTACK_BUILD_NATIVE=ON"
+    "-DHICS_BUILD_NATIVE=ON"
     "-DHYPRSTACK_BUILD_CANVAS=ON"
     "-DHYPRSTACK_AUDIO_VISUALIZER=OFF"
     "-DCMAKE_INSTALL_DATADIR=${builtins.placeholder "out"}/share"

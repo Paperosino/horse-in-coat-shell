@@ -15,7 +15,7 @@ FIXTURES=ROOT/'tests/fixtures'
 with tempfile.TemporaryDirectory(prefix='hics-canvas-views-') as temporary:
  base=Path(temporary); processes=[]; compositor=None; pointer=None
  (base/'config/hics').mkdir(parents=True);(base/'data/native').mkdir(parents=True)
- for plugin,source in [('hics-bars.so',ROOT/'build/hics-bars.so'),('libspatialoverview.so',ROOT/'build/third_party/phantomat/libspatialoverview.so')]:shutil.copy2(source,base/'data/native'/plugin)
+ for plugin,source in [('libhics-render-dispatch.so',ROOT/'build/libhics-render-dispatch.so'),('hics-bars.so',ROOT/'build/hics-bars.so'),('libspatialoverview.so',ROOT/'build/third_party/phantomat/libspatialoverview.so')]:shutil.copy2(source,base/'data/native'/plugin)
  config=ROOT/'shell/assets/hyprland/config'
  (base/'test.lua').write_text('package.path='+json.dumps(str(config/'?.lua')+';')+'..package.path\ndofile(ANIMATIONS)\npackage.preload["scheme.current"]=function()return require("scheme.default")end\nhl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})\ndofile('+json.dumps(str(config/'hyprland/gestures.lua'))+')\ndofile('+json.dumps(str(ROOT/'shell/assets/hyprland/layouts.lua'))+')\n')
  text=(base/'test.lua').read_text().replace('ANIMATIONS',json.dumps(str(config/'hyprland/animations.lua')));(base/'test.lua').write_text(text)

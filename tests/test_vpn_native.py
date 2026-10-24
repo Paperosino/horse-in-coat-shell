@@ -104,6 +104,13 @@ class VpnNativeTests(unittest.TestCase):
   result=self.run_probe('activate-libreswan');self.assertEqual(result['error'],'')
   calls=self.calls();start=next(i for i,c in enumerate(calls) if c['method']=='StartUnit');activate=next(i for i,c in enumerate(calls) if c['method']=='ActivateConnection')
   self.assertLess(start,activate);self.assertEqual(calls[start]['data'],'ipsec.service')
+ def test_libreswan_waits_for_signal_without_polling(self):
+  result=self.run_probe('activate-libreswan-delayed');self.assertEqual(result['error'],'')
+  calls=self.calls();self.assertLessEqual(sum(c['method']=='IpsecState' for c in calls),2);self.assertTrue(any(c['method']=='ActivateConnection' for c in calls))
+ def test_libreswan_failure_does_not_activate_profile(self):
+  result=self.run_probe('activate-libreswan-failed');self.assertIn('failed to start',result['error']);self.assertFalse(any(c['method']=='ActivateConnection' for c in self.calls()))
+ def test_libreswan_start_can_be_cancelled(self):
+  result=self.run_probe('activate-libreswan-cancel');self.assertTrue(result['error']);self.assertFalse(any(c['method']=='ActivateConnection' for c in self.calls()))
  def test_interactive_prompt_is_prefilled_with_supplied_password(self):
   result=self.run_probe('agent-prompt-prefill');self.assertEqual(result.get('prefilled'),'system-fixture-password',result)
 

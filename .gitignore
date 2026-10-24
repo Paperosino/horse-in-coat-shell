@@ -49,6 +49,10 @@
 !/native/capture/
 /native/capture/*
 !/native/capture/*.cpp
+!/native/capture/*.hpp
+!/native/render-dispatch/
+!/native/render-dispatch/*.cpp
+!/native/render-dispatch/*.hpp
 !/native/motion/
 /native/motion/*
 !/native/motion/*.cpp

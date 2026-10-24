@@ -66,6 +66,7 @@ Singleton {
         query.running = true;
     }
 
+    property string lastScenePayload: ""
     function applyScene(): void {
         if (!active || !snapshot.monitor)
             return;
@@ -79,7 +80,10 @@ Singleton {
                 frame: frames.find(f => f.address === w.address),
                 world: world.find(f => f.address === w.address)
             }))};
-        Hypr.extras.message(`eval hyprstack_layouts.overview_scene("show", ${JSON.stringify(JSON.stringify(scene))})`);
+        const payload = JSON.stringify(scene);
+        if (nativeStarted && payload === lastScenePayload) return;
+        lastScenePayload = payload;
+        Hypr.extras.message(`eval hyprstack_layouts.overview_scene("show", ${Hypr.luaJsonText(payload)})`);
         nativeStarted = true;
     }
 

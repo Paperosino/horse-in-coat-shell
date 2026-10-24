@@ -1,4 +1,5 @@
 #include "workspacestore.hpp"
+#include <QElapsedTimer>
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
@@ -154,16 +155,24 @@ void setSettings(const QString &group, const QVariantMap &value) {
   config[group] = result;
   writeMap(configPath(), config);
 }
+thread_local std::shared_ptr<std::atomic_bool> commandCancellation;
 QByteArray command(const QString &program, const QStringList &args,
                    int timeout) {
+  auto cancelled = [] { return commandCancellation && commandCancellation->load(); };
+  if (cancelled()) fail("Operation cancelled");
   QProcess p;
   p.start(program, args);
   if (!p.waitForStarted(2000))
     fail("Cannot start " + program);
-  if (!p.waitForFinished(timeout)) {
+  QElapsedTimer budget;
+  budget.start();
+  while (p.state() != QProcess::NotRunning && !cancelled() && budget.elapsed() < timeout)
+    p.waitForFinished(qBound(1, timeout - int(budget.elapsed()), 100));
+  if (p.state() != QProcess::NotRunning || cancelled()) {
+    const bool interrupted = cancelled();
     p.kill();
     p.waitForFinished();
-    fail(program + " timed out");
+    fail(interrupted ? QString("Operation cancelled") : program + " timed out");
   }
   if (p.exitStatus() != QProcess::NormalExit || p.exitCode() != 0)
     fail(QString::fromUtf8(p.readAllStandardError()).trimmed().isEmpty()
@@ -292,12 +301,25 @@ bool storeClipboard(const QByteArray &bytes, const QString &mime,
   writeMap(dir + "/index.json", {{"entries", entries}});
   return true;
 }
-QByteArray clipboardData(const QString &id) {
-  QFile f(clipboardDirectory() + "/" + safeId(id));
-  if (!f.open(QIODevice::ReadOnly))
-    fail("Clipboard entry no longer exists");
-  return f.readAll();
+QString clipboardFile(const QString &id) {
+  const auto path = clipboardDirectory() + "/" + safeId(id);
+  const QFileInfo info(path);
+  const auto limit = qBound<qint64>(1LL, settings("clipboard").value("maxMiB", 10).toLongLong(), 100LL) * 1024 * 1024;
+  if (!info.isFile() || info.isSymLink() || info.size() > limit)
+    fail("Clipboard entry is missing or exceeds the configured size limit");
+  return path;
 }
+QByteArray clipboardData(const QString &id) {
+  QFile f(clipboardFile(id));
+  if (!f.open(QIODevice::ReadOnly)) fail("Clipboard entry no longer exists");
+  // Text editing is bounded separately from binary clipboard transfers.
+  constexpr qint64 limit = 1024 * 1024;
+  if (f.size() > limit) fail("Clipboard entry is too large to edit");
+  const auto bytes = f.read(limit + 1);
+  if (bytes.size() > limit) fail("Clipboard entry is too large to edit");
+  return bytes;
+}
+
 void alterClipboard(const QString &id, const QString &operation) {
   const auto dir = clipboardDirectory();
   safeId(id);

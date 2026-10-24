@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='hics-dock-motion-') as directory:
     (base/'config/hics').mkdir(parents=True);(base/'data/native').mkdir(parents=True)
     (base/'config/hics/layouts.json').write_text('{"mode":"stacking"}')
     dock=base/'config/hics/dock.json';dock.write_text('{"enabled":true,"windowAnimations":true,"animationDuration":700}')
-    for name in ('hics-bars.so','hics-motion.so'):
+    for name in ('libhics-render-dispatch.so','hics-bars.so','hics-motion.so'):
         shutil.copy2(ROOT/'build'/name,base/'data/native'/name)
     config=ROOT/'shell/assets/hyprland/config'
     lua=base/'test.lua'

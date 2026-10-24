@@ -102,7 +102,7 @@ Item {
                 x:ox+p.x-size/2,y:oy+p.y-size/2,w:size,h:size,barTop:oy+p.y+size/2,icon:icon});
         }
         const serialized=JSON.stringify(targets);
-        if(serialized!==lastTargets){lastTargets=serialized;Hypr.setTaskTargets(screen.name,targets,"dock");}
+        if(serialized!==lastTargets){lastTargets=serialized;Hypr.setTaskTargets(screen.name,serialized,"dock");}
     }
     function scheduleTargets(): void { if (!targetRefresh.running) targetRefresh.start(); }
     Connections {target:ExtraPanels;function onLiveHeightsChanged():void {root.scheduleTargets();}function onPanelsChanged():void {root.scheduleTargets();}}

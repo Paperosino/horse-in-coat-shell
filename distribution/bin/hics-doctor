@@ -21,5 +21,9 @@ elif qs_path=$(command -v qs 2>/dev/null); then
     export HYPRSTACK_QS=$qs_path
 fi
 export PYTHONDONTWRITEBYTECODE=1
-python3 "$data_dir/shell/assets/migrate_branding.py"
+migration_marker="${XDG_STATE_HOME:-$HOME/.local/state}/hics/migrations/branding-v2"
+migration_script="$data_dir/shell/assets/migrate_branding.py"
+if [[ ! "$migration_marker" -nt "$migration_script" || "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.lua" -nt "$migration_marker" ]]; then
+    python3 "$migration_script"
+fi
 exec python3 "$data_dir/shell/assets/diagnostics.py" "$@"

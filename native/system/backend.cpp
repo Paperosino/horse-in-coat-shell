@@ -100,6 +100,16 @@ struct HttpCloser {
   void operator()(http_t *h) const { httpClose(h); }
 };
 using Http = std::unique_ptr<http_t, HttpCloser>;
+// CUPS defaults are thread-local; pool threads are reused between requests.
+// Preserve caller defaults even when discovery or an IPP operation throws.
+struct CupsContext {
+  QByteArray server{cupsServer()}, user{cupsUser()};
+  CupsContext() {
+    cupsSetServer(QFileInfo::exists("/run/cups/cups.sock") ? "/run/cups/cups.sock" : "localhost");
+    cupsSetUser("root");
+  }
+  ~CupsContext() { cupsSetServer(server.constData()); cupsSetUser(user.constData()); }
+};
 static Http cups() {
   // Always use the local scheduler, never caller-supplied servers or
   // credentials.
@@ -131,6 +141,7 @@ static QString attr(ipp_t *r, const char *key) {
   return QString::fromUtf8(v ? v : "");
 }
 static QJsonObject printers(uint uid) {
+  CupsContext context;
   auto h = cups();
   cups_dest_t *dests = nullptr;
   int count = cupsGetDests2(h.get(), &dests);
@@ -172,7 +183,7 @@ static QJsonObject printers(uint uid) {
   return {{"available", true}, {"printers", list}, {"jobs", jobs}};
 }
 static QJsonObject discoverPrinters() {
-  cupsSetServer("localhost");
+  CupsContext context;
   struct Found {
     cups_dest_t *dests = nullptr;
     int count = 0;
@@ -325,6 +336,7 @@ void validate(const QString &d, const QString &op, const QJsonObject &o) {
   throw Failure("invalid", "Unknown system operation");
 }
 static void printerAction(const QString &op, const QJsonObject &o, uint uid) {
+  CupsContext context;
   auto h = cups();
   if (op == "cancel-job") {
     auto r = ippNewRequest(IPP_OP_GET_JOB_ATTRIBUTES);

@@ -56,6 +56,13 @@ ColumnLayout {
             }
         }
     }
+    RowButton {
+        visible: root.vpnBackend.busy
+        Layout.fillWidth: true
+        text: Tr.tr("Cancel")
+        icon: "close"
+        onClicked: root.vpnBackend.cancel()
+    }
     FileDialog {
         id: importer
         title: Tr.tr("Import VPN configuration")

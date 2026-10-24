@@ -229,13 +229,17 @@ Singleton {
         if (!connected)
             return;
         const iface = active.interface;
-        if (iface.length > 0) {
-            statsProc.command = ["sh", "-c", `cat /sys/class/net/${iface}/statistics/rx_bytes /sys/class/net/${iface}/statistics/tx_bytes 2>/dev/null`];
-            statsProc.running = true;
+        if (/^[a-zA-Z0-9_.:-]{1,15}$/.test(iface) && iface !== "." && iface !== "..") {
+            if (!statsProc.running) {
+                statsProc.interfaceName = iface;
+                statsProc.command = ["cat", "--", `/sys/class/net/${iface}/statistics/rx_bytes`, `/sys/class/net/${iface}/statistics/tx_bytes`];
+                statsProc.running = true;
+            }
             // Measure latency over the tunnel by binding the ping to the VPN
             // interface (-I), so the result reflects the VPN path, not the LAN.
             if (!pingProc.running) {
-                pingProc.command = ["sh", "-c", `ping -c1 -W2 -I ${iface} 1.1.1.1 2>/dev/null || ping -c1 -W2 1.1.1.1 2>/dev/null`];
+                pingProc.interfaceName = iface;
+                pingProc.command = ["ping", "-n", "-c1", "-W2", "-I", iface, "1.1.1.1"];
                 pingProc.running = true;
             }
         }
@@ -760,9 +764,11 @@ Singleton {
     // Reads cumulative rx/tx bytes for the active VPN interface from sysfs.
     Process {
         id: statsProc
+        property string interfaceName
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (!root.connected || statsProc.interfaceName !== root.active.interface) return;
                 const nums = text.trim().split("\n").map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
                 if (nums.length >= 2) {
                     root.bytesIn = Units.formatBytes(nums[0]);
@@ -774,9 +780,11 @@ Singleton {
 
     Process {
         id: pingProc
+        property string interfaceName
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (!root.connected || pingProc.interfaceName !== root.active.interface) return;
                 const m = text.match(/time[=<]\s*([\d.]+)\s*ms/i);
                 if (m) {
                     root.pingMs = Math.round(parseFloat(m[1]));

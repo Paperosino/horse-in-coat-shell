@@ -86,7 +86,7 @@ StyledClippingRect {
         const data = JSON.stringify(targets);
         if (data !== lastTargets) {
             lastTargets = data;
-            Hypr.setTaskTargets(screen.name, targets, "bar");
+            Hypr.setTaskTargets(screen.name, data, "bar");
         }
     }
 

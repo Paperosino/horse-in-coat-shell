@@ -15,7 +15,7 @@ base = Path(tempfile.mkdtemp(prefix="hyprstack-controls-ui-"))
 shell = base / "shell"
 shutil.copytree(repo / "shell", shell, ignore=shutil.ignore_patterns("plugin", "extras", "__pycache__"))
 (base / "native").mkdir()
-for name, source in (("hics-bars.so", repo / "build/hics-bars.so"),
+for name, source in (("libhics-render-dispatch.so", repo / "build/libhics-render-dispatch.so"), ("hics-bars.so", repo / "build/hics-bars.so"),
         ("libspatialoverview.so", repo / "build/third_party/phantomat/libspatialoverview.so")):
     shutil.copy2(source, base / "native" / name)
 (base / "config/hics").mkdir(parents=True)

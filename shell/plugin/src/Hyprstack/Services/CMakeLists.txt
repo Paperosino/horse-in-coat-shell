@@ -1,4 +1,4 @@
-if(HYPRSTACK_AUDIO_VISUALIZER)
+if(HICS_AUDIO_VISUALIZER)
     set(audio_sources beattracker.cpp audiocollector.cpp audioprovider.cpp cavaprovider.cpp)
     set(audio_libraries PkgConfig::Pipewire PkgConfig::Aubio PkgConfig::Cava)
 else()

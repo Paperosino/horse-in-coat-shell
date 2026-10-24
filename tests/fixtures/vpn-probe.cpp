@@ -292,7 +292,7 @@ int main(int argc, char **argv) {
                                                          : "1"));
     wait();
     result = {{"error", vpn.error()}};
-  } else if (mode == "activate" || mode == "activate-libreswan" ||
+  } else if (mode == "activate" || mode.startsWith("activate-libreswan") ||
              mode == "activate-failure") {
     if (mode == "activate-failure") {
       auto request = QDBusMessage::createMethodCall(
@@ -301,7 +301,13 @@ int main(int argc, char **argv) {
       request.setArguments({true});
       QDBusConnection::systemBus().call(request);
     }
-    vpn.activate(mode == "activate-libreswan"
+    if (mode.startsWith("activate-libreswan")) {
+      auto request = QDBusMessage::createMethodCall("org.freedesktop.systemd1", "/org/freedesktop/systemd1", "org.hics.Test", "SetStartMode");
+      request.setArguments({mode == "activate-libreswan" ? "immediate" : mode.mid(QString("activate-libreswan-").size())});
+      QDBusConnection::systemBus().call(request);
+      if (mode.endsWith("cancel")) QTimer::singleShot(100, &vpn, &NetworkManagerVpn::cancel);
+    }
+    vpn.activate(mode.startsWith("activate-libreswan")
                      ? "/org/freedesktop/NetworkManager/Settings/3"
                      : "/org/freedesktop/NetworkManager/Settings/1");
     wait();

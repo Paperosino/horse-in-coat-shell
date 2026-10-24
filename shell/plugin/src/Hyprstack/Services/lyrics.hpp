@@ -5,6 +5,9 @@
 #include <qnetworkaccessmanager.h>
 #include <qnetworkreply.h>
 #include <qtimer.h>
+#include <QThreadPool>
+#include <atomic>
+#include <memory>
 
 #include "lyriccandidate.hpp"
 
@@ -36,6 +39,7 @@ class Lyrics : public QObject {
 
 public:
     explicit Lyrics(QObject* parent = nullptr);
+    ~Lyrics() override;
 
     [[nodiscard]] QStringList lyrics() const;
     [[nodiscard]] LyricsBackend backend() const;
@@ -116,8 +120,11 @@ private:
 
     [[nodiscard]] static QVector<LyricLine> parseLrc(const QString& text);
     [[nodiscard]] static QString tryReadLocalLrc(const QString& dir, const QString& artist, const QString& title);
-    [[nodiscard]] static QString findLocalLrcRecursive(const QString& dir, const QString& artist, const QString& title);
+    [[nodiscard]] static QString findLocalLrcRecursive(const QString& dir, const QString& artist, const QString& title,
+        const std::shared_ptr<std::atomic_int>& generation, int requestId);
 
+    QThreadPool m_localPool;
+    std::shared_ptr<std::atomic_int> m_localGeneration = std::make_shared<std::atomic_int>(0);
     QNetworkAccessManager* m_nam;
     QTimer* m_loadDebounce;
 

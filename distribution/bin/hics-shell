@@ -19,7 +19,11 @@ export QML2_IMPORT_PATH="$data_dir/qml${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
 export HYPRSTACK_LIB_DIR="$data_dir/lib"
 export PATH="$PATH:$HOME/.local/bin"
 export PYTHONDONTWRITEBYTECODE=1
-python3 "$data_dir/shell/assets/migrate_branding.py"
+migration_marker="${XDG_STATE_HOME:-$HOME/.local/state}/hics/migrations/branding-v2"
+migration_script="$data_dir/shell/assets/migrate_branding.py"
+if [[ ! "$migration_marker" -nt "$migration_script" || "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.lua" -nt "$migration_marker" ]]; then
+    python3 "$migration_script"
+fi
 qs_bin=$data_dir/qs/bin/hics-qs
 if [[ -x $qs_bin ]]; then
     export LD_LIBRARY_PATH="$data_dir/qs/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"

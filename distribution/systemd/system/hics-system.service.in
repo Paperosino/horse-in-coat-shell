@@ -1,0 +1,27 @@
+[Unit]
+Description=hics system settings service
+Documentation=https://github.com/Paperosino/horse-in-coat-shell
+
+[Service]
+Type=dbus
+BusName=org.hics.System1
+ExecStart=@HICS_BIN_DIR@/hics-systemd
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=
+MemoryMax=192M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target

@@ -1,10 +1,14 @@
 #pragma once
 #include <QByteArray>
+#include <memory>
+#include <atomic>
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
 
 namespace hics::workspace {
+// Worker-local cancellation; never references the owning QObject.
+extern thread_local std::shared_ptr<std::atomic_bool> commandCancellation;
 QString configPath();
 QString statePath();
 QString startupPath();
@@ -19,6 +23,7 @@ QVariantList clipboardEntries(bool prune = true);
 bool storeClipboard(const QByteArray &bytes, const QString &mime,
                     const QString &application = {},
                     bool explicitAction = false);
+QString clipboardFile(const QString &id);
 QByteArray clipboardData(const QString &id);
 void alterClipboard(const QString &id, const QString &operation);
 void clearClipboard(bool keepPinned);

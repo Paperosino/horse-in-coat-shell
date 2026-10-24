@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QFuture>
 #include <QQmlEngine>
 #include <QVariantList>
 #include <QVariantMap>
@@ -24,6 +25,7 @@ public:
   QVariantList profiles() const { return m_profiles; }
   QVariantMap draft() const { return m_draft; }
   Q_INVOKABLE void refresh();
+  Q_INVOKABLE void cancel();
   Q_INVOKABLE QString generateWireGuardKey() const;
   Q_INVOKABLE void installPlugin(const QString &id);
   Q_INVOKABLE void create(const QString &service);

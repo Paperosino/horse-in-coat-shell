@@ -13,7 +13,7 @@ workspace=tempfile.TemporaryDirectory(prefix='hyprstack-canvas-test-')
 base=Path(workspace.name)
 (base/'config/hics').mkdir(parents=True)
 (base/'data/native').mkdir(parents=True)
-for plugin in ['hics-bars.so','libspatialoverview.so']:
+for plugin in ['libhics-render-dispatch.so','hics-bars.so','libspatialoverview.so']:
  candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hics/native')/plugin]
  source=next((p for p in candidates if p.is_file()),None)
  if source is None:raise RuntimeError('Build native modules before running this integration test')
@@ -44,7 +44,7 @@ try:
  errors=ctl('configerrors');print('Startup errors:',errors or 'none',flush=True);assert not errors,errors
  canvas_plugin=str(base/'data/native/libspatialoverview.so')
  if 'spatialoverview' not in ctl('plugin','list'):
-  ctl('plugin','load',canvas_plugin);time.sleep(1)
+  subprocess.run(['python3',str(repo/'shell/assets/load_canvas_plugin.py'),canvas_plugin],env=dict(env,HYPRLAND_INSTANCE_SIGNATURE=sig),check=True,timeout=35);time.sleep(1)
  print('Plugins:',ctl('-j','plugin','list'),flush=True)
  print('Bridge:',ctl('repl','return type(hl.plugin.spatialoverview.hyprstack_close)'),flush=True)
  app_env=dict(env,WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=sig)
@@ -116,6 +116,18 @@ try:
   if c['floating']:
    assert all(abs(a-b)<=2 for a,b in zip(c['size'],after[address]['size'])),(c,after[address])
  print('PASS: reload keeps canvas independent; exit restores tiled/floating windows and workspaces',flush=True)
+ # The shared texture dispatcher keeps one permanent patch across switches,
+ # including a failed Lua operation between canvas and overview transitions.
+ def renderer_state():return json.loads(ctl('repl','return hl.plugin.hyprbars.overview_scene("status")'))['textureDispatcher']
+ baseline=renderer_state();assert baseline['participants']==2,baseline
+ for index in range(20):
+  ctl('repl','return hyprstack_layouts.set_mode("canvas")')
+  ctl('repl','pcall(function() hl.plugin.hyprbars.overview_hooks(true); error("injected transition interruption") end)')
+  ctl('repl','return hyprstack_layouts.set_mode("scrolling")')
+  current=renderer_state();assert current['patches']==baseline['patches'],(baseline,current)
+  assert current['participants']==2 and current['activePriority']==10,current
+ assert not ctl('configerrors'),ctl('configerrors')
+ print('PASS: 20 canvas transitions and interrupted Lua operations leave the single texture patch unchanged',flush=True)
  ctl('repl','return hyprstack_layouts.set_mode("canvas")');time.sleep(.6)
  ordered=list(after)
  def focus(address):

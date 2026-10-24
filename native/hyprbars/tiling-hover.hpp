@@ -93,7 +93,7 @@ class Controller {
     bool available(PHLMONITOR monitor) const {
         if (m_focusOnHover || !monitor || !m_shells.contains(monitor->m_name) ||
             g_pSessionLockManager->isSessionLocked() || g_pInputManager->isConstrained() ||
-            g_layoutManager->dragController()->target() || !g_pInputManager->m_currentlyHeldButtons.empty() ||
+            g_layoutManager->dragController()->target() || g_pInputManager->hasHeldButtons() ||
             monitor->m_activeSpecialWorkspace || (HyprstackOverview::scene && HyprstackOverview::scene->runningFor(monitor))) return false;
         const auto keyboard = g_pSeatManager->m_keyboard.lock();
         if (keyboard && (keyboard->getModifiers() & (HL_MODIFIER_SHIFT|HL_MODIFIER_CTRL|HL_MODIFIER_ALT|HL_MODIFIER_META))) return false;

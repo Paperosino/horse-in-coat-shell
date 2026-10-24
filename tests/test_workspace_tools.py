@@ -58,6 +58,17 @@ else:print('ok')
   path.write_text(json.dumps(data));entries=self.probe('clipboard-list')['entries'];self.assertEqual([e['id'] for e in entries],[two['id']]);self.assertFalse((path.parent/one['id']).exists())
  def test_ephemeral_history_uses_runtime(self):
   self.config('clipboard',persistent=False);entry=self.store('temporary')['entries'][0];self.assertTrue((self.dir/'runtime/hics-workspace/clipboard'/entry['id']).exists());self.assertFalse((self.dir/'state/hics/workspace/clipboard').exists())
+ def test_clipboard_file_reads_and_editor_have_independent_limits(self):
+  entry=self.store('small')['entries'][0];path=self.dir/'state/hics/workspace/clipboard'/entry['id']
+  path.write_bytes(b'x'*(2*1024*1024));self.assertIn('too large',self.probe('clipboard-read',entry['id'])['error']);self.assertEqual(self.probe('clipboard-path',entry['id'])['path'],str(path))
+  with path.open('wb') as f:f.truncate(11*1024*1024)
+  self.assertIn('size limit',self.probe('clipboard-path',entry['id'])['error'])
+ def test_clipboard_symlinks_are_rejected(self):
+  entry=self.store('small')['entries'][0];path=self.dir/'state/hics/workspace/clipboard'/entry['id'];path.unlink();path.symlink_to('/etc/hostname');self.assertIn('error',self.probe('clipboard-read',entry['id']))
+ def test_session_destruction_cancels_and_joins_inflight_command(self):
+  snapshot=self.probe('capture','Shutdown')['preview'];marker=self.dir/'command-started'
+  tool=self.dir/'bin/hyprctl';tool.write_text('#!/usr/bin/python3\nimport pathlib,time\npathlib.Path('+repr(str(marker))+').touch()\ntime.sleep(20)\n');tool.chmod(0o700)
+  result=self.probe('destroy-session',snapshot['id'],marker);self.assertTrue(result['started']);self.assertLess(result['destroyMs'],1500,result)
  def test_chord_normalization_rejects_injection(self):
   self.assertEqual(self.probe('chord','shift + meta + ctrl + t')['chord'],'SUPER + CTRL + SHIFT + T');self.assertIn('error',self.probe('chord','SUPER + X; os.execute("bad")'))
  def catalogue(self):

@@ -67,9 +67,19 @@ Singleton {
         return !!windowState(toplevel).maximized || toplevel?.lastIpcObject.fullscreen === 1;
     }
 
+    // Lua long strings carry JSON directly, including backslashes and Unicode.
+    // Choose a delimiter absent from the payload rather than treating JSON
+    // escaping as Lua escaping (the two grammars are not interchangeable).
+    function luaJsonText(text: string): string {
+        let equals = "=";
+        while (text.includes("]" + equals + "]")) equals += "=";
+        return "[" + equals + "[" + text + "]" + equals + "]";
+    }
+
     function setTaskTargets(monitor: string, targets: var, source: string): void {
-        if (usingLua)
-            extras.message(`eval hyprstack_layouts.set_task_targets(${JSON.stringify(monitor)}, require("utils.json").decode(${JSON.stringify(JSON.stringify(targets))}), ${JSON.stringify(source || "bar")})`);
+        if (!usingLua) return;
+        const payload = typeof targets === "string" ? targets : JSON.stringify(targets);
+        extras.message(`eval hyprstack_layouts.set_task_targets(${luaJsonText(monitor)}, require("utils.json").decode(${luaJsonText(payload)}), ${luaJsonText(source || "bar")})`);
     }
 
     function taskWindows(screen: ShellScreen): list<HyprlandToplevel> {

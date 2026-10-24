@@ -12,7 +12,7 @@ ASSETS=ROOT/'shell/assets';DEST=ASSETS/'tour'
 def record(language,only):
  with tempfile.TemporaryDirectory(prefix='hics-tour-record-') as directory:
   base=Path(directory);home=base/'home';home.mkdir();cfg=base/'config/hics';cfg.mkdir(parents=True);state=base/'state/hics';state.mkdir(parents=True);(base/'data/applications').mkdir(parents=True);(base/'native').mkdir()
-  for name in ('hics-bars.so','libspatialoverview.so','hics-capture.so','hics-motion.so'):
+  for name in ('libhics-render-dispatch.so','hics-bars.so','libspatialoverview.so','hics-capture.so','hics-motion.so'):
    choices=[ROOT/'build'/name,ROOT/'build/third_party/phantomat'/name,Path('/usr/share/hics/native')/name]
    source=next((p for p in choices if p.is_file()),None)
    if source:shutil.copy2(source,base/'native'/name)

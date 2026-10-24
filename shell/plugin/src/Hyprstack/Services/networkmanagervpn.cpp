@@ -28,6 +28,7 @@ namespace {
 using V = std::shared_ptr<GVariant>;
 using C = std::shared_ptr<NMConnection>;
 using B = std::shared_ptr<GDBusConnection>;
+thread_local GCancellable* taskCancellation = nullptr;
 V variant(GVariant *value) {
   return V(value, [](GVariant *v) {
     if (v)
@@ -103,14 +104,29 @@ V property(GDBusConnection *b, const QString &path, const char *iface,
   auto wrapped = child(reply.get());
   return variant(g_variant_get_variant(wrapped.get()));
 }
-void ensureLibreswanService(GDBusConnection *b) {
+void ensureLibreswanService(GDBusConnection *) {
+  // Subscribe belongs to a bus connection. A private connection avoids leaking
+  // subscriptions or calling Unsubscribe on another VPN task's shared bus.
+  GError* connectionError = nullptr;
+  char* address = g_dbus_address_get_for_bus_sync(G_BUS_TYPE_SYSTEM, taskCancellation, &connectionError);
+  check(connectionError);
+  auto* raw = g_dbus_connection_new_for_address_sync(address,
+      GDBusConnectionFlags(G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT | G_DBUS_CONNECTION_FLAGS_MESSAGE_BUS_CONNECTION),
+      nullptr, taskCancellation, &connectionError);
+  g_free(address);
+  check(connectionError);
+  B notificationBus(raw, [](GDBusConnection* connection) {
+    g_dbus_connection_close_sync(connection, nullptr, nullptr);
+    g_object_unref(connection);
+  });
+  auto* b = notificationBus.get();
   auto systemd = [&](const QString &path, const char *iface, const char *method,
                      GVariant *args) {
     GError *error = nullptr;
     auto reply = variant(g_dbus_connection_call_sync(
         b, "org.freedesktop.systemd1", path.toUtf8().constData(), iface, method,
         args, nullptr, G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 30000,
-        nullptr, &error));
+        taskCancellation, &error));
     if (error) {
       auto detail = text(error->message);
       g_error_free(error);
@@ -133,18 +149,59 @@ void ensureLibreswanService(GDBusConnection *b) {
   };
   if (state() == "active")
     return;
-  systemd("/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager",
-          "StartUnit", g_variant_new("(ss)", "ipsec.service", "replace"));
-  QElapsedTimer timer;
-  timer.start();
-  while (timer.elapsed() < 20000) {
-    const auto current = state();
-    if (current == "active")
-      return;
-    if (current == "failed")
-      fail("Libreswan IPsec service failed to start. Check ipsec.service.");
-    QThread::msleep(100);
+  // Deliver systemd state notifications on this worker's private GLib context,
+  // rather than issuing up to 200 synchronous Properties.Get calls.
+  struct WaitState { GMainLoop* loop; QString state; bool released = false; };
+  auto* context = g_main_context_new();
+  g_main_context_push_thread_default(context);
+  auto* loop = g_main_loop_new(context, false);
+  WaitState wait{loop, {}};
+  const auto subscription = g_dbus_connection_signal_subscribe(
+      b, "org.freedesktop.systemd1", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+      path.toUtf8().constData(), "org.freedesktop.systemd1.Unit", G_DBUS_SIGNAL_FLAGS_NONE,
+      [](GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*, GVariant* parameters, gpointer data) {
+        auto* wait = static_cast<WaitState*>(data);
+        auto* changes = g_variant_get_child_value(parameters, 1);
+        const gchar* value = nullptr;
+        if (g_variant_lookup(changes, "ActiveState", "&s", &value)) {
+          wait->state = QString::fromUtf8(value);
+          if (wait->state == "active" || wait->state == "failed") g_main_loop_quit(wait->loop);
+        }
+        g_variant_unref(changes);
+      }, &wait, [](gpointer data) { static_cast<WaitState*>(data)->released = true; });
+  auto* deadline = g_timeout_source_new(20000);
+  g_source_set_callback(deadline, [](gpointer data) -> gboolean {
+    g_main_loop_quit(static_cast<WaitState*>(data)->loop); return G_SOURCE_REMOVE;
+  }, &wait, nullptr);
+  g_source_attach(deadline, context);
+  auto* cancellationSource = taskCancellation ? g_cancellable_source_new(taskCancellation) : nullptr;
+  if (cancellationSource) {
+    g_source_set_callback(cancellationSource, G_SOURCE_FUNC(+[](GCancellable*, gpointer data) -> gboolean {
+      g_main_loop_quit(static_cast<WaitState*>(data)->loop); return G_SOURCE_REMOVE;
+    }), &wait, nullptr);
+    g_source_attach(cancellationSource, context);
   }
+  auto cleanup = [&] {
+    g_source_destroy(deadline); g_source_unref(deadline);
+    if (cancellationSource) { g_source_destroy(cancellationSource); g_source_unref(cancellationSource); }
+    g_dbus_connection_signal_unsubscribe(b, subscription);
+    while (!wait.released) g_main_context_iteration(context, true);
+    g_main_loop_unref(loop);
+    g_main_context_pop_thread_default(context); g_main_context_unref(context);
+  };
+  try {
+    // systemd requires Subscribe in addition to a D-Bus match rule.
+    systemd("/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager", "Subscribe", nullptr);
+    systemd("/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager",
+            "StartUnit", g_variant_new("(ss)", "ipsec.service", "replace"));
+    wait.state = state(); // subscribe-before-start closes the activation race
+    if (wait.state != "active" && wait.state != "failed") g_main_loop_run(loop);
+  } catch (...) { cleanup(); throw; }
+  const auto finalState = wait.state;
+  cleanup();
+  if (taskCancellation && g_cancellable_is_cancelled(taskCancellation)) fail("Operation cancelled");
+  if (finalState == "active") return;
+  if (finalState == "failed") fail("Libreswan IPsec service failed to start. Check ipsec.service.");
   fail("Libreswan IPsec service did not become ready in time");
 }
 QString string(GVariant *value) {
@@ -703,10 +760,18 @@ QVariantList listProfiles(GDBusConnection *b) {
 } // namespace
 struct NetworkManagerVpn::State {
   QMap<QString, C> imported;
+  std::shared_ptr<GCancellable> cancellation;
+  QFuture<QVariantMap> future;
 };
 NetworkManagerVpn::NetworkManagerVpn(QObject *parent)
     : QObject(parent), m_state(std::make_shared<State>()) {}
-NetworkManagerVpn::~NetworkManagerVpn() = default;
+NetworkManagerVpn::~NetworkManagerVpn() {
+  cancel();
+  m_state->future.waitForFinished();
+}
+void NetworkManagerVpn::cancel() {
+  if (m_state->cancellation) g_cancellable_cancel(m_state->cancellation.get());
+}
 void NetworkManagerVpn::run(std::function<QVariantMap()> task,
                             std::function<void(const QVariantMap &)> done,
                             bool clearError) {
@@ -739,13 +804,18 @@ void NetworkManagerVpn::run(std::function<QVariantMap()> task,
             if (!result.contains("error"))
               done(result);
           });
-  watcher->setFuture(QtConcurrent::run([task] {
+  auto cancellation = std::shared_ptr<GCancellable>(g_cancellable_new(), [](GCancellable* value) { g_object_unref(value); });
+  m_state->cancellation = cancellation;
+  m_state->future = QtConcurrent::run([task, cancellation] {
+    struct Reset { ~Reset() { taskCancellation = nullptr; } } reset;
+    taskCancellation = cancellation.get();
     try {
       return task();
     } catch (const std::exception &e) {
       return QVariantMap{{"error", QString::fromUtf8(e.what())}};
     }
-  }));
+  });
+  watcher->setFuture(m_state->future);
 }
 void NetworkManagerVpn::refresh() {
   run(

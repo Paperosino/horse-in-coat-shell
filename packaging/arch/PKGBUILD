@@ -2,7 +2,7 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=47
+pkgrel=48
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 install=hic-shell.install
@@ -37,9 +37,9 @@ build() {
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DCMAKE_INSTALL_DATADIR=share \
-        -DHYPRSTACK_BUILD_NATIVE=ON \
-        -DHYPRSTACK_BUILD_CANVAS=ON \
-        -DHYPRSTACK_BUNDLE_RUNTIME=ON
+        -DHICS_BUILD_NATIVE=ON \
+        -DHICS_BUILD_CANVAS=ON \
+        -DHICS_BUNDLE_RUNTIME=ON
     cmake --build build
 }
 
@@ -49,10 +49,4 @@ package() {
     DESTDIR="$pkgdir" cmake --install build
     python distribution/native_plugins.py "$pkgdir/usr/share/hics/native" build
 
-    # System-wide user unit; ExecStart must point at /usr/bin, unlike the
-    # copy documented for user-local installs under ~/.config/systemd/user.
-    install -Dm644 distribution/systemd/user/hic-session.service \
-        "$pkgdir/usr/lib/systemd/user/hic-session.service"
-    sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/hics-session-runner|' \
-        "$pkgdir/usr/lib/systemd/user/hic-session.service"
 }

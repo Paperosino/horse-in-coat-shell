@@ -26,5 +26,5 @@ Singleton {
     function onScreen(name:string):var {return panels.filter(p=>p.screen===name).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));}
     Component.onCompleted:reload()
     FileView {path:Paths.config+"/panels.json";watchChanges:true;printErrors:false;onFileChanged:root.reload()}
-    FeatureBackend {id:backend;helper:"panel_manager.py"}
+    FeatureBackend {id:backend;helper:"panel_manager.py"; coalescePatches: ["update"]}
 }

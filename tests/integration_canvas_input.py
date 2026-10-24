@@ -16,7 +16,7 @@ workspace=tempfile.TemporaryDirectory(prefix='hyprstack-canvas-test-')
 base=Path(workspace.name)
 (base/'config/hics').mkdir(parents=True)
 (base/'data/native').mkdir(parents=True)
-for plugin in ['hics-bars.so','libspatialoverview.so']:
+for plugin in ['libhics-render-dispatch.so','hics-bars.so','libspatialoverview.so']:
  candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hics/native')/plugin]
  source=next((p for p in candidates if p.is_file()),None)
  if source is None:raise RuntimeError('Build native modules before running this integration test')

@@ -1,0 +1,20 @@
+[Unit]
+Description=hics desktop session
+PartOf=graphical-session.target
+ConditionEnvironment=HYPRLAND_INSTANCE_SIGNATURE
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart=@HICS_BIN_DIR@/hics-session-runner
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+# The runner stops shell leaders on reload and groups only at logout. Desktop applications launched by the
+# shell share this cgroup until they move to an application scope and must live
+# independently of shell updates.
+KillMode=process
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.hics.System1
+Exec=@HICS_BIN_DIR@/hics-systemd
+User=root
+SystemdService=hics-system.service

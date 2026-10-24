@@ -1,6 +1,7 @@
 """Adopt the hics directory names without discarding existing user settings."""
 from pathlib import Path
 import os
+import tempfile
 
 def migrate():
     home = Path.home()
@@ -51,3 +52,12 @@ def migrate():
 
 if __name__ == '__main__':
     migrate()
+    marker = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'hics/migrations/branding-v2'
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix='.branding-', dir=marker.parent)
+    try:
+        with os.fdopen(fd, 'w') as stream:
+            stream.write(str(Path(__file__).resolve()) + '\n')
+        os.replace(temporary, marker)
+    finally:
+        Path(temporary).unlink(missing_ok=True)

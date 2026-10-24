@@ -432,13 +432,13 @@ void ClipboardHistory::copy(const QString &id) {
     auto *p = new QProcess(this);
     connect(p, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), p,
             &QObject::deleteLater);
+    p->setStandardInputFile(W::clipboardFile(id));
+    connect(p, &QProcess::errorOccurred, this, [this, p](QProcess::ProcessError) {
+      m_error = "Cannot copy clipboard entry: " + p->errorString();
+      p->deleteLater(); emit changed();
+    });
     p->start("wl-copy", {"--type", mime});
-    if (!p->waitForStarted(1500)) {
-      p->deleteLater();
-      fail("Cannot copy clipboard entry");
-    }
-    p->write(W::clipboardData(id));
-    p->closeWriteChannel();
+
   });
 }
 void ClipboardHistory::pasteLatest() {
@@ -480,13 +480,13 @@ void ClipboardHistory::pasteLatest() {
             });
           });
         });
+    process->setStandardInputFile(W::clipboardFile(entry.value("id").toString()));
+    connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError) {
+      m_error = "Cannot copy clipboard entry: " + process->errorString();
+      process->deleteLater(); emit changed();
+    });
     process->start("wl-copy", {"--type", entry.value("mime").toString()});
-    if (!process->waitForStarted(1500)) {
-      process->deleteLater();
-      fail("Cannot copy clipboard entry");
-    }
-    process->write(W::clipboardData(entry.value("id").toString()));
-    process->closeWriteChannel();
+
   });
 }
 QString ClipboardHistory::decode(const QString &id) {
@@ -894,6 +894,12 @@ void ShortcutEditor::importFile(const QUrl &url) {
   emit changed();
 }
 
+WorkspaceSession::~WorkspaceSession() {
+  m_cancel->store(true);
+  // QFutureWatcher destruction does not join the worker. Keep Qt alive until
+  // cancellation has terminated its subprocesses and detached value work.
+  m_task.waitForFinished();
+}
 WorkspaceSession::WorkspaceSession(QObject *parent) : QObject(parent) {
   m_refreshTimer.setSingleShot(true);
   m_refreshTimer.setInterval(100);
@@ -1016,13 +1022,19 @@ void WorkspaceSession::task(
             emit changed();
             emit finished(success);
           });
-  watcher->setFuture(QtConcurrent::run([work] {
+  if (m_cancel->load()) m_cancel = std::make_shared<std::atomic_bool>(false);
+  auto cancellation = m_cancel;
+  m_task = QtConcurrent::run([work, cancellation] {
+    struct Reset { ~Reset() { W::commandCancellation.reset(); } } reset;
+    W::commandCancellation = cancellation;
     try {
+      if (cancellation->load()) fail("Operation cancelled");
       return work();
     } catch (const std::exception &e) {
       return QVariantMap{{"error", QString::fromUtf8(e.what())}};
     }
-  }));
+  });
+  watcher->setFuture(m_task);
 }
 void WorkspaceSession::capture(const QString &name, bool automatic) {
   task(

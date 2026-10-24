@@ -369,6 +369,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     if (Config::mgr()->type() == Config::CONFIG_LEGACY)
         HyprlandAPI::addConfigKeyword(PHANDLE, "plugin:hyprbars:hyprbars-button", onNewButton, Hyprlang::SHandlerOptions{});
     else {
+        HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "ready", +[](lua_State* L) {
+            lua_pushboolean(L, g_pCompositor && g_pCompositor->m_initialized);
+            return 1;
+        });
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "add_button", ::newLuaButton);
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "clear_buttons", ::clearLuaButtons);
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "animate_window", ::animateLuaWindow);

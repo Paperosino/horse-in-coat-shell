@@ -153,7 +153,7 @@ def build(update, jobs, hypr):
     subprocess.run(["cmake", "-S", str(ROOT), "-B", str(directory), "-G", "Ninja",
         "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_INSTALL_PREFIX=" + str(update.home / ".local"),
         "-DCMAKE_INSTALL_BINDIR=bin", "-DCMAKE_INSTALL_DATADIR=share", "-DHYPRSTACK_AUDIO_VISUALIZER=OFF",
-        "-DHYPRSTACK_BUILD_NATIVE=ON", "-DHYPRSTACK_BUILD_CANVAS=ON"], check=True)
+        "-DHICS_BUILD_NATIVE=ON", "-DHICS_BUILD_CANVAS=ON"], check=True)
     subprocess.run(["cmake", "--build", str(directory), "--parallel", str(jobs)], check=True)
     return directory
 

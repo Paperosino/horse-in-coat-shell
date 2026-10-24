@@ -8,7 +8,7 @@ ROOT=Path(__file__).resolve().parents[1]
 helper=ROOT/'build/lib/hics-workspace'
 with tempfile.TemporaryDirectory(prefix='hics-workspace-integration-') as temp:
  base=Path(temp);config=base/'config';(config/'hics').mkdir(parents=True);(base/'data/applications').mkdir(parents=True);(base/'native').mkdir()
- for name in ['hics-bars.so','libspatialoverview.so']:
+ for name in ['libhics-render-dispatch.so','hics-bars.so','libspatialoverview.so']:
   source=next(p for p in [ROOT/'build'/name,ROOT/'build/third_party/phantomat'/name,Path('/usr/share/hics/native')/name] if p.is_file());shutil.copy2(source,base/'native'/name)
  fixture=ROOT/'tests/fixtures'
  for flag,name in [('client-header','virtual-keyboard.h'),('private-code','virtual-keyboard.c')]:

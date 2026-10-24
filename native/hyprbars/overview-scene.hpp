@@ -1,3 +1,4 @@
+#include "../render-dispatch/dispatch.hpp"
 // Hyprstack's overview is a compositor scene, not a layer-shell application.
 // Pinned to the same Hyprland 0.56 renderer ABI as the titlebar adaptation.
 #pragma once
@@ -44,7 +45,6 @@ using BackgroundRender = void (*)(Render::IHyprRenderer*, PHLMONITOR);
 using FadeoutRender = void (*)(Render::IHyprRenderer*, PHLMONITOR, Desktop::eFadeoutPlane, PHLWORKSPACE);
 
 static CFunctionHook* renderHook = nullptr;
-static CFunctionHook* textureHook = nullptr;
 static CFunctionHook* rectHook = nullptr;
 static CFunctionHook* fadeoutHook = nullptr;
 static bool canvasSuspended = false;
@@ -836,9 +836,8 @@ static void drawSceneRect(Render::GL::CHyprOpenGLImpl* renderer, const CBox& sou
     original(renderer, destination, colour, data);
 }
 using TextureDraw = void (*)(Render::IElementRenderer*, WP<CTexPassElement>, const CRegion&);
-static void drawSceneTexture(Render::IElementRenderer* renderer, WP<CTexPassElement> element, const CRegion& damage) {
+static void drawSceneTexture(void* renderer, WP<CTexPassElement> element, const CRegion& damage, hics::render::Draw original) {
     auto& render = g_pHyprRenderer->m_renderData;
-    const auto original = reinterpret_cast<TextureDraw>(textureHook->m_original);
     if (!element || !scene || !scene->runningFor(render.pMonitor.lock()) || render.renderModif.modifs.empty()) {
         original(renderer, element, damage); return;
     }
@@ -867,7 +866,7 @@ static void drawSceneTexture(Render::IElementRenderer* renderer, WP<CTexPassElem
 }
 static void renderScene(Render::IHyprRenderer* renderer, PHLMONITOR monitor, PHLWORKSPACE workspace,
     const Time::steady_tp& now, const Vector2D& translate, const float& scale) {
-    if (scene && scene->runningFor(monitor)) scene->render(renderer,monitor,now);
+    if (!canvasSuspended && scene && scene->runningFor(monitor)) scene->render(renderer,monitor,now);
     else reinterpret_cast<WorkspaceRender>(renderHook->m_original)(renderer,monitor,workspace,now,translate,scale);
 }
 static void renderSceneFadeouts(Render::IHyprRenderer* renderer, PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace) {
@@ -880,36 +879,32 @@ static void renderSceneFadeouts(Render::IHyprRenderer* renderer, PHLMONITOR moni
 static int luaScene(lua_State* L) {
     const std::string action=luaL_checkstring(L,1);
     try {
-        if (action=="show") scene->update(Json::parse(luaL_checkstring(L,2)));
+        if (action=="show") {
+            if (canvasSuspended) return luaL_error(L, "Overview renderer is suspended in canvas mode");
+            scene->update(Json::parse(luaL_checkstring(L,2)));
+        }
         else if (action=="close") scene->close(lua_toboolean(L,2));
         else if (action=="reset") scene->reset();
         else if (action=="heartbeat") scene->heartbeat();
         else if (action=="status" || action=="input" || action=="geometry") {
-            const auto value=(action=="status" ? scene->status() : action=="geometry" ? Scene::geometry() : scene->takeInput()).dump();
+            auto data=action=="status" ? scene->status() : action=="geometry" ? Scene::geometry() : scene->takeInput();
+            if (action=="status") {
+                const auto state = hics::render::diagnostics();
+                data["textureDispatcher"] = {{"patches",state.patches},{"participants",state.participants},{"activePriority",state.activePriority}};
+            }
+            const auto value=data.dump();
             lua_pushlstring(L,value.data(),value.size()); return 1;
         }
         lua_pushboolean(L,true); return 1;
     } catch (const std::exception& e) { return luaL_error(L,"Hyprstack overview: %s",e.what()); }
 }
-// Canvas and overview share drawTex. Only one owner may patch it at a time.
+// Switching modes changes dispatch state only; it never rewrites machine code.
 static int luaOverviewHooks(lua_State* L) {
     const bool enable = lua_toboolean(L, 1);
-    if (enable == !canvasSuspended) { lua_pushboolean(L, true); return 1; }
     if (scene) scene->reset();
-    if (!enable) {
-        for (auto* hook : {fadeoutHook, rectHook, textureHook, renderHook}) if (hook) hook->unhook();
-        canvasSuspended = true;
-        g_canvasOwnsPointer = true;
-    } else {
-        for (auto* hook : {renderHook, textureHook, rectHook, fadeoutHook}) {
-            if (hook && !hook->hook()) {
-                for (auto* previous : {fadeoutHook, rectHook, textureHook, renderHook}) if (previous) previous->unhook();
-                return luaL_error(L, "Cannot restore overview renderer while canvas hooks are still active");
-            }
-        }
-        canvasSuspended = false;
-        g_canvasOwnsPointer = false;
-    }
+    canvasSuspended = !enable;
+    g_canvasOwnsPointer = !enable;
+    hics::render::enable(drawSceneTexture, enable);
     lua_pushboolean(L, true); return 1;
 }
 static void remove(HANDLE handle) {
@@ -923,8 +918,7 @@ static void remove(HANDLE handle) {
     fadeoutHook=nullptr;
     if (rectHook) HyprlandAPI::removeFunctionHook(handle,rectHook);
     rectHook=nullptr;
-    if (textureHook) HyprlandAPI::removeFunctionHook(handle,textureHook);
-    textureHook=nullptr;
+    hics::render::detach(handle);
     if (renderHook) HyprlandAPI::removeFunctionHook(handle,renderHook);
     renderHook=nullptr;
 }
@@ -940,8 +934,8 @@ static void install(HANDLE handle) {
         renderBackground=reinterpret_cast<BackgroundRender>(function("renderBackground","Render::IHyprRenderer::renderBackground("));
         renderHook=HyprlandAPI::createFunctionHook(handle,function("renderAllClientsForWorkspace","Render::IHyprRenderer::renderAllClientsForWorkspace("),reinterpret_cast<void*>(&renderScene));
         if (!renderHook || !renderHook->hook()) throw std::runtime_error("[hyprstack] Cannot hook the pinned overview renderer");
-        textureHook=HyprlandAPI::createFunctionHook(handle,function("drawTex","Render::IElementRenderer::drawTex("),reinterpret_cast<void*>(&drawSceneTexture));
-        if (!textureHook || !textureHook->hook()) throw std::runtime_error("[hyprstack] Cannot hook overview texture clipping");
+        if (!hics::render::attach(handle, drawSceneTexture, 10, true))
+            throw std::runtime_error("hics: cannot attach shared texture dispatcher");
         rectHook=HyprlandAPI::createFunctionHook(handle,function("renderRect","Render::GL::CHyprOpenGLImpl::renderRect("),reinterpret_cast<void*>(&drawSceneRect));
         if (!rectHook || !rectHook->hook()) throw std::runtime_error("[hyprstack] Cannot hook overview decoration rounding");
         fadeoutHook=HyprlandAPI::createFunctionHook(handle,function("renderFadeouts","Render::IHyprRenderer::renderFadeouts("),reinterpret_cast<void*>(&renderSceneFadeouts));

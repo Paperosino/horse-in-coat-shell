@@ -1,4 +1,5 @@
 #include "requests.hpp"
+#include "boundednetwork.hpp"
 
 #include <qjsvalue.h>
 #include <qjsvalueiterator.h>
@@ -50,6 +51,7 @@ void Requests::get(const QUrl& url, const QJSValue& onSuccess, const QJSValue& o
 
     QNetworkRequest request(url);
     request.setTransferTimeout(15000);
+    request.setDecompressedSafetyCheckThreshold(1024 * 1024);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
     request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
     request.setRawHeader("Cache-Control"_ba, "no-cache, no-store"_ba);
@@ -65,9 +67,10 @@ void Requests::get(const QUrl& url, const QJSValue& onSuccess, const QJSValue& o
     }
 
     auto* reply = m_manager->get(request);
+    hics::boundNetworkReply(reply);
 
     QObject::connect(reply, &QNetworkReply::finished, this, [this, reply, onSuccess, onError] {
-        const QString body = QString::fromUtf8(reply->readAll());
+        const QString body = QString::fromUtf8(hics::networkBody(reply));
 
         QJSValue metadata;
         if (auto* engine = qmlEngine(this))

@@ -92,13 +92,29 @@ vanished=VanishedActive(bus,ROOT+'/ActiveConnection/98')
 systemd_name=dbus.service.BusName('org.freedesktop.systemd1',bus)
 class Systemd(dbus.service.Object):
  active=False
+ start_mode='immediate'
+ @dbus.service.method('org.hics.Test',in_signature='s')
+ def SetStartMode(self,mode):Systemd.start_mode=str(mode);Systemd.active=False
+ @dbus.service.method('org.freedesktop.systemd1.Manager')
+ def Subscribe(self):log('Subscribe','ipsec.service')
  @dbus.service.method('org.freedesktop.systemd1.Manager',in_signature='s',out_signature='o')
  def LoadUnit(self,unit):return '/org/freedesktop/systemd1/unit/ipsec_2eservice'
  @dbus.service.method('org.freedesktop.systemd1.Manager',in_signature='ss',out_signature='o')
- def StartUnit(self,unit,mode):log('StartUnit',unit);Systemd.active=True;return '/org/freedesktop/systemd1/job/1'
+ def StartUnit(self,unit,mode):
+  log('StartUnit',unit)
+  if Systemd.start_mode=='immediate':Systemd.active=True
+  else:GLib.timeout_add(450,ipsec.complete)
+  return '/org/freedesktop/systemd1/job/1'
 class IpsecUnit(dbus.service.Object):
  @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
- def Get(self,iface,key):return 'active' if Systemd.active else 'inactive'
+ def Get(self,iface,key):log('IpsecState',None);return 'active' if Systemd.active else 'inactive'
+ @dbus.service.signal('org.freedesktop.DBus.Properties',signature='sa{sv}as')
+ def PropertiesChanged(self,iface,changes,invalidated):pass
+ def complete(self):
+  state='failed' if Systemd.start_mode=='failed' else 'active'
+  Systemd.active=state=='active'
+  self.PropertiesChanged('org.freedesktop.systemd1.Unit',{'ActiveState':state},[])
+  return False
 systemd=Systemd(bus,'/org/freedesktop/systemd1');ipsec=IpsecUnit(bus,'/org/freedesktop/systemd1/unit/ipsec_2eservice')
 secret_name=dbus.service.BusName('org.freedesktop.secrets',bus)
 class SecretStore(dbus.service.Object):

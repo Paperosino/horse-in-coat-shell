@@ -175,13 +175,14 @@ class CStackingInput {
                     if (maximized) runDecorationAction(window, "maximize-unset");
                     auto normal = window->layoutBox();
                     normal.x = pos.x - normal.w * fraction;
-                    std::string app = window->m_class;
-                    std::ranges::transform(app, app.begin(), [](unsigned char c) { return std::tolower(c); });
-                    const bool csd = app.find("thorium") != std::string::npos || app.find("chromium") != std::string::npos ||
-                        app.find("chrome") != std::string::npos || app.find("telegram") != std::string::npos ||
-                        app.find("ayugram") != std::string::npos || app == "firefox" || app == "librewolf" ||
-                        app.starts_with("zen") || app == "discord" || app.starts_with("org.gnome.");
-                    normal.y = pos.y + (csd ? -16 : 16);
+                    double decorationHeight = 0;
+                    for (const auto& weak : g_pGlobalState->bars)
+                        if (const auto bar = weak.lock(); bar && bar->getOwner() == window)
+                            decorationHeight = bar->visibleHeight();
+                    // Preserve the actual pointer-to-client offset. A server
+                    // titlebar lies above the client box; CSD lies inside it.
+                    const double anchor = std::clamp(pos.y - previous.y, -decorationHeight, std::min(48.0, normal.h / 2.0));
+                    normal.y = pos.y - anchor;
                     target->setPositionGlobal(normal);
                     g_layoutManager->beginDragTarget(target, MBIND_MOVE, std::nullopt, exclusive);
                     runDecorationAction(window, "drag-start");

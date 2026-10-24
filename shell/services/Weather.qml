@@ -18,15 +18,14 @@ Singleton {
     property list<var> forecast
     property list<var> hourlyForecast
 
-    property bool ipApiRequestPending: false
-    property double ipApiBlockedUntil: 0
+    property bool locationRequestPending: false
     property bool citiesLoaded: false
     property string pendingCoords
     property string error
     property bool weatherRequestPending: false
     property bool cityRequestPending: false
     property int locationGeneration: 0
-    readonly property bool loading: ipApiRequestPending || weatherRequestPending || cityRequestPending
+    readonly property bool loading: locationRequestPending || weatherRequestPending || cityRequestPending
     readonly property string provider: GlobalConfig.services.weatherProvider === "wttr.in" ? "wttr.in" : "open-meteo"
     readonly property string providerName: provider === "wttr.in" ? "wttr.in" : "Open-Meteo"
 
@@ -84,50 +83,11 @@ Singleton {
             } else {
                 fetchCoordsFromCity(configLocation);
             }
-        } else if ((!loc || timer.elapsed() > 900) && !ipApiRequestPending && Date.now() >= ipApiBlockedUntil) {
-            ipApiRequestPending = true;
+        } else if ((!loc || timer.elapsed() > 900) && !locationRequestPending) {
+            locationRequestPending = true;
             const generation = locationGeneration;
 
-            Requests.get("http://ip-api.com/json?fields=status,message,city,lat,lon", (text, metadata) => {
-                ipApiRequestPending = false;
-                recordIpApiRateLimit(metadata);
-
-                // Protect against stale responses overwriting the manually-set location,
-                // in case the config was updated while this request was in-flight.
-                if (obsoleteRequest(generation))
-                    return;
-
-                let response;
-                try {
-                    response = JSON.parse(text);
-                } catch (error) {
-                    console.warn(lc, `Unable to parse response from ip-api: ${error}`);
-                    fetchFallbackLocation(generation);
-                    return;
-                }
-
-                const lat = Number(response.lat);
-                const lon = Number(response.lon);
-
-                if (response.status !== "success" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
-                    console.warn(lc, `ip-api lookup failed: ${response.message ?? "invalid response"}`);
-                    fetchFallbackLocation(generation);
-                    return;
-                }
-
-                city = fixCityName(response.city ?? "");
-                timer.restart();
-                loc = `${lat},${lon}`;
-                fetchWeatherData();
-            }, (error, metadata) => {
-                ipApiRequestPending = false;
-                if (obsoleteRequest(generation))
-                    return;
-
-                if (!recordIpApiRateLimit(metadata))
-                    console.warn(lc, `ip-api request failed: ${error}`);
-                fetchFallbackLocation(generation);
-            });
+            fetchIpLocation(generation);
         } else if (loc) {
             fetchWeatherData();
         }
@@ -146,16 +106,16 @@ Singleton {
         retryTimer.restart();
     }
 
-    function fetchFallbackLocation(generation: int): void {
-        ipApiRequestPending = true;
+    function fetchIpLocation(generation: int): void {
+        locationRequestPending = true;
         Requests.get("https://ipwho.is/", text => {
-            ipApiRequestPending = false;
+            locationRequestPending = false;
             if (obsoleteRequest(generation))
                 return;
             try {
                 const response = JSON.parse(text);
                 const lat = response.latitude, lon = response.longitude;
-                if (!response.success || !Number.isFinite(lat) || !Number.isFinite(lon))
+                if (!response.success || !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180)
                     throw new Error("invalid location");
                 city = fixCityName(response.city ?? "");
                 loc = `${lat},${lon}`;
@@ -165,30 +125,10 @@ Singleton {
                 root.fail(Tr.tr("Unable to determine weather location"));
             }
         }, err => {
-            ipApiRequestPending = false;
+            locationRequestPending = false;
             if (!obsoleteRequest(generation))
                 root.fail(Tr.tr("Unable to determine weather location"));
         });
-    }
-
-    function recordIpApiRateLimit(metadata: var): bool {
-        const remainingHeader = metadata?.headers?.["x-rl"];
-        const exhausted = remainingHeader !== undefined && Number(remainingHeader) === 0;
-
-        if (metadata?.statusCode !== 429 && !exhausted)
-            return false;
-
-        const ttlHeader = metadata?.headers?.["x-ttl"];
-        const ttl = Number(ttlHeader);
-
-        const delaySeconds = Number.isFinite(ttl) ? Math.max(1, Math.ceil(ttl) + 1) : 61;
-
-        const delayMs = delaySeconds * 1000;
-        ipApiBlockedUntil = Date.now() + delayMs;
-        ipApiRetryTimer.interval = delayMs;
-        ipApiRetryTimer.restart();
-
-        return true;
     }
 
     function fixCityName(cityName: string): string {
@@ -512,23 +452,6 @@ Singleton {
         id: retryTimer
         interval: 60000
         onTriggered: root.reload()
-    }
-
-    Timer {
-        id: ipApiRetryTimer
-
-        repeat: false
-
-        onTriggered: {
-            const remaining = root.ipApiBlockedUntil - Date.now();
-
-            if (remaining > 0) {
-                interval = Math.ceil(remaining);
-                restart();
-            } else {
-                root.reload();
-            }
-        }
     }
 
     Timer {

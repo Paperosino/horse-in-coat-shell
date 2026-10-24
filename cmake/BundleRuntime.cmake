@@ -1,4 +1,4 @@
-# Private quickshell + Qt runtime for binary packages (HYPRSTACK_BUNDLE_RUNTIME).
+# Private quickshell + Qt runtime for binary packages (HICS_BUNDLE_RUNTIME).
 # Builds the pinned quickshell tag against the system Qt, then install(CODE)
 # assembles a self-contained runtime under ${DATADIR}/hics/qs.
 
@@ -17,14 +17,14 @@ foreach(qt_dir IN ITEMS "${HYPRSTACK_QT_PLUGINS}" "${HYPRSTACK_QT_QML}" "${HYPRS
         message(FATAL_ERROR "Qt directory from qmake6 -query does not exist: ${qt_dir}")
     endif()
 endforeach()
-message(STATUS "Bundling quickshell ${HYPRSTACK_QUICKSHELL_TAG} runtime")
+message(STATUS "Bundling quickshell ${HICS_QUICKSHELL_TAG} runtime")
 message(STATUS "  Qt plugins: ${HYPRSTACK_QT_PLUGINS}")
 message(STATUS "  Qt qml:     ${HYPRSTACK_QT_QML}")
 message(STATUS "  Qt libs:    ${HYPRSTACK_QT_LIBS}")
 
 # Extra prefix for header-only build dependencies of quickshell (CLI11,
 # Vulkan-Headers) when they are installed into a user prefix instead of /usr.
-set(HYPRSTACK_BUNDLE_PREFIX_PATH "$ENV{HOME}/.local"
+set(HICS_BUNDLE_PREFIX_PATH "$ENV{HOME}/.local"
     CACHE STRING "Extra CMAKE_PREFIX_PATH for the bundled quickshell build")
 
 set(HYPRSTACK_QS_STAGE "${CMAKE_BINARY_DIR}/runtime/qs")
@@ -38,14 +38,14 @@ ExternalProject_Add(quickshell-runtime
     BINARY_DIR "${HYPRSTACK_QS_BINARY}"
     STAMP_DIR "${HYPRSTACK_QS_PREFIX}/stamp"
     TMP_DIR "${HYPRSTACK_QS_PREFIX}/tmp"
-    URL "https://github.com/quickshell-mirror/quickshell/archive/refs/tags/${HYPRSTACK_QUICKSHELL_TAG}.tar.gz"
+    URL "https://github.com/quickshell-mirror/quickshell/archive/refs/tags/${HICS_QUICKSHELL_TAG}.tar.gz"
     URL_HASH "SHA256=946a27e2a276917a03c1079e5c60971af84ece73088c3661dee455d92eb420f7"
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     CMAKE_GENERATOR Ninja
     CMAKE_ARGS
         "-DCMAKE_BUILD_TYPE=Release"
         "-DCMAKE_INSTALL_PREFIX=${HYPRSTACK_QS_STAGE}"
-        "-DCMAKE_PREFIX_PATH=${HYPRSTACK_BUNDLE_PREFIX_PATH}"
+        "-DCMAKE_PREFIX_PATH=${HICS_BUNDLE_PREFIX_PATH}"
         "-DDISTRIBUTOR=Hyprstack bundle"
         "-DUSE_JEMALLOC=OFF"
         "-DCRASH_HANDLER=OFF"

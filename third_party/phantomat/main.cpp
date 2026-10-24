@@ -1,3 +1,4 @@
+#include "../../native/render-dispatch/dispatch.hpp"
 #define WLR_USE_UNSTABLE
 
 #include <unistd.h>
@@ -88,6 +89,8 @@ static bool g_scrollOverviewHooksActive = false;
 
 static void failNotif(const std::string& reason);
 
+static void hkElementDrawTex(void*, WP<CTexPassElement>, const CRegion&, hics::render::Draw);
+
 bool ensureScrollOverviewHooks() {
     if (g_scrollOverviewHooksActive)
         return true;
@@ -107,7 +110,7 @@ bool ensureScrollOverviewHooks() {
             success = success && g_pScrollAddDamageHookB->hook();
     }
     success      = success && g_pScrollDrawTexHook->hook();
-    success      = success && g_pScrollElementDrawTexHook->hook();
+    hics::render::enable(hkElementDrawTex, true);
     success = success && g_pCanvasDndMotionHook->hook();
     success      = success && g_pPopupRepositionHook->hook();
     success      = success && g_pBeginDragTargetHook->hook();
@@ -138,8 +141,7 @@ void disableScrollOverviewHooks() {
         g_pBeginDragTargetHook->unhook();
     if (g_pPopupRepositionHook)
         g_pPopupRepositionHook->unhook();
-    if (g_pScrollElementDrawTexHook)
-        g_pScrollElementDrawTexHook->unhook();
+    hics::render::enable(hkElementDrawTex, false);
     if (g_pScrollDrawTexHook)
         g_pScrollDrawTexHook->unhook();
     if (g_pScrollAddDamageHookB)
@@ -270,15 +272,15 @@ static void hkDrawTex(void* thisptr, WP<CTexPassElement> element, const CRegion&
     element->m_data.clipBox    = previousElementClipBox;
 }
 
-static void hkElementDrawTex(void* thisptr, WP<CTexPassElement> element, const CRegion& damage) {
+static void hkElementDrawTex(void* thisptr, WP<CTexPassElement> element, const CRegion& damage, hics::render::Draw original) {
     if (!renderingOverview || !element || !g_pHyprRenderer) {
-        rc<origElementDrawTex>(g_pScrollElementDrawTexHook->m_original)(thisptr, element, damage);
+        original(thisptr, element, damage);
         return;
     }
 
     auto& renderModif = g_pHyprRenderer->m_renderData.renderModif;
     if (!renderModif.enabled || renderModif.modifs.empty() || !g_pHyprRenderer->m_renderData.currentWindow || !element->m_data.surface) {
-        rc<origElementDrawTex>(g_pScrollElementDrawTexHook->m_original)(thisptr, element, damage);
+        original(thisptr, element, damage);
         return;
     }
 
@@ -306,7 +308,7 @@ static void hkElementDrawTex(void* thisptr, WP<CTexPassElement> element, const C
     g_pHyprRenderer->m_renderData.clipBox = {};
     renderModif                           = {};
 
-    rc<origElementDrawTex>(g_pScrollElementDrawTexHook->m_original)(thisptr, element, transformedDamage);
+    original(thisptr, element, transformedDamage);
 
     renderModif                              = previousRenderModif;
     element->m_data.box                      = previousElementBox;
@@ -908,10 +910,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         findFnOrThrow("draw", {"CGLElementRenderer::draw(Hyprutils::Memory::CWeakPointer<CTexPassElement>"}),
         rc<void*>(hkDrawTex));
 
-    g_pScrollElementDrawTexHook = HyprlandAPI::createFunctionHook(
-        SCROLLOVERVIEW_HANDLE,
-        findFnOrThrow("drawTex", {"IElementRenderer::drawTex(Hyprutils::Memory::CWeakPointer<CTexPassElement>"}),
-        rc<void*>(hkElementDrawTex));
 
     g_pCanvasDndMotionHook = HyprlandAPI::createFunctionHook(SCROLLOVERVIEW_HANDLE,
         findFnOrThrow("sendMotion", {"CWLDataDeviceResource::sendMotion("}), rc<void*>(hkCanvasDndMotion));
@@ -1010,10 +1008,14 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         return 0;
     });
 
+    if (!hics::render::attach(SCROLLOVERVIEW_HANDLE, hkElementDrawTex, 20, false))
+        throw std::runtime_error("hics: cannot attach canvas texture dispatcher");
+
     return {"spatialoverview", "Phantomat: a zoomable, infinite-canvas window manager for Hyprland", "Kaolti, yayuuu, Vaxry", SCROLLOVERVIEW_VERSION};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
+    hics::render::detach(SCROLLOVERVIEW_HANDLE);
     if (g_flightDeckIdle) wl_event_source_remove(g_flightDeckIdle);
     g_flightDeckIdle = nullptr;
     g_flightDeckRequest.reset();

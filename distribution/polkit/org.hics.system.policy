@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN" "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
-  <vendor>Hyprstack</vendor>
+  <vendor>hics</vendor>
   <action id="org.hics.system.printers">
     <description>Manage system printers</description><description xml:lang="ru">Управление системными принтерами</description>
     <message>Authentication is required to change printer settings</message><message xml:lang="ru">Для изменения настроек принтера требуется подтверждение</message>

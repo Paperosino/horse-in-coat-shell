@@ -59,5 +59,5 @@ Singleton {
         function disable(id: string): void { root.setEnabled(id, false); }
     }
     FileView { path: `${Paths.config}/plugins.json`; printErrors: false; watchChanges: true; onFileChanged: root.reload() }
-    FeatureBackend { id: backend; helper: "plugin_manager.py" }
+    FeatureBackend { id: backend; helper: "plugin_manager.py"; coalescePatches: ["settings", "desktop-layout"] }
 }

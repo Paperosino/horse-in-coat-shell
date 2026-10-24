@@ -14,9 +14,7 @@
 #include "globals.hpp"
 #include <map>
 
-#define private public
 #include <hyprland/src/managers/input/InputManager.hpp>
-#undef private
 
 namespace Event {
     struct SCallbackInfo;
@@ -49,6 +47,7 @@ class CHyprBar : public IHyprWindowDecoration {
     virtual std::string                getDisplayName();
 
     PHLWINDOW                          getOwner();
+    double visibleHeight() const { return m_hidden || !g_pGlobalState->config.enabled->value() ? 0.0 : g_pGlobalState->config.barHeight->value(); }
 
     void                               updateRules();
     void                               onConfigReloaded();
