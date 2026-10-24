@@ -22,7 +22,7 @@ QtObject {
         ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "input-devices", "shortcuts", "clipboard", "accessibility"]),
         ...navigationGroup("connections", ["network", "bluetooth", "sharing"]),
         ...navigationGroup("applications", ["apps", "default-apps", "autostart", "session-recovery", "projects", "notifications", "plugins", "assistant"]),
-        ...navigationGroup("system", ["power", "region", "datetime", "configuration-history", "settings-workbench", "desktop-health", "services", "first-steps", "about"])
+        ...navigationGroup("system", ["power", "performance", "region", "datetime", "configuration-history", "settings-workbench", "desktop-health", "services", "first-steps", "about"])
     ])
     function navigationGroup(category: string, ids: list<string>): var {
         return ids.map(id => {
@@ -193,6 +193,7 @@ QtObject {
         {id:"input-devices",label:Tr.tr("Individual input devices"),icon:"devices",description:Tr.tr("Independent keyboard and pointer overrides"),category:"connectivity"},
         {id:"settings-workbench",label:Tr.tr("Settings workbench"),icon:"tune",description:Tr.tr("Changed values, defaults and section resets"),category:"shell"},
         {id:"desktop-health",label:Tr.tr("Desktop health"),icon:"monitor_heart",description:Tr.tr("Checks, service recovery and local reports"),category:"shell"},
-        {id:"first-steps",label:Tr.tr("First steps"),icon:"explore",description:Tr.tr("Introduction, initial setup and recorded demonstrations"),category:"shell"}
+        {id:"first-steps",label:Tr.tr("First steps"),icon:"explore",description:Tr.tr("Introduction, initial setup and recorded demonstrations"),category:"shell"},
+        {id:"performance",label:Tr.tr("Performance & games"),icon:"speed",description:Tr.tr("Game mode, adaptive effects, power and background work"),category:"shell"}
     ]
 }

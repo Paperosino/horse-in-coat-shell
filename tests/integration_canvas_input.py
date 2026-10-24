@@ -272,6 +272,18 @@ ShellRoot {
    colour=pixels.getpixel(point);assert colour[channel]>150 and colour[2]<80,(point,colour)
   ctl('repl','hyprstack_layouts.overview_scene("reset");hyprstack_layouts.set_overview(false)')
   print('PASS: shell overview uses the same complete surface mask',flush=True)
+  def overview_status():return json.loads(ctl('repl','return hyprstack_layouts.overview_scene("status")'))
+  ctl('repl','hyprstack_layouts.set_overview(true);return hyprstack_layouts.overview_scene("show",'+json.dumps(json.dumps(scene))+')')
+  time.sleep(.5);first=overview_status()
+  time.sleep(.35);settled=overview_status()
+  assert settled['syntheticFrames']==first['syntheticFrames'],('Settled overview still generates continuous frames',first,settled)
+  count=settled['backgroundRenders']
+  ctl('repl','hyprstack_layouts.overview_scene("reset");hyprstack_layouts.set_overview(false)')
+  ctl('repl','hyprstack_layouts.set_overview(true);return hyprstack_layouts.overview_scene("show",'+json.dumps(json.dumps(scene))+')')
+  time.sleep(.4);reopened=overview_status()
+  assert reopened['backgroundRenders']==count,('Unchanged wallpaper blur was recomputed',count,reopened)
+  ctl('repl','hyprstack_layouts.overview_scene("reset");hyprstack_layouts.set_overview(false)')
+  print('PASS: settled overview stops synthetic frames and reuses unchanged wallpaper blur',flush=True)
   if os.environ.get('HYPRSTACK_RELOAD_PLUGIN'):
    # Leave a closing/fading window when the plugins unload. Its decoration
    # must be destroyed before the library containing its deleter is unmapped.

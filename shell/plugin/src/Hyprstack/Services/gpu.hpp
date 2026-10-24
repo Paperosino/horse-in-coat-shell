@@ -6,6 +6,8 @@
 
 #include "config/enums.hpp"
 #include "tickingservice.hpp"
+#include "gpumetricssampler.hpp"
+#include <QElapsedTimer>
 
 namespace hyprstack::services {
 
@@ -24,6 +26,7 @@ class Gpu : public TickingService {
 
 public:
     explicit Gpu(QObject* parent = nullptr);
+    ~Gpu() override;
 
     [[nodiscard]] GpuType type() const;
     [[nodiscard]] QString name() const;
@@ -40,6 +43,7 @@ signals:
 
 protected:
     void tick() override;
+    void onStopped() override;
 
 private:
     // Applies the user override, or probes for the type when it is Auto. Supersedes any
@@ -52,9 +56,7 @@ private:
     void tryNameSource(int index, int generation);
     void finishNameSource(int index, int generation, QString name);
 
-    void readGenericUsage();
-    void startNvidiaUsage();
-    void readGpuTemperature();
+    void startGpuUsage();
     void resetUsage();
 
     // Runs a one-shot process, delivering its stdout to callback exactly once (empty
@@ -81,7 +83,10 @@ private:
 
     // Bumped per resolution so callbacks from a superseded probe are dropped
     int m_generation = 0;
+    int m_usageGeneration = 0;
     bool m_nvidiaQuerying = false;
+    hics::performance::GpuMetricsSampler m_metrics;
+    QElapsedTimer m_fallbackSample;
 };
 
 } // namespace hyprstack::services

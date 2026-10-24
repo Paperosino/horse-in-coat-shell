@@ -8,6 +8,7 @@ endif()
 qml_module(hyprstack-services
     URI Hyprstack.Services
     SOURCES
+        runtimeperformance.cpp
         applicationcatalogue.cpp
         workspacetools.cpp
         workspacestore.cpp
@@ -65,3 +66,5 @@ target_link_libraries(hics-workspace PRIVATE PkgConfig::NetworkManager Qt::Core 
 install(TARGETS hics-workspace RUNTIME DESTINATION bin)
 
 set_source_files_properties(applicationcatalogue.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON COMPILE_OPTIONS "-UQT_NO_CAST_FROM_ASCII;-UQT_NO_CAST_TO_ASCII;-UQT_NO_CAST_FROM_BYTEARRAY")
+
+set_source_files_properties(runtimeperformance.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON COMPILE_OPTIONS "-UQT_NO_CAST_FROM_ASCII;-UQT_NO_CAST_TO_ASCII;-UQT_NO_CAST_FROM_BYTEARRAY")

@@ -27,7 +27,7 @@ Item {
         z: -1
         visible: Effects.uiShadowsEnabled
         color: Qt.alpha(Colours.palette.m3shadow, Effects.shadowOpacity)
-        blur: (root.dp * 5) ** 0.7 * Effects.shadowSize / 18 * root.Tokens.scale
+        blur: (root.dp * 5) ** 0.7 * Effects.effectiveShadowSize / 18 * root.Tokens.scale
         spread: (-root.dp * 0.3 + (root.dp * 0.1) ** 2) * root.Tokens.scale
         offset.y: root.dp / 2 * root.Tokens.scale
     }

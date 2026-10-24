@@ -29,9 +29,10 @@ PageBase {
             value: 1
         },
         MenuItem {
-            text: Tr.tr("Adaptive")
+            text: Tr.tr("Fullscreen only")
             value: 2
-        }
+        },
+        MenuItem { text: Tr.tr("Fullscreen games only"); value: 3 }
     ]
 
     readonly property list<MenuItem> orientationItems: [
@@ -262,7 +263,7 @@ PageBase {
                 objectName: "displayVrr"
                 visible: root.current !== null
                 label: Tr.tr("Adaptive sync (VRR)")
-                subtext: Tr.tr("Variable refresh rate mode for this display")
+                subtext: Tr.tr("Opt in for this display. Confirm the image is stable; changes roll back if not confirmed.")
                 menuItems: root.vrrItems
                 active: root.vrrItems.find(i => i.value === (root.current?.vrr ?? 0)) ?? null
                 onSelected: item => Monitors.stageVrr(root.current.name, item.value)

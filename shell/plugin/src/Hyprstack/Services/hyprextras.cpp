@@ -159,7 +159,7 @@ void HyprExtras::refreshOptions(bool afterReload) {
         // value. Read the options consumed by the shell in a single IPC batch.
         const QStringList liveKeys{u"animations:enabled"_s, u"decoration:shadow:enabled"_s,
             u"decoration:blur:enabled"_s, u"general:gaps_in"_s, u"general:gaps_out"_s,
-            u"general:border_size"_s, u"decoration:rounding"_s, u"general:allow_tearing"_s};
+            u"general:border_size"_s, u"decoration:rounding"_s, u"general:allow_tearing"_s, u"render:direct_scanout"_s};
         QString request = u"[[BATCH]]"_s;
         for (const auto &key : liveKeys) request += u"j/getoption "_s + key + u';';
         m_optionsRefresh = makeRequest(request, [this, generation, next](bool ok, const QByteArray &raw) mutable {

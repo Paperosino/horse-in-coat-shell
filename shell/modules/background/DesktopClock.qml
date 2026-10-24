@@ -17,7 +17,7 @@ Item {
 
     property real clockScale: Config.background.desktopClock.scale
     readonly property bool bgEnabled: Config.background.desktopClock.background.enabled
-    readonly property bool blurEnabled: bgEnabled && Config.background.desktopClock.background.blur && !GameMode.enabled
+    readonly property bool blurEnabled: bgEnabled && Config.background.desktopClock.background.blur && !GameMode.effectsSuspended && Effects.effectiveBlurEnabled
     readonly property bool invertColors: Config.background.desktopClock.invertColors
     readonly property bool useLightSet: Colours.light ? !invertColors : invertColors
     readonly property color safePrimary: useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
@@ -38,7 +38,7 @@ Item {
             shadowColor: Colours.palette.m3shadow
             shadowOpacity: Config.background.desktopClock.shadow.opacity * Effects.shadowOpacity / 0.7
             shadowBlur: Config.background.desktopClock.shadow.blur
-            blurMax: Math.max(1, Math.round(Effects.shadowSize * Tokens.scale))
+            blurMax: Math.max(1, Math.round(Effects.effectiveShadowSize * Tokens.scale))
         }
 
         Loader {

@@ -59,3 +59,23 @@ else()
   set(region_helper "/usr/local/bin/hics-region")
 endif()
 target_compile_definitions(hics-system-backend PRIVATE HYPRSTACK_REGION_EXECUTABLE="${region_helper}")
+
+add_executable(hics-game-lease game_lease.cpp)
+set_target_properties(hics-game-lease PROPERTIES CXX_STANDARD 20 INSTALL_RPATH "$ORIGIN/../share/hics/qs/lib" INSTALL_RPATH_USE_LINK_PATH ON)
+target_link_libraries(hics-game-lease PRIVATE Qt6::Core Qt6::DBus)
+install(TARGETS hics-game-lease RUNTIME DESTINATION bin)
+
+add_executable(hics-crash-report crash_report.cpp)
+set_target_properties(hics-crash-report PROPERTIES CXX_STANDARD 20 INSTALL_RPATH "$ORIGIN/../share/hics/qs/lib" INSTALL_RPATH_USE_LINK_PATH ON)
+target_link_libraries(hics-crash-report PRIVATE Qt6::Core)
+install(TARGETS hics-crash-report RUNTIME DESTINATION bin)
+
+add_executable(hics-prefetch prefetch.cpp)
+set_target_properties(hics-prefetch PROPERTIES CXX_STANDARD 20)
+install(TARGETS hics-prefetch RUNTIME DESTINATION bin)
+
+add_executable(hics-gpu-monitor gpu_monitor.cpp)
+target_include_directories(hics-gpu-monitor PRIVATE ../../shell/plugin/src/Hyprstack/Services)
+set_target_properties(hics-gpu-monitor PROPERTIES CXX_STANDARD 20 INSTALL_RPATH "$ORIGIN/../share/hics/qs/lib" INSTALL_RPATH_USE_LINK_PATH ON)
+target_link_libraries(hics-gpu-monitor PRIVATE Qt6::Core)
+install(TARGETS hics-gpu-monitor RUNTIME DESTINATION bin)

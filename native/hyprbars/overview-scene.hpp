@@ -150,6 +150,7 @@ class Scene {
                     m_dragMoved = true;
                 }
                 if (m_dragMoved) {
+                    m_timer->updateTimeout(std::chrono::milliseconds(1));
                     if (const auto monitor = m_monitor.lock()) g_pHyprRenderer->damageMonitor(monitor);
                 }
             }
@@ -320,8 +321,18 @@ class Scene {
             if (g_pSessionLockManager->isSessionLocked() ||
                 (!m_closing && std::chrono::duration<double>(Clock::now()-m_heartbeat).count() > 1.5) ||
                 (m_closing && phase() >= 1)) { reset(); return; }
-            g_pHyprRenderer->damageMonitor(monitor);
-            timer->updateTimeout(std::chrono::milliseconds(std::max(1, static_cast<int>(1000 / monitor->m_refreshRate))));
+            // A settled overview needs no synthetic frames. Client/surface
+            // damage still renders normally; the slow timer only checks the
+            // shell heartbeat. Animations retain the monitor's full refresh.
+            const auto now = Clock::now();
+            const auto recent = [&](Clock::time_point t) { return std::chrono::duration<double>(now-t).count() < m_duration; };
+            bool moving = m_closing || recent(m_started) || recent(m_cameraStarted) ||
+                (m_dragActive && (m_dragCurrent-m_dragDrawn).size() > .01);
+            for (const auto& w : m_windows) moving |= recent(w.start) || recent(w.worldStart);
+            for (const auto& w : m_closed) moving |= recent(w.start);
+            if (moving || m_animationPending) { ++m_syntheticFrames; g_pHyprRenderer->damageMonitor(monitor); }
+            m_animationPending = moving;
+            timer->updateTimeout(std::chrono::milliseconds(moving ? std::max(1, static_cast<int>(1000 / monitor->m_refreshRate)) : 250));
         }, nullptr);
         g_pEventLoopManager->addTimer(m_timer);
     }
@@ -337,8 +348,9 @@ class Scene {
         m_dragActive = m_dragMoved = false;
         m_dragAddress.clear();
         m_windows.clear(); m_closed.clear(); m_rows.clear(); m_input = Json::object();
-        m_backgroundDirty = true;
-        m_backgroundCommits.clear(); m_backgroundSources.clear();
+        // Retain the private blur and its commit listeners across entries.
+        // Inactive wallpaper commits invalidate it without waking the output.
+        // Monitor/format/scale/transform changes are checked before reuse.
         // Keep consumed key/button releases paired even after closing.
         if (m_timer) m_timer->updateTimeout(std::nullopt);
     }
@@ -479,6 +491,8 @@ class Scene {
         result["wallpaper"] = m_wallpaper;
         result["backgroundBlurred"] = m_background && !m_backgroundDirty;
         result["backgroundBlur"] = "gaussian";
+        result["backgroundRenders"] = m_backgroundRenders;
+        result["syntheticFrames"] = m_syntheticFrames;
         result["backgroundError"] = m_blur.error();
         result["rows"] = Json::array();
         result["closingWindows"] = Json::array();
@@ -690,7 +704,7 @@ class Scene {
             m_backgroundSources.push_back(surface);
             m_backgroundCommits.push_back(surface->m_events.commit.listen([this] {
                 m_backgroundDirty = true;
-                if (const auto monitor = m_monitor.lock()) g_pHyprRenderer->damageMonitor(monitor);
+                if (m_running) if (const auto monitor = m_monitor.lock()) g_pHyprRenderer->damageMonitor(monitor);
             }));
         }
     }
@@ -702,11 +716,16 @@ class Scene {
         const auto target = r->m_renderData.currentFB;
         if (!target) return elements;
         const CBox canvas{{}, monitor->m_transformedSize};
-        if (!m_background || m_background->m_size != target->m_size || m_background->imageDescription() != target->imageDescription()) m_backgroundDirty = true;
+        if (!m_background || m_backgroundMonitor != monitor || m_backgroundScale != monitor->m_scale ||
+            m_backgroundTransform != static_cast<int>(monitor->m_transform) || m_background->m_size != target->m_size ||
+            m_background->imageDescription() != target->imageDescription()) m_backgroundDirty = true;
         if (m_backgroundDirty) {
             m_background = m_blur.render(target, 48.0 * monitor->m_scale);
             if (!m_background) return elements;
             m_backgroundDirty = false;
+            m_backgroundMonitor = monitor; m_backgroundScale = monitor->m_scale;
+            m_backgroundTransform = static_cast<int>(monitor->m_transform);
+            ++m_backgroundRenders;
         }
         CTexPassElement::SRenderData texture;
         texture.tex = m_background->getTexture(); texture.box = canvas;
@@ -791,7 +810,13 @@ class Scene {
     std::string m_wallpaper;
     SP<Render::IFramebuffer> m_background;
     WallpaperBlur m_blur;
+    uint64_t m_syntheticFrames = 0;
+    bool m_animationPending = false;
     bool m_backgroundDirty = true;
+    PHLMONITORREF m_backgroundMonitor;
+    double m_backgroundScale = 0;
+    int m_backgroundTransform = -1;
+    uint64_t m_backgroundRenders = 0;
     std::vector<WP<CWLSurfaceResource>> m_backgroundSources;
     std::vector<CHyprSignalListener> m_backgroundCommits;
     Clock::time_point m_started,m_cameraStarted,m_heartbeat;

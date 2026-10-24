@@ -217,7 +217,7 @@ WlSessionLockSurface {
             layer.enabled: Effects.uiShadowsEnabled
             layer.effect: MultiEffect {
                 shadowEnabled: Effects.uiShadowsEnabled
-                blurMax: Math.max(1, Math.round(Effects.shadowSize * Tokens.scale))
+                blurMax: Math.max(1, Math.round(Effects.effectiveShadowSize * Tokens.scale))
                 shadowColor: Qt.alpha(Colours.palette.m3shadow, Effects.shadowOpacity)
             }
         }

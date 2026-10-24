@@ -8,9 +8,9 @@ class SystemInstaller(unittest.TestCase):
  def test_service_never_executes_user_owned_build(self):
   with tempfile.TemporaryDirectory() as directory:
    prefix=Path(directory);(prefix/'bin').mkdir()
-   for name in ('hics-systemd','hics-systemctl','hics-memory','hics-region'):(prefix/'bin'/name).write_bytes(b'fixture')
+   for name in ('hics-systemd','hics-systemctl','hics-memory','hics-region','hics-game-lease','hics-crash-report','hics-prefetch','hics-gpu-monitor'):(prefix/'bin'/name).write_bytes(b'fixture')
    plan={str(path):(content,mode) for path,content,mode in installer.deployment(prefix)}
-   self.assertEqual(len(plan),9)
+   self.assertEqual(len(plan),13)
    for path,(content,mode) in plan.items():
     self.assertNotIn(directory,path)
     if path.endswith('.service'):

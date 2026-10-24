@@ -269,7 +269,7 @@ Item {
                 shadowColor: Colours.palette.m3primary
                 shadowOpacity: Effects.shadowOpacity * lyric.effectScale
                 shadowBlur: 0.6 * lyric.effectScale
-                blurMax: Math.max(1, Math.round(Effects.shadowSize * Tokens.scale))
+                blurMax: Math.max(1, Math.round(Effects.effectiveShadowSize * Tokens.scale))
                 blur: 0.4 * lyric.effectScale
             }
 

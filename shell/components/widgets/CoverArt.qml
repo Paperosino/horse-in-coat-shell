@@ -21,7 +21,7 @@ Item {
     layer.enabled: Effects.uiShadowsEnabled
     layer.effect: MultiEffect {
         shadowEnabled: true
-        blurMax: Math.max(1, Math.round(Effects.shadowSize * Tokens.scale))
+        blurMax: Math.max(1, Math.round(Effects.effectiveShadowSize * Tokens.scale))
         shadowColor: Colours.palette.m3shadow
         shadowOpacity: Effects.shadowOpacity
         shadowVerticalOffset: 2 * Tokens.scale

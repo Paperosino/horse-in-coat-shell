@@ -1,6 +1,7 @@
 qml_module(hyprstack-components
     URI Hyprstack.Components
     SOURCES
+        graphicscache.cpp
         animatedrepeater.cpp
         lazylistview.cpp
         wavyline.cpp

@@ -10235,3 +10235,339 @@ msgstr "Недоступно"
 
 msgid "Applying locale…"
 msgstr "Применение локали…"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Performance & games"
+msgstr "Производительность и игры"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Game mode, adaptive effects, power and background work"
+msgstr "Игровой режим, эффекты, питание и фоновые задачи"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Ready when you play"
+msgstr "Всё готово к игре"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Recognise selected fullscreen games, pause background work and restore your desktop afterwards. Ordinary desktop quality stays unchanged."
+msgstr "Распознавайте выбранные полноэкранные игры, приостанавливайте фоновые задачи и возвращайте настройки рабочего стола после игры. Качество обычного интерфейса сохраняется."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Desktop"
+msgstr "Рабочий стол"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Automatic game mode"
+msgstr "Автоматический игровой режим"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Require fullscreen"
+msgstr "Только в полноэкранном режиме"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Maximised windows and game launchers do not count as fullscreen games"
+msgstr "Развёрнутые окна и программы запуска не считаются полноэкранными играми"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Game application IDs"
+msgstr "Идентификаторы игровых приложений"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Comma-separated IDs; * matches any characters. Wayland alone never identifies a game."
+msgstr "Идентификаторы через запятую; * заменяет любые символы. Сам по себе Wayland не делает приложение игрой."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Excluded application IDs"
+msgstr "Исключённые приложения"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Add the last application"
+msgstr "Добавить последнее приложение"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "No focused application"
+msgstr "Нет активного приложения"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Game mode now"
+msgstr "Игровой режим сейчас"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "While a game is active"
+msgstr "Во время игры"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Each option is temporary. Input sensitivity, acceleration, USB polling and CPU quotas are never changed."
+msgstr "Эти параметры действуют временно. Чувствительность и ускорение указателя, опрос USB и квоты процессора не меняются."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Suspend compositor effects"
+msgstr "Приостанавливать эффекты композитора"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Animations, blur, shadows, rounding and gaps"
+msgstr "Анимации, размытие, тени, скругления и отступы"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Pause live wallpapers"
+msgstr "Приостанавливать живые обои"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Suspend dock motion"
+msgstr "Приостанавливать анимации дока"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Direct scanout"
+msgstr "Прямой вывод на экран"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Keep compositor setting"
+msgstr "Использовать настройку композитора"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Automatic for game content"
+msgstr "Автоматически для игрового содержимого"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Allow for fullscreen games"
+msgstr "Разрешать в полноэкранных играх"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Allow tearing during games"
+msgstr "Разрешать разрывы изображения в играх"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Requires a matching immediate window rule and compatible hardware; this does not guarantee direct scanout"
+msgstr "Нужны правило окна immediate и совместимое оборудование. Это не гарантирует прямой вывод на экран."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Adaptive sync per display"
+msgstr "Адаптивная синхронизация экранов"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "VRR is opt-in. Use display confirmation to check for flicker and keep a safe way back."
+msgstr "VRR включается по вашему выбору. Проверьте мерцание при подтверждении настроек экрана; неподтверждённые изменения будут отменены."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Power and process priority"
+msgstr "Питание и приоритет процесса"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Use system services that own and restore their policies. Optional GameMode provides game process and I/O priority; power-profiles-daemon provides a temporary performance hold."
+msgstr "Системные службы применяют и восстанавливают свои политики. Дополнительный GameMode управляет приоритетами игры и ввода-вывода; power-profiles-daemon временно удерживает профиль производительности."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Request Feral GameMode for the game"
+msgstr "Запрашивать Feral GameMode для игры"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Requires the optional gamemode package. The shell does not apply a second scheduler policy."
+msgstr "Нужен дополнительный пакет gamemode. Оболочка не добавляет конкурирующую политику планировщика."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Hold the performance power profile"
+msgstr "Временно удерживать профиль производительности"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Released when the game ends, focus leaves it or the shell exits. Your manual profile selection takes precedence."
+msgstr "Освобождается после игры, потери фокуса или выхода из оболочки. Ручной выбор профиля имеет приоритет."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Allow boosts and prefetch on battery"
+msgstr "Разрешать ускорение и предзагрузку от батареи"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Adaptive effects"
+msgstr "Адаптивные эффекты"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Optional GPU-load policy with hysteresis. It changes effective shell effects without overwriting your appearance or accessibility preferences. Missing GPU readings never trigger a downgrade."
+msgstr "Необязательное управление эффектами по нагрузке GPU с гистерезисом. Предпочтения внешнего вида и доступности сохраняются. Отсутствие данных GPU не снижает качество."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Adapt shell effects to GPU load"
+msgstr "Адаптировать эффекты к нагрузке GPU"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Minimum effect quality"
+msgstr "Минимальное качество эффектов"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Full quality"
+msgstr "Полное качество"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Smaller shadows"
+msgstr "Уменьшенные тени"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Opaque surfaces, no shadows"
+msgstr "Непрозрачные поверхности без теней"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "High GPU load (%)"
+msgstr "Высокая нагрузка GPU (%)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Recovery GPU load (%)"
+msgstr "Нагрузка GPU для восстановления (%)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Minimum time between quality changes (s)"
+msgstr "Пауза между изменениями качества (с)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Sampling interval (s)"
+msgstr "Интервал измерений (с)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "GPU load"
+msgstr "Нагрузка GPU"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Effective quality"
+msgstr "Текущее качество"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Background effects paused"
+msgstr "Фоновые эффекты приостановлены"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Temperature guard"
+msgstr "Контроль температуры"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Reduce the shell's background work when recognised CPU/GPU sensors report heat. This complements kernel thermal protection; it cannot guarantee that games will not throttle."
+msgstr "Уменьшает фоновую работу оболочки при нагреве по известным датчикам CPU/GPU. Дополняет термозащиту ядра, но не гарантирует отсутствие троттлинга игры."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Reduce background effects when hot"
+msgstr "Снижать фоновые эффекты при нагреве"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Activate at (°C)"
+msgstr "Порог включения (°C)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Recover below (°C)"
+msgstr "Порог восстановления (°C)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Highest recognised temperature"
+msgstr "Максимальная температура известных датчиков"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Conservative application prefetch"
+msgstr "Ограниченная предзагрузка приложений"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Learn application transitions locally and warm only a bounded executable prefix from an explicit allowlist. No hidden application instances are launched. Benefit depends on storage and the page cache."
+msgstr "Локально изучает переходы между приложениями и прогревает ограниченную часть исполняемого файла только из разрешённого списка. Скрытые приложения не запускаются. Польза зависит от накопителя и файлового кэша."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Learn transitions and enable prefetch"
+msgstr "Изучать переходы и включить предзагрузку"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Allowed desktop application IDs"
+msgstr "Разрешённые идентификаторы приложений"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Exact IDs, separated by commas. An empty list disables all prefetch."
+msgstr "Точные идентификаторы через запятую. Пустой список запрещает любую предзагрузку."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Executable prefix limit (MiB)"
+msgstr "Лимит части исполняемого файла (МиБ)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Cooldown (s)"
+msgstr "Пауза между предзагрузками (с)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Required matching transitions"
+msgstr "Необходимое число совпавших переходов"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Minimum confidence (%)"
+msgstr "Минимальная уверенность (%)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Maximum prediction age (s)"
+msgstr "Срок действия прогноза (с)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Maximum CPU use (%)"
+msgstr "Максимальная загрузка CPU (%)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Maximum memory use (%)"
+msgstr "Максимальное заполнение памяти (%)"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Last prediction"
+msgstr "Последний прогноз"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Executable bytes advised to the kernel"
+msgstr "Байтов исполняемого файла предложено ядру"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Forget learned application transitions"
+msgstr "Удалить историю переходов между приложениями"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Reliability and diagnostics"
+msgstr "Надёжность и диагностика"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "The broker has a main-loop watchdog. Crashes and timeouts produce bounded, private local reports in /var/lib/hics/crashes; reports are never uploaded. The kernel manages memory compaction and applications own their network socket options."
+msgstr "Главный поток брокера защищён watchdog. При сбоях и тайм-аутах создаются ограниченные закрытые отчёты в /var/lib/hics/crashes; они никуда не отправляются. Уплотнением памяти управляет ядро, а сетевыми сокетами — приложения."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Background monitoring"
+msgstr "Фоновое наблюдение"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Sleeping"
+msgstr "Ожидание без опроса"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "CPU load"
+msgstr "Нагрузка CPU"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Memory use"
+msgstr "Заполнение памяти"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Gaming preferences applied"
+msgstr "Применены игровые настройки"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Fullscreen games only"
+msgstr "Только полноэкранные игры"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Fullscreen only"
+msgstr "Только полноэкранный режим"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Opt in for this display. Confirm the image is stable; changes roll back if not confirmed."
+msgstr "Включается по вашему выбору для этого экрана. Подтвердите стабильность изображения; иначе параметры будут возвращены."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "No blur or shadows"
+msgstr "Без размытия и теней"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Requires the optional gamemode package. Choose one power policy provider; enabling one disables the other."
+msgstr "Нужен дополнительный пакет gamemode. Выберите одного поставщика политики питания: включение одного отключает другого."
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Application matching"
+msgstr "Правила распознавания приложений"
+
+#: modules/nexus/pages/PerformancePage.qml
+msgid "Follow automatic game mode"
+msgstr "Вернуться к автоматическому режиму"

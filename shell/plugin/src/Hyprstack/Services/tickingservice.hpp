@@ -21,6 +21,7 @@ signals:
 
 protected:
     virtual void tick() = 0;
+    virtual void onStopped() {}
 
 private:
     void start() final;

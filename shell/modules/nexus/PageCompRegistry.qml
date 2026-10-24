@@ -259,7 +259,8 @@ QtObject {
         Component { StackPage { Component { DesktopRulesPage { devicesOnly:true } } } },
         Component { StackPage { Component { SettingsWorkbenchPage {} } } },
         Component { StackPage { Component { DiagnosticsPage {} } } },
-        Component { StackPage { Component { OnboardingPage {} } } }
+        Component { StackPage { Component { OnboardingPage {} } } },
+        Component { StackPage { Component { PerformancePage {} } } }
     ]
 
     readonly property Component placeholderComp: Component {

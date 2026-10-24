@@ -3,11 +3,12 @@
 #include <qdir.h>
 #include <qdiriterator.h>
 #include <qfile.h>
+#include <QTimer>
+#include <memory>
 #include <qregularexpression.h>
 
 #include "config/rootnodes.hpp"
 #include "config/serviceconfig.hpp"
-#include "sensorslib.hpp"
 
 namespace hyprstack::services {
 
@@ -140,7 +141,7 @@ constexpr int k_firstGenericSource = 1;
 } // namespace
 
 Gpu::Gpu(QObject* parent)
-    : TickingService(parent) {
+    : TickingService(parent), m_metrics(this) {
     m_busyFiles = gpuBusyFiles();
 
     const auto* svc = hyprstack::config::ConfigSingleton::instance()->services();
@@ -159,6 +160,15 @@ Gpu::Gpu(QObject* parent)
 
 GpuType Gpu::type() const {
     return m_type;
+}
+
+Gpu::~Gpu() {
+    m_metrics.reset();
+    for(auto* process:findChildren<QProcess*>(QString(),Qt::FindDirectChildrenOnly)) {
+        process->disconnect(this);process->setParent(nullptr);process->kill();
+        if(process->state()==QProcess::NotRunning)process->deleteLater();
+        else connect(process,&QProcess::finished,process,&QObject::deleteLater);
+    }
 }
 
 QString Gpu::name() const {
@@ -206,10 +216,9 @@ void Gpu::setDetecting(bool value) {
 
 void Gpu::tick() {
     if (m_type == GpuType::Generic) {
-        readGenericUsage();
-        readGpuTemperature();
+        startGpuUsage();
     } else if (m_type == GpuType::Nvidia) {
-        startNvidiaUsage();
+        startGpuUsage();
     } else {
         resetUsage();
     }
@@ -218,6 +227,7 @@ void Gpu::tick() {
 void Gpu::resolveGpu() {
     // Supersede any chain still in flight so its callbacks cannot write stale state
     const int generation = ++m_generation;
+    ++m_usageGeneration;m_metrics.reset();m_nvidiaQuerying=false;
 
     if (m_userType != GpuType::Auto) {
         setType(m_userType);
@@ -288,10 +298,16 @@ void Gpu::runProcess(const QString& program, const QStringList& args, std::funct
     // Deliver the result exactly once, then tear the process down. A crash, a missing
     // binary or a failed run yields empty output so the caller can fall through
     // gracefully: only FailedToStart skips finished(), and a crash reports CrashExit there.
-    const auto finish = [proc, callback = std::move(callback)](const QByteArray& out) {
+    const auto delivered = std::make_shared<bool>(false);
+    const auto finish = [proc, delivered, callback = std::move(callback)](const QByteArray& out) {
+        if (std::exchange(*delivered, true)) return;
         callback(out);
         proc->deleteLater();
     };
+    auto* deadline=new QTimer(proc);
+    deadline->setSingleShot(true);
+    QObject::connect(deadline,&QTimer::timeout,this,[proc,finish] {proc->kill();finish(QByteArray());});
+    deadline->start(2000);
 
     QObject::connect(proc, &QProcess::finished, this, [finish, proc](int code, QProcess::ExitStatus status) {
         const bool ok = status == QProcess::NormalExit && code == 0; // Fail on crashes and non-zero exit codes
@@ -306,72 +322,40 @@ void Gpu::runProcess(const QString& program, const QStringList& args, std::funct
     proc->start(program, args);
 }
 
-void Gpu::readGenericUsage() {
-    qreal sum = 0.0;
-    int count = 0;
-    for (const QString& path : std::as_const(m_busyFiles)) {
-        QFile f(path);
-        if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            continue;
+void Gpu::onStopped() {
+    ++m_usageGeneration;m_metrics.reset();m_nvidiaQuerying=false;
+}
+void Gpu::startGpuUsage() {
+    if (m_nvidiaQuerying) return;
+    m_nvidiaQuerying=true;
+    const int generation=m_usageGeneration;
+    m_metrics.request([this,generation](double nativeUsage,double nativeTemperature,double,bool available) {
+        if (generation!=m_usageGeneration) return;
+        if (available && nativeUsage>=0) {
+            const auto next=nativeUsage/100.0;
+            if(std::abs(next-m_percentage)>.0001){m_percentage=next;emit percentageChanged();}
+            if(nativeTemperature>0 && std::abs(nativeTemperature-m_temperature)>.05){m_temperature=nativeTemperature;emit temperatureChanged();}
+            m_nvidiaQuerying=false;return;
         }
-        bool ok = false;
-        const qreal v = f.readAll().trimmed().toDouble(&ok);
-        f.close();
-        if (ok) {
-            sum += v;
-            ++count;
-        }
-    }
-    const qreal newPerc = count > 0 ? sum / count / 100.0 : 0.0;
-    if (std::abs(newPerc - m_percentage) > 0.0001) {
-        m_percentage = newPerc;
-        emit percentageChanged();
-    }
+        if (m_type!=GpuType::Nvidia) {m_nvidiaQuerying=false;resetUsage();return;}
+        // Unsupported NVIDIA drivers retain the bounded CLI fallback at <= 0.2 Hz.
+        if (m_fallbackSample.isValid() && m_fallbackSample.elapsed()<5000) {m_nvidiaQuerying=false;return;}
+        m_fallbackSample.start();
+        runProcess(u"nvidia-smi"_s,
+            {u"--query-gpu=utilization.gpu,temperature.gpu"_s,u"--format=csv,noheader,nounits"_s},
+            [this,generation](const QByteArray& out) {
+                if(generation!=m_usageGeneration)return;
+                m_nvidiaQuerying=false;
+                const auto parts=out.trimmed().split(',');if(parts.size()<2)return;
+                bool usageOk=false,tempOk=false;
+                const auto usage=parts[0].trimmed().toDouble(&usageOk)/100.0;
+                const auto temp=parts[1].trimmed().toDouble(&tempOk);
+                if(usageOk && usage>=0 && usage<=1 && std::abs(usage-m_percentage)>.0001){m_percentage=usage;emit percentageChanged();}
+                if(tempOk && temp>0 && temp<150 && std::abs(temp-m_temperature)>.05){m_temperature=temp;emit temperatureChanged();}
+            });
+    },false,m_type==GpuType::Nvidia?QByteArrayLiteral("nvidia"):QByteArrayLiteral("generic"));
 }
 
-void Gpu::startNvidiaUsage() {
-    if (m_nvidiaQuerying) {
-        return;
-    }
-    m_nvidiaQuerying = true;
-    const int generation = m_generation;
-    runProcess(u"nvidia-smi"_s,
-        { u"--query-gpu=utilization.gpu,temperature.gpu"_s, u"--format=csv,noheader,nounits"_s },
-        [this, generation](const QByteArray& out) {
-            m_nvidiaQuerying = false;
-
-            // The type moved out from under the sample, so it no longer describes the GPU
-            if (generation != m_generation) {
-                return;
-            }
-
-            const QList<QByteArray> parts = out.trimmed().split(',');
-            if (parts.size() < 2) {
-                return;
-            }
-            bool ok1 = false;
-            bool ok2 = false;
-            const qreal usage = parts.at(0).trimmed().toDouble(&ok1) / 100.0;
-            const qreal temp = parts.at(1).trimmed().toDouble(&ok2);
-            if (ok1 && std::abs(usage - m_percentage) > 0.0001) {
-                m_percentage = usage;
-                emit percentageChanged();
-            }
-            if (ok2 && std::abs(temp - m_temperature) > 0.05) {
-                m_temperature = temp;
-                emit temperatureChanged();
-            }
-        });
-}
-
-void Gpu::readGpuTemperature() {
-    const auto t = sensorslib::gpuPciAverageTemp();
-    const qreal newTemp = t.value_or(0.0);
-    if (std::abs(newTemp - m_temperature) > 0.05) {
-        m_temperature = newTemp;
-        emit temperatureChanged();
-    }
-}
 
 void Gpu::resetUsage() {
     if (std::abs(m_percentage) > 0.0001) {

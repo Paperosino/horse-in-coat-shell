@@ -16,7 +16,8 @@ with tempfile.TemporaryDirectory(prefix='hics-dock-pointer-') as directory:
     shell = base/'shell'
     shutil.copytree(ROOT/'shell', shell, ignore=shutil.ignore_patterns('plugin', 'extras', '__pycache__'))
     dock_source=shell/'modules/dock/DockContent.qml'
-    probe=dock_source.read_text().replace('id: root','id: root\n    property int testClicks: 0\n    property string testKey: ""\n    property int testPresses: 0\n    property int testCancels: 0',1)
+    probe=dock_source.read_text().replace('id: root','id: root\n    property int testClicks: 0\n    property string testKey: ""\n    property int testPresses: 0\n    property int testCancels: 0\n    property bool testDropHover: false',1)
+    probe=probe.replace('!root.draggedKey ? 1 : 0','!root.draggedKey && !root.testDropHover ? 1 : 0')
     probe=probe.replace('function activate(button: int): void {','function activate(button: int): void { root.testClicks++;root.testKey=task.modelData;',1)
     probe=probe.replace('onPressed: event => { pressPoint','onPressed: event => { root.testPresses++; pressPoint',1)
     probe=probe.replace('onCanceled: root.cancelDrag()','onCanceled: { root.testCancels++; root.cancelDrag(); }',1)
@@ -43,7 +44,12 @@ ShellRoot {
  }
  function box(item) {const p=item.mapToItem(win.contentItem,0,0);return {x:p.x,y:p.y,w:item.width,h:item.height,text:item.text??""};}
  FileView {id:status;path:STATE;printErrors:false}
- FileView {path:CONTROL;watchChanges:true;printErrors:false;onFileChanged:reload();onLoaded:if(text().startsWith("clipboard"))win.screenState.clipboard=true}
+ FileView {path:CONTROL;watchChanges:true;printErrors:false;onFileChanged:reload();onLoaded:{
+  if(text().startsWith("clipboard"))win.screenState.clipboard=true;
+  const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
+  if(dock && text()==="cold")dock.testDropHover=true;
+  if(dock && text()==="warm")dock.testDropHover=false;
+ }}
  Timer {interval:16;running:true;repeat:true;onTriggered:{
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
@@ -215,7 +221,13 @@ ShellRoot {
                 offset=button['w']*button['scale']*.3
                 px=button['center']['x']+(offset if side=='left' else -offset if side=='right' else 0)
                 py=button['center']['y']+(offset if side=='top' else -offset if side=='bottom' else 0)
-                click(px,py);wait_for(lambda s:s.get('listOpen'),3)
+                if side=='top' and menu_position=='end':
+                    send('move',px,py);send('button',272,1)
+                    control.write_text('cold');wait_for(lambda s:s.get('hoverAmount',1)<.01,3)
+                    send('button',272,0)
+                    wait_for(lambda s:s.get('listOpen'),3)
+                    control.write_text('warm')
+                else:click(px,py);wait_for(lambda s:s.get('listOpen'),3)
                 click(12,180);wait_for(lambda s:not s.get('listOpen'),3)
         print('PASS: apps button lifts with the membrane and accepts raised-edge clicks at both ends on all four sides',flush=True)
         (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,spread=120)))

@@ -16,6 +16,7 @@ Scope {
         LiveWallpapers;
         ThemeAutomation;
         IdleInhibitor;
+        PerformancePolicy;
         GameMode;
         Notifs;
         DesktopIntegrationMonitor;

@@ -14,8 +14,8 @@ import qs.services
 Scope {
     id:root
     property bool locked:false
-    onLockedChanged:ClipboardHistory.setLocked(locked)
-    Component.onCompleted:{ClipboardHistory.setLocked(locked);ShortcutEditor.refresh();WorkspaceSession.refresh();startup.running=true}
+    onLockedChanged:{ClipboardHistory.setLocked(locked);PerformancePolicy.locked=locked;}
+    Component.onCompleted:{PerformancePolicy.locked=locked;ClipboardHistory.setLocked(locked);ShortcutEditor.refresh();WorkspaceSession.refresh();startup.running=true}
     Process {id:startup;command:["hics-workspace","startup"];onExited:WorkspaceSession.refresh()}
     Timer {interval:WorkspaceSession.settings.interval*1000;repeat:true;running:WorkspaceSession.settings.enabled&&WorkspaceSession.settings.autosave&&!WorkspaceSession.busy&&!WorkspaceSession.startupPending;onTriggered:WorkspaceSession.capture(Tr.tr("Automatic checkpoint"),true)}
     Connections {target:Hypr;function onConfigReloaded():void {ShortcutEditor.refresh()}}

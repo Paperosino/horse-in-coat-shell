@@ -132,11 +132,12 @@ function layouts.effects(options)
         local transparency = appearance.transparency or {}
         options = { enabled = transparency.enabled == true, opacity = transparency.base or 0.85,
             blur = read(config_dir .. "/effects.json").blur ~= false }
+        -- Initial configuration only; the live Effects service owns blur.
+        hl.config({ decoration = { blur = { enabled = options.blur ~= false } } })
     end
     local enabled = options.enabled == true
     local opacity = enabled and math.max(0, math.min(1, tonumber(options.opacity) or 0.85)) or 1
     local browsers_and_telegram = "(?i)^(thorium.*|chromium.*|google-chrome.*|firefox|librewolf|zen(-browser)?|com\\.ayugram\\.desktop|AyugramDesktop|org\\.telegram\\.desktop|TelegramDesktop|telegram-desktop)$"
-    hl.config({ decoration = { blur = { enabled = options.blur ~= false } } })
     hl.window_rule({ name = "hyprstack-window-opacity", match = { class = "negative:" .. browsers_and_telegram },
         opacity = string.format("%g override %g override 1.0 override", opacity, opacity), opaque = not enabled })
     hl.window_rule({ name = "hyprstack-opaque-apps", match = { class = browsers_and_telegram },

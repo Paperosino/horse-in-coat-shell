@@ -3,17 +3,20 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Hyprstack.Services
 import qs.utils
 
 Singleton {
     id: root
 
     property bool blurEnabled: true
+    readonly property bool effectiveBlurEnabled: blurEnabled && !GameMode.effectsSuspended && RuntimePerformance.quality > 0
+    readonly property real effectiveShadowSize: shadowSize * (RuntimePerformance.quality === 1 ? 0.65 : 1)
     property bool windowShadows: true
     property bool uiShadows: true
     property int shadowSize: 18
     property real shadowOpacity: 0.35
-    readonly property bool uiShadowsEnabled: uiShadows && shadowSize > 0 && shadowOpacity > 0 && !GameMode.enabled
+    readonly property bool uiShadowsEnabled: uiShadows && shadowSize > 0 && shadowOpacity > 0 && !GameMode.effectsSuspended && RuntimePerformance.quality > 0
     property bool loaded: false
 
     function setBlurEnabled(enabled: bool): void {
@@ -34,8 +37,10 @@ Singleton {
     }
 
     function apply(): void {
-        if (loaded && Hypr.usingLua)
-            Hypr.extras.message(`eval if hyprstack_layouts then hyprstack_layouts.shadows({windowShadows=${windowShadows && !GameMode.enabled},shadowSize=${shadowSize},shadowOpacity=${shadowOpacity}}) end`);
+        if (!loaded) return;
+        Hypr.extras.applyOptions({"decoration:blur:enabled": effectiveBlurEnabled ? 1 : 0});
+        if (Hypr.usingLua)
+            Hypr.extras.message(`eval if hyprstack_layouts then hyprstack_layouts.shadows({windowShadows=${windowShadows && !GameMode.effectsSuspended && RuntimePerformance.quality > 0},shadowSize=${effectiveShadowSize},shadowOpacity=${shadowOpacity}}) end`);
     }
 
     FileView {
@@ -61,6 +66,12 @@ Singleton {
         onLoadFailed: { root.loaded = true; root.apply(); }
     }
 
+    onEffectiveBlurEnabledChanged: apply()
+    onEffectiveShadowSizeChanged: apply()
+    Connections { target: RuntimePerformance; function onStatusChanged(): void { root.applyQualityShadows(); } }
+    property int appliedQuality: -1
+    function applyQualityShadows(): void { if (appliedQuality !== RuntimePerformance.quality) { appliedQuality=RuntimePerformance.quality; apply(); } }
+
     Connections {
         target: Hypr
         function onConfigReloaded(): void { root.apply(); }
@@ -68,6 +79,6 @@ Singleton {
 
     Connections {
         target: GameMode
-        function onEnabledChanged(): void { root.apply(); }
+        function onEffectsSuspendedChanged(): void { root.apply(); }
     }
 }

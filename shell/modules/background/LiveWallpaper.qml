@@ -18,7 +18,7 @@ Item {
     property double engineStarted: 0
     readonly property int restartSerial: LiveWallpapers.restartSerials[outputName] ?? 0
     onRestartSerialChanged: { failures = 0; retry.stop(); engine.running = false; restartEngine.restart(); }
-    readonly property bool paused: outputOff || GameMode.enabled || (settings.pauseBattery && UPower.onBattery) || (settings.pauseFullscreen && fullscreen)
+    readonly property bool paused: outputOff || GameMode.pauseWallpapers || (settings.pauseBattery && UPower.onBattery) || (settings.pauseFullscreen && fullscreen)
     Loader {
         id: videoLoader
         anchors.fill: parent

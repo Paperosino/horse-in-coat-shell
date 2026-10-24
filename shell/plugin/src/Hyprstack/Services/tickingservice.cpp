@@ -35,6 +35,7 @@ void TickingService::start() {
 void TickingService::stop() {
     m_running = false;
     m_timer->stop();
+    onStopped();
 }
 
 void TickingService::applyInterval(int ms) {

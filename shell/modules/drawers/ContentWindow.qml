@@ -206,7 +206,7 @@ StyledWindow {
             smoothing: (root.contentItem.Config.border.smoothing * root.contentItem.Tokens.scale)
             shadowColor: Effects.uiShadowsEnabled
                 ? Qt.alpha(Colours.palette.m3shadow, Math.max(0, root.shadowOpacity)) : "transparent"
-            shadowSize: Effects.uiShadowsEnabled ? Effects.shadowSize * root.contentItem.Tokens.scale : 0
+            shadowSize: Effects.uiShadowsEnabled ? Effects.effectiveShadowSize * root.contentItem.Tokens.scale : 0
             shadowOffset: 2 * root.contentItem.Tokens.scale
         }
 

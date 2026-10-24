@@ -64,29 +64,17 @@ void Cpu::refreshPercentage() {
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return;
     }
-    const QByteArray data = f.readAll();
-    f.close();
-
-    static const QRegularExpression k_re(
-        u"^cpu\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)"_s);
-    const auto match = k_re.match(QString::fromLatin1(data));
-    if (!match.hasMatch()) {
-        return;
-    }
-
-    quint64 total = 0;
-    quint64 idle = 0;
-    for (int i = 1; i <= 7; ++i) {
-        const quint64 v = match.captured(i).toULongLong();
-        total += v;
-        if (i == 4 || i == 5) {
-            idle += v;
-        }
-    }
-
+    // Only the aggregate line is needed. /proc/stat grows with CPU count;
+    // avoid reading and regex-matching every per-core/interrupt row each tick.
+    const auto fields = f.readLine(1024).simplified().split(' ');
+    if (fields.size()<9 || fields[0]!=QByteArrayView("cpu")) return;
+    quint64 total=0;
+    for (int i=1;i<=8;++i) total+=fields[i].toULongLong();
+    const quint64 idle=fields[4].toULongLong()+fields[5].toULongLong();
+    const bool hasBaseline=m_lastTotal>0;
     const quint64 totalDiff = total > m_lastTotal ? total - m_lastTotal : 0;
     const quint64 idleDiff = idle > m_lastIdle ? idle - m_lastIdle : 0;
-    const qreal newPerc = totalDiff > 0 ? 1.0 - static_cast<qreal>(idleDiff) / static_cast<qreal>(totalDiff) : 0.0;
+    const qreal newPerc = hasBaseline && totalDiff > 0 ? 1.0 - static_cast<qreal>(idleDiff) / static_cast<qreal>(totalDiff) : 0.0;
 
     m_lastTotal = total;
     m_lastIdle = idle;

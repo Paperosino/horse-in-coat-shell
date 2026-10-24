@@ -32,7 +32,7 @@ Item {
     readonly property alias listSurface: appList
     readonly property alias menuSurface: taskMenu
     readonly property alias previewSurface: windowPreview
-    readonly property bool motionEnabled: DockConf.animations && !GlobalConfig.appearance.reducedMotion
+    readonly property bool motionEnabled: DockConf.animations && !GlobalConfig.appearance.reducedMotion && !GameMode.reduceDockMotion
     readonly property real motionPadding: motionEnabled ? (DockConf.lift + root.iconSize * 0.3 + 12 * Tokens.scale) : 0
     property real wavePosition: vertical ? height / 2 : width / 2
     readonly property real hoverAmount: hoverSpring.value
