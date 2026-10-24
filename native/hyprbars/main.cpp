@@ -153,6 +153,12 @@ int animateLuaWindow(lua_State* L) {
         } else lua_pushboolean(L, false);
         return 1;
     }
+    if (operation == "titlebar-height") {
+        for (auto& bar : g_pGlobalState->bars) {
+            if (bar && bar->getOwner() == window) { lua_pushnumber(L, bar->visibleHeight()); return 1; }
+        }
+        lua_pushnumber(L, 0); return 1;
+    }
     if (operation == "center") {
         lua_pushboolean(L, centerFloatingWindow(window, lua_toboolean(L, 4)));
         return 1;
@@ -374,6 +380,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
             return 1;
         });
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "add_button", ::newLuaButton);
+        HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "titlebar_height", [](lua_State* L) -> int {
+            lua_settop(L, 2); lua_pushliteral(L, "titlebar-height"); return animateLuaWindow(L);
+        });
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "clear_buttons", ::clearLuaButtons);
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "animate_window", ::animateLuaWindow);
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "solo_super", ::soloSuperLua);

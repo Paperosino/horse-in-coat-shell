@@ -524,3 +524,57 @@ GUI heartbeat продолжает работать, запрос заверша
 GUI/композиторные сценарии, адаптивный цикл high/low/thermal, GPU timeout/backoff,
 отключение shader cache окружением и dock-pointer с исчезновением hover во время
 удержания кнопки. Текущие настройки монитора и работающие плагины не менялись.
+
+### Window modes, client decorations and GTK controls (package 51)
+
+Application rules now select all modes or one of stacking, scrolling, tiling and
+canvas. Named Hyprland rule handles are enabled/disabled when the mode changes;
+there is no polling, configuration reload or generated IPC script on each focus.
+Editing preserves rule priority; explicit up/down controls change it. Static
+placement affects newly opened windows in the chosen mode. Dynamic appearance
+updates existing matches and reverts when its rule becomes inactive.
+
+The editor separates shell titlebars (`hyprbars:no_bar`) from compositor
+`decorate`, borders, rounding, shadows, blur, animations and activation policy.
+Appearance overrides support inheritance. Advanced matching includes modal/XWayland
+conditions. Own-header and PiP presets retain literal application identity when
+switching to regular-expression title matching. Code/Code OSS/VSCodium and
+Helium/Brave/Vivaldi use client-header defaults; an explicit Show rule overrides
+them for installations configured with native headers. Hiding a shell header
+cannot remove a header painted inside an application's content.
+
+Geometry calculations query the native decoration's actual visible height,
+including user overrides and `decorate=false`. Older plugins lack the named
+query and retain the existing fallback until the next login; unknown animation
+operations are never invoked. Browser PiP titles are handled on map and on late
+title changes, remain pinned/floating, preserve aspect ratio and receive no
+extra shell header. A small live PiP registry raises them without stealing focus
+when another window activates; closed windows are removed from the registry.
+
+`hics/window-controls.json` defines physical left-to-right button order and side
+for shell bars and GTK3/4. GTK receives settings.ini plus the desktop GSettings
+button-layout property forwarded by the GTK settings portal. Flatpak private
+settings follow the same preference without broader filesystem permissions.
+The setting participates in configuration history and profiles. GTK can omit
+unavailable actions or override decoration-layout inside an application; modal
+file choosers do not necessarily provide minimize/maximize buttons.
+
+Real GTK4 file-chooser rendering exposed a hard-coded light bottom border in
+GTK's built-in `filechooser #pathbarbox` style. The generated palette overrides
+that node's border specifically, along with header and table-header surfaces;
+libadwaita also receives headerbar border/shade CSS variables. This preserves
+transparent popup exteriors. Already-running GTK applications may require
+reopening to reload their CSS providers.
+
+Validation: native stacking screenshots cover server headers, Telegram,
+Photocraft, GTK, Code, forced Code OSS headers and disabled decorations; scoped
+rule handles are checked across mode transitions. A late browser title becomes
+PiP. The settings test opens a populated editor and exercises its PiP preset.
+GTK2/3 colours, GTK4/libadwaita button states, actual GTK3/4 file choosers and an
+AdwToolbarView header are rendered; button layout and bright horizontal stripes
+are checked with private settings and fixture files.
+
+Primary references:
+- https://wiki.hypr.land/configuring/core/rules/window-rules/
+- https://docs.gtk.org/gtk3/property.Settings.gtk-decoration-layout.html
+- Installed GTK 4.24.1 Default stylesheet resource, including `filechooser #pathbarbox`.

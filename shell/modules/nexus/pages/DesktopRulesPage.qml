@@ -13,6 +13,20 @@ PageBase {
  title:Tr.tr(devicesOnly?"Individual input devices":"Application rules")
  pageIcon:devicesOnly?"devices":"rule"
  property var form:({})
+ property var controls: DesktopRules.data.controls ?? ({side:"right",order:["minimize","maximize","close"]})
+ function control(key,value):void { controls=Object.assign({},controls,{[key]:value}); }
+ function toggleControl(name,enabled):void {
+  const order=controls.order.filter(v=>v!==name);if(enabled)order.push(name);control("order",order);
+ }
+ function exactPattern(value):string {
+  let pattern="^";
+  for(const ch of value){if("\\^$.*+?()[]{}|".includes(ch))pattern+="\\";pattern+=ch;}
+  return pattern+"$";
+ }
+ function preset(kind):void {
+  if(kind==="pip")form=Object.assign({},form,{application:form.regex?form.application:exactPattern(form.application??""),title:"(?i)^(Picture[- ]in[- ]Picture|Картинка в картинке)$",regex:true,floating:true,pin:true,keepAspectRatio:true,noInitialFocus:true,titlebar:"hide"});
+  else form=Object.assign({},form,{mode:"stacking",titlebar:"hide"});
+ }
  property string deviceName:""
  property string deviceKind:""
  property var deviceValues:({})
@@ -45,17 +59,55 @@ PageBase {
    }
   }
   SettingsCard {
+   visible:!root.devicesOnly;title:Tr.tr("Window controls");icon:"window"
+   description:Tr.tr("One button layout for shell titlebars and GTK applications. Applications may hide unavailable actions or provide their own header.")
+   GenericSettingRow {spec:({label:"Button side",type:"choice",choices:[{value:"left",label:"Left"},{value:"right",label:"Right"}],value:root.controls.side});onEdited:v=>root.control("side",v)}
+   Repeater {model:[{id:"minimize",label:"Minimize"},{id:"maximize",label:"Maximize"},{id:"close",label:"Close"}];ToggleRow {required property var modelData;text:Tr.tr(modelData.label);checked:root.controls.order.includes(modelData.id);onToggled:root.toggleControl(modelData.id,checked)}}
+   GenericSettingRow {spec:({label:"Button order (left to right)",type:"choice",choices:["minimize,maximize,close","minimize,close,maximize","maximize,minimize,close","maximize,close,minimize","close,minimize,maximize","close,maximize,minimize"].map(v=>({value:v,label:v.split(",").map(k=>Tr.tr(k==="close"?"Close":k==="maximize"?"Maximize":"Minimize")).join(" · ")})),value:[...root.controls.order,...["minimize","maximize","close"].filter(v=>!root.controls.order.includes(v))].join(",")});onEdited:v=>root.control("order",v.split(",").filter(k=>root.controls.order.includes(k)))}
+   RowButton {text:Tr.tr("Apply window controls");icon:"check";disabled:DesktopRules.busy;onClicked:DesktopRules.call("save-controls",root.controls)}
+  }
+  SettingsCard {
    visible:!root.devicesOnly;title:Tr.tr("Saved application rules");icon:"rule"
-   Repeater {model:DesktopRules.data.rules;RowButton {required property var modelData;text:modelData.name||modelData.application;subtext:modelData.application+(modelData.enabled===false?" · "+Tr.tr("Disabled"):"");icon:"rule";onClicked:root.form=JSON.parse(JSON.stringify(modelData))}}
+   description:Tr.tr("Later rules take precedence. Editing a rule preserves its position.")
+   Repeater {model:DesktopRules.data.rules;RowLayout {
+    required property var modelData
+    required property int index
+    Layout.fillWidth:true
+    RowButton {Layout.fillWidth:true;text:parent.modelData.name||parent.modelData.application;subtext:parent.modelData.application+" · "+Tr.tr(parent.modelData.mode??"all")+(parent.modelData.enabled===false?" · "+Tr.tr("Disabled"):"");icon:"rule";onClicked:root.form=JSON.parse(JSON.stringify(parent.modelData))}
+    IconButton {icon:"arrow_upward";enabled:!DesktopRules.busy&&parent.index>0;onClicked:DesktopRules.call("move-rule",{id:parent.modelData.id,direction:-1})}
+    IconButton {icon:"arrow_downward";enabled:!DesktopRules.busy&&parent.index<DesktopRules.data.rules.length-1;onClicked:DesktopRules.call("move-rule",{id:parent.modelData.id,direction:1})}
+   }}
    RowButton {text:Tr.tr("Create a rule manually");icon:"add";onClicked:root.form={name:"",application:"",enabled:true,regex:false}}
   }
   SettingsCard {
    visible:!root.devicesOnly&&Object.keys(root.form).length>0;title:Tr.tr("Rule details");icon:"tune"
+   description:Tr.tr("Dynamic appearance updates existing windows. Placement is applied when a window opens in the selected mode; switching modes does not move existing windows.")
+   GenericSettingRow {spec:({label:"Apply in window mode",type:"choice",choices:[{value:"all",label:"All window modes"},{value:"stacking",label:"Stacking"},{value:"scrolling",label:"Scrolling"},{value:"tiling",label:"Tiling"},{value:"canvas",label:"Canvas"}],value:root.form.mode??"all"});onEdited:v=>root.change("mode",v)}
    TextFieldRow {label:Tr.tr("Rule name");value:root.form.name??"";onValueEdited:v=>root.change("name",v)}
    TextFieldRow {label:Tr.tr("Application class");value:root.form.application??"";onValueEdited:v=>root.change("application",v)}
    TextFieldRow {label:Tr.tr("Window title (optional)");value:root.form.title??"";onValueEdited:v=>root.change("title",v)}
    ToggleRow {text:Tr.tr("Rule enabled");checked:root.form.enabled!==false;onToggled:root.change("enabled",checked)}
    ToggleRow {text:Tr.tr("Match using regular expressions");checked:root.form.regex??false;onToggled:root.change("regex",checked)}
+   SettingsCard {
+    title:Tr.tr("Advanced matching");icon:"filter_alt";collapsible:true;expanded:false
+    Repeater {model:[{key:"matchXwayland",label:"XWayland window"},{key:"matchModal",label:"Modal window"}];GenericSettingRow {required property var modelData;spec:({label:modelData.label,type:"choice",choices:[{value:"any",label:"Any"},{value:"yes",label:"Yes"},{value:"no",label:"No"}],value:root.form[modelData.key]===undefined?"any":root.form[modelData.key]?"yes":"no"});onEdited:v=>root.optional(modelData.key,v==="any"?null:v==="yes")}}
+   }
+   SettingsCard {
+    title:Tr.tr("Ready-made behaviours");icon:"auto_fix_high";collapsible:true;expanded:false
+    RowButton {text:Tr.tr("Application draws its own titlebar");subtext:Tr.tr("Hide the extra shell titlebar in stacking mode");icon:"window";onClicked:root.preset("csd")}
+    RowButton {text:Tr.tr("Picture in picture");subtext:Tr.tr("Floating, pinned, proportional video without a shell titlebar");icon:"picture_in_picture";onClicked:root.preset("pip")}
+   }
+   SettingsCard {
+    title:Tr.tr("Titlebar and appearance");icon:"palette";collapsible:true;expanded:true
+    GenericSettingRow {spec:({label:"Shell titlebar",type:"choice",choices:[{value:"auto",label:"Follow application defaults"},{value:"show",label:"Show"},{value:"hide",label:"Hide"}],value:root.form.titlebar??"auto"});onEdited:v=>root.optional("titlebar",v==="auto"?null:v)}
+    Repeater {
+     model:[{key:"decorate",label:"Compositor decorations"},{key:"noShadow",label:"Disable shadow"},{key:"noBlur",label:"Disable blur"},{key:"noAnim",label:"Disable animations"},{key:"focusOnActivate",label:"Focus on application activation"}]
+     GenericSettingRow {required property var modelData;spec:({label:modelData.label,type:"choice",choices:[{value:"default",label:"Default"},{value:"yes",label:"Enabled"},{value:"no",label:"Disabled"}],value:root.form[modelData.key]===undefined?"default":root.form[modelData.key]?"yes":"no"});onEdited:v=>root.optional(modelData.key,v==="default"?null:v==="yes")}
+    }
+    Repeater {model:[{key:"borderSize",label:"Border width",max:10},{key:"rounding",label:"Corner radius",max:60}];GenericSettingRow {required property var modelData;spec:({label:modelData.label,type:"int",min:0,max:modelData.max,value:root.form[modelData.key]??0,overridden:root.form[modelData.key]!==undefined});resettable:true;onEdited:v=>root.change(modelData.key,v);onResetRequested:root.optional(modelData.key,null)}}
+   }
+   SettingsCard {
+   title:Tr.tr("Placement and focus");icon:"desktop_windows";collapsible:true;expanded:true
    GenericSettingRow {spec:({label:"Window placement",type:"choice",choices:[{value:"default",label:"Follow the desktop mode"},{value:"float",label:"Floating"},{value:"tile",label:"Tiled"}],value:root.form.floating===undefined?"default":root.form.floating?"float":"tile"});onEdited:v=>root.optional("floating",v==="default"?null:v==="float")}
    GenericSettingRow {spec:({label:"Monitor",type:"choice",choices:["",...Monitors.monitors.map(m=>m.name)],value:root.form.monitor??""});onEdited:v=>root.change("monitor",v)}
    StepperRow {label:Tr.tr("Workspace (0 follows defaults)");from:0;to:1000000;value:root.form.workspace??0;onMoved:v=>root.optional("workspace",v?v:null)}
@@ -63,6 +115,9 @@ PageBase {
    ToggleRow {text:Tr.tr("Center floating windows");checked:root.form.center??false;onToggled:root.change("center",checked)}
    ToggleRow {text:Tr.tr("Show on every workspace");checked:root.form.pin??false;onToggled:root.change("pin",checked)}
    GenericSettingRow {spec:({label:"Prevent idle sleep",type:"choice",choices:["none","focus","fullscreen","always"],value:root.form.idleInhibit??"none"});onEdited:v=>root.change("idleInhibit",v)}
+   ToggleRow {text:Tr.tr("Keep aspect ratio");checked:root.form.keepAspectRatio??false;onToggled:root.change("keepAspectRatio",checked)}
+   ToggleRow {text:Tr.tr("Do not take focus when opening");checked:root.form.noInitialFocus??false;onToggled:root.change("noInitialFocus",checked)}
+   }
    SliderRow {label:Tr.tr("Window opacity");value:root.form.opacity??1;valueLabel:Math.round((root.form.opacity??1)*100)+"%";onMoved:v=>root.change("opacity",Math.max(.1,v))}
    SettingsCard {
     title:Tr.tr("Initial floating geometry");icon:"aspect_ratio";collapsible:true;expanded:false

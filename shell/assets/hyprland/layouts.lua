@@ -89,6 +89,22 @@ local task_targets, minimize_timers = {}, {}
 local layouts = {}
 hyprstack_layouts = layouts
 
+-- Keep rule handles; changing modes never reparses or patches compositor code.
+local application_rules = {}
+function layouts.refresh_application_rules()
+    for _, entry in ipairs(application_rules) do
+        entry.handle:set_enabled(entry.mode == "all" or entry.mode == layouts.mode())
+    end
+end
+function layouts.application_rule(mode, spec)
+    -- The first parse can precede plugin registration. Its reload restores this effect.
+    if not (hl.plugin.hyprbars and hl.plugin.hyprbars.clear_buttons) then spec["hyprbars:no_bar"] = nil end
+    local handle = hl.window_rule(spec)
+    table.insert(application_rules, {mode = mode, handle = handle})
+    handle:set_enabled(mode == "all" or mode == layouts.mode())
+    return handle
+end
+
 local telegram_classes = "(?i)^(com\\.ayugram\\.desktop|AyugramDesktop|ayugram|org\\.telegram\\.desktop|TelegramDesktop|telegram-desktop)$"
 local telegram_class_names = { ["com.ayugram.desktop"] = true, ayugramdesktop = true, ayugram = true,
     ["org.telegram.desktop"] = true, telegramdesktop = true, ["telegram-desktop"] = true }
@@ -346,6 +362,11 @@ function layouts.monitor_directions()
 end
 
 local function client_decorated(window)
+    local plugin = hl.plugin.hyprbars
+    if plugin and plugin.titlebar_height then
+        local height = plugin.titlebar_height(window.address, string.format("%x", window.stable_id))
+        if type(height) == "number" then return height == 0 end
+    end
     local class = window.class:lower()
     return browser(window) or class == "discord" or class:match("^org%.gnome%.")
         or class == "ai.storyteller.photocraft" or class == "photocraft"
@@ -863,6 +884,7 @@ function layouts.theme(palette)
         inactive_button_color = color("surfaceContainerLow", "2a2a37"),
         bar_text_font = "Noto Sans", bar_text_size = 12, bar_text_weight = 400, bar_text_align = "center",
         bar_padding = 8, bar_button_padding = 4, bar_part_of_window = true,
+        bar_buttons_alignment = read(config_dir .. "/window-controls.json").side == "left" and "left" or "right",
         bar_precedence_over_border = true, bar_blur = false, icon_on_hover = false,
         on_double_click = command .. "maximize",
         on_minimize = command .. "minimize",
@@ -872,11 +894,20 @@ function layouts.theme(palette)
         ["hyprbars:bar_color"] = color("surfaceContainerHigh", "363646"),
         ["hyprbars:title_color"] = color("primary", "7e9cd8") })
     hl.window_rule({ name = "hyprstack-client-decorations", match = {
-        class = "(?i)^(thorium(-browser)?|chromium(-browser)?|google-chrome.*|firefox|librewolf|zen(-browser)?|discord|org\\.gnome\\..*|ai\\.storyteller\\.photocraft|photocraft)$"
+        class = "(?i)^(thorium(-browser)?|chromium(-browser)?|google-chrome.*|firefox|librewolf|zen(-browser)?|discord|code|code-oss|Code|Code - OSS|VSCodium|codium|com\\.visualstudio\\.code|com\\.vscodium\\.codium|helium.*|brave.*|vivaldi.*|org\\.gnome\\..*|ai\\.storyteller\\.photocraft|photocraft)$"
     }, ["hyprbars:no_bar"] = true })
     hl.plugin.hyprbars.clear_buttons()
     local controls = { close = "e46876", maximize = "98bb6c", minimize = "e6c384" }
-    for _, operation in ipairs({ "close", "maximize", "minimize" }) do
+    local button_preferences = read(config_dir .. "/window-controls.json")
+    local button_order = type(button_preferences.order) == "table" and button_preferences.order or { "minimize", "maximize", "close" }
+    local ordered, seen = {}, {}
+    for _, operation in ipairs(button_order) do
+        if controls[operation] and not seen[operation] then table.insert(ordered, operation); seen[operation] = true end
+    end
+    if button_preferences.side ~= "left" then
+        local reversed = {}; for i = #ordered, 1, -1 do table.insert(reversed, ordered[i]) end; ordered = reversed
+    end
+    for _, operation in ipairs(ordered) do
         hl.plugin.hyprbars.add_button({ bg_color = "rgb(" .. controls[operation] .. ")",
             fg_color = "rgb(1f1f28)", size = 26, icon = "hyprstack:" .. operation, action = command .. operation })
     end
@@ -886,6 +917,7 @@ function layouts.theme(palette)
 end
 
 local function refresh_decorations(animate, keep_appearance)
+    layouts.refresh_application_rules()
     local state_home = os.getenv("XDG_STATE_HOME") or os.getenv("HOME") .. "/.local/state"
     layouts.theme(read(state_home .. "/hics/scheme.json").colours)
     local scrolling = layouts.mode() == "scrolling"
@@ -2253,7 +2285,33 @@ mode_bind("SUPER + F1", function() hl.dispatch(hl.dsp.global("hyprstack:shortcut
     function() return "Shell: Keyboard shortcuts" end)
 refresh_mode_bindings()
 
+local pip_pattern = "(?i)^(Picture[- ]in[- ]Picture|Картинка в картинке)$"
+hl.window_rule({name = "hics-pip", match = {title = pip_pattern}, float = true, pin = true,
+    keep_aspect_ratio = true, no_initial_focus = true, ["hyprbars:no_bar"] = no_titlebar})
+local picture_in_picture_windows = {}
+local function place_picture_in_picture(window)
+    if not window or not window.mapped then return false end
+    local title = (window.title or ""):lower():gsub("-", " ")
+    if title ~= "picture in picture" and window.title ~= "Картинка в картинке" then return false end
+    if not window.floating then float(window, true) end
+    if not window.pinned then hl.dispatch(hl.dsp.window.pin({window = window, action = "enable"})) end
+    picture_in_picture_windows[window.address] = window
+    raise(window)
+    return true
+end
+hl.on("window.close", function(window) picture_in_picture_windows[window.address] = nil end)
+hl.on("window.title", place_picture_in_picture)
+-- Pinning alone spans workspaces; keep PiP above newly focused floating windows.
+hl.on("window.active", function()
+    for _, candidate in pairs(picture_in_picture_windows) do
+        if candidate.mapped and candidate.pinned then
+            local title = (candidate.title or ""):lower():gsub("-", " ")
+            if title == "picture in picture" or candidate.title == "Картинка в картинке" then raise(candidate) end
+        end
+    end
+end)
 hl.on("window.open", function(window)
+    if place_picture_in_picture(window) then return end
     if layouts.mode() == "canvas" then return end
     place_telegram_webview(window)
     schedule_float_center(window)

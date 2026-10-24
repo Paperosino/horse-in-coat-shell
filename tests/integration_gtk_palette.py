@@ -47,6 +47,32 @@ with tempfile.TemporaryDirectory(prefix='hics-gtk-palette-') as directory:
     rgb=tuple(bytes.fromhex(colour));count=pixels.count(rgb)
     assert count>100,(colour,count,run.stderr)
     print(binary+' rendered:',colour,count,'pixels')
+  # Exercise actual file chooser and libadwaita header nodes, not just buttons.
+  (config/'hics').mkdir(exist_ok=True)
+  (config/'hics/window-controls.json').write_text('{"side":"left","order":["close","minimize"]}')
+  apply_palette(colours,config,"dark")
+  (base/'files').mkdir()
+  (base/'files/example.txt').write_text('File chooser fixture')
+  for version,pkg in ((3,'gtk+-3.0'),(4,'gtk4'),(5,'libadwaita-1')):
+   binary=base/f'header{version}'
+   flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs',pkg],text=True))
+   if version==5:flags.append('-DADWAITA_PROBE')
+   subprocess.run(['cc',str(ROOT/'tests/fixtures/gtk-header-probe.c'),*flags,'-o',str(binary)],check=True,capture_output=True)
+   header_env=dict(env,XDG_RUNTIME_DIR=str(runtime),WAYLAND_DISPLAY=str(sockets[0]),GDK_BACKEND='wayland',GSK_RENDERER='cairo',GSETTINGS_BACKEND='keyfile',XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'),GTK_PROBE_FOLDER=str(base/'files'),GTK_PROBE_IMAGE=str(base/f'header{version}.png'))
+   script='import subprocess,sys;subprocess.run(["gsettings","set","org.gnome.desktop.wm.preferences","button-layout","close,minimize:"],check=True);sys.exit(subprocess.run([sys.argv[1]]).returncode)'
+   run=subprocess.run(['dbus-run-session','--',sys.executable,'-c',script,str(binary)],env=header_env,capture_output=True,text=True,timeout=20)
+   assert run.returncode==0,run.stderr
+   assert 'LAYOUT=close,minimize:' in run.stdout,run.stdout+run.stderr
+   assert 'Theme parsing error' not in run.stderr,run.stderr
+   image=Image.open(base/f'header{version}.png').convert('RGB')
+   image.save(f'/tmp/hics-gtk-header{version}.png')
+   # Reject bright horizontal stripes spanning most of the dialog below its header.
+   for y in range(30,min(110,image.height)):
+    line=[image.getpixel((x,y)) for x in range(30,image.width-30)]
+    bright=sum(min(pixel)>190 for pixel in line)
+    assert bright<len(line)*.70,(version,y,bright,len(line))
+   image.save(f'/tmp/hics-gtk-header{version}.png')
+   print(f'PASS: GTK {version} header/file chooser honours button order without a bright header stripe')
  finally:
   compositor.terminate();compositor.wait(timeout=10)
 print('PASS: GTK2/3 widget colours and GTK4 rendered button states follow the shell palette')

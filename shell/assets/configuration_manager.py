@@ -8,8 +8,8 @@ import argparse,copy,ctypes,fcntl,gzip,hashlib,json,os,re,selectors,signal,socke
 from pathlib import Path
 from feature_common import CONFIG,STATE,DATA,read_json,atomic_json,output
 from application_environment import application_environment
-FILES={'shell.json','tokens.json','dock.json','layouts.json','effects.json','keyboard.lua','system.lua','system-controls.json','device-rules.json','application-rules.json','rules.lua','theme-automation.json','live-wallpapers.json','display-profiles.json','notification-rules.json','workspace.json'}
-APPEARANCE={'shell.json','tokens.json','dock.json','layouts.json','effects.json','theme-automation.json','live-wallpapers.json','panels.json','state/scheme.json','state/wallpaper/path.txt','appearance.json','taskbar.json','workspaces.json','tiling.json','theme-schedule.json','widgets.json'}
+FILES={'window-controls.json','shell.json','tokens.json','dock.json','layouts.json','effects.json','keyboard.lua','system.lua','system-controls.json','device-rules.json','application-rules.json','rules.lua','theme-automation.json','live-wallpapers.json','display-profiles.json','notification-rules.json','workspace.json'}
+APPEARANCE={'window-controls.json','shell.json','tokens.json','dock.json','layouts.json','effects.json','theme-automation.json','live-wallpapers.json','panels.json','state/scheme.json','state/wallpaper/path.txt','appearance.json','taskbar.json','workspaces.json','tiling.json','theme-schedule.json','widgets.json'}
 HISTORY=STATE/'configuration-history';PROFILES=DATA/'appearance-profiles';PREFS=CONFIG/'configuration-history.json';JOURNAL=STATE/'configuration-preview.json'
 MAX_BYTES=8*1024*1024
 ASSETS=Path(__file__).resolve().parent
@@ -90,6 +90,9 @@ def validate_bundle(d,appearance=True):
     if val.get('mode') not in ('dark','light') or not isinstance(val.get('colours'),dict) or not val['colours']:raise ValueError('Invalid desktop palette')
     for role,color in val['colours'].items():
      if not isinstance(role,str) or not isinstance(color,str) or not re.fullmatch('[0-9a-fA-F]{6}',color):raise ValueError('Invalid palette colour')
+   if name=='window-controls.json':
+    from gtk_theme import validate_window_controls
+    validate_window_controls(val)
    if name=='widgets.json':
     layouts=val.get('desktopLayout',{})
     if not isinstance(layouts,dict) or len(layouts)>128:raise ValueError('Invalid widget layout bundle')
@@ -189,6 +192,9 @@ def apply_files(files,runtime_apply=True):
   apps=json.loads(files.get('application-rules.json',(CONFIG/'application-rules.json').read_text() if (CONFIG/'application-rules.json').exists() else '{}')).get('rules',[])
   devs=json.loads(files.get('device-rules.json',(CONFIG/'device-rules.json').read_text() if (CONFIG/'device-rules.json').exists() else '{}')).get('devices',[])
   files['rules.lua']=regenerate(apps,devs)
+ if 'window-controls.json' in files:
+  from gtk_theme import validate_window_controls
+  validate_window_controls(json.loads(files['window-controls.json']))
  for name,text in files.items():
   if name=='widgets.json':
    prefs=read_json(CONFIG/'plugins.json');prefs['desktopLayout']=json.loads(text).get('desktopLayout',{});atomic_json(CONFIG/'plugins.json',prefs,private=True)
@@ -196,10 +202,13 @@ def apply_files(files,runtime_apply=True):
  # The compositor owns window geometry; display profiles are restored as data
  # only. Active outputs always go through display_profiles.py confirmation.
  if not runtime_apply:return
+ if 'window-controls.json' in files:
+  from gtk_theme import sync_window_controls
+  sync_window_controls(CONFIG.parent)
  if 'layouts.json' in files:
   mode=json.loads(files['layouts.json']).get('mode','scrolling')
   if mode:subprocess.run(['hyprctl','eval','hyprstack_layouts.set_mode('+json.dumps(mode)+')'],env=application_environment(),capture_output=True,timeout=8,check=True)
- if 'system.lua' in files or 'keyboard.lua' in files or 'rules.lua' in files or 'tiling.json' in files or 'workspaces.json' in files:
+ if 'window-controls.json' in files or 'system.lua' in files or 'keyboard.lua' in files or 'rules.lua' in files or 'tiling.json' in files or 'workspaces.json' in files:
   subprocess.run(['hyprctl','reload'],env=application_environment(),capture_output=True,timeout=10,check=True)
  if 'effects.json' in files:
   subprocess.run(['hyprctl','eval','if hyprstack_layouts then hyprstack_layouts.shadows() end'],env=application_environment(),capture_output=True,timeout=8,check=True)

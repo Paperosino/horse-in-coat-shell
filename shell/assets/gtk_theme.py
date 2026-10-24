@@ -38,6 +38,50 @@ def update_settings(path, section, values):
     atomic_text(path, stream.getvalue())
 
 
+def validate_window_controls(value):
+    if not isinstance(value, dict) or set(value) - {"side", "order"}:
+        raise ValueError("Invalid window controls")
+    side, order = value.get("side", "right"), value.get("order", ["minimize", "maximize", "close"])
+    if side not in ("left", "right") or not isinstance(order, list) or len(order) > 3 or any(not isinstance(v, str) or v not in ("minimize", "maximize", "close") for v in order) or len(set(order)) != len(order):
+        raise ValueError("Invalid window button order")
+    return {"side": side, "order": order}
+
+
+def window_controls(config_root):
+    try:
+        return validate_window_controls(json.loads((Path(config_root)/"hics/window-controls.json").read_text()))
+    except (OSError, ValueError, TypeError):
+        return {"side": "right", "order": ["minimize", "maximize", "close"]}
+
+
+def decoration_layout(config_root):
+    controls = window_controls(config_root)
+    buttons = ",".join(controls["order"])
+    return buttons + ":" if controls["side"] == "left" else ":" + buttons
+
+
+def sync_window_controls(config_root):
+    layout = decoration_layout(config_root)
+    for version in ("3.0", "4.0"):
+        update_settings(Path(config_root)/("gtk-"+version)/"settings.ini", "Settings", {"gtk-decoration-layout": layout})
+    if shutil.which("gsettings"):
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", layout],
+                       capture_output=True, text=True, timeout=5, check=True)
+    # Flatpak clients read their own settings. No extra filesystem permissions.
+    try:
+        apps = installed_flatpaks()
+    except (OSError, subprocess.SubprocessError):
+        apps = []
+    for app in apps:
+        root = Path.home()/".var/app"/app/"config"
+        if any(parent.is_symlink() for parent in (root, root.parent, root.parent.parent, root.parent.parent.parent)):
+            continue
+        for version in ("3.0", "4.0"):
+            folder = root/("gtk-"+version)
+            if not folder.is_symlink() and not (folder/"settings.ini").is_symlink():
+                update_settings(folder/"settings.ini", "Settings", {"gtk-decoration-layout": layout})
+
+
 def apply_palette(colours, config_root, mode=None):
     names = ("surface", "onSurface", "surfaceContainer", "primary", "onPrimary", "outlineVariant")
     values = {}
@@ -71,6 +115,8 @@ def apply_palette(colours, config_root, mode=None):
         f"window, window.background, window.dialog, messagedialog, dialog, .dialog, .background {{ background-color: {surface}; background-image: none; color: {ink}; }}",
         f".view, viewport, treeview, iconview, textview, textview text, list, flowbox, gridview, columnview, .content-view, notebook > stack {{ background-color: {surface}; background-image: none; color: {ink}; }}",
         f"headerbar, toolbar, actionbar, statusbar, .toolbar, .sidebar, .navigation-sidebar, notebook > header {{ background-color: {container}; background-image: none; color: {ink}; }}",
+        f"window headerbar, window .titlebar, window .top-bar, window .bottom-bar {{ background-image: none; border-color: {border}; box-shadow: none; }}",
+        f".toolbar-view > .top-bar, .toolbar-view > .bottom-bar {{ background-color: {container}; color: {ink}; }}",
         f"popover > contents, menu, menuitem, .menu, tooltip > box, tooltip > decoration, .card, .boxed-list, .boxed-list > row {{ background-color: {container}; color: {ink}; }}",
         f"window.popup, window.popup.background, window.tooltip, tooltip, popover, popover.background {{ background-color: transparent; background-image: none; box-shadow: none; }}",
         f"tooltip > box {{ background-color: {container}; color: {ink}; border-radius: 8px; }}",
@@ -95,7 +141,10 @@ def apply_palette(colours, config_root, mode=None):
         f"switch:checked, scale highlight, progressbar progress, check:checked, radio:checked {{ background-color: {accent}; color: {on_accent}; border-color: {accent}; }}",
         f"switch slider, scale slider {{ background-color: {ink}; border-color: {border}; }}",
         f"check, radio {{ background-color: {container}; border-color: {border}; color: {ink}; }}",
-        f"separator {{ background-color: {border}; min-width: 1px; min-height: 1px; }}",
+        f"window columnview.view > header, window columnview.view > header > button, window treeview.view header, window treeview.view header button {{ background-color: {container}; background-image: none; border-color: {border}; outline-color: {accent}; box-shadow: none; }}",
+        f"filechooser #pathbarbox {{ border-color: {border}; background-color: {container}; }}",
+        f"scrolledwindow.frame {{ border-color: {border}; }}",
+        f"separator {{ background-color: {border}; background-image: none; min-width: 1px; min-height: 1px; }}",
         f"*:disabled {{ color: {muted}; }}",
     ]
     css = "/* Generated from the hics palette. */\n" + "\n".join(definitions + rules) + "\n"
@@ -120,6 +169,7 @@ def apply_palette(colours, config_root, mode=None):
             variables = {
                 "window-bg-color":surface,"window-fg-color":ink,"view-bg-color":surface,"view-fg-color":ink,
                 "headerbar-bg-color":container,"headerbar-fg-color":ink,"headerbar-backdrop-color":container,
+                "headerbar-border-color":border,"headerbar-shade-color":"transparent","shade-color":"transparent",
                 "card-bg-color":container,"card-fg-color":ink,"popover-bg-color":container,"popover-fg-color":ink,
                 "dialog-bg-color":surface,"dialog-fg-color":ink,"sidebar-bg-color":container,"sidebar-fg-color":ink,
                 "sidebar-backdrop-color":container,"sidebar-border-color":border,"accent-bg-color":accent,
@@ -137,7 +187,7 @@ def apply_palette(colours, config_root, mode=None):
         update_settings(directory / "settings.ini", "Settings", {
             "gtk-theme-name": "Adwaita-dark" if dark else "Adwaita",
             "gtk-application-prefer-dark-theme": int(dark),
-            "gtk-decoration-layout": ":minimize,maximize,close",
+            "gtk-decoration-layout": decoration_layout(config_root),
         })
     # QPalette colour-role order, used by both qt5ct and qt6ct. Preserve
     # icon/font preferences while replacing the palette and widget style.
@@ -214,6 +264,7 @@ def sync_flatpaks(colours, mode=None, only_new=False):
             print("Skipping symlinked Flatpak config:", app, file=sys.stderr)
             continue
         try:
+            atomic_text(base/"hics/window-controls.json", json.dumps(window_controls(Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config")))))
             apply_palette(colours, base, mode)
             data = base.parent / "data"
             if data.is_symlink() or (data/"color-schemes").is_symlink():
@@ -254,7 +305,7 @@ def sync_session_preference(colours, config_root, mode=None):
         for key, value in (("color-scheme", "prefer-dark" if dark else "prefer-light"),
                            ("gtk-theme", "Adwaita-dark" if dark else "Adwaita")):
             run(["gsettings", "set", "org.gnome.desktop.interface", key, value])
-        run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", ":minimize,maximize,close"])
+        run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", decoration_layout(config_root)])
     target = Path(os.environ.get("XDG_DATA_HOME", Path.home()/".local/share")) / "color-schemes/hics.colors"
     write_kde_scheme(config_root, target)
     environment={"QT_QPA_PLATFORMTHEME":"hics", "QT_QUICK_CONTROLS_CONF":str(Path(config_root)/"hics/qtquickcontrols2.conf")}

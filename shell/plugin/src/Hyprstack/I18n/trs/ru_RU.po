@@ -10571,3 +10571,108 @@ msgstr "Правила распознавания приложений"
 #: modules/nexus/pages/PerformancePage.qml
 msgid "Follow automatic game mode"
 msgstr "Вернуться к автоматическому режиму"
+
+msgid "Window controls"
+msgstr "Кнопки управления окнами"
+
+msgid "One button layout for shell titlebars and GTK applications. Applications may hide unavailable actions or provide their own header."
+msgstr "Общий набор кнопок для заголовков оболочки и приложений GTK. Приложение может скрывать недоступные действия или использовать собственный заголовок."
+
+msgid "Button side"
+msgstr "Сторона кнопок"
+
+msgid "Button order (left to right)"
+msgstr "Порядок кнопок слева направо"
+
+msgid "Apply window controls"
+msgstr "Применить настройки кнопок"
+
+msgid "Later rules take precedence. Editing a rule preserves its position."
+msgstr "Правила ниже в списке имеют приоритет. Изменение правила сохраняет его позицию."
+
+msgid "Dynamic appearance updates existing windows. Placement is applied when a window opens in the selected mode; switching modes does not move existing windows."
+msgstr "Оформление меняется и у открытых окон. Размещение применяется при открытии окна в выбранном режиме; переключение режима не перемещает уже открытые окна."
+
+msgid "Apply in window mode"
+msgstr "Применять в режиме окон"
+
+msgid "All window modes"
+msgstr "Все режимы окон"
+
+msgid "Advanced matching"
+msgstr "Дополнительные условия"
+
+msgid "XWayland window"
+msgstr "Окно XWayland"
+
+msgid "Modal window"
+msgstr "Модальное окно"
+
+msgid "Ready-made behaviours"
+msgstr "Готовые сценарии"
+
+msgid "Application draws its own titlebar"
+msgstr "Приложение рисует свой заголовок"
+
+msgid "Hide the extra shell titlebar in stacking mode"
+msgstr "Скрыть дополнительный заголовок оболочки в стакинге"
+
+msgid "Floating, pinned, proportional video without a shell titlebar"
+msgstr "Плавающее закреплённое видео с сохранением пропорций и без заголовка оболочки"
+
+msgid "Titlebar and appearance"
+msgstr "Заголовок и оформление"
+
+msgid "Shell titlebar"
+msgstr "Заголовок оболочки"
+
+msgid "Follow application defaults"
+msgstr "По умолчанию для приложения"
+
+msgid "Compositor decorations"
+msgstr "Декорации композитора"
+
+msgid "Disable shadow"
+msgstr "Отключить тень"
+
+msgid "Disable blur"
+msgstr "Отключить размытие"
+
+msgid "Disable animations"
+msgstr "Отключить анимации"
+
+msgid "Focus on application activation"
+msgstr "Фокус при запросе активации приложением"
+
+msgid "Border width"
+msgstr "Толщина рамки"
+
+msgid "Corner radius"
+msgstr "Радиус скругления"
+
+msgid "Placement and focus"
+msgstr "Размещение и фокус"
+
+msgid "Keep aspect ratio"
+msgstr "Сохранять пропорции"
+
+msgid "Do not take focus when opening"
+msgstr "Не перехватывать фокус при открытии"
+
+msgid "all"
+msgstr "Все режимы"
+
+msgid "stacking"
+msgstr "Стакинг"
+
+msgid "scrolling"
+msgstr "Прокручиваемая раскладка"
+
+msgid "tiling"
+msgstr "Тайлинг"
+
+msgid "canvas"
+msgstr "Холст"
+
+msgid "Any"
+msgstr "Любое"

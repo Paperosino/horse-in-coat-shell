@@ -35,6 +35,18 @@ class DesktopCompletion(unittest.TestCase):
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)
   for invalid in ({'application':'a','opacity':float('nan')},{'application':'a','workspace':0},{'application':'a','regex':True,'title':'['},{'application':'a','idleInhibit':'exec'}):
    with self.assertRaises(ValueError):rules.validate_rule(invalid)
+ def test_mode_rules_are_registered_with_typed_effects(self):
+  rule=rules.validate_rule({'id':'scoped','application':'Code','mode':'stacking','titlebar':'hide','decorate':True,'borderSize':0,'rounding':12,'noShadow':True,'keepAspectRatio':True,'noInitialFocus':True,'matchXwayland':False})
+  text=rules.rule_lua(rule)
+  self.assertIn('application_rule("stacking"',text)
+  for effect in ('hyprbars:no_bar','border_size','rounding','keep_aspect_ratio','no_initial_focus','xwayland'):self.assertIn(effect,text)
+  for key,value in [('mode','unknown'),('titlebar','execute'),('noShadow',1),('borderSize',True),('rounding',100),('matchModal','yes')]:
+   with self.assertRaises(ValueError):rules.validate_rule({'application':'app',key:value})
+ def test_rule_edit_preserves_priority_and_explicit_move_changes_it(self):
+  first={'id':'first','application':'one'};second={'id':'second','application':'two'}
+  with patch.object(rules,'save') as save,patch.object(rules,'state',return_value={}),patch.object(rules,'read_json',return_value={'rules':[first,second]}):
+   rules.dispatch('save-rule',dict(first,title='new'));self.assertEqual([r['id'] for r in save.call_args.args[0]],['first','second'])
+   rules.dispatch('move-rule',{'id':'first','direction':1});self.assertEqual([r['id'] for r in save.call_args.args[0]],['second','first'])
  def test_device_limits_do_not_accept_commands(self):
   rules.validate_device({'name':'mouse','values':{'sensitivity':.5,'natural_scroll':True}})
   for values in ({'sensitivity':2},{'enabled':False},{'kb_layout':'us;os.execute("x")'},{'repeat_delay':True}):

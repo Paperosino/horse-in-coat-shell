@@ -10,6 +10,24 @@ from gtk_theme import apply_palette
 
 
 class GtkPaletteTests(unittest.TestCase):
+    def test_window_buttons_follow_shell_order_and_side(self):
+        from gtk_theme import decoration_layout, validate_window_controls
+        import json, configparser
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/"hics").mkdir()
+            (root/"hics/window-controls.json").write_text(json.dumps({"side":"left","order":["close","minimize"]}))
+            self.assertEqual(decoration_layout(root),"close,minimize:")
+            colours=dict(surface="101018",onSurface="e0e0e0",surfaceContainer="202028",primary="aaccee",onPrimary="102030",outlineVariant="505060")
+            apply_palette(colours,root,"dark")
+            for version in ("3.0","4.0"):
+                ini=configparser.ConfigParser();ini.read(root/("gtk-"+version)/"settings.ini")
+                self.assertEqual(ini["Settings"]["gtk-decoration-layout"],"close,minimize:")
+            css=(root/"gtk-4.0/hics.css").read_text()
+            self.assertIn("--headerbar-border-color: #505060",css)
+            self.assertIn("--headerbar-shade-color: transparent",css)
+        for value in ({"side":"bottom"},{"order":["close","close"]},{"order":["exec"]},{"order":[[]]},{"other":True}):
+            with self.assertRaises(ValueError):validate_window_controls(value)
+
     def test_fresh_install_initialises_a_shared_default_palette(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -27,7 +27,7 @@ ShellRoot {
  property int phase:0
  property bool narrow:false
  property bool controlledExpanded:false
- property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","keyboard","panels","region","storage","performance"]
+ property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","keyboard","panels","region","storage","performance","application-rules"]
  FloatingWindow {
   id:win;visible:true;implicitWidth:1180;implicitHeight:820;color:Colours.palette.m3surface
   Nexus {id:settings;width:root.narrow?560:parent.width;height:parent.height;visible:!fixture.visible}
@@ -51,7 +51,18 @@ ShellRoot {
    if(root.phase<root.shots.length*2){
     const index=Math.floor(root.phase/2);
     if(root.phase%2===0)settings.nState.openPage(root.shots[index]);
-    else settings.grabToImage(result=>result.saveToFile("/tmp/hics-settings-"+root.shots[index]+".png"));
+    else {
+     if(root.shots[index]==="application-rules"){
+      function findRulePage(item){if(item.form!==undefined && item.devicesOnly!==undefined)return item;for(const child of item.children??[]){const found=findRulePage(child);if(found)return found;}return null;}
+      const page=findRulePage(settings);
+      if(!root.check(!!page,"application rule editor did not load"))return;
+      page.form={application:"org.example.Code",name:"Code",mode:"stacking",titlebar:"hide",noShadow:false,rounding:12};
+      page.preset("pip");
+      if(!root.check(page.form.regex && new RegExp(page.form.application).test("org.example.Code") && !new RegExp(page.form.application).test("orgXexampleXCode") && page.form.pin,"PiP preset changed literal application matching"))return;
+      page.form={application:"Code",name:"Code",mode:"stacking",titlebar:"hide",noShadow:false,rounding:12};
+     }
+     Qt.callLater(()=>settings.grabToImage(result=>result.saveToFile("/tmp/hics-settings-"+root.shots[index]+".png")));
+    }
    } else {
     const step=root.phase-root.shots.length*2;
     if(step===0){fixture.visible=true;fixture.nState.searchTarget="designAdvancedField";fixture.searchAttempts=0;fixture.searchRetry.restart();}
