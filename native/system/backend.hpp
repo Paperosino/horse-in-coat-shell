@@ -2,6 +2,7 @@
 #include <QDBusConnection>
 #include <QJsonObject>
 #include <QString>
+#include <QStringList>
 #include <QVariantMap>
 #include <stdexcept>
 namespace System {
@@ -21,6 +22,8 @@ void apply(const QString &domain, const QString &operation,
            const QJsonObject &options, uint uid);
 QJsonObject regionStatus();
 void validateRegion(const QString&,const QJsonObject&);
+QStringList regionAssignments(const QStringList &current, const QString &selected, bool allFormats);
+void generateRegion(const QString &op, const QJsonObject &options);
 void applyRegion(const QString&,const QJsonObject&);
 QJsonObject storageStatus();
 void validateStorage(const QString &operation, const QJsonObject &options);

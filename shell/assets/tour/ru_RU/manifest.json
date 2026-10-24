@@ -49,22 +49,6 @@
       "posterSha256": "662e185fbfa2a35e971f2951ce7a72a3972df5847561a20ef5a80647f9d22608"
     },
     {
-      "video": "tour/ru_RU/canvas.mp4",
-      "videoSha256": "00ba1c923ac34a8d3f2fc66c7b284f31eb18adcf9aa994a4f92787cf38501cce",
-      "width": 960,
-      "fps": 24,
-      "id": "canvas",
-      "file": "tour/ru_RU/canvas.gif",
-      "sha256": "d76dd5960bbf4aab86ea85bbef01b55e600a41d970100b9f5ad47d22bcfb5774",
-      "language": "ru_RU",
-      "source": "Production hics UI + real kitty windows in isolated Hyprland",
-      "size": 293497,
-      "framesCaptured": 83,
-      "capture": "Wayland screencopy via grim; timestamps retained",
-      "poster": "tour/ru_RU/canvas.jpg",
-      "posterSha256": "d4a38efc2459f8eff9cb45ad6477261e88b5e7ab3c0421e6daa3a33bc5ca59dc"
-    },
-    {
       "video": "tour/ru_RU/keyboard.mp4",
       "videoSha256": "0555e46f98bc1419751416c79bb61b0652f14bb70bc75ea22e0b9497bfb6efba",
       "width": 960,
@@ -143,8 +127,24 @@
       "capture": "Wayland screencopy via grim; timestamps retained",
       "poster": "tour/ru_RU/features.jpg",
       "posterSha256": "e58e526155dd1b629cf3b13a23d2db2819daee8441bb7e148a38b3361bcdcd87"
+    },
+    {
+      "poster": "tour/ru_RU/canvas.jpg",
+      "posterSha256": "380e9e72332a80e179df697cebcf1f3833a74b66135821472508a58593911ce6",
+      "video": "tour/ru_RU/canvas.mp4",
+      "videoSha256": "cc04af87398d113c80dcab95ae7af2140f2cce90f738f3364f7a934f8c6a039a",
+      "width": 960,
+      "fps": 24,
+      "id": "canvas",
+      "file": "tour/ru_RU/canvas.gif",
+      "sha256": "ce8d1aaa982d11ff80cd5da421ec2f58665aae868e8096bd9df543fc80114486",
+      "language": "ru_RU",
+      "source": "Production hics UI + real kitty windows in isolated Hyprland",
+      "size": 3284652,
+      "framesCaptured": 83,
+      "capture": "Wayland screencopy via grim; timestamps retained"
     }
   ],
   "version": 1,
-  "recorded": 1792860200
+  "recorded": 1792862707
 }

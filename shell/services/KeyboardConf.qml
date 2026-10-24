@@ -40,6 +40,10 @@ Singleton {
     property bool layoutsLoaded: false
     property bool typingLoaded: false
     property bool applyQueued: false
+    property string saveError: ""
+    property string liveError: ""
+    readonly property string error: saveError || liveError
+    readonly property bool busy: writeTimer.running || writer.running || hyprctlProc.running || applyQueued
 
     Component.onCompleted: {
         rulesFile.reload();
@@ -197,6 +201,7 @@ Singleton {
     }
 
     function changed(): void {
+        saveError = ""; liveError = "";
         applyLive();
         writeTimer.restart();
     }
@@ -245,7 +250,8 @@ Singleton {
             return;
         }
         writer.payload = buildConfig(existingConfig);
-        writer.command = ["sh", "-c", `cat > ${shellQuote(configPath)}`];
+        writer.command = ["python3", Paths.toLocalFile(Qt.resolvedUrl("../assets/write_keyboard_config.py"))];
+        writer.stdinEnabled = true;
         writer.running = true;
     }
 
@@ -332,7 +338,8 @@ Singleton {
 
         property string payload: ""
 
-        stdinEnabled: true
+        stderr: StdioCollector { id: writerError }
+        onExited: (code,status) => root.saveError = code !== 0 || status !== 0 ? Tr.tr("Unable to save keyboard settings") + (writerError.text.trim() ? ": " + writerError.text.trim() : "") : ""
         onStarted: {
             writer.write(payload);
             writer.stdinEnabled = false;
@@ -341,8 +348,11 @@ Singleton {
 
     Process {
         id: hyprctlProc
-
-        onExited: {
+        stdout: StdioCollector {id:applyOutput}
+        stderr: StdioCollector {id:applyError}
+        onExited: (code,status) => {
+            const message = (applyError.text || applyOutput.text).trim();
+            root.liveError = code !== 0 || status !== 0 || message.startsWith("error:") ? message || Tr.tr("Unable to apply keyboard settings") : "";
             if (root.applyQueued) {
                 root.applyQueued = false;
                 root.startApply();

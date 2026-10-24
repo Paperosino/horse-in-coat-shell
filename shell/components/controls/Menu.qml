@@ -84,8 +84,8 @@ MouseArea {
         level: 2
 
         implicitWidth: Math.min(root.parent?.width ?? 200 * Tokens.scale,
-            Math.max(200 * Tokens.scale, column.implicitWidth + column.anchors.margins * 2))
-        implicitHeight: column.implicitHeight + column.anchors.margins * 2
+            Math.max(200 * Tokens.scale, column.implicitWidth + Tokens.padding.extraSmall * 2))
+        implicitHeight: Math.min((root.parent?.height ?? 600) - Tokens.padding.large * 2, column.implicitHeight + Tokens.padding.extraSmall * 2)
 
         transform: Scale {
             yScale: root.expanded ? 1 : 0.97
@@ -107,11 +107,28 @@ MouseArea {
             radius: parent.radius
             color: Colours.palette.m3surfaceContainerLow
 
-            ColumnLayout {
-                id: column
-
+            Flickable {
+                id: optionsView
                 anchors.fill: parent
                 anchors.margins: Tokens.padding.extraSmall
+                contentWidth: width
+                contentHeight: column.implicitHeight
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                clip: true
+                StyledScrollBar.vertical: StyledScrollBar {flickable:optionsView;shouldBeActive:true}
+                WheelHandler {
+                    target:null
+                    acceptedDevices:PointerDevice.Mouse|PointerDevice.TouchPad
+                    onWheel:event=>{
+                        const amount=event.pixelDelta.y||event.angleDelta.y/120*48*Tokens.scale;
+                        optionsView.contentY=Math.max(0,Math.min(Math.max(0,optionsView.contentHeight-optionsView.height),optionsView.contentY-amount));
+                        event.accepted=true;
+                    }
+                }
+            ColumnLayout {
+                id: column
+                width: optionsView.width
                 spacing: 0
 
                 Repeater {
@@ -195,6 +212,7 @@ MouseArea {
                         }
                     }
                 }
+            }
             }
         }
     }

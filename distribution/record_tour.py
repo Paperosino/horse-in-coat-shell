@@ -25,6 +25,9 @@ def record(language,only):
   (cfg/'dock.json').write_text(json.dumps({'enabled':True,'position':'bottom','animations':True,'windowAnimations':True,'iconSize':44}))
   (cfg/'workspace.json').write_text(json.dumps({'clipboard':{'enabled':True},'session':{'enabled':False}}))
   (cfg/'onboarding.json').write_text(json.dumps({'state':'skipped','autoShow':False,'step':0}))
+  if 'interactions' in only:
+   originals=Path.home()/'Изображения/Wallpapers/hics-collection/.originals';target=base/'wallpapers/hics-collection/.originals';target.mkdir(parents=True)
+   for image in originals.glob('*.jxl'):shutil.copy2(image,target/image.name)
   source=base/'shell';shutil.copytree(ROOT/'shell',source,ignore=shutil.ignore_patterns('plugin','extras','__pycache__'))
   control=base/'control.json';control.write_text('{}');probe=base/'probe.json'
   shell=(source/'shell.qml').read_text().replace('import "modules/configuration" as Configuration','import Hyprstack.I18n\nimport Hyprstack.Config\nimport Quickshell.Io\nimport qs.modules.nexus as NexusModule\nimport qs.modules.nexus.common as DemoCommon\nimport "modules/configuration" as Configuration')
@@ -44,6 +47,25 @@ def record(language,only):
   path:__CONTROL_PATH__;watchChanges:true;printErrors:false;onFileChanged:reload()
   onLoaded:{try{
    const c=JSON.parse(text());if(!c.sequence||c.sequence<=root.demoSequence)return;root.demoSequence=c.sequence;
+   if(c.inspectMenuValue!==undefined){
+    const win=onboardingWizard.instances.find(w=>w.primary);
+    function findValue(node){if(node.modelData?.value===c.inspectMenuValue&&node.modelData?.text!==undefined&&node.visible)return node;for(const child of node.children??[]){const found=findValue(child);if(found)return found;}return null;}
+    const item=findValue(win.contentItem);let view=item?.parent;while(view&&view.contentHeight===undefined)view=view.parent;
+    const p=item?.mapToItem(win.contentItem,0,0);const v=view?.mapToItem(win.contentItem,0,0);
+    demoProbe.setText(JSON.stringify({exists:!!item,x:p?.x,y:p?.y,width:item?.width,height:item?.height,vx:v?.x,vy:v?.y,vw:view?.width,vh:view?.height}));
+   }
+   if(c.inspectText){
+    const win=onboardingWizard.instances.find(w=>w.primary);
+    function findText(item){if(item.text===c.inspectText&&item.visible)return item;for(const child of item.children??[]){const found=findText(child);if(found)return found;}return null;}
+    const label=findText(win.contentItem);const item=label?.parent?.parent;const point=item?.mapToItem(win.contentItem,0,0);
+    demoProbe.setText(JSON.stringify({exists:!!item,x:point?.x,y:point?.y,width:item?.width,height:item?.height}));
+   }
+   if(c.inspectControl){
+    const win=onboardingWizard.instances.find(w=>w.primary);const item=findDemo(win.contentItem,c.inspectControl);const region=findDemo(win.contentItem,"onboarding-region");const loader=findDemo(win.contentItem,"onboarding-body");const f=loader?.item?.flickable;
+    if(item&&c.revealControl&&f){const point=item.mapToItem(f.contentItem,0,0);f.cancelFlick();f.contentY=Math.max(-f.topMargin,Math.min(f.contentHeight-f.height+f.bottomMargin,point.y-24));loader.item.preferredContentY=f.contentY;}
+    function dropdown(node){if(node.expandBtn&&node.menuItems!==undefined)return node;for(const child of node.children??[]){const found=dropdown(child);if(found)return found;}return null;}
+    const hit=item?.field??(item?.spec?.type==="choice"?dropdown(item)?.expandBtn:null)??(item?.settingsCard&&item.collapsible?item.frame?.children[0]:null)??item;const p=hit?.mapToItem(win.contentItem,0,0);demoProbe.setText(JSON.stringify({exists:!!item,x:p?.x,y:p?.y,width:hit?.width,height:hit?.height,text:item?.field?.text,focus:item?.field?.activeFocus,query:region?.query,matches:region?.matches?.map(l=>l.id),selected:region?.selected,current:region?.currentLocale,busy:region?.busy,error:region?.error,succeeded:region?.succeeded,expanded:item?.expanded,menuExpanded:item?.spec?.type==="choice"?dropdown(item)?.expanded:undefined,memoryTotal:findDemo(win.contentItem,"storage-memory-settings")?.live?.total??0,wallpapers:Onboarding.data.wallpapers??[],downloading:Onboarding.downloading,step:Onboarding.step,language:Tr.language,keyboardError:KeyboardConf.error,keyboardBusy:KeyboardConf.busy,layouts:KeyboardConf.layoutCodes,variants:KeyboardConf.variantByLayout,usVariants:KeyboardConf.variantsFor("us"),switchOption:KeyboardConf.switchOption,mode:LayoutModes.mode,theme:Colours.scheme,light:Colours.currentLight}));
+   }
    if(c.probe)root.reportSetup();
    if(c.setup!==undefined){demoSettings.visible=false;Onboarding.open(c.setup);}
    if(c.setupSkip){Onboarding.skip();console.log("ONBOARDING_SKIP_OK",Onboarding.running);}
@@ -62,11 +84,17 @@ def record(language,only):
   }catch(e){console.error("DEMO_CONTROL_ERROR",e);}}
  }
 '''.replace('__CONTROL_PATH__',json.dumps(str(control))).replace('__PROBE_PATH__',json.dumps(str(probe)))
-  if 'onboarding' not in only:injection=injection.replace('if(c.probe)root.reportSetup();','').replace(next(l for l in injection.splitlines() if l.startswith(' function reportSetup()')),'')
+  if 'onboarding' not in only:
+   a=injection.index('   if(c.inspectMenuValue');b=injection.index('   if(c.probe)',a);injection=injection[:a]+injection[b:]
+   injection=injection.replace('if(c.probe)root.reportSetup();','').replace(next(l for l in injection.splitlines() if l.startswith(' function reportSetup()')),'')
   shell=shell[:shell.rfind('}')]+injection+'\n}';(source/'shell.qml').write_text(shell)
   lua=base/'hyprland.lua';lua.write_text('package.path='+json.dumps(str(ASSETS/'hyprland/config/?.lua')+';')+'..package.path\npackage.preload["scheme.current"]=function() return require("scheme.default") end\nhl.monitor({output="",mode="1280x720@60",position="auto",scale=1})\nhl.config({input={kb_layout="us",follow_mouse=0},misc={disable_watchdog_warning=true,disable_hyprland_logo=true,disable_splash_rendering=true}})\ndofile('+json.dumps(str(ASSETS/'hyprland/config/hyprland/animations.lua'))+')\ndofile('+json.dumps(str(ASSETS/'hyprland/config/hyprland/gestures.lua'))+')\ndofile('+json.dumps(str(ASSETS/'hyprland/layouts.lua'))+')\n')
+  with lua.open('a') as output:output.write('local p='+json.dumps(str(cfg/'keyboard.lua'))+';local f=io.open(p);if f then f:close();dofile(p) end'+chr(10))
   env=dict(os.environ,HOME=str(home),AQ_BACKEND='headless',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'),XDG_CURRENT_DESKTOP='Hyprland',HYPRSTACK_DATA_DIR=str(base),HICS_DATA_DIR=str(base),HYPRSTACK_NESTED='1',HICS_NO_ONBOARDING='1',HICS_CONFIG_NO_SYSTEMD='1',HICS_DISPLAY_NO_SYSTEMD='1',QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'),QT_QPA_PLATFORM='wayland',LANG='ru_RU.UTF-8' if language=='ru_RU' else 'en_US.UTF-8',HYPRSTACK_LANGUAGE=language,HICS_WORKSPACE_HELPER=str(ROOT/'build/lib/hics-workspace'))
   env['HICS_RECORD_SYSTEM_BUS']=os.environ.get('DBUS_SYSTEM_BUS_ADDRESS','unix:path=/run/dbus/system_bus_socket')
+  if 'interactions' in only:
+   assert os.environ.get('HICS_TEST_REGION_PROXY'),'Provide the scoped privileged test proxy'
+   tools=base/'tools';tools.mkdir();shutil.copy2(os.environ['HICS_TEST_REGION_PROXY'],tools/'hics-systemctl');(tools/'hics-systemctl').chmod(0o700);env['PATH']=str(tools)+':'+env['PATH']
   env.pop('HYPRLAND_INSTANCE_SIGNATURE',None);env.pop('DISPLAY',None)
   compositor=qs=recorder=pointer=None;apps=[];manifest=[]
   try:
@@ -79,12 +107,28 @@ def record(language,only):
     time.sleep(.1)
    assert instance,'No recording compositor';env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'])
    def ctl(*args):return subprocess.check_output(['hyprctl','-i',instance['instance'],*args],env=env,text=True,timeout=10).strip()
+   # Keep this test-owned Wayland backend window out of the parent's tiling.
+   # Resizing a parent tiled viewport otherwise invalidates pointer coordinates.
+   host_signature=os.environ.get('HYPRLAND_INSTANCE_SIGNATURE')
+   if host_signature:
+    for _ in range(30):
+     host_clients=json.loads(subprocess.check_output(['hyprctl','-i',host_signature,'-j','clients'],text=True))
+     parent=next((w for w in host_clients if w.get('pid')==compositor.pid),None)
+     if parent:break
+     time.sleep(.1)
+    if parent:
+     address=json.dumps('address:'+parent['address'])
+     subprocess.run(['hyprctl','-i',host_signature,'eval','local w=hl.get_window('+address+');if w then hl.dispatch(hl.dsp.window.float({window=w,action="enable"}));hl.dispatch(hl.dsp.window.resize({window=w,x=1280,y=720,relative=false})) end'],capture_output=True,check=True)
+
    time.sleep(.5)
    active=[m for m in json.loads(ctl('-j','monitors')) if m.get('width',0)>0 and not m.get('disabled')]
    if not active:ctl('output','create','headless','HICS-DEMO');time.sleep(.8)
    active=[m for m in json.loads(ctl('-j','monitors')) if m.get('width',0)>0 and not m.get('disabled')]
    assert active,'No usable recording output'
    recording_output=active[0]['name']
+   canvas_plugin=base/'native/libspatialoverview.so'
+   if canvas_plugin.is_file():
+    result=ctl('plugin','load',str(canvas_plugin));assert 'error' not in result.lower(),result;time.sleep(.6)
    errors=ctl('configerrors');assert not errors,errors
    # A private bus prevents notifications or settings calls from reaching the user's bus.
    runner=base/'runner.py';runner.write_text('import os,sys\nos.environ["DBUS_SYSTEM_BUS_ADDRESS"]=os.environ.get("HICS_RECORD_SYSTEM_BUS",os.environ["DBUS_SESSION_BUS_ADDRESS"])\nos.execvp(sys.argv[1],sys.argv[1:])\n')
@@ -172,6 +216,177 @@ def record(language,only):
      assert pointer.stdout.readline().strip()=='ok'
     def inspect():
      command(probe=True);return json.loads(probe.read_text())
+    if 'interactions' in only:
+     for flag,name in [('client-header','virtual-keyboard.h'),('private-code','virtual-keyboard-protocol.c')]:subprocess.run(['wayland-scanner',flag,str(fixtures/'virtual-keyboard.xml'),str(base/name)],check=True)
+     keyboard_source=(fixtures/'virtual-keyboard.c').read_text().replace('1u<<xkb_keymap_mod_get_index(map,XKB_MOD_NAME_LOGO)','0')
+     (base/'keyboard.c').write_text(keyboard_source)
+     flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','wayland-client','xkbcommon'],text=True))
+     subprocess.run(['cc',str(base/'keyboard.c'),str(base/'virtual-keyboard-protocol.c'),'-I',str(base),*flags,'-o',str(base/'keyboard')],check=True)
+     def key(code):subprocess.run([str(base/'keyboard'),str(code)],env=env,check=True)
+     def inspectControl(name,reveal=True):
+      command(inspectControl=name,revealControl=reveal);time.sleep(.2);command(inspectControl=name);return json.loads(probe.read_text())
+     def click(name):
+      c=inspectControl(name);assert c['exists'],(name,c);point('move',c['x']+c['width']/2,c['y']+c['height']/2);point('button',272,1);point('button',272,0);time.sleep(.2)
+     command(setup=1);time.sleep(1)
+     click('locale-search')
+     for code in (18,49,34,38,23,31,35):key(code)
+     c=inspectControl('locale-search',False);assert c['query']=='english' and 'en_US.UTF-8' in c['matches'],c
+     print(language,'REAL_LOCALE_TEXT_SEARCH_OK',flush=True)
+     click('locale-choice-en_US.UTF-8');c=inspectControl('locale-selection');assert c['selected']=='en_US.UTF-8',c
+     Path(os.environ['HICS_TEST_REGION_MODE']).write_text('denied')
+     click('locale-apply')
+     for _ in range(30):
+      c=inspectControl('locale-selection',False)
+      if c.get('error'):break
+      time.sleep(.1)
+     assert c.get('error') and c['selected']=='en_US.UTF-8' and c['step']==1,c
+     Path(os.environ['HICS_TEST_REGION_MODE']).write_text('')
+     print(language,'LOCALE_DENIAL_PRESERVES_SELECTION_OK',flush=True)
+     # The root test bridge permits only the original locale, so use the
+     # current locale for a real, idempotent system-generation request.
+     click('locale-search')
+     key(107)
+     for _ in range(7):key(14)
+     for code in (19,22):key(code)
+     c=inspectControl('locale-search',False);assert c['query']=='ru' and 'ru_RU.UTF-8' in c['matches'],c
+     click('locale-choice-ru_RU.UTF-8');click('locale-apply')
+     for _ in range(120):
+      c=inspectControl('locale-selection',False)
+      if c.get('succeeded') or c.get('error'):break
+      time.sleep(.1)
+     assert c.get('succeeded') and c.get('current')=='ru_RU.UTF-8',c
+     print(language,'REAL_NATIVE_LOCALE_APPLY_OK',flush=True)
+     click('tour-language-en');c=inspectControl('locale-selection',False);assert c['language']=='en_US',c
+     click('tour-language-ru');c=inspectControl('locale-selection',False);assert c['language']=='ru_RU',c
+     if language=='en_US':
+      click('tour-language-en');click('locale-choice-ru_RU.UTF-8')
+     assert json.loads((cfg/'shell.json').read_text())['general']['language']==language
+     print(language,'SHELL_LANGUAGE_CLICK_PERSISTENCE_OK',flush=True)
+     click('onboarding-next')
+     for _ in range(60):
+      c=inspectControl('tour-layout-switch',False)
+      if c['step']==2:break
+      time.sleep(.1)
+     assert c['step']==2,c
+     print(language,'LOCALE_CONTINUE_AFTER_SUCCESS_OK',flush=True)
+     command(setup=2);time.sleep(.7)
+     click('tour-add-layout-ru');time.sleep(.5);c=inspectControl('tour-layout-switch',False);assert c['layouts']==['us','ru'],c
+     click('tour-layout-switch')
+     time.sleep(.2)
+     # Pick the actual menu row by its label; do not invoke the setting method.
+     command(inspectText='Alt+Shift');row=json.loads(probe.read_text());assert row['exists'],row
+     point('move',row['x']+row['width']/2,row['y']+row['height']/2);point('button',272,1);point('button',272,0);time.sleep(.8)
+     c=inspectControl('tour-layout-switch',False);assert c['switchOption']=='grp:alt_shift_toggle',c
+     assert 'grp:alt_shift_toggle' in (cfg/'keyboard.lua').read_text()
+     assert 'grp:alt_shift_toggle' in ctl('repl','return hl.get_config("input.kb_options")')
+     assert 'us,ru' in ctl('repl','return hl.get_config("input.kb_layout")')
+     variants=c['usVariants'];assert variants,'No US keyboard variants'
+     last_variant=variants[-1]['code']
+     click('tour-layout-variant-us');key(1);c=inspectControl('tour-layout-variant-us',False);assert c['step']==2 and not c.get('menuExpanded'),c
+     click('tour-layout-variant-us')
+     for _ in range(12):
+      command(inspectMenuValue=last_variant);option=json.loads(probe.read_text());assert option['exists'],option
+      if option['y']>=option['vy'] and option['y']+option['height']<=option['vy']+option['vh']:break
+      point('move',option['vx']+option['vw']/2,option['vy']+option['vh']/2)
+      for _ in range(15):point('wheel',0,1)
+     assert option['y']>=option['vy'] and option['y']+option['height']<=option['vy']+option['vh'],option
+     point('move',option['x']+option['width']/2,option['y']+option['height']/2);point('button',272,1);point('button',272,0);time.sleep(.5)
+     c=inspectControl('tour-layout-variant-us',False);assert c['variants'].get('us')==last_variant,c
+     assert last_variant in (cfg/'keyboard.lua').read_text()
+     click('tour-layout-variant-us')
+     command(inspectMenuValue='');option=json.loads(probe.read_text())
+     point('move',option['vx']+option['vw']/2,option['vy']+option['vh']/2)
+     for _ in range(100):point('wheel',0,-1)
+     command(inspectMenuValue='');option=json.loads(probe.read_text())
+     point('move',option['x']+option['width']/2,option['y']+option['height']/2);point('button',272,1);point('button',272,0);time.sleep(.5)
+     c=inspectControl('tour-layout-variant-us',False);assert not c['variants'].get('us'),c
+     print(language,'LONG_VARIANT_MENU_REAL_SCROLL_SELECTION_RESET_OK',flush=True)
+     before_keyboard=(cfg/'keyboard.lua').read_bytes()
+     cfg.chmod(0o500)
+     try:
+      click('tour-add-layout-de')
+      for _ in range(40):
+       c=inspectControl('tour-keyboard-retry',False)
+       if c.get('keyboardError'):break
+       time.sleep(.1)
+      assert c.get('keyboardError') and (cfg/'keyboard.lua').read_bytes()==before_keyboard,c
+     finally:cfg.chmod(0o700)
+     click('tour-keyboard-retry')
+     for _ in range(40):
+      c=inspectControl('tour-layout-switch',False)
+      if not c.get('keyboardBusy') and not c.get('keyboardError') and 'us,ru,de' in (cfg/'keyboard.lua').read_text():break
+      time.sleep(.1)
+     assert not c.get('keyboardError') and 'us,ru,de' in (cfg/'keyboard.lua').read_text(),c
+     click('tour-remove-layout-de');time.sleep(.6)
+     print(language,'KEYBOARD_SAVE_FAILURE_PRESERVES_FILE_AND_RETRY_OK',flush=True)
+     click('tour-remove-layout-ru');time.sleep(.5);c=inspectControl('tour-layout-switch',False);assert c['layouts']==['us'],c
+     print(language,'MULTI_LAYOUT_ADD_SWITCH_REMOVE_PERSISTENCE_OK',flush=True)
+     command(setup=4);time.sleep(.4)
+     for mode in ('tiling','scrolling','canvas','stacking'):
+      click('tour-mode-'+mode)
+      for _ in range(30):
+       c=inspectControl('tour-mode-'+mode,False)
+       if c['mode']==mode:break
+       time.sleep(.1)
+      assert c['mode']==mode,c
+      assert json.loads((cfg/'layouts.json').read_text())['mode']==mode
+     print(language,'FOUR_WINDOW_MODE_REAL_BUTTONS_PERSISTENCE_OK',flush=True)
+     command(setup=5);time.sleep(.6)
+     for name,light in [('light',True),('dark',False)]:
+      click('tour-theme-'+name)
+      for _ in range(50):
+       c=inspectControl('tour-theme-'+name,False)
+       if c['light']==light:break
+       time.sleep(.1)
+      assert c['light']==light,c
+      assert json.loads((state/'scheme.json').read_text())['mode']==name
+     print(language,'LIGHT_DARK_REAL_BUTTONS_PERSISTENCE_OK',flush=True)
+     command(setup=6);time.sleep(.5);click('tour-wallpaper-download')
+     for _ in range(150):
+      c=inspectControl('tour-wallpaper-download',False)
+      if len(c['wallpapers'])==14 and not c['downloading']:break
+      time.sleep(.1)
+     assert len(c['wallpapers'])==14 and not c['downloading'],c
+     wallpaper=c['wallpapers'][0];click('tour-wallpaper-'+wallpaper['name'])
+     for _ in range(50):
+      if (state/'wallpaper/path.txt').read_text().strip()==wallpaper['path']:break
+      time.sleep(.1)
+     assert (state/'wallpaper/path.txt').read_text().strip()==wallpaper['path']
+     assert (base/'wallpapers/hics-collection/LICENSE.txt').is_file()
+     print(language,'WALLPAPER_COLLECTION_CONVERSION_SELECTION_PERSISTENCE_OK',flush=True)
+     command(setup=7);time.sleep(.6);click('storage-memory-compression');time.sleep(.5)
+     c=inspectControl('storage-memory-compression',False);assert c.get('expanded') and c.get('memoryTotal',0)>0,c
+     click('storage-memory-compression');time.sleep(.4)
+     c=inspectControl('storage-memory-compression',False);assert c.get('expanded') is False,c
+     print(language,'STORAGE_MEMORY_EXPAND_METRICS_COLLAPSE_OK',flush=True)
+     command(setup=0)
+     for step in range(1,10):
+      click('onboarding-next')
+      for _ in range(30):
+       c=inspectControl('onboarding-next',False)
+       if c['step']==step:break
+       time.sleep(.1)
+      assert c['step']==step,c
+      if step==8:
+       click('tour-feature-clipboard');c=inspectControl('tour-inspection',False);assert c['exists'],c
+       click('onboarding-back');c=inspectControl('tour-feature-clipboard',False);assert c['exists'] and c['step']==8,c
+     click('onboarding-next');time.sleep(.5)
+     assert json.loads((cfg/'onboarding.json').read_text())['state']=='completed'
+     assert 'hyprstack-onboarding' not in ctl('-j','layers')
+     print(language,'REAL_NEXT_BACK_INSPECTION_FINISH_OK',flush=True)
+     os.killpg(qs.pid,signal.SIGTERM);qs.wait(timeout=8)
+     ctl('reload');time.sleep(.5);control.write_text('{}')
+     log_size=(base/'shell.log').stat().st_size
+     with (base/'shell.log').open('a') as log:qs=subprocess.Popen(['dbus-run-session','--','python3',str(runner),os.environ.get('HICS_TOUR_QS','/usr/share/hics/qs/bin/hics-qs'),'-p',str(source)],env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+     for _ in range(120):
+      if 'Configuration Loaded' in (base/'shell.log').read_text()[log_size:]:break
+      if qs.poll() is not None:raise AssertionError((base/'shell.log').read_text()[log_size:])
+      time.sleep(.1)
+     time.sleep(.8);command(setup=2);time.sleep(.6)
+     c=inspectControl('tour-layout-switch',False)
+     assert c['layouts']==['us'] and c['switchOption']=='grp:alt_shift_toggle' and c['light'] is False,c
+     assert (state/'wallpaper/path.txt').read_text().strip()==wallpaper['path']
+     print(language,'RESTART_RELOAD_RESTORES_SAVED_CHOICES_OK',flush=True)
     for step in (2,3,7):
      command(setup=step);time.sleep(.9);before=inspect();assert before['height']>=700 and before['width']>=1200,before
      assert before['movieFrames']>0 and not before['movieError'],before
@@ -218,6 +433,9 @@ def record(language,only):
    logs=(base/'shell.log').read_text();errors=[line for line in logs.splitlines() if any(s in line for s in ('TypeError:','ReferenceError:','DEMO_CONTROL_ERROR','Failed to load configuration'))]
    if errors:raise RuntimeError('\n'.join(errors[-20:]))
   except Exception:
+   if compositor and compositor.poll() is None:
+    try:subprocess.run(['grim','/tmp/hics-onboarding-actions-failure.png'],env=env,capture_output=True,timeout=5)
+    except Exception:pass
    for name in ('compositor','shell','recorder'):
     path=base/(name+'.log')
     if path.exists():shutil.copy2(path,Path('/tmp')/('hics-tour-record-'+name+'.log'))

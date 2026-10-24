@@ -765,3 +765,26 @@ Reports are never uploaded automatically. Screen-reader support depends on
 application accessibility support; session imports from GNOME/KDE preserve the
 information exposed by those desktops and cannot recreate arbitrary private
 application state.
+
+Locale setup shows searchable inline results instead of an unbounded dropdown.
+Search accepts language names and locale identifiers, including UTF-8/utf8
+spellings. Applying a selection shows progress and a confirmed result; errors
+retain the selection for retry. The language-only option preserves the old
+regional formats, including formats inherited from the old LANG. C.UTF-8 is
+available as the system default. Generation runs in a fixed privileged
+hics-region task with bounded resources; the main broker remains read-only.
+
+Keyboard setup waits for pending writes before advancing, saves through an
+atomic replacement, and reports write/apply errors. Dropdowns are bounded to the
+screen and scroll; Escape closes an open dropdown before leaving the guide.
+
+The opt-in tests/integration_onboarding_actions.py --privileged test performs
+actual typing/clicks, locale search and selection, denied authorization feedback,
+real native locale generation, language changes, multiple layouts and variants,
+long-menu scrolling, failed-write/retry, all four window modes, light/dark themes,
+wallpaper conversion/selection, memory-section expansion, complete navigation,
+finish, restart and compositor reload. It requires an already configured
+ru_RU.UTF-8 system locale and restores locale configuration files. A scoped test
+bridge permits only that existing locale; disk and memory writes are blocked.
+Wallpaper conversion uses retained original images. Add --language en_US to
+exercise the English interface. No production Polkit policy is relaxed.

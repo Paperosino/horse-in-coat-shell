@@ -85,12 +85,13 @@ PageBase {
         }
         SettingsCard {
             id: memoryCard
+            objectName: "storage-memory-compression"
             title: Tr.tr("Memory compression")
             description: Tr.tr("ZRAM, ZSwap and adaptive memory expansion")
             icon: "memory"
             collapsible: true
             expanded: false
-            MemorySection { watching: root.visible && memoryCard.expanded }
+            MemorySection { objectName:"storage-memory-settings"; watching: root.visible && memoryCard.expanded }
         }
         RowLayout {
             Layout.fillWidth: true

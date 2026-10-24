@@ -10190,3 +10190,48 @@ msgstr "Не удалось временно заблокировать соче
 
 msgid "Continue"
 msgstr "Далее"
+
+msgid "Choose a locale from the search results, then apply it. Existing applications use the new language after signing in again."
+msgstr "Выберите локаль в результатах поиска и примените её. Уже запущенные приложения подхватят новый язык после повторного входа."
+
+msgid "No matching locales"
+msgstr "Подходящие локали не найдены"
+
+msgid "Selected locale"
+msgstr "Выбранная локаль"
+
+msgid "Select a locale"
+msgstr "Выберите локаль"
+
+msgid "System locale applied. New applications use it after your next sign-in."
+msgstr "Системная локаль применена. Приложения подхватят её после следующего входа."
+
+msgid "Unable to save keyboard settings"
+msgstr "Не удалось сохранить настройки клавиатуры"
+
+msgid "Unable to apply keyboard settings"
+msgstr "Не удалось применить настройки клавиатуры"
+
+msgid "Cannot update locale generation settings"
+msgstr "Не удалось изменить параметры генерации локали"
+
+msgid "Cannot save locale generation settings"
+msgstr "Не удалось сохранить параметры генерации локали"
+
+msgid "Could not generate the selected locale"
+msgstr "Не удалось сгенерировать выбранную локаль"
+
+msgid "Show more"
+msgstr "Показать ещё"
+
+msgid "Remove layout"
+msgstr "Удалить раскладку"
+
+msgid "System default"
+msgstr "Системное значение по умолчанию"
+
+msgid "Unavailable"
+msgstr "Недоступно"
+
+msgid "Applying locale…"
+msgstr "Применение локали…"

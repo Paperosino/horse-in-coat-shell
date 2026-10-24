@@ -58,4 +58,16 @@ class DesktopCompletion(unittest.TestCase):
   import desktop_diagnostics as diagnostics
   with patch.object(diagnostics,'checks',return_value=[{'detail':'token=secret-value'}]),patch.object(diagnostics,'capture',return_value=''):
    result=diagnostics.report();self.assertEqual(result['checks'][0]['detail'],'token=[redacted]')
+ def test_wallpaper_conversion_failure_keeps_partial_images_out_of_gallery(self):
+  import subprocess
+  with patch.object(onboarding,'directory',return_value=self.root/'wallpapers'):
+   originals=self.root/'wallpapers/.originals';originals.mkdir(parents=True)
+   (originals/'adwaita-d.jxl').write_bytes(b'original')
+   def fail(*args,**kwargs):
+    (originals.parent/'adwaita-d.part.jpg').write_bytes(b'incomplete')
+    raise subprocess.CalledProcessError(1,['ffmpeg'])
+   with patch.object(onboarding.subprocess,'run',side_effect=fail):
+    with self.assertRaises(subprocess.CalledProcessError):onboarding.download()
+   self.assertFalse((originals.parent/'adwaita-d.part.jpg').exists())
+   self.assertEqual(onboarding.state()['wallpapers'],[])
 if __name__=='__main__':unittest.main()

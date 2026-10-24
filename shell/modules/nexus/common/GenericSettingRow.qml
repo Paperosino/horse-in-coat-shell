@@ -53,6 +53,7 @@ RowLayout {
     Component {
         id: choiceRow
         SelectRow {
+            updateActiveOnSelection: false
             readonly property list<MenuItem> options: (root.spec.choices ?? []).map(v => choice.createObject(root, {text: v === "" ? Tr.tr("Default") : Tr.tr(String(typeof v === "object" ? v.label ?? v.name ?? v.value : v)), value: typeof v === "object" ? v.value : v}))
             label: Tr.tr(root.spec.label)
             menuItems: options

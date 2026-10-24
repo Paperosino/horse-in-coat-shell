@@ -17,7 +17,8 @@ def directory():
 def state():
  d={'version':1,'state':'new','step':0,'autoShow':True,'showDemos':True,'reducedMotion':False,'language':'',**read_json(PREFS)}
  if d['step'] not in range(len(STEPS)) or d['state'] not in ('new','in-progress','completed','skipped'):raise ValueError('Invalid first-run setup state')
- files=sorted(directory().glob('*.jpg')) if directory().is_dir() else []
+ names=set(read_json(ASSETS/'feature_data/wallpaper-collection.json').get('images',[]))
+ files=sorted(p for p in directory().glob('*.jpg') if p.stem in names) if directory().is_dir() else []
  return {'settings':d,'steps':list(STEPS),'wallpapers':[{'path':str(p),'name':p.stem.replace('-',' ')} for p in files], 'collection':read_json(ASSETS/'feature_data/wallpaper-collection.json')}
 
 def download():
@@ -32,8 +33,10 @@ def download():
    tmp=original.with_suffix('.part');tmp.write_bytes(data);os.replace(tmp,original)
   if not target.is_file():
    tmp=target.with_suffix('.part.jpg')
-   subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-i',str(original),'-vf','scale=3840:2160:force_original_aspect_ratio=decrease','-frames:v','1','-q:v','2','-y',str(tmp)],env=application_environment(),capture_output=True,check=True,timeout=45)
-   os.replace(tmp,target)
+   try:
+    subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-i',str(original),'-vf','scale=3840:2160:force_original_aspect_ratio=decrease','-frames:v','1','-q:v','2','-y',str(tmp)],env=application_environment(),capture_output=True,check=True,timeout=45)
+    os.replace(tmp,target)
+   finally:tmp.unlink(missing_ok=True)
   records.append({'name':name,'source':url,'sha256':hashlib.sha256(original.read_bytes()).hexdigest(),'image':target.name,'original':str(original.relative_to(root))})
  atomic_json(root/'ATTRIBUTION.json',{**manifest,'downloaded':int(time.time()),'files':records})
  (root/'LICENSE.txt').write_text('GNOME Backgrounds · '+manifest['license']+'\n'+manifest['licenseUrl']+'\n'+manifest['credit']+'\nOriginal source images and embedded author metadata are retained in .originals. JPEG previews are format conversions.\n')

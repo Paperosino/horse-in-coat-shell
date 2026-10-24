@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def deployment(prefix):
     prefix = Path(prefix)
-    for name in ('hics-systemd', 'hics-systemctl', 'hics-memory'):
+    for name in ('hics-systemd', 'hics-systemctl', 'hics-memory', 'hics-region'):
         yield Path('/usr/local/bin') / name, (prefix / 'bin' / name).read_bytes(), 0o755
     unit = (ROOT / 'distribution/systemd/system/hics-system.service').read_text().replace('/usr/bin/hics-systemd', '/usr/local/bin/hics-systemd')
     activation = (ROOT / 'distribution/dbus/org.hics.System1.service').read_text().replace('/usr/bin/hics-systemd', '/usr/local/bin/hics-systemd')
