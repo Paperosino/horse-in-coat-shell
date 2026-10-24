@@ -36,7 +36,7 @@ try:
   if instance:break
   time.sleep(.1)
  if not instance:raise RuntimeError('Nested compositor IPC did not start')
- sig=instance['instance'];time.sleep(2)
+ sig=instance['instance'] # readiness is checked by the production loader
  def ctl(*args):
   r=subprocess.run(['hyprctl','-i',sig,*args],capture_output=True,text=True,timeout=15)
   if r.returncode or r.stdout.strip().startswith('error:'):raise RuntimeError(r.stdout+r.stderr)

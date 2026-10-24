@@ -1,3 +1,4 @@
+#include "PinnedAccess.hpp"
 #include "BarrelShader.hpp"
 
 #include <algorithm>
@@ -18,12 +19,8 @@
 #include <string>
 #include <vector>
 
-#define private public
-#define protected public
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/render/Renderer.hpp>
-#undef protected
-#undef private
 
 #include "Config.hpp"
 #include "Tuning.hpp"
@@ -155,7 +152,7 @@ void updateUniforms(float progress) {
         return;
     }
 
-    const auto SHADER = Render::GL::g_pHyprOpenGL->m_finalScreenShader;
+    const auto SHADER = HicsPinned::field(Render::GL::g_pHyprOpenGL, HicsPinned::FinalShader{});
     if (!SHADER)
         return;
 
@@ -199,7 +196,7 @@ bool updateHud(const SP<Render::ITexture>& texture, const std::array<float, 4>& 
     if (!installed || !Render::GL::g_pHyprOpenGL || !texture || !texture->m_texID)
         return false;
 
-    const auto SHADER = Render::GL::g_pHyprOpenGL->m_finalScreenShader;
+    const auto SHADER = HicsPinned::field(Render::GL::g_pHyprOpenGL, HicsPinned::FinalShader{});
     if (!SHADER || !SHADER->program() || glGetUniformLocation(SHADER->program(), "hudRect") < 0 ||
         glGetUniformLocation(SHADER->program(), "hudTex") < 0)
         return false;
@@ -215,7 +212,7 @@ void applyPendingHud() {
     if (!installed || !Render::GL::g_pHyprOpenGL)
         return;
 
-    const auto SHADER = Render::GL::g_pHyprOpenGL->m_finalScreenShader;
+    const auto SHADER = HicsPinned::field(Render::GL::g_pHyprOpenGL, HicsPinned::FinalShader{});
     if (!SHADER || !SHADER->program())
         return;
     const auto RECT    = glGetUniformLocation(SHADER->program(), "hudRect");
@@ -281,7 +278,7 @@ bool updateMinimap(const SMinimapData& data) {
     if (!installed || !Render::GL::g_pHyprOpenGL)
         return false;
 
-    const auto SHADER = Render::GL::g_pHyprOpenGL->m_finalScreenShader;
+    const auto SHADER = HicsPinned::field(Render::GL::g_pHyprOpenGL, HicsPinned::FinalShader{});
     if (!SHADER || !SHADER->program())
         return false;
 

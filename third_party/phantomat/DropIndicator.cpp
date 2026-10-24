@@ -1,16 +1,15 @@
+#include "PinnedAccess.hpp"
 #include "DropIndicator.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <sstream>
 
-#define private public
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/layout/algorithm/Algorithm.hpp>
 #include <hyprland/src/layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/render/pass/RectPassElement.hpp>
-#undef private
 
 namespace {
 
@@ -37,15 +36,15 @@ static Layout::Tiled::CScrollingAlgorithm* scrollingAlgorithmForWorkspace(const 
     if (!workspace || !workspace->m_space || !workspace->m_space->algorithm())
         return nullptr;
 
-    return dc<Layout::Tiled::CScrollingAlgorithm*>(workspace->m_space->algorithm()->m_tiled.get());
+    return dc<Layout::Tiled::CScrollingAlgorithm*>(workspace->m_space->algorithm()->tiledAlgo().get());
 }
 
 static bool scrollingPrimaryHorizontal(const PHLWORKSPACE& workspace) {
     const auto ALGO = scrollingAlgorithmForWorkspace(workspace);
-    if (!ALGO || !ALGO->m_scrollingData || !ALGO->m_scrollingData->controller)
+    if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller)
         return true;
 
-    return ALGO->m_scrollingData->controller->isPrimaryHorizontal();
+    return HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->isPrimaryHorizontal();
 }
 
 static CBox scrollingIndicatorBox(const CDropIndicator::SRenderParams& params) {

@@ -1,3 +1,4 @@
+#include "PinnedAccess.hpp"
 #include "scrollOverview.hpp"
 #include <algorithm>
 #include <any>
@@ -19,8 +20,6 @@
 #include <linux/input-event-codes.h>
 #include <state/MonitorState.hpp>
 #include <state/WorkspaceState.hpp>
-#define private public
-#define protected public
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
@@ -75,8 +74,6 @@
 #include <hyprland/src/render/decorations/CHyprGroupBarDecoration.hpp>
 #include <hyprland/src/render/decorations/DecorationPositioner.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
-#undef protected
-#undef private
 #include "Config.hpp"
 #include "Experiments.hpp"
 #include "BarrelShader.hpp"
@@ -166,7 +163,7 @@ static void noteCanvasWindowedBox(const PHLWINDOW& window) {
         return;
     if (g_canvasWindowedBox.size() > 256)
         std::erase_if(g_canvasWindowedBox, [](const auto& entry) { return !entry.second.window.lock(); });
-    g_canvasWindowedBox[window.get()] = {.window = window, .box = CBox{window->m_realPosition->goal(), window->m_realSize->goal()}};
+    g_canvasWindowedBox[window.get()] = {.window = window, .box = CBox{window->positionAnimation()->goal(), window->sizeAnimation()->goal()}};
 }
 // The first canvas of a compositor session restores remembered homes for a
 // short while, so apps started at login find their places as they appear.
@@ -394,7 +391,7 @@ static bool scrollKeybindIsThrottled() {
     if (!g_pKeybindManager)
         return false;
 
-    return g_pKeybindManager->m_scrollTimer.getMillis() < ScrollOverview::Config::getValue<int>("binds:scroll_event_delay");
+    return HicsPinned::field(g_pKeybindManager, HicsPinned::ScrollTimer{}).getMillis() < ScrollOverview::Config::getValue<int>("binds:scroll_event_delay");
 }
 
 static bool isTopLayerFocused(PHLMONITOR monitor) {
@@ -563,7 +560,7 @@ static bool windowHasOverviewAnimation(const PHLWINDOW& window) {
     if (!window)
         return false;
 
-    return window->positionAnimation()->isBeingAnimated() || window->sizeAnimation()->isBeingAnimated() || window->m_alpha.isBeingAnimated() ||
+    return window->positionAnimation()->isBeingAnimated() || window->sizeAnimation()->isBeingAnimated() || window->alpha().isBeingAnimated() ||
         window->m_borderFadeAnimationProgress->isBeingAnimated() || window->m_borderAngleAnimationProgress->isBeingAnimated() || window->m_dimPercent->isBeingAnimated() ||
         window->m_shadowFadeAnimationProgress->isBeingAnimated();
 }
@@ -572,7 +569,7 @@ static bool layerHasOverviewAnimation(const PHLLS& layer) {
     if (!Desktop::View::validMapped(layer))
         return false;
 
-    return layer->positionAnimation()->isBeingAnimated() || layer->sizeAnimation()->isBeingAnimated() || layer->m_alpha.isBeingAnimated();
+    return layer->positionAnimation()->isBeingAnimated() || layer->sizeAnimation()->isBeingAnimated() || layer->alpha().isBeingAnimated();
 }
 
 static Vector2D axisOffsetVector(float offset, ScrollOverview::Config::ELayout layout);
@@ -1238,14 +1235,14 @@ static Layout::Tiled::CScrollingAlgorithm* overviewScrollingAlgorithmForTarget(c
     if (!target || !target->space() || !target->space()->algorithm())
         return nullptr;
 
-    return dc<Layout::Tiled::CScrollingAlgorithm*>(target->space()->algorithm()->m_tiled.get());
+    return dc<Layout::Tiled::CScrollingAlgorithm*>(target->space()->algorithm()->tiledAlgo().get());
 }
 
 static Layout::Tiled::CScrollingAlgorithm* overviewScrollingAlgorithmForWorkspace(const PHLWORKSPACE& workspace) {
     if (!workspace || !workspace->m_space || !workspace->m_space->algorithm())
         return nullptr;
 
-    return dc<Layout::Tiled::CScrollingAlgorithm*>(workspace->m_space->algorithm()->m_tiled.get());
+    return dc<Layout::Tiled::CScrollingAlgorithm*>(workspace->m_space->algorithm()->tiledAlgo().get());
 }
 
 static bool isWorkspaceScrolling(const PHLWORKSPACE& workspace) {
@@ -1253,10 +1250,10 @@ static bool isWorkspaceScrolling(const PHLWORKSPACE& workspace) {
 }
 
 static Vector2D overviewScrollingCameraTranslation(Layout::Tiled::CScrollingAlgorithm* algorithm) {
-    if (!algorithm || !algorithm->m_scrollingData || !algorithm->m_scrollingData->controller)
+    if (!algorithm || !HicsPinned::field(algorithm, HicsPinned::ScrollingData{}) || !HicsPinned::field(algorithm, HicsPinned::ScrollingData{})->controller)
         return {};
 
-    const auto& CONTROLLER = algorithm->m_scrollingData->controller;
+    const auto& CONTROLLER = HicsPinned::field(algorithm, HicsPinned::ScrollingData{})->controller;
     const auto TRANSLATION = CONTROLLER->isReversed() ? CONTROLLER->getOffset() : -CONTROLLER->getOffset();
 
     return CONTROLLER->isPrimaryHorizontal() ? Vector2D{TRANSLATION, 0.F} : Vector2D{0.F, TRANSLATION};
@@ -1268,7 +1265,7 @@ static CBox getOverviewWorkspaceUsableBox(const PHLWORKSPACE& workspace, PHLMONI
     if (!workspace || !monitor)
         return {};
 
-    if (const auto ALGO = overviewScrollingAlgorithmForWorkspace(workspace); ALGO && ALGO->m_scrollingData && ALGO->m_scrollingData->controller) {
+    if (const auto ALGO = overviewScrollingAlgorithmForWorkspace(workspace); ALGO && HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) && HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller) {
         const auto USABLE = ALGO->usableArea();
         return getOverviewBox(USABLE, monitor, scale, viewOffset, offset, layout);
     }
@@ -1285,10 +1282,10 @@ static CBox getOverviewWorkspaceUsableBox(const PHLWORKSPACE& workspace, PHLMONI
 }
 
 static double clampOverviewScrollingOffset(Layout::Tiled::CScrollingAlgorithm* algo, double offset) {
-    if (!algo || !algo->m_scrollingData)
+    if (!algo || !HicsPinned::field(algo, HicsPinned::ScrollingData{}))
         return offset;
 
-    const double MAXOFFSET = std::max(0.0, algo->m_scrollingData->maxWidth() - algo->primaryViewportSize());
+    const double MAXOFFSET = std::max(0.0, HicsPinned::field(algo, HicsPinned::ScrollingData{})->maxWidth() - algo->primaryViewportSize());
     return std::clamp(offset, 0.0, MAXOFFSET);
 }
 
@@ -1297,7 +1294,7 @@ static bool moveOverviewScrollingTargetToWorkspaceEdge(const SP<Layout::ITarget>
         return false;
 
     const auto ALGO = overviewScrollingAlgorithmForTarget(target);
-    if (!ALGO || !ALGO->m_scrollingData)
+    if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}))
         return false;
 
     const auto TDATA = ALGO->dataFor(target);
@@ -1311,12 +1308,12 @@ static bool moveOverviewScrollingTargetToWorkspaceEdge(const SP<Layout::ITarget>
     const auto SRC_COL_WIDTH = SRC_COL->getColumnWidth();
     SRC_COL->remove(target);
 
-    const int64_t INSERT_AFTER = side < 0 ? -1 : sc<int64_t>(ALGO->m_scrollingData->columns.size()) - 1;
-    const auto    NEW_COL      = ALGO->m_scrollingData->add(INSERT_AFTER, SRC_COL_WIDTH);
+    const int64_t INSERT_AFTER = side < 0 ? -1 : sc<int64_t>(HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->columns.size()) - 1;
+    const auto    NEW_COL      = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->add(INSERT_AFTER, SRC_COL_WIDTH);
     NEW_COL->add(TDATA);
-    ALGO->m_scrollingData->centerOrFitCol(NEW_COL);
-    ALGO->m_scrollingData->recalculate();
-    ALGO->focusTargetUpdate(target);
+    HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->centerOrFitCol(NEW_COL);
+    HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->recalculate();
+    HicsPinned::call(ALGO, HicsPinned::ScrollingFocus{}, target);
 
     return true;
 }
@@ -1326,7 +1323,7 @@ static bool moveOverviewScrollingTargetNextToWindow(const SP<Layout::ITarget>& t
         return false;
 
     const auto ALGO = overviewScrollingAlgorithmForTarget(target);
-    if (!ALGO || !ALGO->m_scrollingData)
+    if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}))
         return false;
 
     const auto TDATA      = ALGO->dataFor(target);
@@ -1339,7 +1336,7 @@ static bool moveOverviewScrollingTargetNextToWindow(const SP<Layout::ITarget>& t
     if (!SRC_COL || !ANCHOR_COL)
         return false;
 
-    const bool PRIMARYHORIZONTAL = ALGO->m_scrollingData->controller && ALGO->m_scrollingData->controller->isPrimaryHorizontal();
+    const bool PRIMARYHORIZONTAL = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller && HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->isPrimaryHorizontal();
     const bool MOVINGCOLUMN      = PRIMARYHORIZONTAL ? direction == "l" || direction == "r" : direction == "u" || direction == "d";
     const bool STACKINGCOLUMN    = PRIMARYHORIZONTAL ? direction == "u" || direction == "d" : direction == "l" || direction == "r";
 
@@ -1347,17 +1344,17 @@ static bool moveOverviewScrollingTargetNextToWindow(const SP<Layout::ITarget>& t
         const auto SRC_COL_WIDTH = SRC_COL->getColumnWidth();
         SRC_COL->remove(target);
 
-        const auto ANCHOR_COL_IDX = ALGO->m_scrollingData->idx(ANCHOR_COL);
+        const auto ANCHOR_COL_IDX = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->idx(ANCHOR_COL);
         if (ANCHOR_COL_IDX < 0)
             return false;
 
         const bool    INSERT_BEFORE = direction == "l" || direction == "u";
         const int64_t INSERT_AFTER  = INSERT_BEFORE ? ANCHOR_COL_IDX - 1 : ANCHOR_COL_IDX;
-        const auto    NEW_COL      = ALGO->m_scrollingData->add(INSERT_AFTER, SRC_COL_WIDTH);
+        const auto    NEW_COL      = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->add(INSERT_AFTER, SRC_COL_WIDTH);
         NEW_COL->add(TDATA);
-        ALGO->m_scrollingData->centerOrFitCol(NEW_COL);
-        ALGO->m_scrollingData->recalculate();
-        ALGO->focusTargetUpdate(target);
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->centerOrFitCol(NEW_COL);
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->recalculate();
+        HicsPinned::call(ALGO, HicsPinned::ScrollingFocus{}, target);
 
         return true;
     }
@@ -1371,9 +1368,9 @@ static bool moveOverviewScrollingTargetNextToWindow(const SP<Layout::ITarget>& t
     const bool INSERT_BEFORE = direction == "l" || direction == "u";
     const int  INSERT_AFTER  = INSERT_BEFORE ? sc<int>(ANCHOR_IDX) - 1 : sc<int>(ANCHOR_IDX);
     ANCHOR_COL->add(TDATA, INSERT_AFTER);
-    ALGO->m_scrollingData->centerOrFitCol(ANCHOR_COL);
-    ALGO->m_scrollingData->recalculate();
-    ALGO->focusTargetUpdate(target);
+    HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->centerOrFitCol(ANCHOR_COL);
+    HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->recalculate();
+    HicsPinned::call(ALGO, HicsPinned::ScrollingFocus{}, target);
 
     return true;
 }
@@ -2510,7 +2507,7 @@ static void renderOverviewLayerLevel(PHLMONITOR monitor, uint32_t layer, const C
 			lsAlpha->setValueAndWarp(previousAlpha * std::clamp(alpha, 0.F, 1.F));
 		}
 
-        g_pHyprRenderer->renderLayer(LAYER, monitor, now);
+        HicsPinned::call(g_pHyprRenderer, HicsPinned::RenderLayer{}, LAYER, monitor, now, false, false);
 
         if (MODULATEALPHA && lsAlpha->value())
 			lsAlpha->setValueAndWarp(previousAlpha);
@@ -2531,13 +2528,13 @@ void CScrollOverview::renderGlobalWallpaper(PHLMONITOR monitor, const Time::stea
     if (!monitor)
         return;
 
-    g_pHyprRenderer->renderBackground(monitor);
+    HicsPinned::call(g_pHyprRenderer, HicsPinned::RenderBackground{}, monitor);
 
     for (auto const& ls : monitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
         if (!Desktop::View::validMapped(ls.lock()))
             continue;
 
-        g_pHyprRenderer->renderLayer(ls.lock(), monitor, now);
+        HicsPinned::call(g_pHyprRenderer, HicsPinned::RenderLayer{}, ls.lock(), monitor, now, false, false);
     }
 }
 
@@ -3281,9 +3278,9 @@ CDropIndicator::SDropAnchor CScrollOverview::dropAnchorAtOverviewCursorOnWorkspa
     }
 
     const auto ALGO = overviewScrollingAlgorithmForWorkspace(WORKSPACE);
-    const bool PRIMARYHORIZONTAL = ALGO && ALGO->m_scrollingData && ALGO->m_scrollingData->controller && ALGO->m_scrollingData->controller->isPrimaryHorizontal();
+    const bool PRIMARYHORIZONTAL = ALGO && HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) && HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller && HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->isPrimaryHorizontal();
     const auto pointsToOriginalStackSlot = [&](const PHLWINDOW& anchor, const std::string& direction) {
-        if (!ALGO || !ALGO->m_scrollingData || !ALGO->m_scrollingData->controller || !ignoredWindow || DRAGCONTEXT->dragOriginalOverviewBox.empty() ||
+        if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller || !ignoredWindow || DRAGCONTEXT->dragOriginalOverviewBox.empty() ||
             WORKSPACE != DRAGCONTEXT->dragOriginalWorkspace.lock() || !anchor || !anchor->layoutTarget() || !ignoredWindow->layoutTarget())
             return false;
 
@@ -3309,7 +3306,7 @@ CDropIndicator::SDropAnchor CScrollOverview::dropAnchorAtOverviewCursorOnWorkspa
         return (ANCHORPREVIOUS && direction == "r") || (!ANCHORPREVIOUS && direction == "l");
     };
     const auto pointsToOriginalColumnSlot = [&](const PHLWINDOW& anchor, const std::string& direction) {
-        if (!ALGO || !ALGO->m_scrollingData || !ALGO->m_scrollingData->controller || !ignoredWindow || DRAGCONTEXT->dragOriginalOverviewBox.empty() ||
+        if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller || !ignoredWindow || DRAGCONTEXT->dragOriginalOverviewBox.empty() ||
             WORKSPACE != DRAGCONTEXT->dragOriginalWorkspace.lock() || !anchor || !anchor->layoutTarget() || !ignoredWindow->layoutTarget())
             return false;
 
@@ -3320,8 +3317,8 @@ CDropIndicator::SDropAnchor CScrollOverview::dropAnchorAtOverviewCursorOnWorkspa
         if (!ANCHORCOL || !ORIGINALCOL || ORIGINALCOL->targetDatas.size() != 1)
             return false;
 
-        const auto ANCHORCOLIDX   = ALGO->m_scrollingData->idx(ANCHORCOL);
-        const auto ORIGINALCOLIDX = ALGO->m_scrollingData->idx(ORIGINALCOL);
+        const auto ANCHORCOLIDX   = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->idx(ANCHORCOL);
+        const auto ORIGINALCOLIDX = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->idx(ORIGINALCOL);
         if (ANCHORCOLIDX < 0 || ORIGINALCOLIDX < 0 || ANCHORCOLIDX == ORIGINALCOLIDX)
             return false;
 
@@ -3364,7 +3361,7 @@ CDropIndicator::SDropAnchor CScrollOverview::dropAnchorAtOverviewCursorOnWorkspa
         return result;
     }
 
-    if (!ALGO || !ALGO->m_scrollingData || !ALGO->m_scrollingData->controller)
+    if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller)
         return result;
 
     const auto POINTER   = PRIMARYHORIZONTAL ? sc<float>(lastMousePosLocal.x) : sc<float>(lastMousePosLocal.y);
@@ -3892,7 +3889,7 @@ static PHLMONITOR canvasScreenOf(const PHLWINDOW& window) {
         if (const auto* SYNC = x11Sync(window, false); SYNC && SYNC->valid) {
             if (const auto COVERS = SYNC->covers.lock(); COVERS && canvasOf(scrollOverviewForMonitor(COVERS)))
                 return COVERS;
-            const auto MONITOR = monitorAt(g_pXWaylandManager->xwaylandToWaylandCoords(SYNC->sent) + window->m_realSize->goal() / 2.0);
+            const auto MONITOR = monitorAt(g_pXWaylandManager->xwaylandToWaylandCoords(SYNC->sent) + window->sizeAnimation()->goal() / 2.0);
             if (MONITOR && canvasOf(scrollOverviewForMonitor(MONITOR)))
                 return MONITOR;
         }
@@ -3925,12 +3922,12 @@ static PHLMONITOR canvasScreenOf(const PHLWINDOW& window) {
 // Restart a window's move and resize from `from` (in the coordinates its box
 // is in) to where it is going.
 static void animateWindowFrom(const PHLWINDOW& window, const CBox& from) {
-    const auto POS  = window->m_realPosition->goal();
-    const auto SIZE = window->m_realSize->goal();
-    window->m_realPosition->setValueAndWarp(from.pos());
-    window->m_realSize->setValueAndWarp(from.size());
-    *window->m_realPosition = POS;
-    *window->m_realSize     = SIZE;
+    const auto POS  = window->positionAnimation()->goal();
+    const auto SIZE = window->sizeAnimation()->goal();
+    window->positionAnimation()->setValueAndWarp(from.pos());
+    window->sizeAnimation()->setValueAndWarp(from.size());
+    *window->positionAnimation() = POS;
+    *window->sizeAnimation()     = SIZE;
 }
 
 static void canvasFullscreenStepAside(const PHLWINDOW& window, const PHLMONITOR& monitor) {
@@ -4319,7 +4316,7 @@ bool canvasTogglePin(PHLWINDOW window) {
         return true;
 
     if (window->m_pinned) {
-        const auto BOX     = CBox{window->m_realPosition->goal(), window->m_realSize->goal()};
+        const auto BOX     = CBox{window->positionAnimation()->goal(), window->sizeAnimation()->goal()};
         auto*      canvas  = canvasOf(scrollOverviewForMonitor(monitorAt(BOX.middle())));
         (void)Config::Actions::pinWindow(Config::Actions::TOGGLE_ACTION_DISABLE, window);
         if (const auto WORLD = canvas ? canvas->canvasScreenToWorld(CBox{BOX.pos(), BOX.size() * canvas->canvasZoom()}) : std::nullopt) {
@@ -4340,7 +4337,7 @@ bool canvasTogglePin(PHLWINDOW window) {
         leaveNavigationEverywhere(canvas);
     }
     // Where it is drawn once the camera has arrived, at its own size.
-    const auto REAL   = CBox{window->m_realPosition->goal(), window->m_realSize->goal()};
+    const auto REAL   = CBox{window->positionAnimation()->goal(), window->sizeAnimation()->goal()};
     const auto ORIGIN = canvas->canvasScreenToWorld(MONITOR->logicalBox(), true);
     if (!ORIGIN)
         return true;
@@ -4400,7 +4397,7 @@ bool canvasToggleFill(PHLWINDOW window) {
         window->sendWindowSize(true);
     };
 
-    const auto NOW = CBox{window->m_realPosition->goal(), window->m_realSize->goal()};
+    const auto NOW = CBox{window->positionAnimation()->goal(), window->sizeAnimation()->goal()};
     if (const auto IT = g_canvasFill.find(window.get()); IT != g_canvasFill.end()) {
         const auto ENTRY = IT->second;
         g_canvasFill.erase(IT);
@@ -5535,7 +5532,7 @@ void CScrollOverview::refreshDragOriginalOverviewBoxes() {
         return;
 
     Vector2D tapeDelta;
-    if (const auto ALGO = overviewScrollingAlgorithmForWorkspace(WORKSPACE); ALGO && ALGO->m_scrollingData && ALGO->m_scrollingData->controller)
+    if (const auto ALGO = overviewScrollingAlgorithmForWorkspace(WORKSPACE); ALGO && HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) && HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller)
         tapeDelta = overviewScrollingCameraTranslation(ALGO) - dragOriginalTapeTranslation;
 
     auto visualBox = dragOriginalVisualBox;
@@ -5761,7 +5758,7 @@ void CScrollOverview::beginWindowDrag(PHLWINDOW window) {
             WINDOWBOX.width > 0.0 ? dragGrabOffsetLocal.x / WINDOWBOX.width : 0.5,
             WINDOWBOX.height > 0.0 ? dragGrabOffsetLocal.y / WINDOWBOX.height : 0.5,
         };
-        if (const auto ALGO = overviewScrollingAlgorithmForWorkspace(WINDOW->m_workspace); ALGO && ALGO->m_scrollingData && ALGO->m_scrollingData->controller)
+        if (const auto ALGO = overviewScrollingAlgorithmForWorkspace(WINDOW->m_workspace); ALGO && HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) && HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller)
             dragOriginalTapeTranslation = overviewScrollingCameraTranslation(ALGO);
         refreshDragOriginalOverviewBoxes();
     } else {
@@ -5879,7 +5876,7 @@ void CScrollOverview::updateScrollingPan() {
     }
 
     const auto ALGO      = overviewScrollingAlgorithmForWorkspace(WORKSPACE);
-    if (!ALGO || !ALGO->m_scrollingData || !ALGO->m_scrollingData->controller) {
+    if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller) {
         scrollingPanLastMouseLocal = lastMousePosLocal;
         return;
     }
@@ -5887,13 +5884,13 @@ void CScrollOverview::updateScrollingPan() {
     const auto DELTALOCAL = lastMousePosLocal - scrollingPanLastMouseLocal;
     const auto SAFEFACTOR = std::max(scale->value(), 0.01F) * std::max(MONITOR->m_scale, 0.01F);
     const auto DELTAGLOBAL = DELTALOCAL * (1.F / SAFEFACTOR);
-    const auto DELTA       = ALGO->m_scrollingData->controller->isPrimaryHorizontal() ? DELTAGLOBAL.x : DELTAGLOBAL.y;
+    const auto DELTA       = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->isPrimaryHorizontal() ? DELTAGLOBAL.x : DELTAGLOBAL.y;
 
     if (std::abs(DELTA) > 0.01F) {
-        const double OFFSET = ALGO->m_scrollingData->controller->getOffset() - DELTA;
-        ALGO->m_scrollingData->controller->setOffset(OFFSET);
-        ALGO->m_scrollingData->lockedCameraOffset = OFFSET;
-        ALGO->m_scrollingData->recalculate(true);
+        const double OFFSET = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->getOffset() - DELTA;
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->setOffset(OFFSET);
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->lockedCameraOffset = OFFSET;
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->recalculate(true);
         scrollingPanLastMouseLocal = lastMousePosLocal;
         markBlurDirty();
         damage();
@@ -5915,7 +5912,7 @@ void CScrollOverview::beginScrollingPan(PHLWORKSPACE workspace) {
         scrollingPanInitialWindow.reset();
 
     if (ALGO)
-        ALGO->m_scrollingData->lockedCameraOffset = ALGO->m_scrollingData->controller->getOffset();
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->lockedCameraOffset = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->getOffset();
 
     if (Desktop::focusState()->window() && Desktop::focusState()->window()->m_workspace == workspace)
         Desktop::focusState()->fullWindowFocus(nullptr, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
@@ -5925,10 +5922,10 @@ void CScrollOverview::endScrollingPan() {
     const auto WORKSPACE = scrollingPanWorkspace.lock();
     const auto ALGO      = overviewScrollingAlgorithmForWorkspace(WORKSPACE);
     if (ALGO) {
-        const double OFFSET = clampOverviewScrollingOffset(ALGO, ALGO->m_scrollingData->controller->getOffset());
-        ALGO->m_scrollingData->controller->setOffset(OFFSET);
-        ALGO->m_scrollingData->lockedCameraOffset.reset();
-        ALGO->m_scrollingData->recalculate();
+        const double OFFSET = clampOverviewScrollingOffset(ALGO, HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->getOffset());
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->setOffset(OFFSET);
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->lockedCameraOffset.reset();
+        HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->recalculate();
     }
 
     if (!WORKSPACE)
@@ -6108,7 +6105,7 @@ bool CScrollOverview::moveScrollingColumnSelection(bool next) {
         return false;
 
     const auto ALGO = overviewScrollingAlgorithmForWorkspace(WORKSPACEIMAGE->pWorkspace);
-    if (!ALGO || !ALGO->m_scrollingData || ALGO->m_scrollingData->columns.empty())
+    if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) || HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->columns.empty())
         return false;
 
     if (!closeOnWindow || closeOnWindow->m_workspace != WORKSPACEIMAGE->pWorkspace || !shouldShowOverviewWindow(closeOnWindow.lock()) || closeOnWindow->m_isFloating)
@@ -6139,12 +6136,12 @@ bool CScrollOverview::moveScrollingColumnSelection(bool next) {
     };
 
     std::vector<SP<Layout::Tiled::SColumnData>> columns;
-    for (const auto& column : ALGO->m_scrollingData->columns) {
+    for (const auto& column : HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->columns) {
         if (firstWindowInColumn(column))
             columns.emplace_back(column);
     }
 
-    const bool PRIMARYHORIZONTAL = ALGO->m_scrollingData->controller && ALGO->m_scrollingData->controller->isPrimaryHorizontal();
+    const bool PRIMARYHORIZONTAL = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller && HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->isPrimaryHorizontal();
     std::ranges::sort(columns, [PRIMARYHORIZONTAL](const auto& a, const auto& b) {
         const auto getColumnPosition = [PRIMARYHORIZONTAL](const auto& column) {
             if (!column || column->targetDatas.empty() || !column->targetDatas[0])
@@ -6170,8 +6167,8 @@ bool CScrollOverview::moveScrollingColumnSelection(bool next) {
     if (!WINDOW)
         return false;
 
-    ALGO->m_scrollingData->centerOrFitCol(TARGETCOL);
-    ALGO->m_scrollingData->recalculate();
+    HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->centerOrFitCol(TARGETCOL);
+    HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->recalculate();
 
     closeOnWindow = WINDOW;
     rememberSelection(WINDOW);
@@ -6190,7 +6187,7 @@ bool CScrollOverview::moveScrollingStackSelection(bool next) {
         return false;
 
     const auto ALGO = overviewScrollingAlgorithmForWorkspace(WORKSPACEIMAGE->pWorkspace);
-    if (!ALGO || !ALGO->m_scrollingData || ALGO->m_scrollingData->columns.empty())
+    if (!ALGO || !HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) || HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->columns.empty())
         return false;
 
     if (!closeOnWindow || closeOnWindow->m_workspace != WORKSPACEIMAGE->pWorkspace || !shouldShowOverviewWindow(closeOnWindow.lock()) || closeOnWindow->m_isFloating)
@@ -6257,8 +6254,8 @@ void CScrollOverview::endWindowDrag() {
     const auto          DROPSCROLLINGALGO  = overviewScrollingAlgorithmForWorkspace(DROPWORKSPACE);
     const bool          DROPSCROLLINGLAYOUT = DROPSCROLLINGALGO != nullptr;
     const bool          DROPSCROLLINGPRIMARYHORIZONTAL =
-        DROPSCROLLINGALGO && DROPSCROLLINGALGO->m_scrollingData && DROPSCROLLINGALGO->m_scrollingData->controller &&
-        DROPSCROLLINGALGO->m_scrollingData->controller->isPrimaryHorizontal();
+        DROPSCROLLINGALGO && HicsPinned::field(DROPSCROLLINGALGO, HicsPinned::ScrollingData{}) && HicsPinned::field(DROPSCROLLINGALGO, HicsPinned::ScrollingData{})->controller &&
+        HicsPinned::field(DROPSCROLLINGALGO, HicsPinned::ScrollingData{})->controller->isPrimaryHorizontal();
     const auto          ORIGINALWORKSPACE = dragOriginalWorkspace.lock();
     const bool          MOVEWORKSPACE    = DROPWORKSPACE && DROPWORKSPACE != ORIGINALWORKSPACE;
     const auto          DRAGBOX          = DROPWORKSPACE ? dropOverview->draggedWindowBoxFor(WINDOW, dropWorkspaceIdx, DROPPOINTLOCAL, dragGrabRatio) : CBox{};
@@ -6932,8 +6929,8 @@ bool CScrollOverview::moveSelection(const std::string& direction) {
 
     if (!shouldMoveWorkspace) {
         const auto ALGO = overviewScrollingAlgorithmForWorkspace(WORKSPACEIMAGE->pWorkspace);
-        if (ALGO && ALGO->m_scrollingData && ALGO->m_scrollingData->controller) {
-            const bool PRIMARYHORIZONTAL = ALGO->m_scrollingData->controller->isPrimaryHorizontal();
+        if (ALGO && HicsPinned::field(ALGO, HicsPinned::ScrollingData{}) && HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller) {
+            const bool PRIMARYHORIZONTAL = HicsPinned::field(ALGO, HicsPinned::ScrollingData{})->controller->isPrimaryHorizontal();
             const bool MOVINGPRIMARY     = PRIMARYHORIZONTAL ? MOVINGLEFT || MOVINGRIGHT : MOVINGUP || MOVINGDOWN;
             const bool MOVINGSTACK       = PRIMARYHORIZONTAL ? MOVINGUP || MOVINGDOWN : MOVINGLEFT || MOVINGRIGHT;
             const bool NEXT              = MOVINGRIGHT || MOVINGDOWN;
@@ -7107,7 +7104,7 @@ void CScrollOverview::forceWindowVisible(PHLWINDOW window) {
 
     for (auto& entry : forcedWindowVisibility) {
         if (entry.window == window) {
-            window->m_hidden = false;
+            HicsPinned::field(window, HicsPinned::WindowHidden{}) = false;
             window->alpha(FULLSCREENALPHA)->setValueAndWarp(1.F);
             return;
         }
@@ -7115,9 +7112,9 @@ void CScrollOverview::forceWindowVisible(PHLWINDOW window) {
 
     auto& entry                  = forcedWindowVisibility.emplace_back();
     entry.window                 = window;
-    entry.hidden                 = window->m_hidden;
+    entry.hidden                 = HicsPinned::field(window, HicsPinned::WindowHidden{});
 
-    window->m_hidden = false;
+    HicsPinned::field(window, HicsPinned::WindowHidden{}) = false;
     window->alpha(FULLSCREENALPHA)->setValueAndWarp(1.F);
 }
 
@@ -7185,12 +7182,12 @@ void CScrollOverview::restoreForcedWindowVisibility() {
             continue;
         }
 
-        WINDOW->m_hidden = entry.hidden;
+        HicsPinned::field(WINDOW, HicsPinned::WindowHidden{}) = entry.hidden;
     }
 
     for (const auto& group : groupsToRefresh) {
         if (group)
-            group->updateWindowVisibility();
+            HicsPinned::call(group, HicsPinned::GroupVisibility{});
     }
 
     forcedWindowVisibility.clear();
@@ -8037,7 +8034,7 @@ void CScrollOverview::renderChromeLayers(PHLMONITOR monitor, const Time::steady_
             const bool ISTOP    = !TOPNS.empty() && SURFACE->m_namespace == TOPNS;
             const bool ISBOTTOM = !BOTTOMNS.empty() && SURFACE->m_namespace == BOTTOMNS;
             if (!ANIMATE || PROGRESS <= 0.001F || (!ISTOP && !ISBOTTOM)) {
-                g_pHyprRenderer->renderLayer(SURFACE, monitor, now);
+                HicsPinned::call(g_pHyprRenderer, HicsPinned::RenderLayer{}, SURFACE, monitor, now, false, false);
                 continue;
             }
 
@@ -8057,7 +8054,7 @@ void CScrollOverview::renderChromeLayers(PHLMONITOR monitor, const Time::steady_
             const float PREVIOUSALPHA = ALPHA->value();
             const float TARGETALPHA   = ScrollOverview::Config::getChromeOpacity();
             ALPHA->setValueAndWarp(PREVIOUSALPHA * (1.F + (TARGETALPHA - 1.F) * PROGRESS));
-            g_pHyprRenderer->renderLayer(SURFACE, monitor, now);
+            HicsPinned::call(g_pHyprRenderer, HicsPinned::RenderLayer{}, SURFACE, monitor, now, false, false);
             ALPHA->setValueAndWarp(PREVIOUSALPHA);
 
             g_pHyprRenderer->m_renderPass.add(
@@ -9159,13 +9156,13 @@ void CScrollOverview::syncCanvasWindowScreens() {
     for (const auto& windowRef : Desktop::windowState()->windows()) {
         const auto WINDOW = getOverviewWindowToShow(windowRef);
         if (!shouldShowOverviewWindow(WINDOW) || WINDOW->m_pinned || WINDOW->m_workspace == MONITOR->m_activeWorkspace || Fullscreen::controller()->isFullscreen(WINDOW) ||
-            !WINDOW->layoutTarget() || WINDOW->m_realPosition->isBeingAnimated())
+            !WINDOW->layoutTarget() || WINDOW->positionAnimation()->isBeingAnimated())
             continue;
         const auto BOX  = canvasDrawnGlobalBox(WINDOW);
         const auto MINE = BOX.intersection(SCREEN);
         if (MINE.width * MINE.height < BOX.width * BOX.height * 0.5) // mostly here
             continue;
-        const auto KEEP = CBox{WINDOW->m_realPosition->goal(), WINDOW->m_realSize->goal()};
+        const auto KEEP = CBox{WINDOW->positionAnimation()->goal(), WINDOW->sizeAnimation()->goal()};
         moveCanvasWindowToWorkspace(WINDOW, MONITOR->m_activeWorkspace);
         WINDOW->m_monitor = MONITOR;
         WINDOW->layoutTarget()->setPositionGlobal(KEEP);
@@ -9896,7 +9893,7 @@ void CScrollOverview::rememberCanvasView(bool force) {
     const auto screen = monitor->logicalBox();
     for (const auto& window : Desktop::windowState()->windows()) {
         if (!shouldShowOverviewWindow(window) || window->m_pinned || canvasScreenFixedWindow(window) ||
-            Fullscreen::controller()->isFullscreen(window) || window->m_realPosition->isBeingAnimated() || window->m_realSize->isBeingAnimated()) continue;
+            Fullscreen::controller()->isFullscreen(window) || window->positionAnimation()->isBeingAnimated() || window->sizeAnimation()->isBeingAnimated()) continue;
         const auto box = canvasDrawnGlobalBox(window);
         const auto visible = box.intersection(screen);
         if (box.width <= 1 || box.height <= 1 || visible.width * visible.height < box.width * box.height * 0.6) continue;
@@ -11312,9 +11309,9 @@ bool CScrollOverview::canvasPlaceAction(const std::string& action) {
         // Focus what had it there, or nothing that is not there.
         const auto REMEMBERED = g_places.contains(place) ? g_places.at(place).focus.lock() : PHLWINDOW{};
         const auto VIEW       = canvasScreensBox().translate(placeCamera(place));
-        if (shouldShowOverviewWindow(REMEMBERED) && VIEW.containsPoint(REMEMBERED->m_realPosition->goal() + REMEMBERED->m_realSize->goal() / 2.0))
+        if (shouldShowOverviewWindow(REMEMBERED) && VIEW.containsPoint(REMEMBERED->positionAnimation()->goal() + REMEMBERED->sizeAnimation()->goal() / 2.0))
             canvasAdoptFocus(REMEMBERED);
-        else if (FOCUSED && !VIEW.containsPoint(FOCUSED->m_realPosition->goal() + FOCUSED->m_realSize->goal() / 2.0))
+        else if (FOCUSED && !VIEW.containsPoint(FOCUSED->positionAnimation()->goal() + FOCUSED->sizeAnimation()->goal() / 2.0))
             Desktop::focusState()->fullWindowFocus(nullptr, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
         damage();
         return true;
@@ -11343,7 +11340,7 @@ bool CScrollOverview::canvasPlaceAction(const std::string& action) {
         return place >= 1 && place <= 10;
     checkpointCanvas();
     const auto DELTA = placeCamera(place) - viewOffset->goal();
-    TARGET->setPositionGlobal(CBox{WINDOW->m_realPosition->goal() + DELTA, WINDOW->m_realSize->goal()});
+    TARGET->setPositionGlobal(CBox{WINDOW->positionAnimation()->goal() + DELTA, WINDOW->sizeAnimation()->goal()});
     TARGET->warpPositionSize();
     WINDOW->sendWindowSize(true);
     if (STAY) {

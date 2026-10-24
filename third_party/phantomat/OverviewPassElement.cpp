@@ -1,3 +1,4 @@
+#include "PinnedAccess.hpp"
 #include "OverviewPassElement.hpp"
 #include <algorithm>
 #include <any>
@@ -14,13 +15,9 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-#define private public
-#define protected public
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/helpers/math/Math.hpp>
-#undef protected
-#undef private
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include "Config.hpp"
 #include "IOverview.hpp"

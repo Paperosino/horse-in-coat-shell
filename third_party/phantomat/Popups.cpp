@@ -1,3 +1,4 @@
+#include "PinnedAccess.hpp"
 #define WLR_USE_UNSTABLE
 
 // Popup placement for canvas windows. Hyprland keeps a popup inside the
@@ -26,23 +27,19 @@
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/helpers/math/Math.hpp>
 
-#define private public
-#define protected public
 #include <hyprland/src/desktop/view/Popup.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/protocols/XDGShell.hpp>
-#undef protected
-#undef private
 
 std::optional<CBox> canvasPopupConstraint(const PHLWINDOW& window);
 
 bool canvasRepositionPopup(Desktop::View::CPopup* popup) {
-    if (!popup || !popup->m_resource || popup->m_windowOwner.expired())
+    if (!popup || !HicsPinned::field(popup, HicsPinned::PopupResource{}) || HicsPinned::field(popup, HicsPinned::PopupOwner{}).expired())
         return false;
-    const auto CONSTRAINT = canvasPopupConstraint(popup->m_windowOwner.lock());
+    const auto CONSTRAINT = canvasPopupConstraint(HicsPinned::field(popup, HicsPinned::PopupOwner{}).lock());
     if (!CONSTRAINT)
         return false;
-    popup->m_resource->applyPositioning(*CONSTRAINT, popup->t1ParentCoords());
+    HicsPinned::field(popup, HicsPinned::PopupResource{})->applyPositioning(*CONSTRAINT, HicsPinned::call(popup, HicsPinned::PopupParentCoords{}));
     return true;
 }
 
@@ -53,7 +50,7 @@ bool popupTreeFading(const PHLWINDOW& window) {
     bool fading = false;
     window->m_popupHead->breadthfirst(
         [&fading](SP<Desktop::View::CPopup> popup, void*) {
-            if (popup && popup->m_alpha.get(Desktop::View::POPUP_ALPHA_FADE)->isBeingAnimated())
+            if (popup && popup->alpha().get(Desktop::View::POPUP_ALPHA_FADE)->isBeingAnimated())
                 fading = true;
         },
         nullptr);

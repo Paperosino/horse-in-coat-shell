@@ -1,10 +1,9 @@
+#include "PinnedAccess.hpp"
 #include "Window.hpp"
 #include <algorithm>
 #include <cmath>
 #include <dlfcn.h>
 #include <functional>
-#define private public
-#define protected public
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
@@ -29,8 +28,6 @@
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/protocols/XDGShell.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
-#undef protected
-#undef private
 #include "Config.hpp"
 #include "OverviewPassElement.hpp"
 #include "OverviewRender.hpp"
@@ -149,8 +146,8 @@ struct SOverviewPseudoFocusState {
 
         active                      = true;
         focusState                  = Desktop::focusState();
-        previousFocusWindow         = focusState->m_focusWindow;
-        previousFocusSurface        = focusState->m_focusSurface;
+        previousFocusWindow         = HicsPinned::field(focusState, HicsPinned::FocusWindow{});
+        previousFocusSurface        = HicsPinned::field(focusState, HicsPinned::FocusSurface{});
         previousBorderColor         = window->m_realBorderColor;
         previousBorderColorPrevious = window->m_realBorderColorPrevious;
         previousShadowColor         = window->m_realShadowColor;
@@ -160,9 +157,9 @@ struct SOverviewPseudoFocusState {
         previousOpacity             = window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->value();
         previousDim                 = window->m_dimPercent->value();
 
-        focusState->m_focusWindow = pseudoFocusWindow;
+        HicsPinned::field(focusState, HicsPinned::FocusWindow{}) = pseudoFocusWindow;
         if (pseudoFocusWindow->wlSurface() && pseudoFocusWindow->wlSurface()->resource())
-            focusState->m_focusSurface = pseudoFocusWindow->wlSurface()->resource();
+            HicsPinned::field(focusState, HicsPinned::FocusSurface{}) = pseudoFocusWindow->wlSurface()->resource();
 
         const bool ISACTIVE    = window == pseudoFocusWindow;
         const bool GROUPLOCKED = window->m_group ? window->m_group->locked() || g_pKeybindManager->m_groupsLocked : g_pKeybindManager->m_groupsLocked;
@@ -221,8 +218,8 @@ struct SOverviewPseudoFocusState {
         window->m_realGlowColorPrevious   = previousGlowColorPrevious;
         window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->value() = previousOpacity;
         window->m_dimPercent->value()                 = previousDim;
-        focusState->m_focusWindow                     = previousFocusWindow;
-        focusState->m_focusSurface                    = previousFocusSurface;
+        HicsPinned::field(focusState, HicsPinned::FocusWindow{})                     = previousFocusWindow;
+        HicsPinned::field(focusState, HicsPinned::FocusSurface{})                    = previousFocusSurface;
     }
 };
 
@@ -240,7 +237,7 @@ static void roundStandaloneWindowPassElements(const PHLWINDOW& window, PHLMONITO
     if (rounding <= 0)
         return;
 
-    auto& passElements = g_pHyprRenderer->m_renderPass.m_passElements;
+    auto& passElements = HicsPinned::field(&g_pHyprRenderer->m_renderPass, HicsPinned::PassElements{});
     for (size_t i = firstElement; i < passElements.size(); ++i) {
         const auto& passElement = passElements[i];
         if (!passElement.element)
@@ -329,7 +326,7 @@ static void blockOverviewWindowBlurOptimization(const PHLWINDOW& window, size_t 
     if (!window)
         return;
 
-    auto& passElements = g_pHyprRenderer->m_renderPass.m_passElements;
+    auto& passElements = HicsPinned::field(&g_pHyprRenderer->m_renderPass, HicsPinned::PassElements{});
     for (size_t i = firstElement; i < passElements.size(); ++i) {
         const auto& passElement = passElements[i];
         if (!passElement.element)
@@ -353,7 +350,7 @@ static void scaleOverviewChildSurfaceGeometry(const PHLWINDOW& window, const Vec
         return;
 
     const Vector2D SURFACESCALE = targetSize / REPORTEDSIZE;
-    auto&          passElements = g_pHyprRenderer->m_renderPass.m_passElements;
+    auto&          passElements = HicsPinned::field(&g_pHyprRenderer->m_renderPass, HicsPinned::PassElements{});
 
     for (size_t i = firstElement; i < passElements.size(); ++i) {
         const auto& passElement = passElements[i];
@@ -396,7 +393,7 @@ static void raiseWindowPopups(const PHLWINDOW& window, size_t firstElement, cons
     if (!window)
         return;
 
-    auto& passElements = g_pHyprRenderer->m_renderPass.m_passElements;
+    auto& passElements = HicsPinned::field(&g_pHyprRenderer->m_renderPass, HicsPinned::PassElements{});
     if (firstElement >= passElements.size())
         return;
 
@@ -530,7 +527,7 @@ static void renderOverviewHyprbarDecoration(SOverviewCustomDecorationRenderState
     const auto     WORKSPACE               = window->m_workspace;
     const bool     OVERRIDEWORKSPACEOFFSET = WORKSPACE && !window->m_pinned;
     const Vector2D previousWorkspaceOffset = OVERRIDEWORKSPACEOFFSET ? WORKSPACE->m_renderOffset->value() : Vector2D{};
-    const auto     previousReplyData       = g_pDecorationPositioner->getDataFor(decoration, window);
+    const auto     previousReplyData       = HicsPinned::call(g_pDecorationPositioner, HicsPinned::DecorationData{}, decoration, window);
     const auto     previousReply           = previousReplyData ? previousReplyData->lastReply : SDecorationPositioningReply{};
     const auto     previousRounding        = window->m_ruleApplicator->rounding();
     const auto     previousBorderSize      = window->m_ruleApplicator->borderSize();
@@ -876,16 +873,16 @@ static void renderOverviewGroupTabs(PHLMONITOR monitor, const PHLWINDOW& window,
     const auto  ONEBARHEIGHT     = POUTERGAP + PINDICATORHEIGHT + PINDICATORGAP + (PGRADIENTS || PRENDERTITLES ? PHEIGHT : 0);
     const auto  DESIREDHEIGHT    = PSTACKED ? (ONEBARHEIGHT * window->m_group->size()) + POUTERGAP * PKEEPUPPERGAP : POUTERGAP * (1 + PKEEPUPPERGAP) + ONEBARHEIGHT;
     const auto  EDGEPOINT        = g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, window);
-    CBox        assignedBox      = {window->m_realPosition->value() - Vector2D{0.0, sc<double>(DESIREDHEIGHT) + metrics.hyprbarTopOffsetLogical},
-                                    Vector2D{window->m_realSize->value().x, sc<double>(DESIREDHEIGHT)}};
+    CBox        assignedBox      = {window->positionAnimation()->value() - Vector2D{0.0, sc<double>(DESIREDHEIGHT) + metrics.hyprbarTopOffsetLogical},
+                                    Vector2D{window->sizeAnimation()->value().x, sc<double>(DESIREDHEIGHT)}};
     assignedBox.translate(-EDGEPOINT);
 
     if (window->m_workspace && !window->m_pinned)
         assignedBox.translate(-window->m_workspace->m_renderOffset->value());
 
-    const auto PREVASSIGNEDBOX = GROUPBAR->m_assignedBox;
-    GROUPBAR->m_assignedBox    = assignedBox;
-    auto restoreAssignedBox    = Hyprutils::Utils::CScopeGuard([GROUPBAR, PREVASSIGNEDBOX] { GROUPBAR->m_assignedBox = PREVASSIGNEDBOX; });
+    const auto PREVASSIGNEDBOX = HicsPinned::field(GROUPBAR, HicsPinned::GroupBarBox{});
+    HicsPinned::field(GROUPBAR, HicsPinned::GroupBarBox{})    = assignedBox;
+    auto restoreAssignedBox    = Hyprutils::Utils::CScopeGuard([GROUPBAR, PREVASSIGNEDBOX] { HicsPinned::field(GROUPBAR, HicsPinned::GroupBarBox{}) = PREVASSIGNEDBOX; });
 
     Render::SRenderModifData modif;
     modif.modifs.emplace_back(Render::SRenderModifData::RMOD_TYPE_SCALE, metrics.renderScale);
@@ -941,7 +938,7 @@ static SOverviewCustomDecorationRenderState renderOverviewCustomDecorations(PHLM
 } // namespace
 
 bool shouldBlurBackground(const PHLWINDOW& window) {
-    return window && g_pHyprRenderer && g_pHyprRenderer->shouldBlur(window);
+    return window && g_pHyprRenderer && HicsPinned::call(g_pHyprRenderer, HicsPinned::ShouldBlur{}, window);
 }
 
 static bool overviewBoxContains(const CBox& outer, const CBox& inner) {
@@ -1006,8 +1003,8 @@ void renderOverviewWindow(const SRenderParams& params) {
     }
 
     const Vector2D previousFloatingOffset  = params.window->m_floatingOffset;
-    const Vector2D previousWindowPos       = params.window->m_realPosition->value();
-    const Vector2D previousWindowSize      = params.window->m_realSize->value();
+    const Vector2D previousWindowPos       = params.window->positionAnimation()->value();
+    const Vector2D previousWindowSize      = params.window->sizeAnimation()->value();
     const bool     previousAnimatingIn     = params.window->m_animatingIn;
     const bool     previousSizeAnimating   = params.window->sizeAnimation()->isBeingAnimated();
     const auto     WORKSPACE               = params.window->m_workspace;
@@ -1068,11 +1065,11 @@ void renderOverviewWindow(const SRenderParams& params) {
         }
     });
 
-    const size_t firstWindowPassElement = g_pHyprRenderer->m_renderPass.m_passElements.size();
+    const size_t firstWindowPassElement = HicsPinned::field(&g_pHyprRenderer->m_renderPass, HicsPinned::PassElements{}).size();
     const bool   usePrecomputedBlur     = shouldUsePrecomputedBlur(params.window, params.monitor, params.workspaceBox, &params.windowBox, params.dragged);
     if (cameraTransform)
         g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{.renderModif = *cameraTransform}));
-    g_pHyprRenderer->renderWindow(params.window, params.monitor, params.now, false, Render::RENDER_PASS_ALL, false, false);
+    HicsPinned::call(g_pHyprRenderer, HicsPinned::RenderWindow{}, params.window, params.monitor, params.now, false, Render::RENDER_PASS_ALL, false, false);
     if (cameraTransform)
         g_pHyprRenderer->m_renderPass.add(
             makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{.renderModif = Render::SRenderModifData{}}));

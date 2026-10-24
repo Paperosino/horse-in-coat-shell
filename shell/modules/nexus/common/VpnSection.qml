@@ -19,6 +19,7 @@ ColumnLayout {
     property int pluginsPage: 8
     property bool choosingType: false
     property bool openingEditor: false
+    property bool cancelVisible: false
     property string selectedService: "org.freedesktop.NetworkManager.openvpn"
     readonly property var availableProtocols: root.vpnBackend.plugins
     readonly property var selectedPlugin: availableProtocols.find(p => p.service === selectedService) ?? ({})
@@ -46,6 +47,7 @@ ColumnLayout {
     Connections {
         target: root.vpnBackend
         function onChanged(): void {
+            if (!root.vpnBackend.busy) root.cancelVisible = false;
             if (!root.vpnBackend.busy && root.vpnBackend.error)
                 root.openingEditor = false;
         }
@@ -56,8 +58,13 @@ ColumnLayout {
             }
         }
     }
+    Timer {
+        interval: 400
+        running: root.vpnBackend.busy
+        onTriggered: root.cancelVisible = true
+    }
     RowButton {
-        visible: root.vpnBackend.busy
+        visible: root.vpnBackend.busy && root.cancelVisible
         Layout.fillWidth: true
         text: Tr.tr("Cancel")
         icon: "close"
