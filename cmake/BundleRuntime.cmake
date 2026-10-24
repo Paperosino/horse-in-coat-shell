@@ -24,6 +24,9 @@ message(STATUS "  Qt libs:    ${HYPRSTACK_QT_LIBS}")
 
 # Extra prefix for header-only build dependencies of quickshell (CLI11,
 # Vulkan-Headers) when they are installed into a user prefix instead of /usr.
+if(DEFINED HYPRSTACK_BUNDLE_PREFIX_PATH AND NOT DEFINED HICS_BUNDLE_PREFIX_PATH)
+    set(HICS_BUNDLE_PREFIX_PATH "${HYPRSTACK_BUNDLE_PREFIX_PATH}" CACHE PATH "Private runtime dependency prefix")
+endif()
 set(HICS_BUNDLE_PREFIX_PATH "$ENV{HOME}/.local"
     CACHE STRING "Extra CMAKE_PREFIX_PATH for the bundled quickshell build")
 

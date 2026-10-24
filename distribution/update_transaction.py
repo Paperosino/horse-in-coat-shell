@@ -94,7 +94,7 @@ class Installer:
             path.unlink(missing_ok=True)
             return
         path.parent.mkdir(parents=True, exist_ok=True)
-        fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".hyprstack-restore-")
+        fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".hics-restore-")
         os.close(fd)
         try:
             if node["kind"] == "link":

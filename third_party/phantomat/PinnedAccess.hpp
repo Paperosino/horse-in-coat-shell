@@ -17,6 +17,7 @@
 // Pinned ABI adapters. Explicit instantiation may name private members without
 // changing class definitions or access specifiers in transitive headers.
 namespace HicsPinned {
+namespace { // TU-local tags keep one explicit instantiation per specialization (C++23 [temp.spec.general]/5-6).
 template<class Tag, auto Pointer> struct Access { friend auto member(Tag) { return Pointer; } };
 #define HICS_PINNED_MEMBER(Tag, Class, Name) \
     struct Tag { friend auto member(Tag); }; \
@@ -50,3 +51,4 @@ template<class Object, class Tag, class... Args> decltype(auto) call(const Objec
     return (std::to_address(object)->*member(tag))(std::forward<Args>(args)...);
 }
 }
+} // namespace HicsPinned

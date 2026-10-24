@@ -80,7 +80,7 @@ const char *settingsInterface =
     "org.freedesktop.NetworkManager.Settings.Connection";
 B bus() {
   GError *error = nullptr;
-  auto *b = g_bus_get_sync(G_BUS_TYPE_SYSTEM, nullptr, &error);
+  auto *b = g_bus_get_sync(G_BUS_TYPE_SYSTEM, taskCancellation, &error);
   check(error);
   return B(b, [](GDBusConnection *p) { g_object_unref(p); });
 }
@@ -89,7 +89,7 @@ V call(GDBusConnection *b, const QString &path, const char *iface,
   GError *error = nullptr;
   auto *reply = g_dbus_connection_call_sync(
       b, service, path.toUtf8().constData(), iface, method, args, nullptr,
-      G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 90000, nullptr,
+      G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 90000, taskCancellation,
       &error);
   check(error);
   return variant(reply);
@@ -234,7 +234,7 @@ void preserveSecrets(GDBusConnection *b, const QString &path, NMConnection *c) {
   auto reply = variant(g_dbus_connection_call_sync(
       b, service, path.toUtf8().constData(), settingsInterface, "GetSecrets",
       g_variant_new("(s)", kind), nullptr,
-      G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 90000, nullptr,
+      G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 90000, taskCancellation,
       &error));
   if (error) {
     char *remote = g_dbus_error_get_remote_error(error);
@@ -766,18 +766,19 @@ struct NetworkManagerVpn::State {
 NetworkManagerVpn::NetworkManagerVpn(QObject *parent)
     : QObject(parent), m_state(std::make_shared<State>()) {}
 NetworkManagerVpn::~NetworkManagerVpn() {
-  cancel();
+  if (m_state->cancellation) g_cancellable_cancel(m_state->cancellation.get());
   m_state->future.waitForFinished();
 }
 void NetworkManagerVpn::cancel() {
-  if (m_state->cancellation) g_cancellable_cancel(m_state->cancellation.get());
+  if (m_canCancel && m_state->cancellation) g_cancellable_cancel(m_state->cancellation.get());
 }
 void NetworkManagerVpn::run(std::function<QVariantMap()> task,
                             std::function<void(const QVariantMap &)> done,
-                            bool clearError) {
+                            bool clearError, bool cancellable) {
   if (m_busy)
     return;
   m_busy = true;
+  m_canCancel = cancellable;
   if (clearError) {
     m_error.clear();
     m_refreshError = false;
@@ -810,6 +811,7 @@ void NetworkManagerVpn::run(std::function<QVariantMap()> task,
     struct Reset { ~Reset() { taskCancellation = nullptr; } } reset;
     taskCancellation = cancellation.get();
     try {
+      if (g_cancellable_is_cancelled(taskCancellation)) fail("Operation cancelled");
       return task();
     } catch (const std::exception &e) {
       return QVariantMap{{"error", QString::fromUtf8(e.what())}};
@@ -1053,24 +1055,37 @@ void NetworkManagerVpn::installPlugin(const QString &id) {
           fail("Install the VPN plugin with your distribution's package "
                "manager: " +
                package);
+        const auto runner = QStandardPaths::findExecutable("systemd-run");
+        if (runner.isEmpty()) fail("The user service manager is unavailable");
         QProcess process;
-        process.start("pkexec", {"/usr/bin/pacman", "-S", "--needed",
-                                 "--noconfirm", package});
+        // The transaction belongs to a separate user service. On shell exit
+        // only the unprivileged waiting client is stopped; pacman keeps running.
+        process.start(runner, {"--user", "--wait", "--collect", "--quiet",
+                              "--service-type=exec", "--unit=hics-vpn-install-" + package,
+                              "--", "/usr/bin/pkexec", "/usr/bin/pacman", "-S", "--needed",
+                              "--noconfirm", package});
         if (!process.waitForStarted(10000))
           fail("Could not start the package installer");
-        if (!process.waitForFinished(300000)) {
-          process.kill();
+        QElapsedTimer deadline;
+        deadline.start();
+        while (process.state() != QProcess::NotRunning && deadline.elapsed() < 300000 &&
+               !(taskCancellation && g_cancellable_is_cancelled(taskCancellation)))
+          process.waitForFinished(100);
+        if (process.state() != QProcess::NotRunning) {
+          process.kill(); // systemd-run client only; never the package transaction
           process.waitForFinished();
-          fail("Plugin installation timed out");
+          fail("Plugin installation continues in the background; refresh the list later");
         }
-        if (process.exitCode() != 0)
-          fail(QString::fromUtf8(process.readAllStandardError()).trimmed());
+        if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+          const auto detail = QString::fromUtf8(process.readAllStandardError()).trimmed();
+          fail(detail.isEmpty() ? QString("VPN plugin installation failed; check the user journal") : detail);
+        }
         return QVariantMap{};
       },
       [this](const QVariantMap &) {
         emit operationSucceeded();
         refresh();
-      });
+      }, true, false);
 }
 
 void NetworkManagerVpn::deactivate(const QString &path) {
@@ -1086,7 +1101,7 @@ void NetworkManagerVpn::deactivate(const QString &path) {
         auto reply = variant(g_dbus_connection_call_sync(
             b.get(), service, root, service, "DeactivateConnection",
             g_variant_new("(o)", path.toUtf8().constData()), nullptr,
-            G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 90000, nullptr,
+            G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 90000, taskCancellation,
             &error));
         if (error) {
           // The VPN may finish disconnecting between the UI click and this

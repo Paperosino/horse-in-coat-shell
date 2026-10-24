@@ -1,5 +1,6 @@
 """Exercise native libnm profiles and typed D-Bus requests on a private bus."""
-import json,os,shlex,subprocess,tempfile,unittest
+import json,os,shlex,subprocess,tempfile,unittest,signal
+from unittest.mock import patch
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];SERVICES=ROOT/'shell/plugin/src/Hyprstack/Services'
 class VpnNativeTests(unittest.TestCase):
@@ -12,7 +13,13 @@ class VpnNativeTests(unittest.TestCase):
   subprocess.run([str(moc),str(SERVICES/'vpnsecretagent.hpp'),'-o',str(cls.base/'agent-moc.cpp'),*shlex.split(subprocess.check_output(['pkg-config','--cflags','Qt6Qml'],text=True))],check=True)
   qrc=cls.base/'vpn.qrc';qrc.write_text('<RCC><qresource prefix="/hics/vpn"><file alias="vpn-protocols.json">'+str(SERVICES/'vpn-protocols.json')+'</file></qresource></RCC>')
   rcc=moc.with_name('rcc');subprocess.run([str(rcc),str(qrc),'-o',str(cls.base/'rcc.cpp')],check=True)
-  subprocess.run(['c++','-std=c++20','-fPIC',str(ROOT/'tests/fixtures/vpn-probe.cpp'),str(SERVICES/'networkmanagervpn.cpp'),str(cls.base/'moc.cpp'),str(SERVICES/'vpnsecretagent.cpp'),str(cls.base/'agent-moc.cpp'),str(cls.base/'rcc.cpp'),'-I',str(SERVICES),*flags,'-o',str(cls.binary)],check=True)
+  # Every package-manager path is redirected in this test-only source copy;
+  # even a regression in the launcher must never invoke a real root installer.
+  for name in ('fake-pacman','pkexec'):
+   tool=cls.base/name;tool.write_text('#!/bin/sh\nexit 91\n');tool.chmod(0o700)
+  native=cls.base/'networkmanagervpn-test.cpp'
+  native.write_text((SERVICES/'networkmanagervpn.cpp').read_text().replace('/usr/bin/pacman',str(cls.base/'fake-pacman')).replace('/usr/bin/pkexec',str(cls.base/'pkexec')))
+  subprocess.run(['c++','-std=c++20','-fPIC',str(ROOT/'tests/fixtures/vpn-probe.cpp'),str(native),str(cls.base/'moc.cpp'),str(SERVICES/'vpnsecretagent.cpp'),str(cls.base/'agent-moc.cpp'),str(cls.base/'rcc.cpp'),'-I',str(SERVICES),*flags,'-o',str(cls.binary)],check=True)
   cls.bus=subprocess.Popen(['dbus-daemon','--session','--nofork','--print-address=1'],stdout=subprocess.PIPE,text=True)
   cls.env=dict(os.environ,DBUS_SYSTEM_BUS_ADDRESS=cls.bus.stdout.readline().strip(),VPN_TEST_LOG=str(cls.base/'calls.jsonl'))
   cls.env['DBUS_SESSION_BUS_ADDRESS']=cls.env['DBUS_SYSTEM_BUS_ADDRESS']
@@ -111,6 +118,21 @@ class VpnNativeTests(unittest.TestCase):
   result=self.run_probe('activate-libreswan-failed');self.assertIn('failed to start',result['error']);self.assertFalse(any(c['method']=='ActivateConnection' for c in self.calls()))
  def test_libreswan_start_can_be_cancelled(self):
   result=self.run_probe('activate-libreswan-cancel');self.assertTrue(result['error']);self.assertFalse(any(c['method']=='ActivateConnection' for c in self.calls()))
+ def test_shutdown_stops_only_installer_waiter_and_preserves_transaction(self):
+  with tempfile.TemporaryDirectory(dir=self.base) as directory:
+   base=Path(directory);marker=base/'service.pid';worker=base/'installer-worker.py'
+   worker.write_text('import time\ntime.sleep(30)\n')
+   runner=base/'systemd-run';runner.write_text('#!/usr/bin/python3\nimport subprocess,sys,pathlib,time,json\np=subprocess.Popen([sys.executable,'+repr(str(worker))+'],start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\npathlib.Path('+repr(str(marker))+').write_text(str(p.pid))\npathlib.Path('+repr(str(base/'args.json'))+').write_text(json.dumps(sys.argv[1:]))\ntime.sleep(30)\n');runner.chmod(0o700)
+   pid=None
+   try:
+    with patch.dict(self.env,{'PATH':str(base)+':'+str(self.base)+':'+os.environ['PATH'],'HICS_INSTALL_TEST_MARKER':str(marker)}):result=self.run_probe('install-destroy')
+    self.assertTrue(result['started'],result);self.assertTrue(result['busy'],result);self.assertFalse(result['canCancel'],result);self.assertLess(result['destroyMs'],1500,result)
+    pid=int(marker.read_text());os.kill(pid,0)
+    args=json.loads((base/'args.json').read_text());self.assertIn('--wait',args);self.assertIn('--collect',args);self.assertIn(str(self.base/'fake-pacman'),args)
+   finally:
+    if marker.exists():
+     pid=int(marker.read_text())
+     if Path(f'/proc/{pid}/cmdline').exists() and str(worker).encode() in Path(f'/proc/{pid}/cmdline').read_bytes():os.kill(pid,signal.SIGTERM)
  def test_interactive_prompt_is_prefilled_with_supplied_password(self):
   result=self.run_probe('agent-prompt-prefill');self.assertEqual(result.get('prefilled'),'system-fixture-password',result)
 

@@ -60,11 +60,11 @@ ColumnLayout {
     }
     Timer {
         interval: 400
-        running: root.vpnBackend.busy
+        running: root.vpnBackend.busy && (root.vpnBackend.canCancel ?? true)
         onTriggered: root.cancelVisible = true
     }
     RowButton {
-        visible: root.vpnBackend.busy && root.cancelVisible
+        visible: root.vpnBackend.busy && (root.vpnBackend.canCancel ?? true) && root.cancelVisible
         Layout.fillWidth: true
         text: Tr.tr("Cancel")
         icon: "close"

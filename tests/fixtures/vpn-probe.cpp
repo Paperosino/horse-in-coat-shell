@@ -1,6 +1,8 @@
 #include "networkmanagervpn.hpp"
 #include "vpnsecretagent.hpp"
 #include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QThread>
 #include <QDBusConnection>
 #include <QDBusMetaType>
 #include <QDBusPendingCallWatcher>
@@ -29,7 +31,18 @@ int main(int argc, char **argv) {
   };
   QVariantMap result;
   QString prefilled;
-  if (mode.startsWith("agent-")) {
+  if (mode == "install-destroy") {
+    auto installer = std::make_unique<NetworkManagerVpn>();
+    installer->installPlugin("openvpn");
+    const auto marker = qEnvironmentVariable("HICS_INSTALL_TEST_MARKER");
+    QElapsedTimer timer; timer.start();
+    while (!QFile::exists(marker) && timer.elapsed() < 3000) { app.processEvents(); QThread::msleep(10); }
+    result["started"] = QFile::exists(marker);
+    result["canCancel"] = installer->canCancel();
+    result["busy"] = installer->busy();
+    result["error"] = installer->error();
+    timer.restart(); installer.reset(); result["destroyMs"] = timer.elapsed();
+  } else if (mode.startsWith("agent-")) {
     VpnSecretAgent agent;
     QObject::connect(&agent, &VpnSecretAgent::changed, &app, [&] {
       if (!agent.challenge().isEmpty()) {
