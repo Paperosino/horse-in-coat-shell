@@ -368,7 +368,7 @@ def watch():
    libc=ctypes.CDLL(None,use_errno=True);fd=libc.inotify_init1(os.O_NONBLOCK|os.O_CLOEXEC)
    if fd<0:raise OSError(ctypes.get_errno(),'Cannot watch configuration')
    def arm():
-    for path in [CONFIG,STATE,CONFIG/'monitors',*(CONFIG/'monitors').glob('*')]:
+    for path in [CONFIG,STATE,STATE/'wallpaper',CONFIG/'monitors',*(CONFIG/'monitors').glob('*')]:
      if path.is_dir() and not path.is_symlink():libc.inotify_add_watch(fd,os.fsencode(path),0x00000008|0x00000080|0x00000100|0x00000200)
    arm();stopping=False;changed=0;last_hash=digest(gather())
    def stop(*_):
