@@ -26,6 +26,7 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
     , m_idle(true)
     , m_token(std::move(token))
     , m_collector(collector) {
+    if (!m_collector || m_token.stop_requested()) return;
     pw_init(nullptr, nullptr);
 
     m_loop = pw_main_loop_new(nullptr);
@@ -98,7 +99,22 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
         return;
     }
 
-    pw_main_loop_run(m_loop);
+    auto* stopEvent = pw_loop_add_event(pw_main_loop_get_loop(m_loop), [](void* data, uint64_t) {
+        pw_main_loop_quit(static_cast<pw_main_loop*>(data));
+    }, m_loop);
+    if (stopEvent) {
+        // Wakes an idle or stalled STREAMING loop immediately. The stop
+        // callback is removed (and joined) before its event/loop are destroyed.
+        {
+            std::stop_callback wake(m_token, [this, stopEvent] {
+                pw_loop_signal_event(pw_main_loop_get_loop(m_loop), stopEvent);
+            });
+            if (!m_token.stop_requested()) pw_main_loop_run(m_loop);
+        }
+        pw_loop_destroy_source(pw_main_loop_get_loop(m_loop), stopEvent);
+    } else {
+        qCWarning(lcAcWorker) << "init: failed to create stop event";
+    }
 
     pw_stream_destroy(m_stream);
     pw_main_loop_destroy(m_loop);
@@ -108,7 +124,7 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
 void PipeWireWorker::handleTimeout(void* data, uint64_t expirations) {
     auto* self = static_cast<PipeWireWorker*>(data);
 
-    if (self->m_token.stop_requested()) {
+    if (self->m_token.stop_requested() || !self->m_collector) {
         pw_main_loop_quit(self->m_loop);
         return;
     }
@@ -144,7 +160,7 @@ void PipeWireWorker::streamStateChanged(pw_stream_state state) {
 }
 
 void PipeWireWorker::processStream() {
-    if (m_token.stop_requested()) {
+    if (m_token.stop_requested() || !m_collector) {
         pw_main_loop_quit(m_loop);
         return;
     }
@@ -155,10 +171,15 @@ void PipeWireWorker::processStream() {
     }
 
     const spa_buffer* buf = buffer->buffer;
-    const auto* samples = reinterpret_cast<const qint16*>(buf->datas[0].data);
-    if (samples != nullptr) {
-        const quint32 count = buf->datas[0].chunk->size / sizeof(qint16);
-        m_collector->loadChunk(samples, count);
+    if (buf && buf->n_datas > 0) {
+        const auto& data = buf->datas[0];
+        if (data.data && data.chunk && data.chunk->offset <= data.maxsize) {
+            const auto size = std::min(data.chunk->size, data.maxsize - data.chunk->offset);
+            const auto* bytes = static_cast<const uint8_t*>(data.data) + data.chunk->offset;
+            // SPA PCM offsets are sample-aligned; reject malformed buffers.
+            if (data.chunk->offset % alignof(qint16) == 0)
+                m_collector->loadChunk(reinterpret_cast<const qint16*>(bytes), size / sizeof(qint16));
+        }
     }
 
     pw_stream_queue_buffer(m_stream, buffer);
@@ -185,67 +206,41 @@ AudioCollector& AudioCollector::instance() {
     return s_instance;
 }
 
-std::vector<float>* AudioCollector::claimWriteBuffer() {
-    return m_writeBuffer.exchange(nullptr, std::memory_order_acq_rel);
-}
-
-void AudioCollector::publishWriteBuffer(std::vector<float>* writeBuffer) {
-    auto* const oldRead = m_readBuffer.exchange(writeBuffer, std::memory_order_acq_rel);
-    m_writeBuffer.store(oldRead, std::memory_order_release);
-}
-
 void AudioCollector::clearBuffer() {
-    auto* const writeBuffer = claimWriteBuffer();
-    if (writeBuffer == nullptr)
-        return;
-
-    std::ranges::fill(*writeBuffer, 0.0f);
-    publishWriteBuffer(writeBuffer);
+    std::unique_lock lock(m_bufferMutex, std::try_to_lock);
+    if (lock.owns_lock()) m_buffer.fill(0.0f);
 }
 
 void AudioCollector::loadChunk(const qint16* samples, quint32 count) {
-    auto* const writeBuffer = claimWriteBuffer();
-    if (writeBuffer == nullptr)
-        return;
-
+    // PipeWire's realtime producer never waits for a reader or allocates.
+    std::unique_lock lock(m_bufferMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !samples) return;
     count = std::min(count, ac::k_chunkSize);
-    std::transform(samples, samples + count, writeBuffer->begin(), [](qint16 sample) {
+    std::transform(samples, samples + count, m_buffer.begin(), [](qint16 sample) {
         return static_cast<float>(sample) / 32768.0f;
     });
-
-    publishWriteBuffer(writeBuffer);
+    std::fill(m_buffer.begin() + count, m_buffer.end(), 0.0f);
 }
 
 quint32 AudioCollector::readChunk(float* out, quint32 count) {
-    if (count == 0 || count > ac::k_chunkSize) {
-        count = ac::k_chunkSize;
-    }
-
-    auto* const readBuffer = m_readBuffer.load(std::memory_order_acquire);
-    std::memcpy(out, readBuffer->data(), count * sizeof(float));
-
+    if (!out) return 0;
+    if (count == 0 || count > ac::k_chunkSize) count = ac::k_chunkSize;
+    std::lock_guard lock(m_bufferMutex);
+    std::memcpy(out, m_buffer.data(), count * sizeof(float));
     return count;
 }
 
 quint32 AudioCollector::readChunk(double* out, quint32 count) {
-    if (count == 0 || count > ac::k_chunkSize) {
-        count = ac::k_chunkSize;
-    }
-
-    auto* const readBuffer = m_readBuffer.load(std::memory_order_acquire);
-    std::transform(readBuffer->begin(), readBuffer->begin() + count, out, [](float sample) {
+    if (!out) return 0;
+    if (count == 0 || count > ac::k_chunkSize) count = ac::k_chunkSize;
+    std::lock_guard lock(m_bufferMutex);
+    std::transform(m_buffer.begin(), m_buffer.begin() + count, out, [](float sample) {
         return static_cast<double>(sample);
     });
-
     return count;
 }
 
-AudioCollector::AudioCollector(QObject* parent)
-    : Service(parent)
-    , m_buffer1(ac::k_chunkSize)
-    , m_buffer2(ac::k_chunkSize)
-    , m_readBuffer(&m_buffer1)
-    , m_writeBuffer(&m_buffer2) {}
+AudioCollector::AudioCollector(QObject* parent) : Service(parent) {}
 
 AudioCollector::~AudioCollector() {
     AudioCollector::stop();

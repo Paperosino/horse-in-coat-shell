@@ -3,6 +3,8 @@
 #include <QDBusMessage>
 #include <QJsonDocument>
 #include <QTextStream>
+#include <QRandomGenerator>
+#include <QThread>
 int main(int argc, char **argv) {
   QCoreApplication app(argc, argv);
   auto args = app.arguments();
@@ -42,15 +44,21 @@ int main(int argc, char **argv) {
       else
         call.setArguments({args[2]});
       call.setInteractiveAuthorizationAllowed(write);
-      auto reply =
-          QDBusConnection::systemBus().call(call, QDBus::Block, 150000);
-      if (reply.type() == QDBusMessage::ErrorMessage)
-        throw System::Failure("daemon-unavailable", reply.errorMessage());
-      auto doc = QJsonDocument::fromJson(
-          reply.arguments().value(0).toString().toUtf8());
-      if (!doc.isObject())
-        throw System::Failure("failed", "Invalid system service response");
-      out = doc.object();
+      // Startup pages may request several sections at once. Retry only explicit
+      // admission failures of reads, inside this one client process. Never replay
+      // a write or an ambiguous D-Bus failure after an operation may have run.
+      for (int attempt = 0; ; ++attempt) {
+        auto reply = QDBusConnection::systemBus().call(call, QDBus::Block, 150000);
+        if (reply.type() == QDBusMessage::ErrorMessage)
+          throw System::Failure("daemon-unavailable", reply.errorMessage());
+        auto doc = QJsonDocument::fromJson(reply.arguments().value(0).toString().toUtf8());
+        if (!doc.isObject()) throw System::Failure("failed", "Invalid system service response");
+        out = doc.object();
+        const auto code = out.value("code").toString();
+        if (write || attempt >= 7 || !QStringList{"busy", "rate_limited", "shutting_down"}.contains(code)) break;
+        const auto delay = qMin(1200, 100 << qMin(attempt, 4)) + QRandomGenerator::global()->bounded(100);
+        QThread::msleep(static_cast<unsigned long>(delay));
+      }
     }
   } catch (const std::exception &e) {
     out = System::failure(e);

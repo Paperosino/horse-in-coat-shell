@@ -6,7 +6,8 @@
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 
-#include <atomic>
+#include <array>
+#include <mutex>
 #include <stop_token>
 #include <thread>
 #include <vector>
@@ -64,15 +65,10 @@ private:
     explicit AudioCollector(QObject* parent = nullptr);
     ~AudioCollector() override;
 
+    std::array<float, ac::k_chunkSize> m_buffer{};
+    std::mutex m_bufferMutex;
+    // A jthread must be destroyed before everything its callback can access.
     std::jthread m_thread;
-    std::vector<float> m_buffer1;
-    std::vector<float> m_buffer2;
-    std::atomic<std::vector<float>*> m_readBuffer;
-    std::atomic<std::vector<float>*> m_writeBuffer;
-    quint32 m_sampleCount;
-
-    [[nodiscard]] std::vector<float>* claimWriteBuffer();
-    void publishWriteBuffer(std::vector<float>* writeBuffer);
 
     void reload();
     void start() override;

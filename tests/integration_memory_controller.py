@@ -13,7 +13,7 @@ with tempfile.TemporaryDirectory(prefix='hics-memory-controller-') as directory:
   for prefix in ('/proc/','/sys/','/etc/','/run/','/var/lib/','/dev/','/usr/bin/'):
    s=s.replace(prefix,str(tree)+prefix)
   return s
- for name in ('backend.hpp','memory.hpp','memory.cpp','memory_worker.cpp'):
+ for name in ('backend.hpp','boundedio.hpp','memory.hpp','memory.cpp','memory_worker.cpp'):
   text=redirect((ROOT/'native/system'/name).read_text())
   if name=='memory_worker.cpp':
    text=re.sub(r'if\s*\(geteuid\(\)\)', 'if(false)', text).replace('s.st_uid','false').replace('volume.fileSystemType()', 'QByteArray("ext4")')

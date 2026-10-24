@@ -27,7 +27,7 @@ class VpnNativeTests(unittest.TestCase):
   if cls.mock.stdout.readline().strip()!='ready':raise RuntimeError('VPN fixture did not start')
  @classmethod
  def tearDownClass(cls):
-  cls.mock.terminate();cls.mock.wait();cls.bus.terminate();cls.bus.wait();cls.temp.cleanup()
+  cls.mock.terminate();cls.mock.wait();cls.mock.stdout.close();cls.bus.terminate();cls.bus.wait();cls.bus.stdout.close();cls.temp.cleanup()
  def run_probe(self,*args):
   Path(self.env['VPN_TEST_LOG']).write_text('')
   result=subprocess.run([str(self.binary),*args],env=self.env,capture_output=True,text=True,timeout=20)

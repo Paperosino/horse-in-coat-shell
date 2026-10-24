@@ -1,4 +1,5 @@
 #include "memory.hpp"
+#include "boundedio.hpp"
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -17,7 +18,7 @@ QJsonObject configuration() {
   QFile file(ConfigPath);
   if (!file.open(QIODevice::ReadOnly))
     return defaults();
-  auto doc = QJsonDocument::fromJson(file.readAll());
+  auto doc = QJsonDocument::fromJson(System::readBounded(file, 256 * 1024));
   if (!doc.isObject())
     throw System::Failure("failed", "Invalid memory configuration");
   return validate(doc.object());

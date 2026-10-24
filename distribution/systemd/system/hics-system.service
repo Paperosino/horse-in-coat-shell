@@ -5,6 +5,9 @@ Documentation=https://github.com/Paperosino/horse-in-coat-shell
 [Service]
 Type=dbus
 BusName=org.hics.System1
+NotifyAccess=main
+WatchdogSec=30
+TimeoutStopSec=8
 ExecStart=/usr/bin/hics-systemd
 Restart=on-failure
 RestartSec=3

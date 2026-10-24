@@ -1,4 +1,5 @@
 #include "memory.hpp"
+#include "boundedio.hpp"
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
@@ -28,7 +29,7 @@ QJsonObject readJson(const QString &path) {
   QFile f(path);
   if (!f.open(QIODevice::ReadOnly))
     return {};
-  auto d = QJsonDocument::fromJson(f.readAll());
+  auto d = QJsonDocument::fromJson(System::readBounded(f, 256 * 1024));
   if (!d.isObject())
     throw Failure("failed", "Invalid controller state: " + path);
   return d.object();
@@ -36,7 +37,7 @@ QJsonObject readJson(const QString &path) {
 void save(const QString &path, const QJsonObject &o) {
   auto bytes = QJsonDocument(o).toJson(QJsonDocument::Compact);
   QFile old(path);
-  if (old.open(QIODevice::ReadOnly) && old.readAll() == bytes)
+  if (old.open(QIODevice::ReadOnly) && old.read(bytes.size() + 1) == bytes)
     return;
   QSaveFile f(path);
   if (!f.open(QIODevice::WriteOnly) || f.write(bytes) != bytes.size() ||
@@ -52,7 +53,7 @@ QString read(const QString &path) {
   QFile f(path);
   if (!f.open(QIODevice::ReadOnly))
     throw Failure("failed", "Cannot read " + path);
-  return QString::fromUtf8(f.readAll()).trimmed();
+  return QString::fromUtf8(System::readBounded(f, 1024 * 1024)).trimmed();
 }
 void command(const QString &exe, const QStringList &args, int timeout = 30000) {
   QProcess p;
