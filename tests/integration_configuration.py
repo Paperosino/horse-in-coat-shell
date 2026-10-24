@@ -52,9 +52,12 @@ with tempfile.TemporaryDirectory(prefix='hics-configuration-test-') as directory
    (cfg/'shell.json').write_text('{"appearance":{"scale":1.2}}')
    endpoint=Path(call('configuration_manager.py','status')['statePath']).parent/'control.sock'
    with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as client_socket:
-    client_socket.settimeout(8);client_socket.connect(str(endpoint));client_socket.sendall((json.dumps({'operation':'preview-profile','value':{'id':profile['id'],'sections':['shell.json']},'shellPid':shell_process.pid})+'\\n').encode())
+    client_socket.settimeout(8);client_socket.connect(str(endpoint));client_socket.sendall((json.dumps({'operation':'preview-profile','value':{'id':profile['id'],'sections':['shell.json']},'shellPid':shell_process.pid})+'\n').encode())
     response=b''
-    while b'\\n' not in response:response+=client_socket.recv(65536)
+    while b'\n' not in response:
+     part=client_socket.recv(65536)
+     assert part,'Guard disconnected before replying'
+     response+=part
     assert not json.loads(response).get('error'),response
    shell_process.terminate();shell_process.wait()
    wait(lambda:not call('configuration_manager.py','status')['pending'])
