@@ -388,7 +388,14 @@ def request(operation,value=None):
         # An independent process survives shell reloads. The compositor socket
         # ends its lifetime; a lock prevents duplicate watchdogs during races.
         if not os.environ.get('HICS_DISPLAY_NO_SYSTEMD'):
-            subprocess.run(['systemctl','--user','start','hics-displays.service'],env=application_environment(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=8,check=False)
+            managed=subprocess.run(['systemctl','--user','start','hics-displays.service'],env=application_environment(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=8,check=False)
+            if managed.returncode==0:
+                # Type=simple reports 'started' before Python has bound the
+                # socket. Do not race the supervised service with a fallback.
+                for _ in range(100):
+                    try:return send()
+                    except (FileNotFoundError,ConnectionRefusedError):time.sleep(.05)
+                raise ValueError('Display protection service did not become ready')
         try:return send()
         except (FileNotFoundError,ConnectionRefusedError):pass
         subprocess.Popen([sys.executable,str(Path(__file__).resolve()),'watch'],env=application_environment(),stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)

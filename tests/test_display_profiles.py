@@ -1,7 +1,7 @@
 """Display safety transactions, identity matching and atomic persistence."""
 import copy,importlib,json,sys,tempfile,time,unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch,MagicMock
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'shell/assets'))
 import display_profiles as displays
 
@@ -73,6 +73,10 @@ class DisplayProfiles(unittest.TestCase):
   with self.assertRaises(ValueError):displays.validate(rows,self.live)
   for row in rows:row['disabled']=True
   with self.assertRaises(ValueError):displays.validate(rows,self.live)
+ def test_service_start_waits_for_its_socket_without_racing_a_fallback(self):
+  client=MagicMock();client.__enter__.return_value=client;client.connect.side_effect=[FileNotFoundError(),ConnectionRefusedError(),None];client.recv.return_value=b'{"ready":true}\n'
+  with patch.object(displays,'paths',return_value=(self.folder,self.folder/'event')),patch.object(displays.socket,'socket',return_value=client),patch.object(displays.subprocess,'run',return_value=type('Result',(),{'returncode':0})()),patch.object(displays.subprocess,'Popen') as fallback,patch.object(displays.time,'sleep'),patch.dict(displays.os.environ,{'HICS_DISPLAY_NO_SYSTEMD':''}):
+   self.assertTrue(displays.request('status')['ready']);fallback.assert_not_called()
  def test_unapplied_preview_cannot_be_committed(self):
   state=self.preview();self.live[0]['refreshRate']=164.998
   with self.assertRaises(ValueError):self.dispatch('confirm',{'token':state['pending']['token']})

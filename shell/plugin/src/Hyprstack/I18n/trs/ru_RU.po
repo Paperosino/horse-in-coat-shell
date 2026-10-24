@@ -9716,3 +9716,6 @@ msgstr "Подключённые экраны изменились; пробна
 
 msgid "Restore previous settings"
 msgstr "Вернуть прежние"
+
+msgid "Display protection service did not become ready"
+msgstr "Служба защиты экрана не завершила запуск"
