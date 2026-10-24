@@ -1,0 +1,19 @@
+[Unit]
+Description=hics display profiles and rollback protection
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=HYPRLAND_INSTANCE_SIGNATURE
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/hics-display-service
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=12
+MemoryMax=96M
+TasksMax=32
+
+[Install]
+WantedBy=graphical-session.target

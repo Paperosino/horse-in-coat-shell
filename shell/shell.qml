@@ -4,6 +4,7 @@
 //@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 //@ pragma IconTheme Adwaita
 
+import "modules/displays" as Displays
 import "modules/extensions"
 import "modules"
 import "modules/drawers"
@@ -34,6 +35,7 @@ ShellRoot {
     GSFLoader {}
     ServiceLoader {}
     PluginHost {}
+    Displays.Confirmation {}
     PolkitModule.Polkit { id: authentication }
 
     Background {}

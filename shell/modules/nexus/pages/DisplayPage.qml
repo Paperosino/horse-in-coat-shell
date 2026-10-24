@@ -15,6 +15,7 @@ PageBase {
     pageIcon: "monitor"
 
     property string selected: ""
+    property string deletingProfile: ""
 
     readonly property var current: Monitors.arranged.find(m => m.name === root.selected) ?? Monitors.arranged[0] ?? null
     readonly property list<real> scalePresets: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
@@ -64,6 +65,8 @@ PageBase {
         return (Number.isInteger(r) ? String(r) : r.toFixed(2)) + " " + Tr.tr("Hz");
     }
 
+    Component.onCompleted:DisplayProfiles.refresh()
+
     title: Tr.tr("Display")
 
     ColumnLayout {
@@ -81,6 +84,54 @@ PageBase {
             color: Colours.palette.m3onSurfaceVariant
         }
 
+        SettingsCard {
+            title:Tr.tr("Display profiles")
+            description:Tr.tr("Save a layout for home, a dock or your laptop. Matching screens restore their resolution, refresh rate, scale and positions automatically.")
+            icon:"devices"
+            FeatureError {error:DisplayProfiles.error}
+            StyledText {Layout.fillWidth:true;visible:!!DisplayProfiles.notice;text:Tr.tr(DisplayProfiles.notice);textFormat:Text.PlainText;wrapMode:Text.WordWrap;color:Colours.palette.m3onSurfaceVariant}
+            ToggleRow {text:Tr.tr("Recognize connected display setups");subtext:Tr.tr("Automatic changes also require confirmation and revert if the timer expires.");checked:DisplayProfiles.settings.autoApply??true;onToggled:DisplayProfiles.configure({autoApply:checked})}
+            GridLayout {
+                Layout.fillWidth:true;columns:width>520*Tokens.scale?2:1
+                StyledTextField {id:profileName;Layout.fillWidth:true;Layout.minimumWidth:0;placeholderText:Tr.tr("Home, Dock, Laptop…");Accessible.name:Tr.tr("Display profile name");maximumLength:128}
+                IconTextButton {text:Tr.tr("Save current layout");icon:"add";disabled:!profileName.text.trim()||Monitors.hasStaged||!!DisplayProfiles.pending||DisplayProfiles.busy;onClicked:{DisplayProfiles.save(profileName.text.trim());profileName.clear();}}
+            }
+            StyledText {Layout.fillWidth:true;visible:Monitors.hasStaged;text:Tr.tr("Apply and confirm your changes before saving this layout.");wrapMode:Text.WordWrap;color:Colours.palette.m3onSurfaceVariant}
+            StyledText {Layout.fillWidth:true;visible:!DisplayProfiles.profiles.length;text:Tr.tr("Save your current setup as a starting point. Connect another display setup to create its own profile.");wrapMode:Text.WordWrap;color:Colours.palette.m3onSurfaceVariant}
+            Repeater {
+                model:DisplayProfiles.profiles
+                SettingsCard {
+                    id:profile
+                    required property var modelData
+                    title:modelData.name
+                    icon:modelData.matches?"desktop_windows":"monitor"
+                    badge:modelData.id===DisplayProfiles.data.activeProfileId?Tr.tr("Active"):modelData.matches?Tr.tr("Displays connected"):Tr.tr("Different displays")
+                    description:(modelData.devices??[]).map(m=>m.description||m.model||m.name).join(" · ")
+                    TextFieldRow {label:Tr.tr("Profile name");value:profile.modelData.name;maximumLength:128;onEditingFinished:value=>{if(value.trim()&&value!==profile.modelData.name)DisplayProfiles.update(profile.modelData.id,{name:value});}}
+                    Repeater {
+                        model:profile.modelData.outputs??[]
+                        InfoRow {required property var modelData;label:modelData.name;value:modelData.disabled?Tr.tr("Disabled"):(modelData.mode+" · "+Math.round(modelData.scale*100)+"% · "+modelData.x+", "+modelData.y)}
+                    }
+                    ToggleRow {text:Tr.tr("Use this profile automatically");checked:profile.modelData.autoApply!==false;onToggled:DisplayProfiles.update(profile.modelData.id,{autoApply:checked})}
+                    RowButton {text:Tr.tr("Prefer for this display setup");subtext:Tr.tr("Choose which profile to use when several match the same screens.");icon:profile.modelData.preferred?"star":"star_outline";disabled:profile.modelData.preferred===true;onClicked:DisplayProfiles.update(profile.modelData.id,{preferred:true})}
+                    RowLayout {
+                        Layout.fillWidth:true
+                        IconTextButton {text:Tr.tr("Try this layout");icon:"preview";disabled:!profile.modelData.matches||!!DisplayProfiles.pending||DisplayProfiles.busy;onClicked:{Monitors.revert();DisplayProfiles.apply(profile.modelData.id);}}
+                        Item {Layout.fillWidth:true}
+                        IconButton {icon:"delete";Accessible.name:Tr.tr("Delete display profile");disabled:!!DisplayProfiles.pending||DisplayProfiles.busy;onClicked:root.deletingProfile=root.deletingProfile===profile.modelData.id?"":profile.modelData.id}
+                    }
+                    RowButton {visible:root.deletingProfile===profile.modelData.id;text:Tr.tr("Delete this display profile?");icon:"delete_forever";onClicked:{DisplayProfiles.remove(profile.modelData.id);root.deletingProfile="";}}
+                }
+            }
+        }
+        SettingsCard {
+            title:Tr.tr("Display protection")
+            description:Tr.tr("Changes are saved only after confirmation. The independent watchdog restores the previous settings even if the shell restarts.")
+            icon:"shield"
+            collapsible:true;expanded:false
+            StepperRow {label:Tr.tr("Confirmation timeout (seconds)");from:10;to:60;stepSize:5;value:DisplayProfiles.settings.timeout??15;onMoved:value=>DisplayProfiles.configure({timeout:value})}
+            ToggleRow {text:Tr.tr("Match connector names too");subtext:Tr.tr("Use this for identical monitors without unique serial numbers. Moving a cable to another port then requires its own profile.");checked:DisplayProfiles.settings.matchPorts??false;onToggled:DisplayProfiles.configure({matchPorts:checked})}
+        }
         // Arrangement
         SettingsCard {
             title: Tr.tr("Arrangement")
@@ -220,6 +271,7 @@ PageBase {
             // Staged changes
             RowLayout {
                 visible: Monitors.hasStaged
+                enabled: !DisplayProfiles.pending && !DisplayProfiles.busy
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: Tokens.spacing.large
                 spacing: Tokens.spacing.small

@@ -9563,3 +9563,156 @@ msgstr "Предыдущий сеанс оболочки завершился н
 
 msgid "Recovery mode requested"
 msgstr "Выбран восстановительный запуск"
+
+msgid "Display profiles"
+msgstr "Профили мониторов"
+
+msgid "Save a layout for home, a dock or your laptop. Matching screens restore their resolution, refresh rate, scale and positions automatically."
+msgstr "Сохраните конфигурацию для дома, док-станции или ноутбука. При подключении соответствующих экранов восстановятся разрешение, частота, масштаб и расположение."
+
+msgid "Recognize connected display setups"
+msgstr "Распознавать подключённые экраны"
+
+msgid "Automatic changes also require confirmation and revert if the timer expires."
+msgstr "Автоматические изменения тоже требуют подтверждения и отменяются по таймеру."
+
+msgid "Home, Dock, Laptop…"
+msgstr "Дом, док-станция, ноутбук…"
+
+msgid "Display profile name"
+msgstr "Название профиля мониторов"
+
+msgid "Save current layout"
+msgstr "Сохранить текущую конфигурацию"
+
+msgid "Apply and confirm your changes before saving this layout."
+msgstr "Примените и подтвердите изменения перед сохранением профиля."
+
+msgid "Save your current setup as a starting point. Connect another display setup to create its own profile."
+msgstr "Сохраните текущую конфигурацию. Подключите другой набор экранов, чтобы создать для него отдельный профиль."
+
+msgid "Displays connected"
+msgstr "Экраны подключены"
+
+msgid "Different displays"
+msgstr "Другой набор экранов"
+
+msgid "Profile name"
+msgstr "Название профиля"
+
+msgid "Use this profile automatically"
+msgstr "Выбирать этот профиль автоматически"
+
+msgid "Prefer for this display setup"
+msgstr "Сделать приоритетным для этих экранов"
+
+msgid "Choose which profile to use when several match the same screens."
+msgstr "Выберите профиль, который будет использоваться, если одному набору экранов соответствуют несколько."
+
+msgid "Try this layout"
+msgstr "Проверить конфигурацию"
+
+msgid "Delete display profile"
+msgstr "Удалить профиль мониторов"
+
+msgid "Delete this display profile?"
+msgstr "Удалить этот профиль мониторов?"
+
+msgid "Display protection"
+msgstr "Защита настроек экрана"
+
+msgid "Changes are saved only after confirmation. The independent watchdog restores the previous settings even if the shell restarts."
+msgstr "Изменения сохраняются только после подтверждения. Независимая служба вернёт предыдущие настройки даже при перезапуске оболочки."
+
+msgid "Confirmation timeout (seconds)"
+msgstr "Время на подтверждение (секунды)"
+
+msgid "Match connector names too"
+msgstr "Учитывать названия разъёмов"
+
+msgid "Use this for identical monitors without unique serial numbers. Moving a cable to another port then requires its own profile."
+msgstr "Для одинаковых мониторов без уникальных серийных номеров. При перестановке кабеля в другой разъём потребуется отдельный профиль."
+
+msgid "Keep these display settings?"
+msgstr "Сохранить эти настройки экрана?"
+
+msgid "Display profile"
+msgstr "Профиль мониторов"
+
+msgid "Check that all screens are visible and arranged correctly."
+msgstr "Проверьте, что изображение видно на всех экранах и они расположены правильно."
+
+msgid "Previous settings return automatically in %1 seconds."
+msgstr "Предыдущие настройки вернутся через %1 секунд."
+
+msgid "Keep settings"
+msgstr "Сохранить настройки"
+
+msgid "Display changes were automatically reverted"
+msgstr "Настройки экрана возвращены автоматически"
+
+msgid "Display changes were reverted"
+msgstr "Изменения настроек экрана отменены"
+
+msgid "Display changes were kept"
+msgstr "Настройки экрана сохранены"
+
+msgid "Connected displays changed; display preview was reverted"
+msgstr "Подключённые экраны изменились; пробная конфигурация отменена"
+
+msgid "Display changes were reverted after the display service restarted"
+msgstr "Настройки экрана возвращены после перезапуска службы защиты"
+
+msgid "Display changes were reverted when the display service stopped"
+msgstr "Настройки экрана возвращены при остановке службы защиты"
+
+msgid "Several profiles match; choose a preferred profile for these displays"
+msgstr "Подходят несколько профилей; выберите приоритетный для этих экранов"
+
+msgid "This profile needs a different set of connected displays"
+msgstr "Для этого профиля нужен другой набор подключённых экранов"
+
+msgid "The selected display mode is unavailable"
+msgstr "Выбранный режим экрана недоступен"
+
+msgid "Scale must produce whole logical pixels"
+msgstr "При выбранном масштабе логические размеры экрана должны быть целыми"
+
+msgid "At least one display must remain enabled"
+msgstr "Хотя бы один экран должен оставаться включённым"
+
+msgid "Displays must not overlap"
+msgstr "Экраны не должны перекрывать друг друга"
+
+msgid "Display configuration changed elsewhere; preview was reverted"
+msgstr "Конфигурация экрана изменена другой программой; пробная конфигурация отменена"
+
+msgid "The requested layout is not active yet; wait or revert the changes"
+msgstr "Новая конфигурация ещё не применилась; подождите или отмените изменения"
+
+msgid "The display confirmation timer expired"
+msgstr "Время подтверждения настроек экрана истекло"
+
+msgid "This display confirmation has expired"
+msgstr "Подтверждение настроек экрана устарело"
+
+msgid "Confirm or revert the current display changes first"
+msgstr "Сначала подтвердите или отмените текущие изменения экрана"
+
+msgid "Confirm display changes before saving a profile"
+msgstr "Подтвердите настройки экрана перед сохранением профиля"
+
+msgid "Enter a valid profile name"
+msgstr "Введите корректное название профиля"
+
+msgid "Unable to start the display protection service"
+msgstr "Не удалось запустить службу защиты настроек экрана"
+
+msgid "Display changes could not be applied"
+msgstr "Не удалось применить настройки экрана"
+
+msgid "Connected displays changed; preview was reverted"
+msgstr "Подключённые экраны изменились; пробная конфигурация отменена"
+
+msgid "Restore previous settings"
+msgstr "Вернуть прежние"

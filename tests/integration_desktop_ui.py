@@ -19,6 +19,7 @@ import Hyprstack.Config
 import Hyprstack.Services
 import qs.modules.nexus
 import qs.modules.extensions as Extensions
+import qs.modules.displays as Displays
 import qs.modules
 import qs.modules.nexus.pages
 import qs.modules.bar.popouts as Popouts
@@ -49,6 +50,7 @@ ShellRoot {
  FloatingWindow { visible: true; implicitWidth: 1000; implicitHeight: 900;color:Colours.palette.m3surface; Item { id: host; anchors.fill: parent } }
  Bar.ExtraPanel {id:extraTop;screen:Quickshell.screens[0];spec:({id:"11111111-1111-1111-1111-111111111111",edge:"top",thickness:48,hideDelay:500,autoHide:false});edgeOffset:0}
  Bar.ExtraPanel {id:extraBottom;screen:Quickshell.screens[0];spec:({id:"22222222-2222-2222-2222-222222222222",edge:"bottom",thickness:52,hideDelay:500,autoHide:true});edgeOffset:0}
+ Displays.Confirmation {}
  Extensions.PluginHost {}
  Extensions.PluginDesktop {parent:host;screen:Quickshell.screens[0];width:host.width;height:host.height}
  Timer {interval:5000;running:true;onTriggered:{const data=Plugins.isolatedStates["isolated-counter"];if(!data?.slots?.desktopWidget?.length){console.error("ISOLATED_WIDGET_FAILED",JSON.stringify(Plugins.runtimeErrors));Qt.quit();}else console.log("ISOLATED_WIDGET_OK");}}

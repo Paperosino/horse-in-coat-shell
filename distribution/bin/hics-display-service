@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+data_dir=${HICS_DATA_DIR:-${HYPRSTACK_DATA_DIR:-}}
+if [[ -z $data_dir ]]; then
+    if [[ -d /usr/share/hics ]]; then data_dir=/usr/share/hics;
+    else data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/hics; fi
+fi
+export PYTHONDONTWRITEBYTECODE=1
+exec python3 "$data_dir/shell/assets/display_profiles.py" watch
