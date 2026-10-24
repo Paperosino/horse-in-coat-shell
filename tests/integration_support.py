@@ -15,3 +15,24 @@ def require_wayland_session():
             connection.connect(str(path))
     except OSError as error:
         raise SystemExit(f"Cannot access parent Wayland session: {error}. No graphics tests ran.") from error
+
+
+def resize_nested_compositor(pid, width=1280, height=900):
+    """Resize only the test's surface; recovery-mode tiling may otherwise shrink it."""
+    import json
+    import subprocess
+    import time
+    parent=next((i for i in json.loads(subprocess.check_output(['hyprctl','instances','-j']))
+                 if i['wl_socket']==Path(os.environ.get('WAYLAND_DISPLAY','')).name and i['pid']!=pid),None)
+    if not parent:
+        return
+    for _ in range(60):
+        clients=json.loads(subprocess.check_output(['hyprctl','-i',parent['instance'],'clients','-j']))
+        own=next((w for w in clients if w['pid']==pid),None)
+        if own:
+            script='local w=hl.get_window('+json.dumps('address:'+own['address'])+');hl.dispatch(hl.dsp.window.float({window=w,action="enable"}));hl.dispatch(hl.dsp.window.resize({window=w,x='+str(int(width))+',y='+str(int(height))+',relative=false}))'
+            subprocess.run(['hyprctl','-i',parent['instance'],'repl',script],check=True,capture_output=True,timeout=10)
+            time.sleep(.4)
+            return
+        time.sleep(.1)
+    raise AssertionError('Nested test compositor did not map a parent surface')

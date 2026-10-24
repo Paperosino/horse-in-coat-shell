@@ -2,7 +2,7 @@
 """Render stacking titlebars for server- and client-decorated app classes."""
 import json, os, shutil, subprocess, tempfile, time, sys
 from pathlib import Path
-from integration_support import require_wayland_session
+from integration_support import require_wayland_session, resize_nested_compositor
 require_wayland_session()
 ROOT=Path(__file__).resolve().parents[1]
 helper=ROOT/'build/lib/hics-workspace'
@@ -38,14 +38,14 @@ with tempfile.TemporaryDirectory(prefix='hics-decoration-integration-') as temp:
    if instance:break
    if compositor.poll() is not None:raise RuntimeError((base/'compositor.log').read_text())
    time.sleep(.1)
-  assert instance,'No nested compositor';env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance']);time.sleep(1)
+  assert instance,'No nested compositor';resize_nested_compositor(compositor.pid);env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance']);time.sleep(1)
   def ctl(*args):
    result=subprocess.run(['hyprctl','-i',instance['instance'],*args],env=env,capture_output=True,text=True,timeout=10)
    assert result.returncode==0,result.stdout+result.stderr;return result.stdout.strip()
   ctl('plugin','load',str(base/'native/libspatialoverview.so'));time.sleep(1)
   assert not ctl('configerrors'),ctl('configerrors')
   from PIL import Image
-  for klass,expected in [('org.hics.WindowFixture',True),('org.telegram.desktop',True),('com.ayugram.desktop',True),('ai.storyteller.photocraft',False),('org.gnome.Nautilus',False),('Code',False),('code-oss',True),('helium',False),('org.hics.Scoped',False),('org.hics.NoDecoration',False)]:
+  for klass,expected in [('org.hics.WindowFixture',True),('org.telegram.desktop',True),('com.ayugram.desktop',True),('ai.storyteller.photocraft',False),('org.gnome.Nautilus',False),('Code',False),('code-oss',True),('helium',True),('org.hics.Scoped',False),('org.hics.NoDecoration',False)]:
    terminal=subprocess.Popen(['kitty','--class',klass,'--title','Decoration fixture','-o','confirm_os_window_close=0','sleep','60'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);fixtures.append(terminal)
    for _ in range(50):
     clients=json.loads(ctl('-j','clients'))

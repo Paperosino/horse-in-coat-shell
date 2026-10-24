@@ -2,6 +2,7 @@
 #pragma once
 
 #include "titlebar-actions.hpp"
+#include <utility>
 #include "scrolling-opening.hpp"
 #include "stacking-snap.hpp"
 #include <hyprland/src/desktop/state/FocusState.hpp>
@@ -90,7 +91,14 @@ class CStackingInput {
         });
         // Read the very same geometry as renderWindow(), for each output's
         // frame. Animation callbacks can otherwise cache an earlier tick.
-        m_render = Event::bus()->m_events.render.stage.listen([](eRenderStage stage) {
+        m_render = Event::bus()->m_events.render.stage.listen([this](eRenderStage stage) {
+            // Native mouse bindings consume motion/release before the public
+            // mouse signals. Reconcile only an active drag on existing frames.
+            // This also covers client-side move requests without a shell bar.
+            if (stage == RENDER_PRE && enabled()) {
+                if (g_layoutManager->dragController()->target()) processMove(g_pInputManager->getMouseCoordsInternal());
+                else if (m_dragWindow && m_dragMode != MBIND_INVALID) finishDrag();
+            }
             if (stage != RENDER_PRE_WINDOW) return;
             const auto window = g_pHyprRenderer->m_renderData.currentWindow.lock();
             if (!validMapped(window) || window->isHidden()) return;
@@ -119,79 +127,11 @@ class CStackingInput {
                 }
                 if (!window && !panel) Desktop::focusState()->fullWindowFocus(nullptr, Desktop::FOCUS_REASON_CLICK);
             } else {
-                const auto drag = g_layoutManager->dragController().get();
-                const auto target = drag->target();
-                const auto window = target ? target->window() : m_dragWindow.lock();
-                if (!window || !window->m_isMapped) { HyprstackSnap::clear(); return; }
-                const bool moved = target ? drag->dragThresholdReached() : m_dragMoved;
-                const auto mode = target ? drag->mode() : m_dragMode;
-                const auto pos = g_pInputManager->getMouseCoordsInternal();
-                if (!moved || mode == MBIND_INVALID) { HyprstackSnap::clear(); return; }
-                const auto snap = mode == MBIND_MOVE ? HyprstackSnap::drop() : HyprstackSnap::Drop{};
-                HyprstackSnap::clear();
-                m_dragWindow.reset();
-                m_dragMode = MBIND_INVALID;
-                if (m_releaseTimer) g_pEventLoopManager->removeTimer(m_releaseTimer);
-                m_releaseTimer = makeShared<CEventLoopTimer>(std::chrono::milliseconds(1),
-                    [this, weak = PHLWINDOWREF(window), pos, mode, snap](SP<CEventLoopTimer>, void*) {
-                        const auto window = weak.lock();
-                        if (!enabled() || !window || !window->m_isMapped || g_layoutManager->dragController()->target()) return;
-                        const auto monitor = window->m_monitor.lock();
-                        if (mode == MBIND_MOVE && HyprstackSnap::apply(window,snap)) return;
-                        // Snap only after an actual move ends at this output's top edge.
-                        if (mode == MBIND_MOVE && monitor && pos.y <= monitor->m_position.y + 6 &&
-                            pos.y >= monitor->m_position.y && pos.x >= monitor->m_position.x &&
-                            pos.x < monitor->m_position.x + monitor->m_size.x)
-                            runDecorationAction(window, "maximize-snap");
-                        else runDecorationAction(window, "remember-stacking");
-                    }, nullptr);
-                g_pEventLoopManager->addTimer(m_releaseTimer);
+                finishDrag();
             }
         });
         m_move = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D pos, Event::SCallbackInfo&) {
-            if (!enabled()) { m_dragWindow.reset(); HyprstackSnap::clear(); return; }
-            const auto drag = g_layoutManager->dragController().get();
-            const auto target = drag->target();
-            const auto window = target ? target->window() : nullptr;
-            if (!window || !window->m_isMapped) { HyprstackSnap::clear(); return; }
-            const auto mode = drag->mode();
-            if (m_dragWindow.lock() != window || m_dragMode != mode) {
-                m_dragWindow = window;
-                m_dragMode = mode;
-                m_dragMoved = false;
-                const bool maximized = Fullscreen::controller()->getFullscreenModes(window).client == Fullscreen::FSMODE_MAXIMIZED;
-                const auto previous = window->layoutBox();
-                if (mode == MBIND_MOVE && !maximized) runDecorationAction(window,"drag-restore");
-                const bool snapped = (previous.size()-window->layoutBox().size()).size() > 1;
-                if (mode != MBIND_MOVE) {
-                    HyprstackSnap::clear();
-                    runDecorationAction(window, "resize-start");
-                } else if (maximized || snapped) {
-                    // Rebase Hyprland's drag snapshot after restoring the normal
-                    // box, so the next motion cannot put its maximized size back.
-                    const double fraction = std::clamp((pos.x - previous.x) / previous.w, 0.0, 1.0);
-                    const bool exclusive = drag->exclusiveDeviceGrab();
-                    g_layoutManager->endDragTarget();
-                    if (maximized) runDecorationAction(window, "maximize-unset");
-                    auto normal = window->layoutBox();
-                    normal.x = pos.x - normal.w * fraction;
-                    double decorationHeight = 0;
-                    for (const auto& weak : g_pGlobalState->bars)
-                        if (const auto bar = weak.lock(); bar && bar->getOwner() == window)
-                            decorationHeight = bar->visibleHeight();
-                    // Preserve the actual pointer-to-client offset. A server
-                    // titlebar lies above the client box; CSD lies inside it.
-                    const double anchor = std::clamp(pos.y - previous.y, -decorationHeight, std::min(48.0, normal.h / 2.0));
-                    normal.y = pos.y - anchor;
-                    target->setPositionGlobal(normal);
-                    g_layoutManager->beginDragTarget(target, MBIND_MOVE, std::nullopt, exclusive);
-                    runDecorationAction(window, "drag-start");
-                } else {
-                    runDecorationAction(window, "drag-start");
-                }
-            }
-            m_dragMoved = drag->dragThresholdReached();
-            if (m_dragMoved && mode == MBIND_MOVE) HyprstackSnap::update(window,pos);
+            processMove(pos);
         });
         m_rules = Event::bus()->m_events.window.updateRules.listen([](PHLWINDOW window) { suppressTelegram(window); });
         m_reload = Event::bus()->m_events.config.reloaded.listen([] {
@@ -214,6 +154,90 @@ class CStackingInput {
     }
 
   private:
+    void processMove(Vector2D pos) {
+        // beginDragTarget/activation can synchronously synthesize another move.
+        // One transaction owns the drag snapshot until its restore completes.
+        if (std::exchange(m_processingMove, true)) return;
+        struct ResetMove { bool& active; ~ResetMove() { active = false; } } resetMove{m_processingMove};
+        if (!enabled()) { m_dragWindow.reset(); m_dragMode = MBIND_INVALID; HyprstackSnap::clear(); return; }
+        const auto drag = g_layoutManager->dragController().get();
+        const auto target = drag->target();
+        const auto window = target ? target->window() : nullptr;
+        if (!window || !window->m_isMapped) { HyprstackSnap::clear(); return; }
+        const auto mode = drag->mode();
+        if (m_dragWindow.lock() != window || m_dragMode != mode) {
+            m_dragWindow = window;
+            m_dragMode = mode;
+            m_dragMoved = false;
+            const bool maximized = Fullscreen::controller()->getFullscreenModes(window).client == Fullscreen::FSMODE_MAXIMIZED;
+            const auto previous = window->layoutBox();
+            if (mode == MBIND_MOVE && !maximized) runDecorationAction(window,"drag-restore");
+            const bool snapped = (previous.size()-window->layoutBox().size()).size() > 1;
+            if (mode != MBIND_MOVE) {
+                HyprstackSnap::clear();
+                runDecorationAction(window, "resize-start");
+            } else if (maximized || snapped) {
+                // Rebase Hyprland's drag snapshot after restoring the normal
+                // box, so the next motion cannot put its maximized size back.
+                const double fraction = std::clamp((pos.x - previous.x) / previous.w, 0.0, 1.0);
+                const bool exclusive = drag->exclusiveDeviceGrab();
+                g_layoutManager->endDragTarget();
+                if (maximized) runDecorationAction(window, "maximize-unset");
+                auto normal = window->layoutBox();
+                normal.x = pos.x - normal.w * fraction;
+                double decorationHeight = 0;
+                // Decorations are unique-owned by the window. Their weak
+                // references can be borrowed on this event-loop thread, but
+                // lock() would illegally promote unique ownership to shared.
+                for (const auto& bar : g_pGlobalState->bars)
+                    if (bar && bar->getOwner() == window)
+                        decorationHeight = bar->visibleHeight();
+                // Preserve the actual pointer-to-client offset. A server
+                // titlebar lies above the client box; CSD lies inside it.
+                const double anchor = std::clamp(pos.y - previous.y, -decorationHeight, std::min(48.0, normal.h / 2.0));
+                normal.y = pos.y - anchor;
+                target->setPositionGlobal(normal);
+                g_layoutManager->beginDragTarget(target, MBIND_MOVE, std::nullopt, exclusive);
+                runDecorationAction(window, "drag-start");
+            } else {
+                runDecorationAction(window, "drag-start");
+            }
+        }
+        m_dragMoved = drag->dragThresholdReached();
+        if (m_dragMoved && mode == MBIND_MOVE) HyprstackSnap::update(window,pos);
+    }
+
+    void finishDrag() {
+        const auto drag = g_layoutManager->dragController().get();
+        const auto target = drag->target();
+        const auto window = target ? target->window() : m_dragWindow.lock();
+        if (!window || !window->m_isMapped) { m_dragWindow.reset(); m_dragMode = MBIND_INVALID; HyprstackSnap::clear(); return; }
+        const bool moved = target ? drag->dragThresholdReached() : m_dragMoved;
+        const auto mode = target ? drag->mode() : m_dragMode;
+        const auto pos = g_pInputManager->getMouseCoordsInternal();
+        m_dragWindow.reset();
+        m_dragMode = MBIND_INVALID;
+        m_dragMoved = false;
+        if (!moved || mode == MBIND_INVALID) { HyprstackSnap::clear(); return; }
+        const auto snap = mode == MBIND_MOVE ? HyprstackSnap::drop() : HyprstackSnap::Drop{};
+        HyprstackSnap::clear();
+        if (m_releaseTimer) g_pEventLoopManager->removeTimer(m_releaseTimer);
+        m_releaseTimer = makeShared<CEventLoopTimer>(std::chrono::milliseconds(1),
+            [this, weak = PHLWINDOWREF(window), pos, mode, snap](SP<CEventLoopTimer>, void*) {
+                const auto window = weak.lock();
+                if (!enabled() || !window || !window->m_isMapped || g_layoutManager->dragController()->target()) return;
+                const auto monitor = window->m_monitor.lock();
+                if (mode == MBIND_MOVE && HyprstackSnap::apply(window,snap)) return;
+                // Snap only after an actual move ends at this output's top edge.
+                if (mode == MBIND_MOVE && monitor && pos.y <= monitor->m_position.y + 6 &&
+                    pos.y >= monitor->m_position.y && pos.x >= monitor->m_position.x &&
+                    pos.x < monitor->m_position.x + monitor->m_size.x)
+                    runDecorationAction(window, "maximize-snap");
+                else runDecorationAction(window, "remember-stacking");
+            }, nullptr);
+        g_pEventLoopManager->addTimer(m_releaseTimer);
+    }
+
     static bool enabled() { return g_pGlobalState && g_pGlobalState->config.enabled->value(); }
 
     static void suppressTelegram(PHLWINDOW window) {
@@ -227,7 +251,7 @@ class CStackingInput {
     CHyprSignalListener m_button, m_move, m_rules, m_reload, m_render, m_openEarly, m_openLate, m_workspaceMove;
     PHLWINDOWREF m_pressedFocus, m_dragWindow, m_openingWindow, m_openingAnchor;
     Time::steady_tp m_pressTime = Time::steadyNow();
-    bool m_pressValid = false, m_dragMoved = false;
+    bool m_pressValid = false, m_dragMoved = false, m_processingMove = false;
     eMouseBindMode m_dragMode = MBIND_INVALID;
     SP<CEventLoopTimer> m_releaseTimer;
     struct STransfer { PHLWINDOWREF window; float width; };

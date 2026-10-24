@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import tempfile
 import time
-from integration_support import require_wayland_session
+from integration_support import require_wayland_session, resize_nested_compositor
 require_wayland_session()
 ROOT=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix='hics-settings-design-') as directory:
@@ -56,6 +56,10 @@ ShellRoot {
       function findRulePage(item){if(item.form!==undefined && item.devicesOnly!==undefined)return item;for(const child of item.children??[]){const found=findRulePage(child);if(found)return found;}return null;}
       const page=findRulePage(settings);
       if(!root.check(!!page,"application rule editor did not load"))return;
+      page.pickWindow({address:"0xfixture",application:"org.example.Code",title:"Editor"});
+      if(!root.check(page.form.application==="org.example.Code" && page.form.title==="" && !page.form.regex,"open-window application picker failed"))return;
+      page.pickWindow({address:"0xpip",application:"helium",title:"Picture-in-Picture"});
+      if(!root.check(page.form.application==="helium" && page.form.title==="Picture-in-Picture","PiP window title selection failed"))return;
       page.form={application:"org.example.Code",name:"Code",mode:"stacking",titlebar:"hide",noShadow:false,rounding:12};
       page.preset("pip");
       if(!root.check(page.form.regex && new RegExp(page.form.application).test("org.example.Code") && !new RegExp(page.form.application).test("orgXexampleXCode") && page.form.pin,"PiP preset changed literal application matching"))return;
@@ -95,6 +99,7 @@ ShellRoot {
             if instance:break
             time.sleep(.1)
         assert instance,'No nested compositor'
+        resize_nested_compositor(compositor.pid)
         env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'],QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'),QT_QPA_PLATFORM='wayland')
         result=subprocess.run(['/usr/share/hics/qs/bin/hics-qs','-p',str(base/'shell')],env=env,capture_output=True,text=True,timeout=45)
         output=result.stdout+result.stderr

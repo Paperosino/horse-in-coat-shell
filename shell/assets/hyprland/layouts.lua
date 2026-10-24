@@ -894,7 +894,7 @@ function layouts.theme(palette)
         ["hyprbars:bar_color"] = color("surfaceContainerHigh", "363646"),
         ["hyprbars:title_color"] = color("primary", "7e9cd8") })
     hl.window_rule({ name = "hyprstack-client-decorations", match = {
-        class = "(?i)^(thorium(-browser)?|chromium(-browser)?|google-chrome.*|firefox|librewolf|zen(-browser)?|discord|code|code-oss|Code|Code - OSS|VSCodium|codium|com\\.visualstudio\\.code|com\\.vscodium\\.codium|helium.*|brave.*|vivaldi.*|org\\.gnome\\..*|ai\\.storyteller\\.photocraft|photocraft)$"
+        class = "(?i)^(thorium(-browser)?|chromium(-browser)?|google-chrome.*|firefox|librewolf|zen(-browser)?|discord|code|code-oss|Code|Code - OSS|VSCodium|codium|com\\.visualstudio\\.code|com\\.vscodium\\.codium|org\\.gnome\\..*|ai\\.storyteller\\.photocraft|photocraft)$"
     }, ["hyprbars:no_bar"] = true })
     hl.plugin.hyprbars.clear_buttons()
     local controls = { close = "e46876", maximize = "98bb6c", minimize = "e6c384" }
@@ -1737,6 +1737,10 @@ function layouts.action(operation, address, stable_id)
         remember_window(window)
         save()
     elseif operation == "drag-restore" then
+        -- Native/client-initiated moves can clear the compositor's client flag
+        -- before its first mouse callback. The saved shell state still owns
+        -- the normal box; clear it before resize events can re-maximize it.
+        if record.maximized then set_maximized(window, false) end
         if record.snapped then
             local normal = record.snapped.geometry
             record.snapped = nil

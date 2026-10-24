@@ -13,6 +13,14 @@ PageBase {
  title:Tr.tr(devicesOnly?"Individual input devices":"Application rules")
  pageIcon:devicesOnly?"devices":"rule"
  property var form:({})
+ property var selectedWindow:null
+ function pickWindow(window):void {
+  if(!window)return;
+  selectedWindow=window;
+  const title=window.title??"";
+  const pip=/^picture[- ]in[- ]picture$/i.test(title)||title==="Картинка в картинке";
+  form=Object.assign({},form,{name:form.name||window.application,application:window.application,title:pip?title:"",regex:false,enabled:form.enabled!==false,mode:form.mode||LayoutModes.mode||"all"});
+ }
  property var controls: DesktopRules.data.controls ?? ({side:"right",order:["minimize","maximize","close"]})
  function control(key,value):void { controls=Object.assign({},controls,{[key]:value}); }
  function toggleControl(name,enabled):void {
@@ -47,14 +55,24 @@ PageBase {
    description:Tr.tr(root.devicesOnly?"Device overrides follow the device name. Reset an individual value to inherit the global setting again.":"Rules match the application rather than its temporary window address. Placement rules apply to new windows; dynamic effects also update matching windows.")
    icon:root.pageIcon
    RowButton {text:Tr.tr("Refresh connected devices and windows");icon:"refresh";onClicked:DesktopRules.refresh()}
+   GenericSettingRow {
+    visible:!root.devicesOnly
+    spec:({label:"Choose an open window",type:"choice",choices:[{value:"",label:"Choose an open window"},...DesktopRules.data.windows.map(w=>({value:w.address,label:w.application+" — "+w.title}))],value:DesktopRules.data.windows.some(w=>w.address===root.selectedWindow?.address)?root.selectedWindow.address:""})
+    onEdited:value=>root.pickWindow(DesktopRules.data.windows.find(w=>w.address===value))
+   }
+   ToggleRow {
+    visible:!root.devicesOnly&&!!root.selectedWindow&&!!root.selectedWindow.title
+    text:Tr.tr("Match the selected window title too")
+    checked:!!root.selectedWindow&&root.form.title===root.selectedWindow.title
+    onToggled:root.change("title",checked?root.selectedWindow.title:"")
+   }
+   InfoRow {visible:!root.devicesOnly&&!!root.selectedWindow;label:Tr.tr("Selected window");value:root.selectedWindow?.title??""}
    Repeater {
-    model:root.devicesOnly?DesktopRules.data.devices:DesktopRules.data.windows
+    model:root.devicesOnly?DesktopRules.data.devices:[]
     RowButton {
      required property var modelData
-     text:root.devicesOnly?modelData.name:modelData.application
-     subtext:root.devicesOnly?modelData.kind:modelData.title
-     icon:root.devicesOnly?"devices":"window"
-     onClicked:{if(root.devicesOnly)root.pickDevice(modelData);else root.form={name:modelData.application,application:modelData.application,title:"",enabled:true,regex:false};}
+     text:modelData.name;subtext:modelData.kind;icon:"devices"
+     onClicked:root.pickDevice(modelData)
     }
    }
   }

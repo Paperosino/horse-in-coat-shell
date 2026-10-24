@@ -538,8 +538,7 @@ The editor separates shell titlebars (`hyprbars:no_bar`) from compositor
 `decorate`, borders, rounding, shadows, blur, animations and activation policy.
 Appearance overrides support inheritance. Advanced matching includes modal/XWayland
 conditions. Own-header and PiP presets retain literal application identity when
-switching to regular-expression title matching. Code/Code OSS/VSCodium and
-Helium/Brave/Vivaldi use client-header defaults; an explicit Show rule overrides
+switching to regular-expression title matching. Code/Code OSS/VSCodium use client-header defaults; an explicit Show rule overrides
 them for installations configured with native headers. Hiding a shell header
 cannot remove a header painted inside an application's content.
 
@@ -578,3 +577,42 @@ Primary references:
 - https://wiki.hypr.land/configuring/core/rules/window-rules/
 - https://docs.gtk.org/gtk3/property.Settings.gtk-decoration-layout.html
 - Installed GTK 4.24.1 Default stylesheet resource, including `filechooser #pathbarbox`.
+
+### Stacking drag crash and open-window rule picker (package 52)
+
+The report copied to Documents (`hyprlandCrashReport3470459.txt`) aborts in the
+stacking motion listener. A nested real-pointer reproducer with package 51
+confirms the assertion `tried to lock a CWeakPointer over a CUniquePointer`.
+Window decorations are unique-owned; their weak references must be borrowed on
+the compositor event-loop thread, never promoted with `lock()`. The drag-height
+lookup now uses that ownership model. A scoped reentrancy guard prevents nested
+synthetic pointer events during dragBegin/focus/z-order changes from overwriting
+the active transaction.
+
+Native mouse bindings consume motion/release before public mouse signals.
+The same handler therefore reconciles an active drag at the existing RENDER_PRE
+stage, before GL drawing, and finalizes a completed drag once. It creates no
+idle polling timer or synthetic frames. Saved maximize state is also restored
+when a native/client move has already cleared its client flag. Click-only and
+invalid-window exits clear transaction state so later frames do not repeat it.
+
+Broad Helium/Brave/Vivaldi class-wide header suppression is removed. Browser
+main windows keep the stacking header; only matched PiP windows lose it unless
+a user explicitly overrides their application policy. The rules page provides
+an explicit open-window picker with application and title labels. Picking a
+normal window fills literal application matching; an optional switch includes
+its exact title. PiP defaults to title matching so its rule does not affect the
+browser's main window. Existing rule IDs and non-matching options are retained.
+
+The recovery compositor intentionally uses its own generated configuration.
+For this incident, US/RU and Alt+Shift were applied directly to that instance and
+persisted in its runtime recoverycfg.lua, with a backup. Its normal user keyboard
+configuration was already correct and was not replaced.
+
+Regression: `tests/integration_stacking_drag.py` reproduces the abort with
+`HICS_TEST_NATIVE_DIR=/usr/share/hics/native` before upgrading package 51. The
+fixed variant exercises maximized server-header drag with PiP; setting
+`HICS_TEST_DRAG_CSD=1` exercises a native mouse binding on a headerless window.
+Only the nested test surface is resized in its parent, so recovery-mode tiling
+cannot invalidate input coordinates. No host plugins are loaded/unloaded by
+these tests. The settings test also checks normal-window and PiP selection.

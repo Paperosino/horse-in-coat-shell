@@ -10676,3 +10676,12 @@ msgstr "Холст"
 
 msgid "Any"
 msgstr "Любое"
+
+msgid "Choose an open window"
+msgstr "Выбрать открытое окно"
+
+msgid "Match the selected window title too"
+msgstr "Также учитывать заголовок выбранного окна"
+
+msgid "Selected window"
+msgstr "Выбранное окно"
