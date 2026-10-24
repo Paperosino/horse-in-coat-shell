@@ -60,6 +60,7 @@ set_source_files_properties(workspacetools.cpp workspacestore.cpp workspacecli.c
     COMPILE_OPTIONS "-UQT_NO_CAST_FROM_ASCII;-UQT_NO_CAST_TO_ASCII;-UQT_NO_CAST_FROM_BYTEARRAY")
 add_executable(hics-workspace workspacecli.cpp workspacetools.cpp workspacetools.hpp workspacestore.cpp)
 set_target_properties(hics-workspace PROPERTIES AUTOMOC ON INSTALL_RPATH "$ORIGIN/../share/hics/qs/lib" INSTALL_RPATH_USE_LINK_PATH ON)
+target_include_directories(hics-workspace PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../../include")
 target_link_libraries(hics-workspace PRIVATE PkgConfig::NetworkManager Qt::Core Qt::Gui Qt::Qml Qt::Concurrent Qt::DBus)
 install(TARGETS hics-workspace RUNTIME DESTINATION bin)
 

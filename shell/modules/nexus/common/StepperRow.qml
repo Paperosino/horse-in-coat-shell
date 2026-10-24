@@ -60,6 +60,8 @@ ConnectedRect {
         }
 
         StyledSpinBox {
+            Accessible.name: root.label
+            Accessible.description: root.subtext
             Layout.alignment: Qt.AlignRight
             from: root.from
             to: root.to

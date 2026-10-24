@@ -1,0 +1,8 @@
+{
+  "id":"isolated-counter",
+  "name":{"en":"Isolated counter","ru":"Изолированный счётчик"},
+  "description":{"en":"A small hics-2 widget running outside the shell with no network or desktop access.","ru":"Виджет hics-2 в отдельном процессе без доступа к сети и рабочему столу."},
+  "version":"1.0.0","api":"hics-2","worker":"worker.py","author":"hics","license":"GPL-3.0-only",
+  "entryPoints":{"barWidget":"declarative","desktopWidget":"declarative","panel":"declarative"},
+  "permissions":{"network":false}
+}

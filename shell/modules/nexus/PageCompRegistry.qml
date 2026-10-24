@@ -251,7 +251,8 @@ QtObject {
         Component { StackPage { Component { DefaultAppsPage {} } } },
         Component { StackPage { Component { VpnProfilesPage {} } Component { VpnEditorPage {} } Component { VpnPluginsPage {} } } },
         Component { StackPage { Component { ClipboardPage {} } } },
-        Component { StackPage { Component { WorkspaceSessionPage {} } } }
+        Component { StackPage { Component { WorkspaceSessionPage {} } } },
+        Component { StackPage { Component { WorkspaceSessionPage { projectsOnly:true } } } }
     ]
 
     readonly property Component placeholderComp: Component {

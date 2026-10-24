@@ -1,0 +1,39 @@
+{
+  "id": "pomodoro",
+  "name": "Focus timer",
+  "description": "Focus and break timer with notifications",
+  "version": "1.0.0",
+  "api": "hyprstack-1",
+  "author": "Hyprstack",
+  "license": "GPL-3.0-or-later",
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "desktopWidget": "DesktopWidget.qml"
+  },
+  "settingsSchema": [
+    {
+      "key": "focusMinutes",
+      "label": "Focus duration",
+      "type": "int",
+      "default": 25,
+      "min": 1,
+      "max": 120
+    },
+    {
+      "key": "breakMinutes",
+      "label": "Break duration",
+      "type": "int",
+      "default": 5,
+      "min": 1,
+      "max": 60
+    },
+    {
+      "key": "autoContinue",
+      "label": "Start the next period automatically",
+      "type": "bool",
+      "default": false
+    }
+  ],
+  "actions": []
+}

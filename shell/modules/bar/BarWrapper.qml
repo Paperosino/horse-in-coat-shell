@@ -19,14 +19,16 @@ Item {
 
     readonly property bool disabled: Strings.testRegexList(Config.bar.excludedScreens, screen.name)
 
-    readonly property bool atBottom: false
+    property bool atBottom: false
+    property real thicknessOverride: 0
+    property bool desktopFrame: true
     readonly property var activeWorkspace: Hypr.monitorFor(screen)?.activeWorkspace
     readonly property int clampedThickness: Math.max((Config.border.minThickness * Tokens.scale), implicitHeight)
-    readonly property real frameThickness: (Tiling.desktopFrame ? (Config.border.thickness * Tokens.scale) : 0) * (1 - Hypr.stackingProgress)
+    readonly property real frameThickness: (desktopFrame && Tiling.desktopFrame ? (Config.border.thickness * Tokens.scale) : 0) * (1 - Hypr.stackingProgress)
     readonly property real topInset: implicitHeight
     readonly property real bottomInset: fullscreen ? 0 : frameThickness
     readonly property int padding: Math.max(Tokens.padding.small, (Config.border.thickness * Tokens.scale))
-    readonly property int contentWidth: Tokens.sizes.bar.innerWidth + padding * 2
+    readonly property int contentWidth: thicknessOverride > 0 ? Math.round(thicknessOverride) : Tokens.sizes.bar.innerWidth + padding * 2
     readonly property int exclusiveZone: !disabled && (Config.bar.persistent || screenState.bar) ? contentWidth : frameThickness
     readonly property bool shouldBeVisible: !fullscreen && !disabled && (Config.bar.persistent || screenState.bar || isHovered)
     property bool isHovered

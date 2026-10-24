@@ -16,19 +16,31 @@ SUPPORTED_COMMONS={'Color','Style','I18n','Logger','Settings'}
 SUPPORTED_SERVICES={'PluginService','ToastService','WallpaperService','NoctaliaService'}
 SUPPORTED_WIDGETS={'NText','NIcon','NButton','NIconButton','NBox','NToggle','NSlider','NTextInput','NSpinBox','NLabel','NDivider'}
 
-def text(v):return v if isinstance(v,str) else v.get('ru',v.get('en',next(iter(v.values()),''))) if isinstance(v,dict) else ''
+def text(v):
+    if isinstance(v,str):return v
+    if isinstance(v,dict):return text(v.get('ru',v.get('en',next(iter(v.values()),''))))
+    return ''
 def checked_path(root,name):
     p=(root/str(name)).resolve()
     if not p.is_relative_to(root.resolve()) or not p.is_file():raise ValueError('Plugin entry points must be files inside the plugin folder')
     return p
 
 def manifest(folder,bundled=False):
-    if (folder/'manifest.json').exists():raw=read_json(folder/'manifest.json');fmt='native' if raw.get('api') in ('hics-1','hyprstack-1') else 'noctalia-qml' if 'entryPoints' in raw else 'angelos'
+    for name in ('manifest.json','plugin.toml'):
+        if (folder/name).exists() and (folder/name).stat().st_size>2097152:raise ValueError('Extension manifest is too large')
+    if (folder/'manifest.json').exists():raw=read_json(folder/'manifest.json');fmt='native' if (str(raw.get('api','')).startswith('hics-') or raw.get('api')=='hyprstack-1') else 'noctalia-qml' if 'entryPoints' in raw else 'angelos'
     elif (folder/'plugin.toml').exists():raw=tomllib.loads((folder/'plugin.toml').read_text());fmt='noctalia-luau'
     else:raise ValueError('No manifest.json or plugin.toml')
     original=str(raw.get('id',folder.name));identifier=re.sub(r'[^A-Za-z0-9_.-]','-',original)
     if not ID.fullmatch(identifier):raise ValueError('Invalid plugin ID')
     entries={};issues=[];settings=[]
+    isolated=raw.get('api')=='hics-2'
+    if fmt=='native' and raw.get('api') not in ('hics-1','hyprstack-1','hics-2'):issues.append('Unsupported hics API version')
+    worker=''
+    if isolated:
+        worker=str(checked_path(folder,raw.get('worker','worker.py')))
+        if not worker.endswith('.py'):issues.append('Isolated workers require a Python entry point')
+        if not shutil.which('bwrap'):issues.append('Missing dependency: bwrap')
     if fmt=='native':source=raw.get('entryPoints',{})
     elif fmt=='angelos':source={k:raw.get(k) for k in ['main','barWidget','desktopWidget','settings','panel']}
     elif fmt=='noctalia-qml':source=raw.get('entryPoints',{})
@@ -39,6 +51,9 @@ def manifest(folder,bundled=False):
             if 'qs.config' in file.read_text(errors='replace'):issues.append('AngelOS-specific qs.config/Skin imports require a visual port.');break
     for key,name in source.items():
         if key not in ('main','barWidget','desktopWidget','settings','panel') or not name:continue
+        if isolated:
+            entries[key]={'format':'declarative','url':'','property':'pluginApi','requiredProperties':[]}
+            continue
         p=checked_path(folder,name);code=p.read_text(errors='replace')
         prop='pluginApi' if re.search(r'property\s+\w+\s+pluginApi\b',code) else 'plugin' if re.search(r'property\s+\w+\s+plugin\b',code) else ''
         entries[key]={'url':p.as_uri(),'property':prop,'requiredProperties':re.findall(r'required\s+property\s+\w+\s+(\w+)',code)}
@@ -68,7 +83,7 @@ def manifest(folder,bundled=False):
     missing=[x for x in raw.get('dependencies',[]) if isinstance(x,str) and not shutil.which(x)]
     for name in missing:issues.append('Missing dependency: '+name)
     adapter='wallpaper-engine' if fmt=='noctalia-luau' and original=='tadomika_ari/w-engine' else ''
-    return dict(id=identifier,originalId=original,name=text(raw.get('name',identifier)),description=text(raw.get('description','')),version=str(raw.get('version','1.0.0')),author=text(raw.get('author','')),license=raw.get('license',''),format=fmt,bundled=bundled,path=str(folder.resolve()),entryPoints=entries,settingsSchema=settings,issues=sorted(set(issues)),compatible=not issues,adapter=adapter,icon=raw.get('icon','extension'),actions=raw.get('actions',raw.get('menu',[])),source=raw.get('source',''))
+    return dict(api=raw.get('api','legacy'),isolated=isolated,worker=worker,networkRequested=bool((raw.get('permissions') if isinstance(raw.get('permissions'),dict) else {}).get('network',False)),id=identifier,originalId=original,name=text(raw.get('name',identifier)),description=text(raw.get('description','')),version=str(raw.get('version','1.0.0')),author=text(raw.get('author','')),license=raw.get('license',''),format=fmt,bundled=bundled,path=str(folder.resolve()),entryPoints=entries,settingsSchema=settings,issues=sorted(set(issues)),compatible=not issues,adapter=adapter,icon=raw.get('icon','extension'),actions=raw.get('actions',raw.get('menu',[])),source=raw.get('source',''))
 
 def scan():
     prefs=read_json(PREFS);found={};errors=[]
@@ -76,8 +91,8 @@ def scan():
         for folder in sorted(directory.glob('*')):
             if not folder.is_dir() or folder.is_symlink():continue
             try:
-                m=manifest(folder,bundled);m['enabled']=m['compatible'] and prefs.get('enabled',{}).get(m['id'],False)
-                defaults={s['key']:s.get('default') for s in m['settingsSchema']};m['settings']={**defaults,**prefs.get('settings',{}).get(m['id'],{})};found[m['id']]=m
+                m=manifest(folder,bundled);m['enabled']=m['compatible'] and prefs.get('enabled',{}).get(m['id'],False) and (not prefs.get('recoveryMode',False) or prefs.get('recoveryAllow',{}).get(m['id'],False))
+                defaults={s['key']:s.get('default') for s in m['settingsSchema']};m['settings']={**defaults,**prefs.get('settings',{}).get(m['id'],{})};m['desktopLayout']=prefs.get('desktopLayout',{}).get(m['id'],{});m['networkGranted']=bool(prefs.get('permissions',{}).get(m['id'],{}).get('network',False));found[m['id']]=m
             except (OSError,ValueError,TypeError,KeyError) as e:errors.append(f'{folder.name}: {e}')
     removed=[]
     for folder in sorted(TRASH.glob('*')):
@@ -86,7 +101,7 @@ def scan():
             m=manifest(folder);removed.append({'id':m['id'],'name':m['name'],'version':m['version']})
         except (OSError,ValueError,TypeError,KeyError):pass
     for m in found.values():m['backupCount']=len(list((STATE/'plugin-backups'/m['id']).glob('*')))
-    return {'plugins':list(found.values()),'removed':removed,'errors':errors,'directory':str(USER),'legacyNoctaliaApi':'QML subset','noctalia5':'Luau manifests and settings; native W Engine adapter'}
+    return {'plugins':list(found.values()),'removed':removed,'errors':errors,'directory':str(USER),'legacyNoctaliaApi':'QML subset','noctalia5':'Luau manifests and settings; native W Engine adapter','recoveryMode':bool(prefs.get('recoveryMode',False)),'recoveryReason':prefs.get('recoveryReason',''),'faults':prefs.get('faults',{})}
 
 def find(identifier):
     result=next((p for p in scan()['plugins'] if p['id']==identifier),None)
@@ -96,7 +111,9 @@ def find(identifier):
 def enable(identifier,value):
     plugin=find(identifier)
     if value and not plugin['compatible']:raise ValueError('; '.join(plugin['issues']))
-    p=read_json(PREFS);p.setdefault('enabled',{})[identifier]=value;atomic_json(PREFS,p);return scan()
+    p=read_json(PREFS);p.setdefault('enabled',{})[identifier]=value
+    if p.get('recoveryMode'):p.setdefault('recoveryAllow',{})[identifier]=value
+    atomic_json(PREFS,p);return scan()
 
 def save_settings(identifier,values):
     plugin=find(identifier)
@@ -109,6 +126,71 @@ def save_settings(identifier,values):
             if isinstance(v,bool) or not isinstance(v,(int,float)):raise ValueError('Expected number: '+spec['key'])
             if spec.get('min') is not None and v<spec['min'] or spec.get('max') is not None and v>spec['max']:raise ValueError('Out of range: '+spec['key'])
     p=read_json(PREFS);p.setdefault('settings',{})[identifier]=values;atomic_json(PREFS,p);return scan()
+
+def fault(identifier, payload):
+    import time
+    find(identifier)
+    message=payload.get('error','')
+    if not isinstance(message,str) or not message or len(message)>16384:raise ValueError('Invalid extension error')
+    prefs=read_json(PREFS)
+    history=prefs.setdefault('faults',{}).setdefault(identifier,[])
+    history.append({'time':int(time.time()),'error':message})
+    prefs['faults'][identifier]=history[-50:]
+    prefs.setdefault('enabled',{})[identifier]=False
+    atomic_json(PREFS,prefs)
+    return scan()
+
+def recovery(enabled):
+    prefs=read_json(PREFS);prefs['recoveryMode']=enabled;prefs['recoveryAllow']={}
+    if not enabled:prefs['recoveryReason']=''
+    atomic_json(PREFS,prefs)
+    return scan()
+
+def catalogue(source=''):
+    entries=[];warnings=[]
+    for item in scan()['plugins']:
+        if item['bundled']:
+            entries.append({k:item[k] for k in ('id','name','description','version','icon','path','compatible','issues')})
+    if source:
+        if urllib.parse.urlsplit(source).scheme!='https':raise ValueError('Catalogues require an HTTPS URL')
+        request=urllib.request.Request(source,headers={'User-Agent':'hics-extension-catalogue/1'})
+        with urllib.request.urlopen(request,timeout=10) as response:
+            if urllib.parse.urlsplit(response.url).scheme!='https':raise ValueError('Catalogue redirected outside HTTPS')
+            raw=response.read(2097153)
+        if len(raw)>2097152:raise ValueError('Extension catalogue is too large')
+        document=json.loads(raw)
+        if not isinstance(document,dict) or document.get('version')!=1 or not isinstance(document.get('extensions'),list):raise ValueError('Unsupported extension catalogue format')
+        for item in document['extensions'][:1000]:
+            if not isinstance(item,dict) or not ID.fullmatch(str(item.get('id',''))):raise ValueError('Invalid catalogue extension')
+            if urllib.parse.urlsplit(item.get('source','')).scheme!='https':raise ValueError('Catalogue extension sources require HTTPS')
+            entry={k:text(item.get(k,''))[:4096] for k in ('id','name','description','version','icon','source','preview')}
+            if entry['preview'] and urllib.parse.urlsplit(entry['preview']).scheme!='https':raise ValueError('Catalogue previews require HTTPS')
+            entry['dependencies']=item.get('dependencies',[]) if isinstance(item.get('dependencies',[]),list) else []
+            entries.append(entry)
+    return {'catalogue':entries,'warnings':warnings}
+
+def desktop_layout(identifier, payload):
+    import math
+    find(identifier)
+    screen=payload.get('screen')
+    geometry=payload.get('geometry')
+    if not isinstance(screen,str) or not screen or len(screen)>256 or not isinstance(geometry,dict):raise ValueError('Invalid desktop layout')
+    bounds={'x':(-65536,65536),'y':(-65536,65536),'width':(64,16384),'height':(48,16384),'grid':(4,128)}
+    for key,value in geometry.items():
+        if key in ('locked','snap'):
+            if not isinstance(value,bool):raise ValueError('Invalid widget switch')
+        elif key in bounds:
+            if value is not None and (isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or not bounds[key][0]<=value<=bounds[key][1]):raise ValueError('Invalid widget geometry: '+key)
+        else:raise ValueError('Unknown widget geometry field')
+    prefs=read_json(PREFS)
+    layouts=prefs.setdefault('desktopLayout',{}).setdefault(identifier,{})
+    updated=dict(layouts.get(screen,{}))
+    for key,value in geometry.items():
+        if value is None:updated.pop(key,None)
+        else:updated[key]=value
+    layouts[screen]=updated
+    atomic_json(PREFS,prefs)
+    return scan()
 
 def github_folder(source, destination):
     u=urllib.parse.urlparse(source)
@@ -188,10 +270,18 @@ def remove(identifier):
     TRASH.mkdir(parents=True,exist_ok=True);Path(m['path']).rename(TRASH/(str(time.time_ns())+'-'+identifier));return scan()
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('command',choices=['list','enable','disable','install','remove','settings','update','rollback','restore']);p.add_argument('args',nargs='*');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('command',choices=['list','enable','disable','install','remove','settings','update','rollback','restore','desktop-layout','fault','recovery','catalogue','permissions']);p.add_argument('args',nargs='*');a=p.parse_args()
     try:
         if a.command=='list':v=scan()
         elif a.command in ('enable','disable'):v=enable(a.args[0],a.command=='enable')
+        elif a.command=='permissions':
+            find(a.args[0]);value=json.load(sys.stdin)
+            if not isinstance(value,dict) or set(value)!= {'network'} or not isinstance(value['network'],bool):raise ValueError('Invalid extension permissions')
+            prefs=read_json(PREFS);prefs.setdefault('permissions',{})[a.args[0]]=value;atomic_json(PREFS,prefs);v=scan()
+        elif a.command=='catalogue':v=catalogue(a.args[0] if a.args else '')
+        elif a.command=='fault':v=fault(a.args[0],json.load(sys.stdin))
+        elif a.command=='recovery':v=recovery(a.args[0]=='on')
+        elif a.command=='desktop-layout':v=desktop_layout(a.args[0],json.load(sys.stdin))
         elif a.command=='settings':v=save_settings(a.args[0],json.load(sys.stdin))
         elif a.command in ('install','update'):v=install(a.args[0],a.command=='update')
         elif a.command=='rollback':

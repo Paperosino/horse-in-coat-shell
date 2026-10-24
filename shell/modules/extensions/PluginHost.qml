@@ -18,6 +18,7 @@ Scope {
                 Component.onCompleted: Plugins.registerApi(pluginId, api)
                 Component.onDestruction: Plugins.unregisterApi(pluginId)
             }
+            IsolatedPluginWorker { pluginId:context.modelData; enabled:Plugins.byId(pluginId)?.isolated??false }
             PluginSlot { id: main; pluginId: context.modelData; slot: "main"; api: context.pluginApi }
         }
     }

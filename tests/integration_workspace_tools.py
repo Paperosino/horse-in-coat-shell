@@ -71,6 +71,14 @@ with tempfile.TemporaryDirectory(prefix='hics-workspace-integration-') as temp:
   assert all(abs(a-b)<=5 for a,b in zip(before['at'],after[0]['at'])),(before,after)
   subprocess.run([str(helper),'restore',files[0].stem],env=env,check=True,timeout=20);assert len(windows())==1
   print('PASS: session restore relaunches and places a real application; repeat restore avoids duplicates',flush=True)
+  subprocess.run([str(helper),'project','Integration project','3','stacking'],env=env,check=True,timeout=15)
+  project=next(p for p in files[0].parent.glob('*.json') if json.loads(p.read_text()).get('project',{}).get('enabled'))
+  definition=json.loads(project.read_text());assert definition['project']['workspace']==3
+  assert len(definition['windows'])==1 and definition['windows'][0]['workspace']==3
+  subprocess.run([str(helper),'restore',project.stem],env=env,check=True,timeout=20)
+  assert len(windows())==1 and windows()[0]['workspace']['id']==3,windows()
+  print('PASS: workspace project capture, existing-window reuse and placement on named target workspace',flush=True)
+
   for window in windows():ctl('eval','hl.dispatch(hl.dsp.window.close({window=hl.get_window("address:'+window['address']+'" )}))')
  finally:
   if terminal and terminal.poll() is None:terminal.terminate()

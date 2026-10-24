@@ -1,0 +1,34 @@
+{
+  "id": "quick-actions",
+  "name": "Quick actions",
+  "description": "Frequently used desktop actions",
+  "version": "1.0.0",
+  "api": "hyprstack-1",
+  "author": "Hyprstack",
+  "license": "GPL-3.0-or-later",
+  "entryPoints": {},
+  "settingsSchema": [],
+  "actions": [
+    {
+      "label": "Home folder",
+      "command": [
+        "xdg-open",
+        "/home/paperos"
+      ]
+    },
+    {
+      "label": "Lock session",
+      "command": [
+        "loginctl",
+        "lock-session"
+      ]
+    },
+    {
+      "label": "Take a screenshot",
+      "command": [
+        "hyprstack",
+        "screenshot"
+      ]
+    }
+  ]
+}

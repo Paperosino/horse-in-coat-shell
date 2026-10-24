@@ -58,7 +58,9 @@ MouseArea {
     activeFocusOnTab: keyboardFocusable && enabled && visible
     Accessible.role: Accessible.Button
     Accessible.name: root.parent?.Accessible.name || root.parent?.text || root.parent?.label?.text || ""
-    Accessible.onPressAction: root.clicked(null)
+    Accessible.focusable: keyboardFocusable && !disabled
+    Accessible.focused: activeFocus
+    Accessible.onPressAction: if (!disabled) root.clicked(null)
     Keys.onReturnPressed: event => { root.clicked(null); event.accepted = true; }
     Keys.onEnterPressed: event => { root.clicked(null); event.accepted = true; }
     Keys.onSpacePressed: event => { root.clicked(null); event.accepted = true; }

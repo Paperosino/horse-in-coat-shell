@@ -47,8 +47,8 @@ Item {
 
     anchors.fill: parent
     anchors.margins: borderThickness
-    anchors.topMargin: bar.topInset
-    anchors.bottomMargin: bar.bottomInset
+    anchors.topMargin: bar.topInset + ExtraPanels.inset(screen.name,"top")
+    anchors.bottomMargin: bar.bottomInset + ExtraPanels.inset(screen.name,"bottom")
 
     Item {
         id: osdWrapper

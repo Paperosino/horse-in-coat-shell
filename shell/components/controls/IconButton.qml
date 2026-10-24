@@ -1,11 +1,13 @@
 import QtQuick
 import Hyprstack.Config
+import Hyprstack.I18n
 import qs.components
 import qs.services
 
 ButtonBase {
     id: root
 
+    Accessible.name: Tr.tr(({close:"Close",add:"Add",edit:"Edit",delete:"Delete",settings:"Settings",search:"Search",refresh:"Refresh",arrow_back:"Back",arrow_forward:"Forward",arrow_upward:"Move up",arrow_downward:"Move down",check:"Confirm",undo:"Undo",lock:"Lock",lock_open:"Unlock"})[root.icon] ?? root.icon.replace(/_/g," "))
     property alias icon: label.text
     readonly property alias label: label
 

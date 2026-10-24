@@ -1,5 +1,6 @@
 #include "workspacetools.hpp"
 #include "workspacestore.hpp"
+#include "util/applicationenv.hpp"
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
@@ -181,6 +182,24 @@ QVariantMap validateSnapshot(QVariantMap snapshot) {
     fail("Unsupported session snapshot format");
   if (snapshot.value("name").toString().trimmed().isEmpty())
     fail("Session name is required");
+  const auto project = snapshot.value("project").toMap();
+  if (project.value("enabled").toBool()) {
+    const auto target = project.value("workspace").toInt();
+    if (target < 1 || target > 1000000 ||
+        project.value("workspaceName").toString().size() > 256 ||
+        !QStringList{"canvas", "tiling", "scrolling", "stacking"}.contains(
+            snapshot.value("mode").toString()))
+      fail("Invalid workspace project");
+    const auto theme = project.value("theme").toMap();
+    for (const auto &key : {"name", "flavour", "accent", "variant"})
+      if (theme.value(key).toString().size() > 128 ||
+          theme.value(key).toString().contains(QChar(0)))
+        fail("Invalid project theme");
+    if (theme.value("name").toString().size() > 128 ||
+        !QStringList{"dark", "light"}.contains(
+            theme.value("mode", "dark").toString()))
+      fail("Invalid project theme");
+  }
   auto entries = snapshot.value("windows").toList();
   if (entries.size() > 500)
     fail("Too many applications in session");
@@ -258,7 +277,7 @@ QVariantMap makeSnapshot(const QString &name) {
   try {
     mode =
         QString::fromUtf8(
-            W::command("hyprctl", {"eval", "return hyprstack_layouts.mode()"}))
+            W::command("hyprctl", {"repl", "return hyprstack_layouts.mode()"}))
             .trimmed();
   } catch (...) {
   }
@@ -1020,7 +1039,7 @@ void WorkspaceSession::capture(const QString &name, bool automatic) {
         auto files = dir.entryList({"*.json"}, QDir::Files, QDir::Time);
         int kept = 0;
         for (const auto &file : files) {
-          if (file == "automatic.json")
+          if (file == "automatic.json" || W::readMap(dir.filePath(file)).value("project").toMap().value("enabled").toBool())
             continue;
           if (++kept > count)
             dir.remove(file);
@@ -1030,6 +1049,63 @@ void WorkspaceSession::capture(const QString &name, bool automatic) {
       [this, automatic](const QVariantMap &s) {
         if (!automatic)
           m_preview = s;
+        refresh();
+      });
+}
+void WorkspaceSession::captureProject(const QString &name, int sourceWorkspace,
+                                      int targetWorkspace, const QString &mode,
+                                      bool keepTheme) {
+  task(
+      [=] {
+        if (name.trimmed().isEmpty() || name.size() > 256 ||
+            targetWorkspace < 1 || targetWorkspace > 1000000 ||
+            !QStringList{"canvas", "tiling", "scrolling", "stacking"}.contains(
+                mode))
+          fail("Invalid workspace project");
+        auto snapshot = makeSnapshot(name.trimmed());
+        int source = sourceWorkspace;
+        if (source < 0) {
+          source = QJsonDocument::fromJson(
+                       W::command("hyprctl", {"-j", "activeworkspace"}))
+                       .object()
+                       .value("id")
+                       .toInt();
+          if (source < 1)
+            fail("No active workspace is available");
+        }
+        QVariantList windows;
+        for (auto value : snapshot.value("windows").toList()) {
+          auto entry = value.toMap();
+          if (source > 0 && entry.value("workspace").toInt() != source)
+            continue;
+          entry["workspace"] = targetWorkspace;
+          windows << entry;
+        }
+        snapshot["windows"] = windows;
+        snapshot["mode"] = mode;
+        QVariantMap project{{"enabled", true},
+                            {"workspace", targetWorkspace},
+                            {"workspaceName", name.trimmed()},
+                            {"applyTheme", keepTheme}};
+        if (keepTheme) {
+          auto theme = W::readMap(QStandardPaths::writableLocation(
+                                      QStandardPaths::GenericStateLocation) +
+                                  "/hics/scheme.json");
+          QVariantMap selection;
+          for (const auto &key :
+               {"name", "mode", "flavour", "accent", "variant"})
+            if (theme.contains(key))
+              selection[key] = theme.value(key);
+          project["theme"] = selection;
+        }
+        snapshot["project"] = project;
+        snapshot["id"] = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        snapshot = validateSnapshot(snapshot);
+        W::writeMap(snapshotPath(snapshot.value("id").toString()), snapshot);
+        return snapshot;
+      },
+      [this](const QVariantMap &snapshot) {
+        m_preview = snapshot;
         refresh();
       });
 }
@@ -1081,7 +1157,7 @@ void WorkspaceSession::restore(const QString &id,
   task(
       [id, selected, cancelled] {
         const auto snapshot = validateSnapshot(W::readMap(snapshotPath(id)));
-        const auto settings = W::settings("session");
+        auto settings = W::settings("session");
         const bool hyprland =
             !qEnvironmentVariableIsEmpty("HYPRLAND_INSTANCE_SIGNATURE") &&
             qEnvironmentVariable("XDG_CURRENT_DESKTOP")
@@ -1090,7 +1166,43 @@ void WorkspaceSession::restore(const QString &id,
         QVariantList report;
         QSet<QString> launched, used;
         const auto files = desktopFiles();
-        if (hyprland && settings.value("restoreMode").toBool()) {
+        const auto project = snapshot.value("project").toMap();
+        if (project.value("enabled").toBool())
+          for (const auto &key : {"skipRunning", "launchPerWindow"})
+            if (project.contains(key))
+              settings[key] = project.value(key);
+        if (hyprland && project.value("enabled").toBool()) {
+          const int workspace = project.value("workspace").toInt();
+          const auto name = project.value("workspaceName").toString();
+          W::command(
+              "hyprctl",
+              {"eval",
+               "hl.dispatch(hl.dsp.focus({workspace=" +
+                   W::luaString(QString::number(workspace)) +
+                   "}));hl.dispatch(hl.dsp.workspace.rename({workspace=" +
+                   W::luaString(QString::number(workspace)) +
+                   ",name=" + W::luaString(name) + "}))"});
+          if (project.value("applyTheme").toBool()) {
+            const auto theme = project.value("theme").toMap();
+            if (!theme.value("name").toString().isEmpty()) {
+              QStringList command{
+                  "scheme", "set",
+                  "--name", theme.value("name").toString(),
+                  "--mode", theme.value("mode", "dark").toString()};
+              const bool dynamic = theme.value("name") == "dynamic";
+              for (const auto &key : {"flavour", "accent", "variant"})
+                if (theme.contains(key) &&
+                    !theme.value(key).toString().isEmpty() &&
+                    (dynamic ? QLatin1String(key) == "variant"
+                             : QLatin1String(key) != "variant"))
+                  command << "--" + QLatin1String(key)
+                          << theme.value(key).toString();
+              W::command("hics", command, 20000);
+            }
+          }
+        }
+        if (hyprland && (settings.value("restoreMode").toBool() ||
+                         project.value("enabled").toBool())) {
           const auto mode = snapshot.value("mode").toString();
           if (QStringList{"canvas", "tiling", "scrolling", "stacking"}.contains(
                   mode))
@@ -1104,6 +1216,8 @@ void WorkspaceSession::restore(const QString &id,
           if (cancelled->load())
             break;
           auto entry = v.toMap();
+          if (project.value("enabled").toBool())
+            entry["workspace"] = project.value("workspace");
           const auto key = entry.value("key").toString();
           const auto app = entry.value("application").toString();
           if (!entry.value("enabled", true).toBool() ||
@@ -1131,19 +1245,17 @@ void WorkspaceSession::restore(const QString &id,
           else if (argv.isEmpty())
             status = "No launch command";
           else {
-            bool ok = false;
-            if (!desktop.isEmpty() &&
-                argv == desktopExec(desktop.value("exec").toString(),
-                                    desktop.value("file").toString(),
-                                    desktop.value("name").toString()))
-              ok = QProcess::startDetached(
-                  "gio", {"launch", desktop.value("file").toString()},
-                  entry.value("workingDirectory").toString());
-            else {
-              const auto program = argv.takeFirst();
-              ok = QProcess::startDetached(
-                  program, argv, entry.value("workingDirectory").toString());
+            QProcess launch;
+            launch.setProcessEnvironment(hics::util::applicationEnvironment());
+            launch.setWorkingDirectory(entry.value("workingDirectory").toString());
+            if (!desktop.isEmpty() && argv == desktopExec(desktop.value("exec").toString(),desktop.value("file").toString(),desktop.value("name").toString())) {
+              launch.setProgram("gio");
+              launch.setArguments({"launch", desktop.value("file").toString()});
+            } else {
+              launch.setProgram(argv.takeFirst());
+              launch.setArguments(argv);
             }
+            const bool ok=launch.startDetached();
             status = ok ? "Launched" : "Launch failed";
             if (ok)
               launched.insert(launchKey);
@@ -1308,6 +1420,21 @@ void WorkspaceSession::restore(const QString &id,
         dismissStartup();
       });
 }
+QVariantList WorkspaceSession::desktopSessions() const {
+  QVariantList result;
+  const auto config =
+      QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
+  if (QDir(config + "/gnome-session/saved-session")
+          .entryList({"*.desktop"}, QDir::Files)
+          .size())
+    result << QVariantMap{{"value", "gnome"}, {"label", "GNOME"}};
+  QSettings kde(config + "/ksmserverrc", QSettings::IniFormat);
+  for (const auto &group : kde.childGroups())
+    if (group.startsWith("Session:") && group.size() <= 512)
+      result << QVariantMap{{"value", "kde:" + group},
+                            {"label", "KDE · " + group.mid(8).trimmed()}};
+  return result;
+}
 void WorkspaceSession::importDesktop(const QString &source) {
   task(
       [source] {
@@ -1332,7 +1459,7 @@ void WorkspaceSession::importDesktop(const QString &source) {
                 {"enabled", !argv.isEmpty()},
                 {"desktopId", file}};
           }
-        } else if (source == "kde") {
+        } else if (source == "kde" || source.startsWith("kde:Session:")) {
           QSettings f(config + "/ksmserverrc", QSettings::IniFormat);
           auto groups = f.childGroups();
           QString group;
@@ -1342,6 +1469,11 @@ void WorkspaceSession::importDesktop(const QString &source) {
               if (g == "Session: saved at previous logout")
                 break;
             }
+          if(source.startsWith("kde:")) {
+            group = source.mid(4);
+            if (!groups.contains(group))
+              fail("Saved KDE session was not found");
+          }
           if (!group.isEmpty()) {
             f.beginGroup(group);
             int count = std::clamp(f.value("count").toInt(), 0, 500);
@@ -1388,7 +1520,7 @@ void WorkspaceSession::importDesktop(const QString &source) {
         return QVariantMap{
             {"version", 1},
             {"id", QUuid::createUuid().toString(QUuid::WithoutBraces)},
-            {"name", source.toUpper() + " session"},
+            {"name", source.startsWith("kde:")?"KDE · "+source.mid(12).trimmed():source.toUpper()+" session"},
             {"source", source},
             {"created", QDateTime::currentSecsSinceEpoch()},
             {"windows", entries}};

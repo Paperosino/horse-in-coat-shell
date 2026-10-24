@@ -77,6 +77,8 @@ ConnectedRect {
 
         StyledTextField {
             id: input
+            Accessible.name: root.label
+            Accessible.description: root.subtext
 
             Layout.preferredWidth: root.smallField ? Tokens.sizes.nexus.smallTextFieldWidth : Tokens.sizes.nexus.textFieldWidth
             Layout.maximumWidth: root.width < 440 * Tokens.scale ? rowLayout.width : root.width / 2

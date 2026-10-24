@@ -28,6 +28,50 @@ PageBase {
             error: Plugins.error
         }
         SettingsCard {
+            visible:Plugins.recoveryMode
+            title:Tr.tr("Extension recovery mode")
+            description:Tr.tr("Extensions were suspended after an unexpected shell exit. Enable them individually below to identify the problem.")
+            icon:"health_and_safety"
+            InfoRow {label:Tr.tr("Reason");value:Tr.tr(Plugins.recoveryReason)}
+            RowButton {text:Tr.tr("Resume all configured extensions");icon:"play_arrow";onClicked:Plugins.setRecovery(false)}
+        }
+        SettingsCard {
+            title:Tr.tr("Extension catalogue")
+            description:Tr.tr("Browse bundled extensions or load a compatible HTTPS catalogue. Installation does not enable third-party code automatically.")
+            icon:"extension"
+            TextFieldRow {id:catalogueSource;label:Tr.tr("Catalogue URL");subtext:Tr.tr("Optional HTTPS JSON catalogue");value:""}
+            RowButton {text:Tr.tr("Load catalogue");icon:"refresh";disabled:Plugins.busy;onClicked:Plugins.loadCatalogue(catalogueSource.field.text.trim())}
+            Repeater {
+                model:Plugins.catalogue
+                SettingsCard {
+                    id:catalogueEntry
+                    required property var modelData
+                    title:modelData.name||modelData.id
+                    description:modelData.description||""
+                    icon:modelData.icon||"extension"
+                    badge:modelData.version||""
+                    Image {Layout.fillWidth:true;Layout.preferredHeight:visible?150*Tokens.scale:0;visible:!!source;source:catalogueEntry.modelData.preview??"";asynchronous:true;fillMode:Image.PreserveAspectFit;sourceSize.width:640;sourceSize.height:300}
+                    InfoRow {visible:!!catalogueEntry.modelData?.dependencies;label:Tr.tr("Dependencies");value:JSON.stringify(catalogueEntry.modelData?.dependencies??[])}
+                    RowButton {text:Plugins.byId(catalogueEntry.modelData.id)?Tr.tr("Settings and details"):Tr.tr("Install");icon:"extension";disabled:Plugins.busy;onClicked:{const item=catalogueEntry.modelData;if(Plugins.byId(item.id))Plugins.selectedId=item.id;else Plugins.install(item.source);}}
+                }
+            }
+        }
+        SettingsCard {
+            title: Tr.tr("Desktop widget layout")
+            description: Tr.tr("Drag widgets, resize from the corner, snap to a grid or lock their placement. Layout is saved separately for each monitor. Arrow keys move; Ctrl + arrows resize.")
+            icon: "dashboard_customize"
+            ToggleRow { text: Tr.tr("Edit desktop widgets"); checked:Plugins.desktopEditing; onToggled:Plugins.desktopEditing=checked }
+        }
+        SettingsCard {
+            visible:!!Plugins.selectedId && (Plugins.faults[Plugins.selectedId]??[]).length>0
+            title:Tr.tr("Extension error log")
+            icon:"bug_report"
+            Repeater {
+                model:Plugins.faults[Plugins.selectedId]??[]
+                InfoRow {required property var modelData;label:new Date(modelData.time*1000).toLocaleString();value:modelData.error}
+            }
+        }
+        SettingsCard {
             title: Tr.tr("Installed extensions")
             icon: "extension"
 
@@ -45,6 +89,8 @@ PageBase {
                         enabled: row.modelData.compatible && !Plugins.busy
                         onToggled: Plugins.setEnabled(row.modelData.id, checked)
                     }
+                    InfoRow {label:Tr.tr("Execution model");value:row.modelData.isolated?Tr.tr("Isolated process · declarative interface"):Tr.tr("Trusted QML · full shell access")}
+                    ToggleRow {visible:row.modelData.isolated&&row.modelData.networkRequested;text:Tr.tr("Allow network access");subtext:Tr.tr("Restart the extension with the selected permission");checked:row.modelData.networkGranted;onToggled:Plugins.grantNetwork(row.modelData.id,checked)}
                     RowButton {
                         text: Tr.tr("Settings and details")
                         subtext: row.modelData.format + " · " + row.modelData.version

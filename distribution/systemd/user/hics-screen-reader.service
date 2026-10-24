@@ -1,0 +1,14 @@
+[Unit]
+Description=hics screen reader (Orca)
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+[Service]
+Type=exec
+ExecStart=/usr/bin/orca --replace
+Restart=on-failure
+RestartSec=3
+MemoryMax=512M
+TasksMax=128
+[Install]
+WantedBy=graphical-session.target

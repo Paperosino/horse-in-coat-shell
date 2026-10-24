@@ -9347,3 +9347,219 @@ msgstr "Объём ZRAM не должен превышать удвоенный 
 
 msgid "RAM"
 msgstr "ОЗУ"
+
+msgid "Add panel"
+msgstr "Добавить панель"
+
+msgid "Advanced Orca preferences"
+msgstr "Расширенные настройки Orca"
+
+msgid "All workspaces"
+msgstr "Все рабочие столы"
+
+msgid "Allow network access"
+msgstr "Разрешить доступ к сети"
+
+msgid "Auto-hide panel"
+msgstr "Автоматически скрывать панель"
+
+msgid "Braille output"
+msgstr "Вывод на брайлевский дисплей"
+
+msgid "Browse bundled extensions or load a compatible HTTPS catalogue. Installation does not enable third-party code automatically."
+msgstr "Выберите встроенное расширение или загрузите совместимый каталог по HTTPS. После установки стороннее расширение остаётся выключенным."
+
+msgid "Capture applications from"
+msgstr "Сохранить приложения"
+
+msgid "Catalogue URL"
+msgstr "Адрес каталога"
+
+msgid "Close"
+msgstr "Закрыть"
+
+msgid "Controls expose names, states and actions through AT-SPI. Use Tab or Shift+Tab to move between controls and Enter or Space to activate them."
+msgstr "Элементы передают названия, состояния и действия через AT-SPI. Tab и Shift+Tab перемещают фокус, Enter и пробел выполняют действие."
+
+msgid "Current workspace"
+msgstr "Текущий рабочий стол"
+
+msgid "Dependencies"
+msgstr "Зависимости"
+
+msgid "Desktop widget layout"
+msgstr "Расположение виджетов"
+
+msgid "Drag widgets, resize from the corner, snap to a grid or lock their placement. Layout is saved separately for each monitor. Arrow keys move; Ctrl + arrows resize."
+msgstr "Перетаскивайте виджеты, меняйте размер за угол, привязывайте к сетке или закрепляйте. Расположение сохраняется для каждого монитора. Стрелки перемещают, Ctrl + стрелки меняют размер."
+
+msgid "Each additional panel has its own widgets, position, size and visibility. The main panel remains available."
+msgstr "У каждой дополнительной панели свои виджеты, положение, размер и режим видимости. Основная панель остаётся доступна."
+
+msgid "Edit desktop widgets"
+msgstr "Редактировать виджеты рабочего стола"
+
+msgid "Enable screen reader"
+msgstr "Включить экранный диктор"
+
+msgid "Execution model"
+msgstr "Способ выполнения"
+
+msgid "Extension catalogue"
+msgstr "Каталог расширений"
+
+msgid "Extension error log"
+msgstr "Журнал ошибок расширения"
+
+msgid "Extension recovery mode"
+msgstr "Восстановительный запуск расширений"
+
+msgid "Extensions were suspended after an unexpected shell exit. Enable them individually below to identify the problem."
+msgstr "Расширения приостановлены после неожиданного завершения оболочки. Включайте их по одному, чтобы найти причину."
+
+msgid "Finish editing"
+msgstr "Завершить редактирование"
+
+msgid "Fullscreen"
+msgstr "Полный экран"
+
+msgid "Grid spacing"
+msgstr "Шаг сетки"
+
+msgid "Hide delay (milliseconds)"
+msgstr "Задержка скрытия (мс)"
+
+msgid "Interface"
+msgstr "Интерфейс"
+
+msgid "Isolated process · declarative interface"
+msgstr "Изолированный процесс · декларативный интерфейс"
+
+msgid "Load catalogue"
+msgstr "Загрузить каталог"
+
+msgid "Lock widget"
+msgstr "Закрепить виджет"
+
+msgid "Main panel"
+msgstr "Основная панель"
+
+msgid "Monitor for a new panel"
+msgstr "Монитор новой панели"
+
+msgid "Named application sets, window layouts and project colours"
+msgstr "Именованные наборы приложений, расположение окон и оформление проектов"
+
+msgid "NetworkManager profiles, protocols, DNS and routing"
+msgstr "Профили NetworkManager, протоколы, DNS и маршрутизация"
+
+msgid "Optional HTTPS JSON catalogue"
+msgstr "Необязательный адрес JSON-каталога по HTTPS"
+
+msgid "Orca reads focused controls through AT-SPI. Speech preferences are applied through Orca’s supported settings; its native dialog exposes additional voices and profiles."
+msgstr "Orca озвучивает элементы в фокусе через AT-SPI. Параметры речи применяются через настройки Orca; дополнительные голоса и профили доступны в её собственном окне."
+
+msgid "Panel monitor"
+msgstr "Монитор панели"
+
+msgid "Panel name"
+msgstr "Название панели"
+
+msgid "Panel position"
+msgstr "Положение панели"
+
+msgid "Panel thickness"
+msgstr "Высота панели"
+
+msgid "Panels and monitors"
+msgstr "Панели и мониторы"
+
+msgid "Project window layout"
+msgstr "Режим окон проекта"
+
+msgid "Project workspace number"
+msgstr "Номер рабочего стола проекта"
+
+msgid "Read items under the pointer"
+msgstr "Озвучивать элементы под указателем"
+
+msgid "Read typed characters"
+msgstr "Озвучивать вводимые символы"
+
+msgid "Read typed words"
+msgstr "Озвучивать вводимые слова"
+
+msgid "Reason"
+msgstr "Причина"
+
+msgid "Remember current colour scheme"
+msgstr "Запомнить текущее оформление"
+
+msgid "Remove panel"
+msgstr "Удалить панель"
+
+msgid "Reset widget size"
+msgstr "Сбросить размер виджета"
+
+msgid "Restart the extension with the selected permission"
+msgstr "Расширение перезапустится с выбранным разрешением"
+
+msgid "Restore each captured window"
+msgstr "Восстанавливать каждое сохранённое окно"
+
+msgid "Restore removed panel"
+msgstr "Вернуть удалённую панель"
+
+msgid "Restore saved colour scheme"
+msgstr "Восстанавливать сохранённое оформление"
+
+msgid "Resume all configured extensions"
+msgstr "Возобновить все настроенные расширения"
+
+msgid "Reuse running applications"
+msgstr "Использовать уже запущенные приложения"
+
+msgid "Running"
+msgstr "Работает"
+
+msgid "Screen reader"
+msgstr "Экранный диктор"
+
+msgid "Snap widget to grid"
+msgstr "Привязывать виджет к сетке"
+
+msgid "Speech output"
+msgstr "Озвучивание"
+
+msgid "Speech pitch"
+msgstr "Высота голоса"
+
+msgid "Speech rate"
+msgstr "Скорость речи"
+
+msgid "Speech volume"
+msgstr "Громкость речи"
+
+msgid "Start screen reader after login"
+msgstr "Запускать диктор при входе"
+
+msgid "Trusted QML · full shell access"
+msgstr "Доверенный QML · полный доступ к оболочке"
+
+msgid "Workspace name"
+msgstr "Название рабочего стола"
+
+msgid "Workspace projects"
+msgstr "Проекты рабочих столов"
+
+msgid "Launch a workspace project"
+msgstr "Запустить рабочий проект"
+
+msgid "Keep a named set of applications, a window layout and optional colours. Projects stay separate from automatic session checkpoints."
+msgstr "Сохраните набор приложений, расположение окон и оформление. Проекты хранятся отдельно от автоматических снимков сеанса."
+
+msgid "The previous shell exited unexpectedly"
+msgstr "Предыдущий сеанс оболочки завершился неожиданно"
+
+msgid "Recovery mode requested"
+msgstr "Выбран восстановительный запуск"

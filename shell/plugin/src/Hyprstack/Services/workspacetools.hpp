@@ -119,12 +119,14 @@ public:
   Q_INVOKABLE void refresh();
   Q_INVOKABLE void configure(const QVariantMap &values);
   Q_INVOKABLE void capture(const QString &name, bool automatic = false);
+  Q_INVOKABLE void captureProject(const QString &name, int sourceWorkspace, int targetWorkspace, const QString &mode, bool keepTheme);
   Q_INVOKABLE void inspect(const QString &id);
   Q_INVOKABLE void savePreview(const QVariantMap &snapshot);
   Q_INVOKABLE void remove(const QString &id);
   Q_INVOKABLE void restore(const QString &id,
                            const QVariantList &selected = QVariantList());
   Q_INVOKABLE void cancel();
+  Q_INVOKABLE QVariantList desktopSessions() const;
   Q_INVOKABLE void importDesktop(const QString &source);
   Q_INVOKABLE void importFile(const QUrl &url);
   Q_INVOKABLE void exportFile(const QString &id, const QUrl &url,

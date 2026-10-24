@@ -16,12 +16,19 @@ PageBase {
 
     title: Tr.tr("Statusbar layout")
 
+    property string panelId: ""
+    property string selectedScreen: Screens.screens[0]?.name ?? ""
+    readonly property var selectedPanel: ExtraPanels.panels.find(p=>p.id===panelId)??null
+    readonly property QtObject panelLayer: QtObject { Config.screen:root.panelId?"panel-"+root.panelId:(Screens.screens[0]?.name??"default");readonly property var bar:Config.bar }
+    readonly property var editedBar: panelId ? panelLayer.bar : GlobalConfig.bar
+    onEditedBarChanged: Qt.callLater(reloadZones)
+    readonly property Connections panelChanges: Connections {target:ExtraPanels;function onPanelsChanged():void {if(root.panelId&&!root.selectedPanel)root.panelId="";}}
     property var leftWidgets: []
     property var centerWidgets: []
     property var rightWidgets: []
 
     function reloadZones(): void {
-        const raw = GlobalConfig.bar.entries.values || [];
+        const raw = root.editedBar.entries.values || [];
         const left = [];
         const center = [];
         const right = [];
@@ -54,7 +61,7 @@ PageBase {
     }
 
     function saveZones(l: var, c: var, r: var): void {
-        const list = GlobalConfig.bar.entries;
+        const list = root.editedBar.entries;
         list.clear();
         for (const id of l)
             list.insert({
@@ -82,6 +89,35 @@ PageBase {
         reloadZones();
     }
 
+    property var draggedWidget: null
+    property bool dragActive: false
+    property point dragPosition: Qt.point(0,0)
+    readonly property StyledRect dragProxy: StyledRect {
+        parent: root.QsWindow.window?.contentItem ?? root
+        z:10000
+        visible:root.dragActive
+        width:160*Tokens.scale;height:44*Tokens.scale;radius:Tokens.rounding.large
+        color:Colours.palette.m3primaryContainer
+        readonly property point cursor: parent.mapFromItem(null,root.dragPosition.x,root.dragPosition.y)
+        x:cursor.x-width/2;y:cursor.y-height/2
+        Drag.active:root.dragActive
+        Drag.keys:["hics-panel-widget"]
+        Drag.source:dragProxy
+        Drag.supportedActions:Qt.MoveAction
+        Drag.hotSpot.x:width/2;Drag.hotSpot.y:height/2
+        StyledText {anchors.centerIn:parent;text:root.draggedWidget?root.widgetMeta(root.draggedWidget.id).name:"";color:Colours.palette.m3onPrimaryContainer}
+    }
+    function dropWidget(zone: int, index: int): void {
+        const source = draggedWidget;
+        draggedWidget = null;
+        if (!source) return;
+        const zones = [[...leftWidgets],[...centerWidgets],[...rightWidgets]];
+        if (!zones[source.zone] || zones[source.zone][source.index] !== source.id || !zones[zone]) return;
+        const value=zones[source.zone].splice(source.index,1)[0];
+        if(source.zone===zone && source.index<index)index--;
+        zones[zone].splice(Math.max(0,Math.min(index,zones[zone].length)),0,value);
+        saveZones(zones[0],zones[1],zones[2]);
+    }
     function moveLeft(zoneIndex: int, itemIndex: int): void {
         const l = [...leftWidgets];
         const c = [...centerWidgets];
@@ -241,6 +277,39 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.medium
 
+        SettingsCard {
+            title:Tr.tr("Panels and monitors")
+            description:Tr.tr("Each additional panel has its own widgets, position, size and visibility. The main panel remains available.")
+            icon:"view_quilt"
+            FeatureError {error:ExtraPanels.error}
+            GenericSettingRow {spec:({type:"choice",label:"Monitor for a new panel",choices:Screens.screens.map(s=>s.name),value:root.selectedScreen});onEdited:value=>root.selectedScreen=value}
+            RowButton {text:Tr.tr("Add panel");icon:"add";disabled:ExtraPanels.busy||!root.selectedScreen;onClicked:ExtraPanels.add(root.selectedScreen)}
+            RowButton {text:Tr.tr("Main panel");icon:"view_week";trailingIcon:root.panelId?"chevron_right":"check";onClicked:root.panelId=""}
+            Repeater {
+                model:ExtraPanels.panels
+                RowButton {
+                    required property var modelData
+                    text:modelData.name+" · "+modelData.screen+" · "+modelData.edge
+                    icon:"view_week";trailingIcon:root.panelId===modelData.id?"check":"chevron_right"
+                    onClicked:root.panelId=modelData.id
+                }
+            }
+            ColumnLayout {
+                visible:!!root.selectedPanel
+                Layout.fillWidth:true
+                TextFieldRow {label:Tr.tr("Panel name");value:root.selectedPanel?.name??"";onEditingFinished:value=>ExtraPanels.update(root.panelId,{name:value})}
+                GenericSettingRow {spec:({type:"choice",label:"Panel position",choices:[{value:"top",label:"Top"},{value:"bottom",label:"Bottom"}],value:root.selectedPanel?.edge??"bottom"});onEdited:value=>ExtraPanels.update(root.panelId,{edge:value})}
+                GenericSettingRow {spec:({type:"choice",label:"Panel monitor",choices:Screens.screens.map(s=>s.name),value:root.selectedPanel?.screen??root.selectedScreen});onEdited:value=>ExtraPanels.update(root.panelId,{screen:value})}
+                StepperRow {label:Tr.tr("Panel thickness");from:28;to:96;value:root.selectedPanel?.thickness??48;onMoved:value=>ExtraPanels.update(root.panelId,{thickness:value})}
+                ToggleRow {text:Tr.tr("Auto-hide panel");checked:root.selectedPanel?.autoHide??false;onToggled:ExtraPanels.update(root.panelId,{autoHide:checked})}
+                StepperRow {label:Tr.tr("Hide delay (milliseconds)");from:100;to:3000;stepSize:100;value:root.selectedPanel?.hideDelay??500;onMoved:value=>ExtraPanels.update(root.panelId,{hideDelay:value})}
+                RowButton {text:Tr.tr("Remove panel");icon:"delete";onClicked:ExtraPanels.remove(root.panelId)}
+            }
+            Repeater {
+                model:ExtraPanels.removed
+                RowButton {required property var modelData;text:Tr.tr("Restore removed panel")+" · "+modelData.name;icon:"undo";onClicked:ExtraPanels.restore(modelData.id)}
+            }
+        }
         // Statusbar 3-column layout section
         SettingsCard {
             title: Tr.tr("Statusbar layout")
@@ -387,6 +456,7 @@ PageBase {
     // ZoneColumn Component
     component ZoneColumn: StyledRect {
         id: zoneRoot
+        objectName:"panelZone-"+zoneIndex
         required property string zoneTitle
         required property string zoneIcon
         required property int zoneIndex
@@ -401,6 +471,11 @@ PageBase {
         clip: true
         color: Colours.palette.m3surfaceContainerLowest
         implicitHeight: colContent.implicitHeight + Tokens.padding.medium * 2
+        DropArea {
+            anchors.fill:parent
+            keys:["hics-panel-widget"]
+            onDropped: drop => { root.dropWidget(zoneRoot.zoneIndex,zoneRoot.widgets.length);drop.acceptProposedAction(); }
+        }
 
         ColumnLayout {
             id: colContent
@@ -450,10 +525,26 @@ PageBase {
                 model: zoneRoot.widgets
                 delegate: StyledRect {
                     id: wCard
+                    objectName:"panelWidget-"+zoneRoot.zoneIndex+"-"+modelData
                     required property var modelData
                     required property int index
 
                     readonly property var meta: root.widgetMeta(wCard.modelData)
+                    opacity: dragHandle.active ? 0.55 : 1
+                    DragHandler {
+                        id: dragHandle
+                        target:null
+                        onTranslationChanged: if(active)root.dragPosition=centroid.scenePosition
+                        onActiveChanged: {
+                            if(active){root.dragPosition=centroid.scenePosition;root.draggedWidget={zone:zoneRoot.zoneIndex,index:wCard.index,id:wCard.modelData};root.dragActive=true;}
+                            else {root.dragProxy.Drag.drop();root.dragActive=false;root.draggedWidget=null;}
+                        }
+                    }
+                    DropArea {
+                        anchors.fill:parent
+                        keys:["hics-panel-widget"]
+                        onDropped: drop => {root.dropWidget(zoneRoot.zoneIndex,wCard.index);drop.acceptProposedAction();}
+                    }
 
                     Layout.fillWidth: true
                     implicitHeight: cardCol.implicitHeight + Tokens.padding.small * 2

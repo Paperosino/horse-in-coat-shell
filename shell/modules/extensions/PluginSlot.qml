@@ -18,6 +18,8 @@ Loader {
     active: !!entry && !!api
     function load(): void {
         if (!active) { source = ""; return; }
+        if(entry.format==="declarative"){sourceComponent=declarativeView;return;}
+        sourceComponent=undefined;
         const props = entry.property ? {[entry.property]: api} : {};
         for (const property of entry.requiredProperties ?? []) {
             if (property === "screen") props.screen = QsWindow.window?.screen ?? null;
@@ -26,6 +28,7 @@ Loader {
         }
         setSource(entryUrl, props);
     }
+    Component {id:declarativeView;DeclarativePluginView {pluginApi:root.api;slot:root.slot}}
     onEntryUrlChanged: Qt.callLater(load)
     onApiChanged: Qt.callLater(load)
     Component.onCompleted: Qt.callLater(load)

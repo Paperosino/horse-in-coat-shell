@@ -11,9 +11,14 @@ import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
-    pageIcon: "restore"
+    property bool projectsOnly: false
+    property int sourceWorkspace: -1
+    property int targetWorkspace: 1
+    property string projectMode: "stacking"
+    property bool keepTheme: false
+    pageIcon: projectsOnly ? "workspaces" : "restore"
     id:root
-    title:Tr.tr("Session recovery")
+    title:Tr.tr(projectsOnly ? "Workspace projects" : "Session recovery")
     property var backend:WorkspaceSession
     readonly property var config:backend.settings
     property string name
@@ -22,8 +27,10 @@ PageBase {
     property string removing
     property string commandError
     property bool details:false
+    property var desktopSessions: backend.desktopSessions?backend.desktopSessions():[]
     readonly property var selected:(form.windows??[]).filter(w=>w.enabled!==false)
     function set(key,value):void {backend.configure({[key]:value})}
+    function projectChange(key,value):void {form=Object.assign({},form,{project:Object.assign({},form.project,{[key]:value})})}
     function vectorChange(index,key,slot,value):void {const vector=(form.windows[index][key]??(key==="size"?[800,600]:[0,0])).slice();vector[slot]=value;windowChange(index,key,vector)}
     function windowChange(index,key,value):void {const windows=(form.windows??[]).slice();windows[index]=Object.assign({},windows[index],{[key]:value});form=Object.assign({},form,{windows:windows})}
     Component.onCompleted:backend.refresh()
@@ -36,12 +43,20 @@ PageBase {
     ColumnLayout {
         width:root.cappedWidth;anchors.horizontalCenter:parent.horizontalCenter;spacing:Tokens.spacing.medium
         SettingsCard {
-            title:Tr.tr("Pick up where you left off");description:Tr.tr("Save a workspace, choose what returns and recover applications after signing in.");icon:"restore";badge:root.backend.desktop
-            ToggleRow {text:Tr.tr("Session recovery");checked:root.config.enabled??false;onToggled:v=>root.set("enabled",v)}
+            title:Tr.tr(root.projectsOnly?"Launch a workspace project":"Pick up where you left off");description:Tr.tr(root.projectsOnly?"Keep a named set of applications, a window layout and optional colours. Projects stay separate from automatic session checkpoints.":"Save a workspace, choose what returns and recover applications after signing in.");icon:"restore";badge:root.backend.desktop
+            ToggleRow {visible:!root.projectsOnly;text:Tr.tr("Session recovery");checked:root.config.enabled??false;onToggled:v=>root.set("enabled",v)}
             RowLayout {
                 Layout.fillWidth:true
                 StyledTextField {Layout.fillWidth:true;placeholderText:Tr.tr("Snapshot name");onTextChanged:root.name=text}
-                IconButton {icon:"add_photo_alternate";Accessible.name:Tr.tr("Save current session");disabled:root.backend.busy;onClicked:root.backend.capture(root.name.trim()||new Date().toLocaleString(),false)}
+                IconButton {icon:"add_photo_alternate";Accessible.name:Tr.tr("Save current session");disabled:root.backend.busy;onClicked:{const name=root.name.trim()||new Date().toLocaleString();if(root.projectsOnly)root.backend.captureProject(name,root.sourceWorkspace,root.targetWorkspace,root.projectMode,root.keepTheme);else root.backend.capture(name,false);}}
+            }
+            ColumnLayout {
+                visible:root.projectsOnly
+                Layout.fillWidth:true
+                GenericSettingRow {spec:({type:"choice",label:"Capture applications from",choices:[{value:-1,label:"Current workspace"},{value:0,label:"All workspaces"}],value:root.sourceWorkspace});onEdited:value=>root.sourceWorkspace=value}
+                GenericSettingRow {spec:({type:"choice",label:"Project window layout",choices:["stacking","scrolling","tiling","canvas"],value:root.projectMode});onEdited:value=>root.projectMode=value}
+                StepperRow {label:Tr.tr("Project workspace number");from:1;to:1000000;value:root.targetWorkspace;onMoved:value=>root.targetWorkspace=value}
+                ToggleRow {text:Tr.tr("Remember current colour scheme");checked:root.keepTheme;onToggled:root.keepTheme=checked}
             }
             FeatureError {error:root.backend.error||root.commandError}
             RowButton {visible:root.backend.busy;text:Tr.tr("Working… Cancel");icon:"stop";onClicked:root.backend.cancel()}
@@ -51,7 +66,7 @@ PageBase {
             GridLayout {
                 Layout.fillWidth:true;columns:width>600?2:1;columnSpacing:Tokens.spacing.small;rowSpacing:Tokens.spacing.small
                 Repeater {
-                    model:root.backend.snapshots
+                    model:root.backend.snapshots.filter(s=>root.projectsOnly?!!s.project?.enabled:!s.project?.enabled)
                     RowButton {
                         required property var modelData
                         text:modelData.name;subtext:String(modelData.count)+" · "+Tr.tr("windows")+" · "+new Date(modelData.created*1000).toLocaleString()
@@ -66,6 +81,15 @@ PageBase {
             objectName:"sessionSnapshotPreview";visible:!!root.form.id
             title:root.form.name??"";description:Tr.tr("Only selected applications will be restored. Changes are saved to this snapshot.");icon:"preview";badge:String(root.selected.length)
             TextFieldRow {label:Tr.tr("Snapshot name");value:root.form.name??"";onValueEdited:v=>root.form=Object.assign({},root.form,{name:v})}
+            ColumnLayout {
+                Layout.fillWidth:true;visible:!!root.form.project?.enabled
+                TextFieldRow {label:Tr.tr("Workspace name");value:root.form.project?.workspaceName??"";onValueEdited:value=>root.projectChange("workspaceName",value)}
+                StepperRow {label:Tr.tr("Project workspace number");from:1;to:1000000;value:root.form.project?.workspace??1;onMoved:value=>root.projectChange("workspace",value)}
+                GenericSettingRow {spec:({type:"choice",label:"Project window layout",choices:["stacking","scrolling","tiling","canvas"],value:root.form.mode??"stacking"});onEdited:value=>root.form=Object.assign({},root.form,{mode:value})}
+                ToggleRow {text:Tr.tr("Restore saved colour scheme");checked:root.form.project?.applyTheme??false;onToggled:root.projectChange("applyTheme",checked)}
+                ToggleRow {text:Tr.tr("Reuse running applications");checked:root.form.project?.skipRunning??true;onToggled:root.projectChange("skipRunning",checked)}
+                ToggleRow {text:Tr.tr("Restore each captured window");checked:root.form.project?.launchPerWindow??false;onToggled:root.projectChange("launchPerWindow",checked)}
+            }
             ToggleRow {text:Tr.tr("Show launch commands and window details");checked:root.details;onToggled:v=>root.details=v}
             Repeater {
                 model:root.form.windows??[]
@@ -138,6 +162,7 @@ PageBase {
         SettingsCard {
             title:Tr.tr("GNOME, KDE and portable sessions");description:Tr.tr("Import saved application launch data and export standard .desktop starters. Internal application state depends on the application; window placement is specific to the compositor.");icon:"swap_horiz"
             RowLayout {Layout.fillWidth:true;RowButton {text:"GNOME";icon:"file_open";disabled:root.backend.busy;onClicked:root.backend.importDesktop("gnome")} RowButton {text:"KDE Plasma";icon:"file_open";disabled:root.backend.busy;onClicked:root.backend.importDesktop("kde")}}
+            Repeater {model:root.desktopSessions;RowButton {required property var modelData;text:modelData.label;icon:"restore";disabled:root.backend.busy;onClicked:root.backend.importDesktop(modelData.value)}}
             RowButton {text:Tr.tr("Import hics snapshot");icon:"file_open";disabled:root.backend.busy;onClicked:root.importer.open()}
             ToggleRow {text:Tr.tr("Enable application recovery in other desktops");subtext:Tr.tr("Uses XDG autostart in GNOME and KDE. Avoid enabling another desktop's automatic app recovery at the same time.");checked:root.config.crossDesktop??false;onToggled:v=>root.set("crossDesktop",v)}
             StyledText {Layout.fillWidth:true;text:Tr.tr("Imported commands are shown in the preview and run only after you choose to restore. hics does not replace GNOME SessionManager or KDE KSMServer.");wrapMode:Text.WordWrap;color:Colours.palette.m3onSurfaceVariant;font:Tokens.font.body.small}

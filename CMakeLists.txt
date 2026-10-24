@@ -101,3 +101,5 @@ install(FILES third_party/m3shapes/LICENSE DESTINATION "${CMAKE_INSTALL_DATADIR}
 install(FILES shell/assets/logo.svg DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps" RENAME hyprstack.svg)
 
 install(DIRECTORY distribution/licenses/ DESTINATION "${CMAKE_INSTALL_DATADIR}/hics/licenses")
+
+install(FILES distribution/systemd/user/hics-screen-reader.service DESTINATION lib/systemd/user)

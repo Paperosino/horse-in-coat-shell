@@ -1,0 +1,26 @@
+{
+  "id": "night-light",
+  "name": "Night light",
+  "description": "Warm screen colors through hyprsunset",
+  "version": "1.0.0",
+  "api": "hyprstack-1",
+  "author": "Hyprstack",
+  "license": "GPL-3.0-or-later",
+  "entryPoints": {
+    "main": "Main.qml"
+  },
+  "settingsSchema": [
+    {
+      "key": "temperature",
+      "label": "Color temperature",
+      "type": "int",
+      "default": 4500,
+      "min": 1000,
+      "max": 6500
+    }
+  ],
+  "actions": [],
+  "dependencies": [
+    "hyprsunset"
+  ]
+}

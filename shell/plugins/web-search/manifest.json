@@ -1,0 +1,53 @@
+{
+  "id": "web-search",
+  "name": "Web search",
+  "description": "Search the web from a shell panel",
+  "version": "1.0.0",
+  "api": "hyprstack-1",
+  "author": "Hyprstack",
+  "license": "GPL-3.0-or-later",
+  "entryPoints": {
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
+  },
+  "settingsSchema": [
+    {
+      "key": "engine",
+      "label": "Search engine",
+      "type": "choice",
+      "default": "https://duckduckgo.com/?q=%s",
+      "choices": [
+        {
+          "label": "Google",
+          "value": "https://www.google.com/search?q=%s"
+        },
+        {
+          "label": "DuckDuckGo",
+          "value": "https://duckduckgo.com/?q=%s"
+        },
+        {
+          "label": "Яндекс",
+          "value": "https://ya.ru/search/?text=%s"
+        },
+        {
+          "label": "Ecosia",
+          "value": "https://www.ecosia.org/search?q=%s"
+        },
+        {
+          "label": "Bing",
+          "value": "https://www.bing.com/search?q=%s"
+        },
+        {
+          "label": "Brave",
+          "value": "https://search.brave.com/search?q=%s"
+        },
+        {
+          "label": "Mojeek",
+          "value": "https://www.mojeek.com/search?q=%s"
+        }
+      ]
+    }
+  ],
+  "actions": [],
+  "source": "https://github.com/MixaDoDs/AngelOS-Dotfiles/tree/main/.config/quickshell/angelos/plugins/web-search"
+}

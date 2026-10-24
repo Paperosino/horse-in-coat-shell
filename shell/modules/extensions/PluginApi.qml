@@ -11,6 +11,8 @@ QtObject {
     readonly property var settings: pluginSettings
     readonly property string pluginDir: manifest.path ?? ""
     readonly property string pluginDataDir: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/hics/plugins/${pluginId}`
+    readonly property var isolatedState: Plugins.isolatedStates[pluginId] ?? ({slots:{}})
+    function sendAction(action: string, value: var): void {Plugins.workerAction(pluginId,action,value);}
     property var mainInstance: null
     property var barWidget: null
     function saveSettings(value = null): void { Plugins.saveSettings(pluginId, value ?? pluginSettings); }

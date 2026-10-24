@@ -105,6 +105,7 @@ Item {
         if(serialized!==lastTargets){lastTargets=serialized;Hypr.setTaskTargets(screen.name,targets,"dock");}
     }
     function scheduleTargets(): void { if (!targetRefresh.running) targetRefresh.start(); }
+    Connections {target:ExtraPanels;function onLiveHeightsChanged():void {root.scheduleTargets();}function onPanelsChanged():void {root.scheduleTargets();}}
     onXChanged:scheduleTargets()
     onYChanged:scheduleTargets()
     onWidthChanged:scheduleTargets()
@@ -403,6 +404,12 @@ Item {
                     delegate: Item {
                         id: task
                         objectName: "dockTaskButton"
+                        activeFocusOnTab: true
+                        Accessible.role: Accessible.Button
+                        Accessible.name: task.entry?.name ?? task.group?.app ?? ""
+                        Accessible.onPressAction: task.activate(Qt.LeftButton)
+                        Keys.onReturnPressed: task.activate(Qt.LeftButton)
+                        Keys.onSpacePressed: task.activate(Qt.LeftButton)
 
                         required property string modelData
 
@@ -881,6 +888,12 @@ Item {
     component AppsButton: Item {
         id: gridButton
         objectName: "dockAppsButton"
+        activeFocusOnTab: true
+        Accessible.role: Accessible.Button
+        Accessible.name: Tr.tr("Applications")
+        Accessible.onPressAction: gridButton.activate(Qt.LeftButton)
+        Keys.onReturnPressed: gridButton.activate(Qt.LeftButton)
+        Keys.onSpacePressed: gridButton.activate(Qt.LeftButton)
         readonly property bool hovered: gridMouse.containsMouse || root.listOpen
         readonly property var group: null
         readonly property var windows: []

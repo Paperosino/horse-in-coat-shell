@@ -98,6 +98,7 @@ ConnectedRect {
                     StyledText {
                         Layout.fillWidth: true
                         text: root.title
+                        textFormat: Text.PlainText
                         font: Tokens.font.title.small
                         wrapMode: Text.WordWrap
                     }
@@ -105,6 +106,7 @@ ConnectedRect {
                         Layout.fillWidth: true
                         visible: !!root.description
                         text: root.description
+                        textFormat: Text.PlainText
                         font: Tokens.font.body.small
                         color: Colours.palette.m3onSurfaceVariant
                         wrapMode: Text.WordWrap

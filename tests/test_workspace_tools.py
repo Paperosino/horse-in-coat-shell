@@ -10,7 +10,7 @@ class WorkspaceToolsTests(unittest.TestCase):
   flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','Qt6Core','Qt6Gui','Qt6Qml','Qt6Concurrent','Qt6DBus','libnm'],text=True))
   moc=Path(subprocess.check_output(['pkg-config','--variable=libexecdir','Qt6Core'],text=True).strip())/'moc'
   subprocess.run([str(moc),str(SERVICES/'workspacetools.hpp'),'-o',str(cls.base/'moc.cpp'),*shlex.split(subprocess.check_output(['pkg-config','--cflags','Qt6Qml'],text=True))],check=True)
-  subprocess.run(['c++','-std=c++20','-fPIC',str(ROOT/'tests/fixtures/workspace-probe.cpp'),str(SERVICES/'workspacetools.cpp'),str(SERVICES/'workspacestore.cpp'),str(cls.base/'moc.cpp'),'-I',str(SERVICES),*flags,'-o',str(cls.binary)],check=True)
+  subprocess.run(['c++','-std=c++20','-fPIC',str(ROOT/'tests/fixtures/workspace-probe.cpp'),str(SERVICES/'workspacetools.cpp'),str(SERVICES/'workspacestore.cpp'),str(cls.base/'moc.cpp'),'-I',str(SERVICES),'-I',str(ROOT/'shell/plugin/include'),*flags,'-o',str(cls.binary)],check=True)
  @classmethod
  def tearDownClass(cls):cls.temp.cleanup()
  def setUp(self):
@@ -25,7 +25,7 @@ with (p/'calls').open('a') as f:f.write(json.dumps(sys.argv[1:])+'\\n')
 a=sys.argv[1:]
 if a==['-j','clients']:print(json.dumps([{'address':'0x1234','mapped':True,'hidden':False,'pinned':False,'class':'org.hics.Fixture','initialClass':'org.hics.Fixture','title':'Document','workspace':{'id':2},'monitor':0,'at':[180,160],'size':[600,400],'floating':True,'fullscreen':0,'focusHistoryID':0}]))
 elif a==['-j','monitors']:print(json.dumps([{'id':0,'name':'TEST-1','x':0,'y':0}]))
-elif a==['eval','return hyprstack_layouts.mode()']:print('canvas')
+elif a==['repl','return hyprstack_layouts.mode()']:print('canvas')
 elif a==['configerrors']:print('')
 else:print('ok')
 ''');tool.chmod(0o700)
@@ -69,6 +69,12 @@ else:print('ok')
   self.assertEqual(self.probe('shortcut-reset',actions[0]['id'])['settings']['overrides'],{})
  def test_snapshot_capture_uses_desktop_entries_and_window_state(self):
   result=self.probe('capture','Work');self.assertEqual(result['error'],'');snapshot=result['preview'];self.assertEqual(snapshot['mode'],'canvas');entry=snapshot['windows'][0];self.assertEqual(entry['command'],['/bin/true','argument with spaces']);self.assertEqual(entry['workspace'],2);self.assertTrue(entry['floating']);path=self.dir/'state/hics/workspace/sessions'/(snapshot['id']+'.json');self.assertEqual(path.stat().st_mode&0o777,0o600)
+ def test_projects_keep_theme_selection_and_survive_snapshot_rotation(self):
+  theme=self.dir/'state/hics/scheme.json';theme.parent.mkdir(parents=True,exist_ok=True);theme.write_text(json.dumps({'name':'fixture','mode':'dark','flavour':'mocha','accent':'primary','variant':'tonalspot'}))
+  project=self.probe('capture-project','Development')['preview'];self.assertTrue(project['project']['enabled']);self.assertEqual(project['project']['theme']['flavour'],'mocha');self.assertEqual(project['project']['theme']['accent'],'primary');self.assertEqual(project['windows'][0]['workspace'],3)
+  self.config('session',keepSnapshots=1)
+  for i in range(3):self.probe('capture',str(i))
+  snapshots=list((self.dir/'state/hics/workspace/sessions').glob('*.json'));self.assertEqual(len(snapshots),2);self.assertTrue(any(p.stem==project['id'] for p in snapshots))
  def test_restore_running_windows_without_duplicate_launch(self):
   snapshot=self.probe('capture','Work')['preview'];result=self.probe('restore',snapshot['id']);self.assertEqual(result['error'],'');self.assertEqual(result['report'][0]['status'],'Already running');self.assertEqual(result['report'][0]['placement'],'Restored');self.assertIn('workspace=',(self.dir/'calls').read_text())
  def test_gnome_import_is_preview_only_and_keeps_arguments(self):
@@ -77,6 +83,9 @@ else:print('ok')
  def test_kde_import_preserves_restart_command(self):
   (self.dir/'config/ksmserverrc').write_text('[Session: saved at previous logout]\ncount=1\nprogram1=editor\nrestartCommand1=/bin/true,--session,client-token\nclientId1=client-token\n')
   result=self.probe('import-desktop','kde');self.assertEqual(result['error'],'');self.assertEqual(result['preview']['windows'][0]['command'],['/bin/true','--session','client-token'])
+ def test_named_kde_session_keeps_native_restore_token(self):
+  (self.dir/'config/ksmserverrc').write_text('[Session: saved at previous logout]\ncount=1\nrestartCommand1=/bin/false\n[Session: Development]\ncount=1\nrestartCommand1=/bin/true,--session,development-id\nclientId1=development-id\n')
+  result=self.probe('import-desktop','kde:Session: Development');self.assertEqual(result['error'],'');self.assertEqual(result['preview']['windows'][0]['command'],['/bin/true','--session','development-id']);self.assertEqual(result['preview']['windows'][0]['sessionClientId'],'development-id')
  def test_xdg_autostart_is_opt_in_and_desktop_scoped(self):
   path=self.dir/'config/autostart/hics-session-restore.desktop';self.assertFalse(path.exists());self.probe('session-configure',json.dumps({'enabled':True,'startup':'ask'}));self.assertIn('OnlyShowIn=Hyprland;hics;',path.read_text());self.probe('session-configure',json.dumps({'crossDesktop':True}));self.assertNotIn('OnlyShowIn',path.read_text());self.probe('session-configure',json.dumps({'enabled':False}));self.assertFalse(path.exists())
  def test_export_portable_does_not_install_autostart(self):

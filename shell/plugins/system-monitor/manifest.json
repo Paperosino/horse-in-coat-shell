@@ -1,0 +1,22 @@
+{
+  "id": "system-monitor",
+  "name": "System monitor",
+  "description": "CPU and memory in the panel and on the desktop",
+  "version": "1.0.0",
+  "api": "hyprstack-1",
+  "author": "Hyprstack",
+  "license": "GPL-3.0-or-later",
+  "entryPoints": {
+    "barWidget": "BarWidget.qml",
+    "desktopWidget": "DesktopWidget.qml"
+  },
+  "settingsSchema": [
+    {
+      "key": "showMemory",
+      "label": "Show memory",
+      "type": "bool",
+      "default": true
+    }
+  ],
+  "actions": []
+}

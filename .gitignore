@@ -81,6 +81,10 @@
 !/shell/plugin/
 !/shell/services/
 !/shell/utils/
+!/shell/plugins/
+!/shell/Commons/
+!/shell/Services/
+!/shell/Widgets/
 /shell/assets/*
 !/shell/assets/diagnostics.py
 !/shell/assets/hics_cli.py

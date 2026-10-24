@@ -18,6 +18,7 @@ import Quickshell.Io
 import Hyprstack.Config
 import Hyprstack.Services
 import qs.modules.nexus
+import qs.modules.extensions as Extensions
 import qs.modules
 import qs.modules.nexus.pages
 import qs.modules.bar.popouts as Popouts
@@ -46,6 +47,14 @@ ShellRoot {
  property var current: null
  property NexusState state: NexusState {}
  FloatingWindow { visible: true; implicitWidth: 1000; implicitHeight: 900;color:Colours.palette.m3surface; Item { id: host; anchors.fill: parent } }
+ Bar.ExtraPanel {id:extraTop;screen:Quickshell.screens[0];spec:({id:"11111111-1111-1111-1111-111111111111",edge:"top",thickness:48,hideDelay:500,autoHide:false});edgeOffset:0}
+ Bar.ExtraPanel {id:extraBottom;screen:Quickshell.screens[0];spec:({id:"22222222-2222-2222-2222-222222222222",edge:"bottom",thickness:52,hideDelay:500,autoHide:true});edgeOffset:0}
+ Extensions.PluginHost {}
+ Extensions.PluginDesktop {parent:host;screen:Quickshell.screens[0];width:host.width;height:host.height}
+ Timer {interval:5000;running:true;onTriggered:{const data=Plugins.isolatedStates["isolated-counter"];if(!data?.slots?.desktopWidget?.length){console.error("ISOLATED_WIDGET_FAILED",JSON.stringify(Plugins.runtimeErrors));Qt.quit();}else console.log("ISOLATED_WIDGET_OK");}}
+ Timer {interval:5500;running:true;onTriggered:Plugins.workerAction("isolated-counter","increment",null)}
+ Timer {interval:6000;running:true;onTriggered:Plugins.reloadCode()}
+ Timer {interval:8500;running:true;onTriggered:{if(Plugins.isolatedStates["isolated-counter"]?.slots?.barWidget?.[0]?.text!=="1"||!Plugins.byId("isolated-counter")?.enabled){console.error("ISOLATED_RESTART_FAILED",JSON.stringify(Plugins.runtimeErrors));Qt.quit();}else console.log("ISOLATED_RESTART_OK");}}
  ScreenState { id: popupState; modelData: Quickshell.screens[0] }
  Bar.BarWrapper { id: testBar; parent:host; screen:Quickshell.screens[0]; screenState:popupState; popouts:popupPanels.popouts; fullscreen:false }
  Drawers.Panels { id:popupPanels; parent:host; screen:Quickshell.screens[0]; screenState:popupState; bar:testBar; borderThickness:0 }
@@ -517,6 +526,7 @@ ShellRoot {
             path.write_text(fake)
         path.chmod(0o700)
     (base/'config/hics').mkdir(parents=True,exist_ok=True)
+    (base/'config/hics/plugins.json').write_text(json.dumps({'enabled':{'isolated-counter':True}}))
     (base/'config/hics/workspace.json').write_text(json.dumps({'clipboard':{'enabled':False}}))
     env = dict(os.environ, QT_QPA_PLATFORM='wayland', QT_QUICK_BACKEND='software',
         XDG_CONFIG_HOME=str(base / 'config'), XDG_STATE_HOME=str(base / 'state'),
@@ -562,7 +572,7 @@ ShellRoot {
             'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=120)
         output = run.stdout + run.stderr
         print(output[-24000:])
-        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'VPN_CREDENTIALS_DELETE_OK' in output and 'SETTINGS_EXPANSION_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
+        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'VPN_CREDENTIALS_DELETE_OK' in output and 'ISOLATED_RESTART_OK' in output and 'ISOLATED_WIDGET_OK' in output and 'SETTINGS_EXPANSION_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
         forbidden = ('TypeError:', 'ReferenceError:', 'Unable to assign', 'PAGE_CREATION_FAILED', 'Cannot assign to non-existent', 'Binding loop', 'NOTIFICATION_TEST_FAILED')
         assert not any(message in output for message in forbidden), 'QML runtime errors'
         import json

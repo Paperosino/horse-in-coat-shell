@@ -86,7 +86,9 @@ int main(int argc, char **argv) {
     const auto mode = args.first();
     QTimer::singleShot(0, &app, [&] {
       try {
-        if (mode == "capture")
+        if(mode=="project")
+          session.captureProject(args.value(1,"Project"),-1,args.value(2,"1").toInt(),args.value(3,"stacking"),args.contains("--theme"));
+        else if (mode == "capture")
           session.capture(args.contains("--automatic")
                               ? "Automatic checkpoint"
                               : args.value(1, "Session"),

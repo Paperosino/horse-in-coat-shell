@@ -79,13 +79,9 @@ if("shell" IN_LIST ENABLE_MODULES)
         DESTINATION "${INSTALL_QSCONFDIR}/assets"
         PATTERN "__pycache__" EXCLUDE PATTERN "*.pyc" EXCLUDE
         PATTERN "README.md" EXCLUDE)
-    install(FILES
-        assets/migrate_branding.py assets/diagnostics.py assets/hics_cli.py assets/i18n.py
-        assets/notification_tools.py assets/session_runner.py assets/theme_manager.py assets/gtk_theme.py
-        assets/feature_common.py assets/system_controls.py assets/live_wallpapers.py
-        assets/plugin_manager.py assets/assistant_backend.py assets/clipboard_helper.py
-        assets/default_apps_helper.py assets/layout_controls.py assets/appearance_themes.py
-        assets/logo.svg assets/bongocat.gif assets/kurukuru.gif assets/dino.png
+    file(GLOB shell_asset_scripts CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/*.py")
+    install(FILES ${shell_asset_scripts} DESTINATION "${INSTALL_QSCONFDIR}/assets")
+    install(FILES assets/logo.svg assets/bongocat.gif assets/kurukuru.gif assets/dino.png
         DESTINATION "${INSTALL_QSCONFDIR}/assets")
     install(PROGRAMS assets/wrap_term_launch.sh DESTINATION "${INSTALL_QSCONFDIR}/assets")
 

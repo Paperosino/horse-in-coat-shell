@@ -68,6 +68,7 @@ def load_capture_plugin(name="hics-capture"):
 
 def run_session():
     lockpath, eventpath = paths()
+    subprocess.run([sys.executable,str(Path(__file__).with_name("accessibility_manager.py")),"startup"],stdout=subprocess.DEVNULL,timeout=20,check=False)
     from gtk_theme import restore as restore_gtk_theme
     try:
         restore_gtk_theme()
@@ -103,6 +104,8 @@ def run_session():
         session_disconnected = False
         try:
             # The native shell service owns clipboard capture and its privacy policy.
+            from extension_recovery import begin as begin_extensions, finish as finish_extensions
+            begin_extensions()
             shell = subprocess.Popen(["hics-shell"], start_new_session=True)
             children.append(shell)
             with selectors.DefaultSelector() as selector:
@@ -136,8 +139,13 @@ def run_session():
                             signals = os.read(readfd, 4096)
                             if signal.SIGTERM in signals or signal.SIGINT in signals:
                                 done = True
+        except BaseException:
+            result=1
+            raise
         finally:
             stop_child_groups(children, session_disconnected)
+            if "finish_extensions" in locals():
+                finish_extensions(result)
             if session_disconnected and shutil.which("hics-workspace"):
                 subprocess.run(["hics-workspace","cleanup"],timeout=5,check=False)
             event.close()

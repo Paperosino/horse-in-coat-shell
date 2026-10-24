@@ -48,6 +48,7 @@ int main(int argc,char **argv){
     puts(QJsonDocument::fromVariant(result).toJson(QJsonDocument::Compact).constData());return 0;
    }
    if(mode=="capture-and-autosave"){session.capture("Manual",false);wait();session.capture("Automatic",true);}
+   else if(mode=="capture-project")session.captureProject(args.value(2,"Project"),args.value(3,"0").toInt(),args.value(4,"3").toInt(),"stacking",true);
    else if(mode=="capture")session.capture(args.value(2,"Fixture"),args.value(3)=="automatic");
    else if(mode=="import-desktop")session.importDesktop(args.value(2));
    else if(mode=="import-file")session.importFile(QUrl::fromLocalFile(args.value(2)));
