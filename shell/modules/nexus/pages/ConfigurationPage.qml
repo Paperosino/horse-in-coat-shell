@@ -23,7 +23,8 @@ PageBase {
  Component.onCompleted:DesktopConfiguration.refresh()
  ColumnLayout {
   width:root.cappedWidth;anchors.horizontalCenter:parent.horizontalCenter;spacing:Tokens.spacing.medium
-  FeatureError {error:DesktopConfiguration.error}\n  FeatureError {error:DesktopConfiguration.data.recoveryWarning??""}
+  FeatureError {error:DesktopConfiguration.error}
+  FeatureError {error:DesktopConfiguration.data.recoveryWarning || ""}
   SettingsCard {
    title:Tr.tr(root.profilesOnly?"Your whole desktop, together":"A way back from every change")
    description:Tr.tr(root.profilesOnly?"Panels, dock, widgets, typography, colours, wallpapers and window mode travel together. Try a profile before keeping it.":"Automatic checkpoints record configuration changes without clipboard contents or assistant credentials. Restore only the sections you need.")

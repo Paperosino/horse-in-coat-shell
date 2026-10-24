@@ -158,7 +158,8 @@ def record(language,only):
     print(language,'ONBOARDING_STEPS_SKIP_REPLAY_OK',flush=True)
    for name,action in demos.items():
     if not only or name in only:shoot(name,action)
-   output=DEST/language/'manifest.json';old=json.loads(output.read_text()) if output.exists() else {'recordings':[]};old['recordings']=[r for r in old['recordings'] if r['id'] not in {m['id'] for m in manifest}]+manifest;old['version']=1;old['recorded']=int(time.time());output.write_text(json.dumps(old,ensure_ascii=False,indent=2))
+   if manifest:
+    output=DEST/language/'manifest.json';old=json.loads(output.read_text()) if output.exists() else {'recordings':[]};old['recordings']=[r for r in old['recordings'] if r['id'] not in {m['id'] for m in manifest}]+manifest;old['version']=1;old['recorded']=int(time.time());output.write_text(json.dumps(old,ensure_ascii=False,indent=2))
    logs=(base/'shell.log').read_text();errors=[line for line in logs.splitlines() if any(s in line for s in ('TypeError:','ReferenceError:','DEMO_CONTROL_ERROR','Failed to load configuration'))]
    if errors:raise RuntimeError('\n'.join(errors[-20:]))
   except Exception:

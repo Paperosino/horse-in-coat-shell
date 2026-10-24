@@ -21,7 +21,7 @@ ColumnLayout {
   FeatureError {error:system.error}
   InfoRow {label:Tr.tr("Current system locale");value:(system.state.current??[]).join(" · ")}
   TextFieldRow {label:Tr.tr("Find a locale");value:root.query;placeholderText:"ru_RU · English · Deutsch";onValueEdited:v=>root.query=v}
-  GenericSettingRow {spec:({label:"System locale",type:"choice",choices:(system.state.locales??[]).filter(l=>!root.query||l.id.toLowerCase().includes(root.query.toLowerCase())||l.name.toLowerCase().includes(root.query.toLowerCase())).slice(0,80).map(l=>({value:l.id,label:l.name})),value:root.selected});onEdited:v=>root.selected=v}
+  GenericSettingRow {spec:({label:"System locale",type:"choice",choices:(system.state.locales??[]).filter(l=>root.query?(l.id.toLowerCase().includes(root.query.toLowerCase())||l.name.toLowerCase().includes(root.query.toLowerCase())):(l.id===root.selected||["ru_RU","en_US","en_GB","de_DE","fr_FR","es_ES","it_IT","pt_BR"].some(code=>l.id.startsWith(code+".")))).slice(0,80).map(l=>({value:l.id,label:l.name})),value:root.selected});onEdited:v=>root.selected=v}
   ToggleRow {text:Tr.tr("Use the same locale for dates and numbers");checked:root.allFormats;onToggled:root.allFormats=checked}
   RowButton {text:system.busy?Tr.tr("Generating locale…"):Tr.tr("Apply system locale");icon:"language";disabled:system.busy||!root.selected;onClicked:root.applySelected()}
  }
