@@ -27,10 +27,15 @@ const QStringList managers{"org.gnome.Nautilus.desktop",
                            "pcmanfm-qt.desktop",
                            "pcmanfm.desktop",
                            "caja.desktop",
-                           "spacefm.desktop"};
+                           "spacefm.desktop",
+                           "org.xfce.Thunar.desktop",
+                           "org.mate.Caja.desktop"};
 const QStringList archivers{"org.gnome.FileRoller.desktop",
-                            "org.kde.ark.desktop", "xarchiver.desktop",
-                            "engrampa.desktop"};
+                            "org.kde.ark.desktop",
+                            "xarchiver.desktop",
+                            "engrampa.desktop",
+                            "org.xfce.Xarchiver.desktop",
+                            "org.mate.Engrampa.desktop"};
 const QStringList archiveTypes{"application/zip",
                                "application/x-tar",
                                "application/gzip",
@@ -40,18 +45,6 @@ const QStringList archiveTypes{"application/zip",
                                "application/x-bzip-compressed-tar",
                                "application/x-xz-compressed-tar",
                                "application/zstd"};
-QStringList handlers(const QStringList &known, const char *mime) {
-  auto result = known;
-  auto *apps = g_app_info_get_all_for_type(mime);
-  for (auto *item = apps; item; item = item->next) {
-    const auto id =
-        QString::fromUtf8(g_app_info_get_id(G_APP_INFO(item->data)));
-    if (!id.isEmpty() && !result.contains(id) && result.size() < 128)
-      result.append(id);
-  }
-  g_list_free_full(apps, g_object_unref);
-  return result;
-}
 QString current(const char *mime) {
   auto *app = g_app_info_get_default_for_type(mime, false);
   if (!app)
@@ -163,8 +156,8 @@ void Service::integration(const QSharedPointer<Job> &job) {
         return result;
       };
       return QJsonObject{
-          {"managers", inspect(handlers(managers, "inode/directory"), fm)},
-          {"archivers", inspect(handlers(archivers, "application/zip"), zip)},
+          {"managers", inspect(managers, fm)},
+          {"archivers", inspect(archivers, zip)},
           {"manager", fm},
           {"archiver", zip},
           {"canUndo",
@@ -214,10 +207,9 @@ void Service::integration(const QSharedPointer<Job> &job) {
       return QJsonObject{{"ok", true}};
     }
     const auto kind = args["kind"].toString(), id = args["id"].toString();
-    const auto allowed =
-        kind == "manager"    ? handlers(managers, "inode/directory")
-        : kind == "archiver" ? handlers(archivers, "application/zip")
-                             : QStringList{};
+    const auto allowed = kind == "manager"    ? managers
+                         : kind == "archiver" ? archivers
+                                              : QStringList{};
     const auto existing =
         current(kind == "manager" ? "inode/directory" : "application/zip");
     if (allowed.isEmpty() || (!allowed.contains(id) && id != existing))

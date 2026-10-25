@@ -169,3 +169,8 @@ Stopping that masked unit can therefore terminate applications sharing its cgrou
 For controlled maintenance, stop an unmasked unit with verified KillMode=process
 first, then mask it while inactive; unmask before starting. Ordinary package hooks
 restart the unmasked unit. New recovery launches can use separate user app scopes.
+
+Package 60 tightens integration discovery: advertising inode/directory or ZIP
+support does not make an application a file manager or archiver (Kate and terminal
+URL launchers are real counterexamples). List known implementations plus the
+user's existing custom default; tests exclude those misleading MIME handlers.

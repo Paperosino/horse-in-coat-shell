@@ -50,7 +50,7 @@ def fixture():
         applications=base/'data/applications';applications.mkdir(parents=True)
         spy=base/'launch.py';spy.write_text('import json,sys,os\nwith open(os.environ["HICS_LAUNCH_TRACE"],"a") as target:target.write(json.dumps(sys.argv[1:])+"\\n")\n')
         env['HICS_LAUNCH_TRACE']=str(base/'launch.jsonl');env['HICS_FM_TRACE']=str(base/'reveal.json')
-        for ident,name in [('org.gnome.Nautilus','Fixture Nautilus'),('org.kde.dolphin','Fixture Dolphin'),('org.gnome.FileRoller','Fixture Archiver')]:
+        for ident,name in [('org.gnome.Nautilus','Fixture Nautilus'),('org.kde.dolphin','Fixture Dolphin'),('org.gnome.FileRoller','Fixture Archiver'),('org.kde.kate','Non-FM directory handler')]:
             (applications/(ident+'.desktop')).write_text('[Desktop Entry]\nType=Application\nName='+name+'\nExec=/usr/bin/python3 '+str(spy)+' '+ident+' %U\nMimeType=inode/directory;application/zip;\n')
         config=base/'config';config.mkdir()
         mimeapps=config/'mimeapps.list';original='[Default Applications]\ninode/directory=org.gnome.Nautilus.desktop;\n'
@@ -75,6 +75,8 @@ def fixture():
                 except subprocess.CalledProcessError:time.sleep(.05)
             integration=job('integration.status')['result']
             assert any(row['id']=='org.kde.dolphin.desktop' for row in integration['managers']),integration
+            assert not any(row['id']=='org.kde.kate.desktop' for row in integration['managers']),integration
+            assert not any(row['id']=='org.gnome.Nautilus.desktop' for row in integration['archivers']),integration
             assert not job('integration.prefer',kind='manager',id='org.kde.dolphin.desktop')['error']
             assert 'org.kde.dolphin.desktop' in mimeapps.read_text()
             assert not job('integration.undo')['error']
