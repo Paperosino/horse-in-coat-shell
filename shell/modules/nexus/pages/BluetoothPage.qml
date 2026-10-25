@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import Quickshell
 import Quickshell.Bluetooth
 import Hyprstack.Services
@@ -20,6 +21,9 @@ PageBase {
     readonly property BluetoothAdapter adapter: Bluetooth.defaultAdapter // qmllint disable unresolved-type
     readonly property bool btEnabled: adapter?.enabled ?? false
 
+    property DesktopBackend transfers:DesktopBackend{}
+    property string sendAddress:""
+    property FileDialog sender:FileDialog {fileMode:FileDialog.OpenFile;onAccepted:root.transfers.call("transfer.send",{address:root.sendAddress,path:Paths.toLocalFile(selectedFile)})}
     title: Tr.tr("Connected devices")
 
     ColumnLayout {
@@ -31,6 +35,8 @@ PageBase {
         SettingsCard {
             title:Tr.tr("Send & receive files")
             icon:"send"
+            Repeater {model:root.adapter?.devices.values.filter(device=>device.paired)??[];RowButton {required property var modelData;text:Tr.tr("Send a file to %1").arg(modelData.name||modelData.address);icon:"send";disabled:root.transfers.busy||!root.btEnabled;onClicked:{root.sendAddress=modelData.address;root.sender.open();}}}
+            FeatureError {error:root.transfers.error}
             RowButton {first:true;text:Tr.tr("Send files over Bluetooth");icon:"bluetooth";disabled:!root.btEnabled;onClicked:DesktopConveniences.launch("bluetooth")}
             RowButton {text:Tr.tr("Receive files over Bluetooth");subtext:Tr.tr("Opens the Bluetooth transfer assistant; approve incoming transfers in notifications");icon:"download";disabled:!root.btEnabled;onClicked:DesktopConveniences.launch("bluetooth-receive")}
             RowButton {text:Tr.tr("LocalSend");subtext:Tr.tr("Share with phones and computers on the same network");icon:"devices";onClicked:DesktopConveniences.launch("localsend")}

@@ -260,6 +260,11 @@ QtObject {
         Component { StackPage { Component { SettingsWorkbenchPage {} } } },
         Component { StackPage { Component { DiagnosticsPage {} } } },
         Component { StackPage { Component { OnboardingPage {} } } },
+        Component { StackPage { Component { PasswordsPage {} } } },
+        Component { StackPage { Component { OperationsPage {} } } },
+        Component { StackPage { Component { BackupPage {} } } },
+        Component { StackPage { Component { FileSearchPage {} } } },
+        Component { StackPage { Component { PresentationPage {} } } },
         Component { StackPage { Component { PerformancePage {} } } }
     ]
 

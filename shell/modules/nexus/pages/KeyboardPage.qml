@@ -285,6 +285,8 @@ PageBase {
 
             // Compose key
         }
+        CharacterPicker {}
+        InputMethods {}
         SettingsCard {
             title: Tr.tr("Compose key")
             icon: "keyboard"

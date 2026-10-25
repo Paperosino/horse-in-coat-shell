@@ -20,6 +20,22 @@ StyledListView {
     property bool appsOnly: false
     signal appLaunched()
 
+    property var fileResults:[]
+    property int fileRequest:0
+    property DesktopBackend filesBackend:DesktopBackend{}
+    Timer {
+        id:fileSearchDelay;interval:180
+        onTriggered:{
+            const mode=root.stateForText(root.search.text);
+            const query=root.search.text.slice((GlobalConfig.launcher.actionPrefix+mode+" ").length).trim();
+            const generation=++root.fileRequest;
+            const op=mode==="symbols"?"input.symbols":query?"search.query":"search.recent";
+            root.filesBackend.call(op,mode==="symbols"?{query,category:query?"all":"emoji"}:query?{query}: {},value=>{
+                if(generation!==root.fileRequest||root.stateForText(root.search.text)!==mode)return;
+                root.fileResults=(value.items??[]).map(item=>mode==="symbols"?({name:`${item.text}  ${item.name}`,desc:item.code??"",icon:"mood",onClicked:list=>{root.filesBackend.call("input.copy",{text:item.text});list.screenState.launcher=false;}}):({name:item.name,desc:item.path,icon:"description",onClicked:list=>{Quickshell.execDetached(["gio","open",item.path]);list.screenState.launcher=false;}}));
+            });
+        }
+    }
     property string displayText
 
     readonly property string requestedState: stateForText(search.text)
@@ -34,7 +50,7 @@ StyledListView {
         if (appsOnly) return "apps";
         const prefix = GlobalConfig.launcher.actionPrefix;
         if (text.startsWith(prefix)) {
-            for (const action of ["calc", "scheme", "variant"])
+            for (const action of ["calc", "scheme", "variant", "files", "symbols"])
                 if (text.startsWith(`${prefix}${action} `))
                     return action;
 
@@ -46,6 +62,9 @@ StyledListView {
 
     function resultsForText(text: string): var {
         switch (stateForText(text)) {
+        case "symbols":
+        case "files":
+            return fileResults;
         case "actions":
             return Actions.query(text);
         case "calc":
@@ -98,6 +117,8 @@ StyledListView {
     Component.onCompleted: displayText = search.text
 
     states: [
+        State {name:"files";PropertyChanges {root.delegate:actionItem}},
+        State {name:"symbols";PropertyChanges {root.delegate:actionItem}},
         State {
             name: "apps"
 
@@ -296,6 +317,9 @@ StyledListView {
 
     Connections {
         function onTextChanged() {
+            ++root.fileRequest;
+            if(["files","symbols"].includes(root.stateForText(root.search.text)))fileSearchDelay.restart();
+            else {fileSearchDelay.stop();root.fileResults=[];}
             root.syncDisplayText();
         }
 

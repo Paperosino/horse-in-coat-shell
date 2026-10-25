@@ -56,7 +56,7 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
  def test_reload_and_try_restart_each_running_user_manager(self):
   self.env['HICS_TEST_UNITS']+='\nuser@invalid.service loaded active running invalid\nunrelated.service loaded active running other'
   result,commands=self.run_hook()
-  self.assertEqual([c for c in commands[1:] if c[-1]!='show-environment'],[['--user','--machine=1000@.host','daemon-reload'],['--user','--machine=1000@.host','try-restart','hics-configuration.service'],['--user','--machine=1000@.host','try-restart','hics-displays.service'],['--user','--machine=1000@.host','try-restart','hic-session.service'],['--user','--machine=1001@.host','daemon-reload'],['--user','--machine=1001@.host','try-restart','hics-configuration.service'],['--user','--machine=1001@.host','try-restart','hics-displays.service'],['--user','--machine=1001@.host','try-restart','hic-session.service']])
+  self.assertEqual([c for c in commands[1:] if c[-1]!='show-environment'],[['--user','--machine=1000@.host','daemon-reload'],['--user','--machine=1000@.host','try-restart','hics-configuration.service'],['--user','--machine=1000@.host','try-restart','hics-displays.service'],['--user','--machine=1000@.host','try-restart','hics-desktop.service'],['--user','--machine=1000@.host','try-restart','hic-session.service'],['--user','--machine=1001@.host','daemon-reload'],['--user','--machine=1001@.host','try-restart','hics-configuration.service'],['--user','--machine=1001@.host','try-restart','hics-displays.service'],['--user','--machine=1001@.host','try-restart','hics-desktop.service'],['--user','--machine=1001@.host','try-restart','hic-session.service']])
   # A plain restart/start would also launch shells in inactive or TTY sessions.
   self.assertFalse(any('restart' in command or 'start' in command for command in commands))
   self.assertEqual(result.stderr,'')
@@ -86,6 +86,7 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
   self.assertIn('RuntimeDirectoryPreserve=yes',memory_unit)
   self.assertIn(['restart','hics-system.service'],commands)
   self.assertIn(['--global','enable','hic-session.service'],commands)
+  self.assertIn(['--global','enable','hics-desktop.service'],commands)
 
  def test_first_install_starts_shell_only_with_hyprland_environment(self):
   self.env['HICS_TEST_MANAGER_ENV']='HYPRLAND_INSTANCE_SIGNATURE=fixture\nWAYLAND_DISPLAY=wayland-1'

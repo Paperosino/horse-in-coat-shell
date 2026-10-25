@@ -17,7 +17,7 @@ Item {
     property bool retainContent: false
     readonly property Props props: Props {}
 
-    readonly property bool shouldBeActive: screenState.sidebar && Config.sidebar.enabled
+    readonly property bool shouldBeActive: screenState.sidebar && Config.sidebar.enabled && !(Presentation.privateOn(root.screenState.modelData))
     property real offsetScale: shouldBeActive && readyToOpen ? 0 : 1
 
     visible: offsetScale < 1

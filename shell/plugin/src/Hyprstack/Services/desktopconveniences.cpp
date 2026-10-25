@@ -1,3 +1,4 @@
+#include "desktopjobs.hpp"
 #include "desktopconveniences.hpp"
 #include "safecleanup.hpp"
 #include "util/applicationenv.hpp"
@@ -338,6 +339,8 @@ void DesktopConveniences::cleanupJob(const QString &category, int days,
                                      bool remove) {
   if (m_busy)
     return;
+  auto report=[remove](const QString& phase,const QString& error=QString()){if(!remove)return;auto call=QDBusMessage::createMethodCall(u"org.hics.Desktop1"_s,u"/org/hics/Desktop1"_s,u"org.hics.Desktop1"_s,u"Report"_s);call.setArguments({u"cleanup"_s,u"maintenance.cleanup"_s,phase,-1.0,QCoreApplication::applicationPid(),error});QDBusConnection::sessionBus().asyncCall(call,5000);};
+  report(u"running"_s);
   m_busy = true;
   m_error.clear();
   emit changed();
@@ -349,11 +352,12 @@ void DesktopConveniences::cleanupJob(const QString &category, int days,
       u"/Trash"_s;
   auto *watcher = new QFutureWatcher<QVariantMap>(this);
   connect(watcher, &QFutureWatcher<QVariantMap>::finished, this,
-          [this, watcher] {
+          [this, watcher,report] {
             m_cleanup = watcher->result();
             m_error = m_cleanup.value(u"error"_s).toString();
             watcher->deleteLater();
             m_busy = false;
+            report(m_error.isEmpty()?u"completed"_s:u"failed"_s,m_error);
             emit changed();
           });
   watcher->setFuture(QtConcurrent::run([cache, trash, category, days, remove] {

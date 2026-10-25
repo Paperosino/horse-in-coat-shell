@@ -74,6 +74,8 @@ PageBase {
             }
         }
 
+        ApplicationPermissions {application:root.app}
+
         // Launcher
         SettingsCard {
             title: Tr.tr("Launcher")

@@ -48,6 +48,10 @@ class Update(Installer):
         for file in self.tree(ROOT / "distribution/defaults/hics", self.config / "hics"):
             file.preserve = file.path.name != "hypr-user.lua"
             yield file
+        yield from self.tree(self.staging / "lib/systemd/user/hics-desktop.service",
+                             self.config / "systemd/user/hics-desktop.service")
+        yield from self.tree(self.staging / "share/dbus-1/services/org.hics.Desktop1.service",
+                             self.data / "dbus-1/services/org.hics.Desktop1.service")
         yield from self.tree(ROOT / "distribution/systemd/user/hic-session.service",
                              self.config / "systemd/user/hic-session.service")
         yield from self.tree(ROOT / "distribution/systemd/user/hics-configuration.service",
@@ -175,6 +179,19 @@ def rollback(update, dry_run=False):
         print("Восстановлено из:", directory)
 
 
+def report_operation(phase):
+    """Best-effort progress in the user desktop service; no update logs or arguments."""
+    if not shutil.which("gdbus"):
+        return
+    try:
+        subprocess.run(["gdbus", "call", "--session", "--dest", "org.hics.Desktop1",
+                        "--object-path", "/org/hics/Desktop1", "--method", "org.hics.Desktop1.Report",
+                        "--", "shell-update", "update.install", phase,
+                        "1.0" if phase == "completed" else "-1.0", str(os.getpid()), ""],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
 def main(argv=None):
     arguments = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(description="Обновить Hyprstack с резервной копией и сохранением настроек")
@@ -184,6 +201,7 @@ def main(argv=None):
     parser.add_argument("--jobs", type=int, choices=range(1, 65), default=2, metavar="N", help="Параллельные задачи сборки (по умолчанию 2)")
     args = parser.parse_args(arguments)
     update = Update()
+    reported = successful = False
     try:
         if os.geteuid() == 0:
             raise ValueError("Запускайте ./update.sh обычным пользователем, без sudo")
@@ -203,6 +221,8 @@ def main(argv=None):
                 print("Резервные копии:", update.root / "backups")
             return 0
         require_logged_out(update)
+        report_operation("running")
+        reported = True
         with installation_lock(update):
             if not args.rollback and not args.no_pull and pull_sources():
                 # Reload the updater itself if git pull brought a newer implementation.
@@ -224,12 +244,17 @@ def main(argv=None):
                     update.transaction("install")
         if shutil.which("systemctl"):
             subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
-            subprocess.run(["systemctl", "--user", "enable", "hic-session.service"], check=True)
+            subprocess.run(["systemctl", "--user", "enable", "hic-session.service", "hics-desktop.service"], check=True)
+        successful = True
         print("Готово. Войдите в Hyprland и выполните hics-doctor.", flush=True)
         return 0
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print("Обновление остановлено:", error, file=sys.stderr)
         return 1
+
+    finally:
+        if reported:
+            report_operation("completed" if successful else "failed")
 
 
 if __name__ == "__main__":

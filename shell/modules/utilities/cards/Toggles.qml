@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell.Bluetooth
 import Hyprstack.Components
+import Hyprstack.Services
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
@@ -137,6 +138,23 @@ StyledRect {
                         icon: "notifications_off"
                         checked: Notifs.dnd
                         onClicked: Notifs.dnd = !Notifs.dnd
+                    }
+                }
+                DelegateChoice {
+                    roleValue: "presentation"
+                    delegate: Toggle {
+                        icon: "present_to_all"
+                        checked: Presentation.active
+                        onClicked: { if (Presentation.active) Presentation.end(); else Presentation.begin(root.screenState.modelData.name); }
+                    }
+                }
+                DelegateChoice {
+                    roleValue: "camera"
+                    delegate: Toggle {
+                        icon: "videocam_off"
+                        checked: DesktopConveniences.cameraBlocked
+                        enabled: !DesktopConveniences.busy
+                        onClicked: DesktopConveniences.setCameraBlocked(!DesktopConveniences.cameraBlocked)
                     }
                 }
                 DelegateChoice {

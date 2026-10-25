@@ -17,6 +17,10 @@ class NativeSystemTests(unittest.TestCase):
  def test_storage_only_accepts_udisks_volumes(self):
   self.invalid('storage','mount',{'path':'/org/freedesktop/systemd1'})
   self.invalid('storage','format',{'path':'/org/freedesktop/UDisks2/block_devices/sda'})
+ def test_application_administration_rejects_untrusted_identifiers(self):
+  for op,payload in [('remove',{'desktop':'../../etc/passwd','version':'1'}),('remove',{'desktop':'--help.desktop','version':'1'}),('enforce',{'profile':'../usr.bin.test'}),('disable-profile',{'profile':'-all'}),('profile-save',{'profile':'usr.bin.fixture','content':'untrusted','sha256':'wrong'}),('service-enable',{'enabled':'yes'}),('exec',{'command':'id'})]:
+   with self.subTest(operation=op):self.invalid('applications',op,payload)
+  self.invalid('secrets','authorize',{'password':'never-forward-to-root'})
  def test_invalid_json_never_reaches_bus(self):
   result=subprocess.run([str(CLIENT),'apply','power','profile'],input='{"bad":',text=True,capture_output=True,timeout=3)
   self.assertEqual(json.loads(result.stdout)['code'],'invalid')

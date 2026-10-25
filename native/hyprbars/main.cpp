@@ -25,6 +25,8 @@
 #include "scrolling-opening.hpp"
 #include "client-surface.hpp" // HYPRSTACK_CLIENT_SURFACE
 #include <set>
+#include <nlohmann/json.hpp>
+#include <hyprland/src/managers/KeybindManager.hpp>
 #include <hyprland/src/devices/IKeyboard.hpp>
 #include <hyprland/src/layout/target/WindowTarget.hpp>
 #include "floating-dialogs.hpp"
@@ -137,6 +139,18 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
 
 // HYPRSTACK_TASK_TRANSFORMER: client geometry is never part of a task animation.
 // HYPRSTACK_TASK_BUTTON_TARGET: enter the real task rectangle behind the bar.
+static int unresponsiveLua(lua_State* L) {
+    nlohmann::json rows = nlohmann::json::array();
+    for (const auto& window : Desktop::windowState()->windows()) {
+        if (!window || !window->m_isMapped || !window->isNotResponding()) continue;
+        rows.push_back({{"address",std::format("0x{:x}",reinterpret_cast<uintptr_t>(window.get()))},
+            {"stableId",std::format("{:x}",window->m_stableID)}, {"application",window->m_class.substr(0,256)}, {"title",window->m_title.substr(0,512)}});
+        if(rows.size()>=64)break;
+    }
+    const auto json=rows.dump(-1,' ',false,nlohmann::json::error_handler_t::replace);
+    lua_pushlstring(L,json.data(),json.size());return 1;
+}
+
 int animateLuaWindow(lua_State* L) {
     const std::string address = luaL_checkstring(L, 1), id = luaL_checkstring(L, 2), operation = luaL_checkstring(L, 3);
     PHLWINDOW window;
@@ -145,6 +159,14 @@ int animateLuaWindow(lua_State* L) {
             std::format("{:x}", w->m_stableID) == id) { window = w; break; }
     }
     if (!window) { lua_pushboolean(L, false); return 1; }
+    if (operation == "terminate-unresponsive") {
+        // Resolve both compositor identities in this event-loop turn. Never
+        // accept a PID from QML or target the newly focused application.
+        if (!window->isNotResponding()) {lua_pushboolean(L,false);return 1;}
+        const auto dispatcher=g_pKeybindManager->m_dispatchers.find("signalwindow");
+        if(dispatcher==g_pKeybindManager->m_dispatchers.end()){lua_pushboolean(L,false);return 1;}
+        dispatcher->second("address:"+address+",9");lua_pushboolean(L,true);return 1;
+    }
     if (operation == "telegram-webview-parent") {
         const auto parent = telegramWebviewParent(window);
         if (parent) {
@@ -377,6 +399,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     if (Config::mgr()->type() == Config::CONFIG_LEGACY)
         HyprlandAPI::addConfigKeyword(PHANDLE, "plugin:hyprbars:hyprbars-button", onNewButton, Hyprlang::SHandlerOptions{});
     else {
+        HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "unresponsive", ::unresponsiveLua);
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "ready", +[](lua_State* L) {
             lua_pushboolean(L, g_pCompositor && g_pCompositor->m_initialized);
             return 1;

@@ -114,6 +114,8 @@ Item {
             }
         }
 
+        Popout {name:"operations";sourceComponent:Operations {popouts:root.popouts}}
+
         Popout {
             name: "battery"
             sourceComponent: Battery {}
@@ -176,7 +178,7 @@ Item {
         id: popout
 
         required property string name
-        readonly property bool shouldBeActive: root.popouts.currentName === name
+        readonly property bool shouldBeActive: root.popouts.currentName === name && !(["tasks", "activewindow"].includes(name) && Presentation.privateOn(QsWindow.window?.screen))
         property bool ready: true
 
         anchors.centerIn: parent

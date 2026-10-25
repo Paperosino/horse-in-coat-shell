@@ -5,6 +5,7 @@ import Quickshell
 import Hyprstack
 import Hyprstack.Config
 import Hyprstack.I18n
+import qs.services
 import qs.components
 import qs.components.filedialog
 import qs.utils
@@ -32,7 +33,7 @@ Item {
     readonly property real nonAnimWidth: (content.item as Content)?.nonAnimWidth ?? 0
     readonly property bool resizing: shouldBeActive && contentPrepared
         && (Math.abs(height - nonAnimHeight) > 0.5 || Math.abs(width - nonAnimWidth) > 0.5)
-    readonly property bool shouldBeActive: screenState.dashboard && Config.dashboard.enabled
+    readonly property bool shouldBeActive: !(Presentation.privateOn(root.screenState.modelData)) && screenState.dashboard && Config.dashboard.enabled
     property bool contentPrepared: false
     property bool retainContent: false
     property bool preparingGraphics: false

@@ -20,6 +20,7 @@ Scope {
     property var convenience: DesktopConveniences
     Binding { target: DesktopConveniences; property: "dockInhibitRequested"; value: GlobalConfig.general.idle.keepAwakeDocked && root.externalDisplay }
     readonly property bool enabled: {
+        if (Presentation.active) return false;
         if (GlobalConfig.general.idle.inhibitWhenAudio && hasPlayer)
             return false;
         if (GlobalConfig.general.idle.inhibitWhenCharging && isCharging)

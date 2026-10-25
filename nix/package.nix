@@ -1,5 +1,6 @@
 { lib, stdenv, cmake, ninja, pkg-config, gettext, makeWrapper, qt6
 , hyprland, quickshell, python3, libqalculate, lm_sensors, pixman, libdrm
+, icu, poppler-utils, hyprland-guiutils, gamemode, flatpak, apparmor-utils, restic, timeshift, seahorse, fcitx5, fcitx5-configtool, squeekboard
 , glib, libsecret, gnome-keyring, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
@@ -11,7 +12,7 @@ let
   runtime = [ glib quickshell hyprland python kitty firefox fuzzel btop pavucontrol
     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify brightnessctl
     networkmanager pipewire pulseaudio wireplumber polkit hyprlock hyprpicker xdg-utils
-    xdg-user-dirs libxml2 systemd libqalculate blueman gnome-keyring ];
+    xdg-user-dirs libxml2 systemd libqalculate blueman gnome-keyring cups poppler-utils hyprland-guiutils gamemode flatpak apparmor-utils restic timeshift seahorse fcitx5 fcitx5-configtool squeekboard ];
 in
 assert lib.assertMsg (hyprland.version == "0.56.2") "Hyprstack requires Hyprland 0.56.2";
 assert lib.assertMsg (lib.versionAtLeast quickshell.version "0.3.1") "Hyprstack requires Quickshell >= 0.3.1";
@@ -22,7 +23,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   inherit src;
 
   nativeBuildInputs = [ cmake ninja pkg-config gettext makeWrapper qt6.wrapQtAppsHook python hyprland ];
-  buildInputs = [ webkitgtk_6_0 gtk4 qt6.qtbase qt6.qtdeclarative qt6.qtshadertools qt6.qtmultimedia libqalculate lm_sensors networkmanager libsecret
+  buildInputs = [ webkitgtk_6_0 gtk4 qt6.qtbase qt6.qtdeclarative qt6.qtshadertools qt6.qtmultimedia libqalculate lm_sensors networkmanager libsecret icu
     hyprland.dev cups util-linux e2fsprogs lua5_4 hyprgraphics pixman libdrm libinput systemd wayland libxkbcommon pango cairo nlohmann_json ]
     ++ (hyprland.buildInputs or []);
 

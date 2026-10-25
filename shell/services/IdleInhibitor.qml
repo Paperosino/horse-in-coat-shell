@@ -8,6 +8,7 @@ Singleton {
     id: root
 
     property alias enabled: props.enabled
+    readonly property bool effectiveEnabled: props.enabled || Presentation.active
     readonly property alias enabledSince: props.enabledSince
 
     onEnabledChanged: {
@@ -25,9 +26,9 @@ Singleton {
     }
 
     IdleInhibitor {
-        enabled: props.enabled
+        enabled: root.effectiveEnabled
         window: PanelWindow {
-            visible: props.enabled
+            visible: root.effectiveEnabled
             implicitWidth: 0
             implicitHeight: 0
             color: "transparent"

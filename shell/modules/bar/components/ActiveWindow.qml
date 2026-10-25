@@ -17,6 +17,7 @@ Item {
     readonly property var client: Hypr.activeToplevelFor(bar.screen)
 
     readonly property string windowTitle: {
+        if (Presentation.privateOn(bar.screen)) return Tr.tr("Presentation mode");
         const title = client?.title;
         if (!title)
             return Tr.trCtx("Desktop", "shown when no window is focused");

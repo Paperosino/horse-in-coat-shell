@@ -46,6 +46,10 @@
 
 !/native/
 /native/*
+!/native/desktop/
+!/native/desktop/*.cpp
+!/native/desktop/*.hpp
+!/native/desktop/CMakeLists.txt
 !/native/portal/
 !/native/portal/*.cpp
 !/native/capture/
@@ -175,3 +179,5 @@
 !/shell/assets/feature_data/
 
 !/distribution/record_tour.py
+
+!/docs/DE_SERVICES_IMPLEMENTATION.md

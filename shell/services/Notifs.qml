@@ -137,8 +137,13 @@ Singleton {
         return false;
     }
 
+    Connections {
+        target: Presentation
+        function onActiveChanged(): void {if(Presentation.active && Presentation.hideNotifications)for(const notif of root.popups)notif.popup=false;}
+    }
+
     function shouldShowPopup(): bool {
-        if ((GameMode.enabled && hasFullscreen()) || props.dnd || NotificationPolicy.paused || ShellState.anySidebarOpen())
+        if ((Presentation.active && Presentation.hideNotifications) || (GameMode.enabled && hasFullscreen()) || props.dnd || NotificationPolicy.paused || ShellState.anySidebarOpen())
             return false;
         if (GlobalConfig.notifs.fullscreen === NotifsFullscreen.Off && hasFullscreen())
             return false;

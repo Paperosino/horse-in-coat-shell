@@ -851,7 +851,7 @@ Item {
 
     Item {
         id: windowPreview
-        visible: root.menuOpen && !!root.previewWindow && taskMenu.visible
+        visible: root.menuOpen && !!root.previewWindow && taskMenu.visible && !(Presentation.privateOn(root.screen))
         width: Math.min(320 * Tokens.scale, root.screen.width - 32 * Tokens.scale)
         height: 200 * Tokens.scale
         // Overlap the menu edge so both surfaces form one continuous blob.

@@ -4,9 +4,9 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 class ServiceTemplates(unittest.TestCase):
  def test_all_shell_services_expand_custom_bin_directory(self):
-  templates=[ROOT/'distribution/systemd/user'/f'{n}.service.in' for n in ('hic-session','hics-displays','hics-configuration')]
+  templates=[ROOT/'distribution/systemd/user'/f'{n}.service.in' for n in ('hic-session','hics-displays','hics-configuration','hics-desktop')]
   templates += [ROOT/'distribution/systemd/system'/f'{n}.service.in' for n in ('hics-system','hics-memory')]
-  templates += [ROOT/'distribution/dbus/org.hics.System1.service.in']
+  templates += [ROOT/'distribution/dbus/org.hics.System1.service.in', ROOT/'distribution/dbus/org.hics.Desktop1.service.in']
   with tempfile.TemporaryDirectory() as directory:
    base=Path(directory)
    for index,path in enumerate(templates):

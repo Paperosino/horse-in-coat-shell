@@ -22,7 +22,7 @@ QtObject {
         ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "input-devices", "shortcuts", "clipboard", "accessibility"]),
         ...navigationGroup("connections", ["network", "bluetooth", "sharing"]),
         ...navigationGroup("applications", ["apps", "default-apps", "autostart", "session-recovery", "projects", "notifications", "plugins", "assistant"]),
-        ...navigationGroup("system", ["power", "performance", "region", "datetime", "configuration-history", "settings-workbench", "desktop-health", "services", "first-steps", "about"])
+        ...navigationGroup("system", ["power", "performance", "region", "datetime", "configuration-history", "settings-workbench", "desktop-health", "passwords", "operations", "backup", "file-search", "presentation", "services", "first-steps", "about"])
     ])
     function navigationGroup(category: string, ids: list<string>): var {
         return ids.map(id => {
@@ -194,6 +194,11 @@ QtObject {
         {id:"settings-workbench",label:Tr.tr("Settings workbench"),icon:"tune",description:Tr.tr("Changed values, defaults and section resets"),category:"shell"},
         {id:"desktop-health",label:Tr.tr("Desktop health"),icon:"monitor_heart",description:Tr.tr("Checks, service recovery and local reports"),category:"shell"},
         {id:"first-steps",label:Tr.tr("First steps"),icon:"explore",description:Tr.tr("Introduction, initial setup and recorded demonstrations"),category:"shell"},
+        {id:"passwords",label:Tr.tr("Passwords & keys"),icon:"key",description:Tr.tr("Existing vaults, login unlock and recovery"),category:"shell"},
+        {id:"operations",label:Tr.tr("Background operations"),icon:"pending_actions",description:Tr.tr("Progress, results and cancellation"),category:"shell"},
+        {id:"backup",label:Tr.tr("Backup & restore"),icon:"backup",description:Tr.tr("User files and system snapshots"),category:"shell"},
+        {id:"file-search",label:Tr.tr("File search"),icon:"manage_search",description:Tr.tr("Documents, content and private exclusions"),category:"shell"},
+        {id:"presentation",label:Tr.tr("Presentation mode"),icon:"present_to_all",description:Tr.tr("Screens, privacy and temporary power policy"),category:"shell"},
         {id:"performance",label:Tr.tr("Performance & games"),icon:"speed",description:Tr.tr("Game mode, adaptive effects, power and background work"),category:"shell"}
     ]
 }

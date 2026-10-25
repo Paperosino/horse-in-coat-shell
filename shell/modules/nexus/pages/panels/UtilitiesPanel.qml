@@ -136,6 +136,17 @@ PageBase {
             }
 
             ToggleRow {
+                text: Tr.tr("Presentation mode")
+                checked: root.isToggleOn("presentation")
+                onToggled: root.setToggleOn("presentation", checked)
+            }
+            ToggleRow {
+                text: Tr.tr("Camera privacy")
+                subtext: Tr.tr("Block managed PipeWire camera access; direct V4L2 access is outside this switch")
+                checked: root.isToggleOn("camera")
+                onToggled: root.setToggleOn("camera", checked)
+            }
+            ToggleRow {
                 last: true
                 text: Tr.tr("VPN")
                 subtext: Tr.tr("Connect or disconnect the VPN")

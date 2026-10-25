@@ -258,6 +258,8 @@ static QJsonObject powerStatus() {
           {"degraded", p.value("PerformanceDegraded").toString()}};
 }
 QJsonObject status(const QString &domain, uint uid) {
+  if(domain=="secrets")return {{"available",true}};
+  if(domain=="applications")return applicationsStatus();
   if (domain == "region")
     return regionStatus();
   if (domain == "printers")
@@ -275,6 +277,8 @@ QJsonObject status(const QString &domain, uint uid) {
   throw Failure("invalid", "Unknown system settings section");
 }
 void validate(const QString &d, const QString &op, const QJsonObject &o) {
+  if(d=="secrets"){if(op!="authorize"||!o.isEmpty())throw Failure("invalid","Invalid keyring authorization request");return;}
+  if(d=="applications"){validateApplications(op,o);return;}
   if (d == "region") {
     validateRegion(op, o);
     return;
@@ -385,6 +389,8 @@ static void printerAction(const QString &op, const QJsonObject &o, uint uid) {
 }
 void apply(const QString &d, const QString &op, const QJsonObject &o,
            uint uid) {
+  if(d=="secrets")return;
+  if(d=="applications"){applyApplications(op,o);return;}
   if (d == "region") {
     applyRegion(op, o);
     return;

@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.hics.Desktop1
+Exec=@HICS_BIN_DIR@/hics-desktopd
+SystemdService=hics-desktop.service

@@ -27,7 +27,7 @@ ShellRoot {
  property int phase:0
  property bool narrow:false
  property bool controlledExpanded:false
- property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","keyboard","panels","region","storage","performance","application-rules"]
+ property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation"]
  FloatingWindow {
   id:win;visible:true;implicitWidth:1180;implicitHeight:820;color:Colours.palette.m3surface
   Nexus {id:settings;width:root.narrow?560:parent.width;height:parent.height;visible:!fixture.visible}
@@ -43,6 +43,7 @@ ShellRoot {
    }
   }
  }
+ function named(item,name){if(item.objectName===name)return item;for(const child of item.children??[]){const found=named(child,name);if(found)return found;}return null;}
  function check(value,message){if(!value){console.error("DESIGN_FAIL",message);Qt.exit(1);return false;}return true;}
  Component.onCompleted:{settings.nState.screen=Quickshell.screens[0];settings.nState.isWindow=true;}
  Timer {
@@ -50,8 +51,32 @@ ShellRoot {
   onTriggered:{
    if(root.phase<root.shots.length*2){
     const index=Math.floor(root.phase/2);
-    if(root.phase%2===0)settings.nState.openPage(root.shots[index]);
+    if(root.phase%2===0){
+     if(index>0&&root.shots[index-1]==="keyboard"&&Quickshell.env("HICS_TEST_WIDGET")){
+      const characters=root.named(settings,"desktopCharacterPicker"),methods=root.named(settings,"desktopInputMethods");
+      if(!root.check(characters?.items.length>0&&methods?.state.running&&methods.state.methods.length===2,"character picker or input method group controls did not load"))return;
+     }
+     root.narrow=root.shots[index]==="keyboard";
+     if(root.shots[index]==="app-info") {
+      settings.nState.openPage("apps");
+      settings.nState.selectedApp={id:"org.hics.Fixture",name:"Application permissions",icon:"application-x-executable",filePath:"/usr/share/applications/org.hics.Fixture.desktop",command:[],comment:"",genericName:""};
+      settings.nState.openSubPage(2);
+     } else settings.nState.openPage(root.shots[index]);
+    }
     else {
+     if(root.shots[index]==="keyboard"&&Quickshell.env("HICS_TEST_WIDGET")){
+      const characters=root.named(settings,"desktopCharacterPicker"),methods=root.named(settings,"desktopInputMethods");
+      if(!root.check(!!characters&&!!methods,"text input settings are missing"))return;
+      characters.expanded=true;characters.query="HEART";characters.category="symbols";characters.refresh();methods.expanded=true;methods.refresh();
+     }
+     if(root.shots[index]==="app-info" && !root.check(!!root.named(settings,"desktopApplicationPermissions"),"application permissions page did not load"))return;
+     if(root.shots[index]==="presentation"){
+      const dnd=Notifs.dnd,idle=IdleInhibitor.enabled;
+      Presentation.begin(Quickshell.screens[0].name);
+      if(!root.check(Presentation.active&&Presentation.privateOn(Quickshell.screens[0])&&!Presentation.privateOn({name:"other-fixture-output"})&&IdleInhibitor.effectiveEnabled&&!Notifs.shouldShowPopup(),"presentation policy did not activate"))return;
+      Presentation.end();
+      if(!root.check(!Presentation.active&&Notifs.dnd===dnd&&IdleInhibitor.enabled===idle,"presentation changed persistent preferences"))return;
+     }
      if(root.shots[index]==="application-rules"){
       function findRulePage(item){if(item.form!==undefined && item.devicesOnly!==undefined)return item;for(const child of item.children??[]){const found=findRulePage(child);if(found)return found;}return null;}
       const page=findRulePage(settings);
@@ -84,6 +109,37 @@ ShellRoot {
   }
  }
 }''')
+    if os.environ.get('HICS_TEST_WIDGET'):
+        qml=(base/'shell/shell.qml').read_text()
+        qml=qml.replace('import qs.modules.nexus\n','import qs.modules.nexus\nimport Hyprstack.Services\nimport qs.modules.bar.components\nimport qs.modules.bar.popouts as BarPopouts\n')
+        qml=qml.replace(' property int phase:0',' property int phase:0\n property int widgetPhase:0\n property bool widgetDone:false')
+        qml=qml.replace(' function check(value,message)',''' FloatingWindow {
+  visible:true;implicitWidth:700;implicitHeight:200;color:Colours.palette.m3surface
+  StatusIcons {id:statusWidget;anchors.centerIn:parent}
+ }
+ BarPopouts.PopoutState {id:operationPopouts;screen:Quickshell.screens[0]}
+ FloatingWindow {
+  visible:popupTest.active;implicitWidth:450;implicitHeight:600;color:Colours.palette.m3surface
+  Loader {id:popupTest;active:false;anchors.fill:parent;sourceComponent:BarPopouts.Operations {popouts:operationPopouts}}
+ }
+ Timer {
+  interval:400;repeat:true;running:!root.widgetDone
+  onTriggered:{
+   const phase=root.widgetPhase++;
+   if(phase===0){GlobalConfig.utilities.operations.completedSeconds=1;GlobalConfig.utilities.operations.autoShow=true;GlobalConfig.utilities.operations.retainErrors=true;DesktopJobs.acknowledge();}
+   if(phase===1)DesktopJobs.report("widget-fixture","transfer.copy","running",0.4);
+   if(phase===2){if(!root.check(BackgroundOperations.visible&&BackgroundOperations.active.length===1&&Math.abs(BackgroundOperations.progress-0.4)<0.01,"automatic operations indicator did not show progress"))return;statusWidget.grabToImage(result=>result.saveToFile("/tmp/hics-operations-widget.png"));}
+   if(phase===3)DesktopJobs.report("widget-fixture","transfer.copy","completed",1);
+   if(phase===7){if(!root.check(!BackgroundOperations.visible,"completed operations indicator did not expire"))return;DesktopJobs.report("widget-error","transfer.send","running",0.2);}
+   if(phase===8)DesktopJobs.report("widget-error","transfer.send","failed",0.2,"fixture failure");
+   if(phase===10){if(!root.check(BackgroundOperations.visible&&BackgroundOperations.errors===1,"failed operation did not remain visible"))return;popupTest.active=true;}
+   if(phase===11){if(!root.check(BackgroundOperations.openCount===1&&BackgroundOperations.visible&&popupTest.item.implicitHeight>0,"operations popout did not retain its anchor while reviewed"))return;popupTest.item.grabToImage(result=>{result.saveToFile("/tmp/hics-operations-popout.png");popupTest.active=false;});}
+   if(phase===13){if(!root.check(!BackgroundOperations.visible,"reviewed error indicator did not disappear"))return;root.widgetDone=true;console.log("OPERATIONS_WIDGET_OK");}
+  }
+ }
+ function check(value,message)''')
+        qml=qml.replace('settings.grabToImage(result=>{result.saveToFile("/tmp/hics-settings-narrow-navigation.png");console.log("SETTINGS_DESIGN_OK");','if(!root.check(root.widgetDone,"widget checks did not complete"))return;settings.grabToImage(result=>{result.saveToFile("/tmp/hics-settings-narrow-navigation.png");console.log("SETTINGS_DESIGN_OK");')
+        (base/'shell/shell.qml').write_text(qml)
     # Timer searchRetry is intentionally private to PageBase; call the public
     # reveal routine repeatedly once the new page has settled instead.
     p=base/'shell/shell.qml';p.write_text(p.read_text().replace('fixture.searchAttempts=0;fixture.searchRetry.restart();','fixture.revealSearchTarget();'))

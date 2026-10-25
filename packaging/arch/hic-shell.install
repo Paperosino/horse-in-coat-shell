@@ -18,6 +18,7 @@ hics_restart_user_sessions() {
             fi
             systemctl --user --machine="$hics_uid@.host" try-restart hics-configuration.service || true
             systemctl --user --machine="$hics_uid@.host" try-restart hics-displays.service || true
+            systemctl --user --machine="$hics_uid@.host" try-restart hics-desktop.service || true
             hics_action=try-restart
             if systemctl --user --machine="$hics_uid@.host" show-environment |
                 grep -q '^HYPRLAND_INSTANCE_SIGNATURE=.'; then
@@ -41,6 +42,7 @@ post_install() {
         systemctl --global enable hic-session.service || return 1
         systemctl --global enable hics-displays.service || return 1
         systemctl --global enable hics-configuration.service || return 1
+        systemctl --global enable hics-desktop.service || return 1
         # Keep existing compositor configuration paths usable across the rename.
         if [ ! -L /usr/share/hyprstack ]; then
             if [ -e /usr/share/hyprstack ]; then

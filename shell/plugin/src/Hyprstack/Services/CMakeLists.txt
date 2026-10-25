@@ -8,6 +8,7 @@ endif()
 qml_module(hyprstack-services
     URI Hyprstack.Services
     SOURCES
+        desktopjobs.cpp
         desktopconveniences.cpp
         platformresources.cpp
         networkservice.cpp

@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Hyprstack
 import Hyprstack.Config
+import qs.services
 import qs.components
 
 Item {
@@ -12,7 +13,7 @@ Item {
     required property ScreenState screenState
     property bool atBottom: false
 
-    readonly property bool shouldBeActive: screenState.clipboard
+    readonly property bool shouldBeActive: screenState.clipboard && !(Presentation.privateOn(root.screenState.modelData))
     property real offsetScale: shouldBeActive ? 0 : 1
 
     function dismissOutside(item: Item, x: real, y: real): void {

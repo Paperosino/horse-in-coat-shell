@@ -96,6 +96,17 @@ fixpoint() {
     done
 }
 
+# Native desktop workers use modules which quickshell itself may not link.
+# Keep their Qt ABI in the same private runtime as Core/DBus.
+for module in Concurrent Sql; do
+    name="libQt6${module}.so.6"
+    if [[ ! -e $qt_libs/$name ]]; then
+        printf 'error: required Qt worker library missing: %s\n' "$qt_libs/$name" >&2
+        exit 1
+    fi
+    copy_lib "$name" "$qt_libs/$name"
+done
+
 # 1. Closure of the quickshell binary itself (Qt, wayland, icu, ...).
 fixpoint
 

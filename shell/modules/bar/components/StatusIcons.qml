@@ -75,6 +75,28 @@ StyledRect {
             StateLayer { onClicked: WindowFactory.openPage("sharing") }
         }
 
+        Item {
+            id:operationsIndicator
+            objectName:"backgroundOperationsIndicator"
+            property string name:"operations"
+            property real extent:BackgroundOperations.visible?operationsRow.implicitWidth+Tokens.padding.small:0
+            Layout.alignment:Qt.AlignVCenter
+            implicitWidth:extent
+            implicitHeight:Tokens.sizes.bar.innerWidth
+            visible:extent>0.5
+            clip:true
+            Accessible.role:Accessible.Button
+            Accessible.name:Tr.tr("Background operations")+": "+BackgroundOperations.count
+            Behavior on extent {Anim {}}
+            Row {
+                id:operationsRow;anchors.centerIn:parent;spacing:Tokens.spacing.extraSmall
+                MaterialIcon {text:BackgroundOperations.errors?"error":"pending_actions";color:BackgroundOperations.errors?Colours.palette.m3error:root.colour;fontStyle:Tokens.font.icon.medium}
+                StyledText {text:String(BackgroundOperations.count);color:root.colour;font:Tokens.font.mono.small;anchors.verticalCenter:parent.verticalCenter}
+            }
+            Rectangle {visible:GlobalConfig.utilities.operations.showProgress&&BackgroundOperations.progress>=0;anchors.bottom:parent.bottom;anchors.bottomMargin:Tokens.padding.extraSmall;anchors.left:parent.left;implicitHeight:2*Tokens.scale;width:parent.width*BackgroundOperations.progress;color:Colours.palette.m3primary;radius:height/2}
+            StateLayer {onClicked:{BackgroundOperations.acknowledge();WindowFactory.openPage("operations");}}
+        }
+
         Repeater {
             model: ScriptModel {
                 id: model

@@ -10898,3 +10898,995 @@ msgstr "Камера (PipeWire)"
 
 msgid "Camera changes briefly interrupt audio"
 msgstr "Изменение доступа к камере ненадолго прервёт звук"
+
+#: desktop-services
+msgid "Passwords & keys"
+msgstr "Пароли и ключи"
+
+#: desktop-services
+msgid "Your existing password vault"
+msgstr "Ваше хранилище паролей"
+
+#: desktop-services
+msgid "Authenticate to manage passwords"
+msgstr "Подтвердить доступ к управлению паролями"
+
+#: desktop-services
+msgid "Open the password manager"
+msgstr "Открыть менеджер паролей"
+
+#: desktop-services
+msgid "Unlock vault"
+msgstr "Разблокировать хранилище"
+
+#: desktop-services
+msgid "Lock vault"
+msgstr "Заблокировать хранилище"
+
+#: desktop-services
+msgid "Login and recovery"
+msgstr "Вход и восстановление"
+
+#: desktop-services
+msgid "Automatic unlock"
+msgstr "Автоматическая разблокировка"
+
+#: desktop-services
+msgid "After changing your password"
+msgstr "После смены пароля"
+
+#: desktop-services
+msgid "Authorization boundary"
+msgstr "Границы авторизации"
+
+#: desktop-services
+msgid "Existing vaults, login unlock and recovery"
+msgstr "Хранилища, разблокировка при входе и восстановление"
+
+#: desktop-services
+msgid "Background operations"
+msgstr "Фоновые операции"
+
+#: desktop-services
+msgid "Progress and results remain available when settings are closed"
+msgstr "Ход выполнения и результаты доступны после закрытия настроек"
+
+#: desktop-services
+msgid "Operations centre"
+msgstr "Центр операций"
+
+#: desktop-services
+msgid "Desktop operations service is unavailable"
+msgstr "Сервис фоновых операций недоступен"
+
+#: desktop-services
+msgid "Show completed operations"
+msgstr "Показывать завершённые операции"
+
+#: desktop-services
+msgid "Waiting for authorization"
+msgstr "Ожидание авторизации"
+
+#: desktop-services
+msgid "Working"
+msgstr "Выполняется"
+
+#: desktop-services
+msgid "Cancel operation"
+msgstr "Отменить операцию"
+
+#: desktop-services
+msgid "View result"
+msgstr "Посмотреть результат"
+
+#: desktop-services
+msgid "Result"
+msgstr "Результат"
+
+#: desktop-services
+msgid "Progress, results and cancellation"
+msgstr "Прогресс, результаты и отмена"
+
+#: desktop-services
+msgid "Backup & restore"
+msgstr "Резервное копирование"
+
+#: desktop-services
+msgid "Backups"
+msgstr "Резервное копирование"
+
+#: desktop-services
+msgid "User files and system snapshots"
+msgstr "Файлы пользователя и снимки системы"
+
+#: desktop-services
+msgid "Encrypted personal backups"
+msgstr "Зашифрованные копии личных файлов"
+
+#: desktop-services
+msgid "Repository folder"
+msgstr "Папка хранилища"
+
+#: desktop-services
+msgid "Folders to back up"
+msgstr "Папки для копирования"
+
+#: desktop-services
+msgid "Backup interval in hours"
+msgstr "Интервал копирования в часах"
+
+#: desktop-services
+msgid "0 disables scheduling; between 1 and 168 hours"
+msgstr "0 — без расписания; допустимый интервал — от 1 до 168 часов"
+
+#: desktop-services
+msgid "Repository password (leave blank to keep saved password)"
+msgstr "Пароль хранилища (оставьте пустым, чтобы сохранить текущий)"
+
+#: desktop-services
+msgid "Save configuration"
+msgstr "Сохранить настройки"
+
+#: desktop-services
+msgid "Initialize a new repository"
+msgstr "Создать новое хранилище"
+
+#: desktop-services
+msgid "Use once for a new, empty repository"
+msgstr "Выполняется один раз для нового пустого хранилища"
+
+#: desktop-services
+msgid "Back up now"
+msgstr "Создать резервную копию"
+
+#: desktop-services
+msgid "Check repository integrity"
+msgstr "Проверить целостность хранилища"
+
+#: desktop-services
+msgid "Restore safely"
+msgstr "Безопасное восстановление"
+
+#: desktop-services
+msgid "Load snapshots"
+msgstr "Загрузить список снимков"
+
+#: desktop-services
+msgid "Restore to a new folder"
+msgstr "Восстановить в новую папку"
+
+#: desktop-services
+msgid "File or folder filter (optional)"
+msgstr "Фильтр файла или папки (необязательно)"
+
+#: desktop-services
+msgid "Restore selected snapshot"
+msgstr "Восстановить выбранный снимок"
+
+#: desktop-services
+msgid "Existing target directories are refused to protect current files"
+msgstr "Для защиты текущих файлов восстановление в существующую папку запрещено"
+
+#: desktop-services
+msgid "System snapshots"
+msgstr "Снимки системы"
+
+#: desktop-services
+msgid "Open Timeshift"
+msgstr "Открыть Timeshift"
+
+#: desktop-services
+msgid "Separate absolute folders with semicolons; keep the repository outside them"
+msgstr "Разделяйте полные пути точкой с запятой; хранилище должно находиться вне этих папок"
+
+#: desktop-services
+msgid "File search"
+msgstr "Поиск файлов"
+
+#: desktop-services
+msgid "Documents, content and private exclusions"
+msgstr "Документы, содержимое и приватные исключения"
+
+#: desktop-services
+msgid "Private, bounded indexing"
+msgstr "Индексация с ограничением нагрузки"
+
+#: desktop-services
+msgid "Search folders"
+msgstr "Папки для поиска"
+
+#: desktop-services
+msgid "Separate absolute folders with semicolons"
+msgstr "Разделяйте полные пути к папкам точкой с запятой"
+
+#: desktop-services
+msgid "Excluded private folders"
+msgstr "Исключённые приватные папки"
+
+#: desktop-services
+msgid "Index text contents"
+msgstr "Индексировать содержимое текстов"
+
+#: desktop-services
+msgid "Build index now"
+msgstr "Построить индекс"
+
+#: desktop-services
+msgid "Erase index"
+msgstr "Удалить индекс"
+
+#: desktop-services
+msgid "Indexed %1 files"
+msgstr "Проиндексировано файлов: %1"
+
+#: desktop-services
+msgid "Limit reached"
+msgstr "Достигнут лимит"
+
+#: desktop-services
+msgid "Last run"
+msgstr "Последний запуск"
+
+#: desktop-services
+msgid "Find a document"
+msgstr "Найти документ"
+
+#: desktop-services
+msgid "Words or filename"
+msgstr "Слова или имя файла"
+
+#: desktop-services
+msgid "Presentation mode"
+msgstr "Режим презентации"
+
+#: desktop-services
+msgid "Screens, privacy and temporary power policy"
+msgstr "Экраны, приватность и временные настройки питания"
+
+#: desktop-services
+msgid "Present without interruptions"
+msgstr "Презентация без помех"
+
+#: desktop-services
+msgid "Hide notification popups"
+msgstr "Скрывать всплывающие уведомления"
+
+#: desktop-services
+msgid "Start a 60-minute presentation on this screen"
+msgstr "Начать презентацию на этом экране на 60 минут"
+
+#: desktop-services
+msgid "End presentation"
+msgstr "Завершить презентацию"
+
+#: desktop-services
+msgid "Camera privacy"
+msgstr "Приватность камеры"
+
+#: desktop-services
+msgid "Block managed PipeWire camera access; direct V4L2 access is outside this switch"
+msgstr "Блокировать доступ к камере через управляемый PipeWire; прямой доступ V4L2 этим переключателем не ограничивается"
+
+#: desktop-services
+msgid "Application access"
+msgstr "Доступ приложения"
+
+#: desktop-services
+msgid "Audio, including microphone access"
+msgstr "Звук, включая доступ к микрофону"
+
+#: desktop-services
+msgid "GPU acceleration"
+msgstr "Ускорение на видеокарте"
+
+#: desktop-services
+msgid "All devices (broad access)"
+msgstr "Все устройства (широкий доступ)"
+
+#: desktop-services
+msgid "X11 (reduced isolation)"
+msgstr "X11 (сниженная изоляция)"
+
+#: desktop-services
+msgid "Launch at login"
+msgstr "Запускать при входе"
+
+#: desktop-services
+msgid "Restore default Flatpak permissions"
+msgstr "Вернуть исходные разрешения Flatpak"
+
+#: desktop-services
+msgid "Advanced Flatpak settings"
+msgstr "Расширенные настройки Flatpak"
+
+#: desktop-services
+msgid "Effective permissions"
+msgstr "Действующие разрешения"
+
+#: desktop-services
+msgid "Override option"
+msgstr "Параметр переопределения"
+
+#: desktop-services
+msgid "Apply override"
+msgstr "Применить параметр"
+
+#: desktop-services
+msgid "Inspect system profiles"
+msgstr "Проверить системные профили"
+
+#: desktop-services
+msgid "Kernel enforcement"
+msgstr "Ограничения на уровне ядра"
+
+#: desktop-services
+msgid "AppArmor is active"
+msgstr "AppArmor активен"
+
+#: desktop-services
+msgid "AppArmor is unavailable or not enabled in the kernel"
+msgstr "AppArmor недоступен или не включён в ядре"
+
+#: desktop-services
+msgid "Profile file"
+msgstr "Файл профиля"
+
+#: desktop-services
+msgid "Available policy files"
+msgstr "Доступные файлы правил"
+
+#: desktop-services
+msgid "Enforce restrictions"
+msgstr "Применять ограничения"
+
+#: desktop-services
+msgid "Complain mode (log only)"
+msgstr "Режим наблюдения (только журнал)"
+
+#: desktop-services
+msgid "Disable this profile"
+msgstr "Отключить этот профиль"
+
+#: desktop-services
+msgid "Installed package"
+msgstr "Установленный пакет"
+
+#: desktop-services
+msgid "Confirm package removal"
+msgstr "Подтвердить удаление пакета"
+
+#: desktop-services
+msgid "Remove application"
+msgstr "Удалить приложение"
+
+#: desktop-services
+msgid "Troubleshoot a feature"
+msgstr "Устранение неполадок"
+
+#: desktop-services
+msgid "Run guided checks"
+msgstr "Проверить основные функции"
+
+#: desktop-services
+msgid "Input methods"
+msgstr "Методы ввода"
+
+#: desktop-services
+msgid "Configure input methods"
+msgstr "Настроить методы ввода"
+
+#: desktop-services
+msgid "Uses the active Secret Service. hics does not create its own cryptography or send passwords to the system broker."
+msgstr "Используется действующая служба Secret Service. hics не создаёт собственную криптографию и не передаёт пароли системному сервису."
+
+#: desktop-services
+msgid "Create entries, change vault passwords and manage application secrets in Seahorse"
+msgstr "Создавайте записи, меняйте пароль хранилища и управляйте секретами приложений в Seahorse"
+
+#: desktop-services
+msgid "Restic stores encrypted snapshots. The repository password is stored in your existing keyring. Keep a recovery copy: losing that password makes the backups unreadable."
+msgstr "Restic сохраняет зашифрованные снимки. Пароль хранится в вашей связке ключей. Сохраните его резервную копию: без пароля прочитать снимки невозможно."
+
+#: desktop-services
+msgid "Keeps the session awake and suppresses new notification popups. Your usual idle and notification preferences are restored by ending this temporary mode."
+msgstr "Предотвращает сон и скрывает новые всплывающие уведомления. После завершения временного режима снова действуют обычные настройки."
+
+#: desktop-services
+msgid "The selected screen identifies your presentation. Choose the actual screen or window in the sharing application's portal dialog."
+msgstr "Выбранный экран обозначает место презентации. Сам экран или окно для трансляции выбирается в системном диалоге приложения."
+
+#: desktop-services
+msgid "Service"
+msgstr "Сервис"
+
+#: desktop-services
+msgid "Retry"
+msgstr "Повторить"
+
+#: desktop-services
+msgid "Completed"
+msgstr "Завершено"
+
+#: desktop-services
+msgid "Queued"
+msgstr "В очереди"
+
+#: desktop-services
+msgid "Failed"
+msgstr "Ошибка"
+
+#: desktop-services
+msgid "Cancelled"
+msgstr "Отменено"
+
+#: desktop-services
+msgid "Background operation"
+msgstr "Фоновая операция"
+
+#: desktop-services
+msgid "Desktop checks"
+msgstr "Проверка окружения"
+
+#: desktop-services
+msgid "Personal file backup"
+msgstr "Резервная копия личных файлов"
+
+#: desktop-services
+msgid "Create backup repository"
+msgstr "Создание хранилища копий"
+
+#: desktop-services
+msgid "Restore files"
+msgstr "Восстановление файлов"
+
+#: desktop-services
+msgid "Check backup integrity"
+msgstr "Проверка целостности копий"
+
+#: desktop-services
+msgid "Read backup snapshots"
+msgstr "Чтение списка снимков"
+
+#: desktop-services
+msgid "Save backup preferences"
+msgstr "Сохранение настроек копирования"
+
+#: desktop-services
+msgid "Index documents"
+msgstr "Индексация документов"
+
+#: desktop-services
+msgid "Erase document index"
+msgstr "Удаление индекса документов"
+
+#: desktop-services
+msgid "Save search preferences"
+msgstr "Сохранение настроек поиска"
+
+#: desktop-services
+msgid "Change AppArmor profile"
+msgstr "Изменение профиля AppArmor"
+
+#: desktop-services
+msgid "Change application permissions"
+msgstr "Изменение разрешений приложения"
+
+#: desktop-services
+msgid "Reset application permissions"
+msgstr "Сброс разрешений приложения"
+
+#: desktop-services
+msgid "Change application autostart"
+msgstr "Изменение автозапуска приложения"
+
+#: desktop-services
+msgid "Authorize vault management"
+msgstr "Авторизация управления хранилищем"
+
+#: desktop-services
+msgid "The operation failed; open its details"
+msgstr "Операция завершилась с ошибкой; откройте подробности"
+
+#: desktop-services
+msgid "Active audio and microphone streams will be interrupted"
+msgstr "Воспроизведение и запись звука будут прерваны"
+
+#: desktop-services
+msgid "Active input group"
+msgstr "Текущая группа ввода"
+
+#: desktop-services
+msgid "Active screen sharing will stop"
+msgstr "Текущая демонстрация экрана будет остановлена"
+
+#: desktop-services
+msgid "Add a folder to back up"
+msgstr "Добавить папку для копирования"
+
+#: desktop-services
+msgid "Advanced input method configuration"
+msgstr "Расширенные настройки методов ввода"
+
+#: desktop-services
+msgid "Advanced service recovery"
+msgstr "Расширенное восстановление сервисов"
+
+#: desktop-services
+msgid "Application recovery"
+msgstr "Восстановление приложений"
+
+#: desktop-services
+msgid "Automatically refresh the index"
+msgstr "Автоматически обновлять индекс"
+
+#: desktop-services
+msgid "Automatically show the panel widget"
+msgstr "Автоматически показывать виджет панели"
+
+#: desktop-services
+msgid "Camera portal"
+msgstr "Системный доступ к камере"
+
+#: desktop-services
+msgid "Changed values, defaults and section resets"
+msgstr "Изменённые значения, значения по умолчанию и сброс разделов"
+
+#: desktop-services
+msgid "Checkpoints and selective recovery"
+msgstr "Контрольные точки и выборочное восстановление"
+
+#: desktop-services
+msgid "Checks, service recovery and local reports"
+msgstr "Проверки, восстановление сервисов и локальные отчёты"
+
+#: desktop-services
+msgid "Choose a backup disk or folder"
+msgstr "Выбрать диск или папку для резервных копий"
+
+#: desktop-services
+msgid "Choose destination folder"
+msgstr "Выбрать папку назначения"
+
+#: desktop-services
+msgid "Choose files to copy"
+msgstr "Выбрать файлы для копирования"
+
+#: desktop-services
+msgid "Choose where to restore"
+msgstr "Выбрать место восстановления"
+
+#: desktop-services
+msgid "Complete appearance presets, previews and sharing"
+msgstr "Полные наборы оформления, предпросмотр и обмен"
+
+#: desktop-services
+msgid "Completed operation visibility (seconds)"
+msgstr "Показывать завершённые операции (секунды)"
+
+#: desktop-services
+msgid "Compression mode"
+msgstr "Режим сжатия"
+
+#: desktop-services
+msgid "Confirm audio service restart"
+msgstr "Подтвердить перезапуск звука"
+
+#: desktop-services
+msgid "Confirm sharing portal restart"
+msgstr "Подтвердить перезапуск демонстрации экрана"
+
+#: desktop-services
+msgid "Copied"
+msgstr "Скопировано"
+
+#: desktop-services
+msgid "Copy files"
+msgstr "Копирование файлов"
+
+#: desktop-services
+msgid "Create language group"
+msgstr "Создать языковую группу"
+
+#: desktop-services
+msgid "Default keyboard layout"
+msgstr "Основная раскладка клавиатуры"
+
+#: desktop-services
+msgid "Desktop profiles"
+msgstr "Профили рабочего окружения"
+
+#: desktop-services
+msgid "Detect applications that stop responding"
+msgstr "Обнаруживать зависшие приложения"
+
+#: desktop-services
+msgid "Disk cleanup"
+msgstr "Очистка диска"
+
+#: desktop-services
+msgid "Duration in minutes"
+msgstr "Длительность в минутах"
+
+#: desktop-services
+msgid "Emoji and special characters"
+msgstr "Эмодзи и специальные символы"
+
+#: desktop-services
+msgid "Enable input method service"
+msgstr "Включить службу методов ввода"
+
+#: desktop-services
+msgid "Exclude marked cache folders"
+msgstr "Исключать папки с меткой кэша"
+
+#: desktop-services
+msgid "Excluded paths or patterns"
+msgstr "Исключённые пути или шаблоны"
+
+#: desktop-services
+msgid "Existing files are never overwritten. Cancel stops the current file; files already copied are kept."
+msgstr "Существующие файлы не перезаписываются. При отмене текущий файл не сохраняется, а уже скопированные остаются."
+
+#: desktop-services
+msgid "Extract PDF text"
+msgstr "Индексировать текст PDF"
+
+#: desktop-services
+msgid "Favourites"
+msgstr "Избранное"
+
+#: desktop-services
+msgid "File transfer"
+msgstr "Передача файлов"
+
+#: desktop-services
+msgid "Find an installed input method"
+msgstr "Найти установленный метод ввода"
+
+#: desktop-services
+msgid "Hide on-screen keyboard"
+msgstr "Скрыть экранную клавиатуру"
+
+#: desktop-services
+msgid "Hide personal content and previews"
+msgstr "Скрывать личное содержимое и предпросмотры"
+
+#: desktop-services
+msgid "Independent keyboard and pointer overrides"
+msgstr "Отдельные параметры клавиатуры и указателя"
+
+#: desktop-services
+msgid "Index refresh interval (minutes)"
+msgstr "Интервал обновления индекса (минуты)"
+
+#: desktop-services
+msgid "Individual input devices"
+msgstr "Отдельные устройства ввода"
+
+#: desktop-services
+msgid "Inspect desktop services"
+msgstr "Проверить сервисы окружения"
+
+#: desktop-services
+msgid "Introduction, initial setup and recorded demonstrations"
+msgstr "Знакомство, первоначальные настройки и записи демонстраций"
+
+#: desktop-services
+msgid "Keep failed operations visible until reviewed"
+msgstr "Показывать ошибки операций до просмотра"
+
+#: desktop-services
+msgid "Layout override"
+msgstr "Отдельная раскладка"
+
+#: desktop-services
+msgid "Load policy for editing"
+msgstr "Загрузить профиль для редактирования"
+
+#: desktop-services
+msgid "Login unlock and password synchronization configured"
+msgstr "Настроены разблокировка при входе и синхронизация пароля"
+
+#: desktop-services
+msgid "Login unlock configured"
+msgstr "Настроена разблокировка при входе"
+
+#: desktop-services
+msgid "Maximum content size (MiB)"
+msgstr "Максимальный объём содержимого (МиБ)"
+
+#: desktop-services
+msgid "Maximum indexed files"
+msgstr "Максимальное число файлов в индексе"
+
+#: desktop-services
+msgid "Minimum free disk space (MiB)"
+msgstr "Минимум свободного места на диске (МиБ)"
+
+#: desktop-services
+msgid "Missed response checks before showing recovery"
+msgstr "Число пропущенных ответов до предложения восстановления"
+
+#: desktop-services
+msgid "Needs attention"
+msgstr "Требует внимания"
+
+#: desktop-services
+msgid "New language group"
+msgstr "Новая языковая группа"
+
+#: desktop-services
+msgid "Next step"
+msgstr "Следующее действие"
+
+#: desktop-services
+msgid "No automatic login unlock hook detected"
+msgstr "Настройка автоматической разблокировки не обнаружена"
+
+#: desktop-services
+msgid "No background operations"
+msgstr "Фоновых операций нет"
+
+#: desktop-services
+msgid "Open existing Snapper snapshots"
+msgstr "Открыть имеющиеся снимки Snapper"
+
+#: desktop-services
+msgid "Open relevant settings"
+msgstr "Открыть соответствующие настройки"
+
+#: desktop-services
+msgid "Parent snapshot folder"
+msgstr "Родительская папка снимка"
+
+#: desktop-services
+msgid "Pause above CPU load (%)"
+msgstr "Приостанавливать при загрузке процессора выше (%)"
+
+#: desktop-services
+msgid "Pause automatic indexing during games"
+msgstr "Приостанавливать автоматическую индексацию в играх"
+
+#: desktop-services
+msgid "Pause automatic indexing on battery"
+msgstr "Приостанавливать автоматическую индексацию от батареи"
+
+#: desktop-services
+msgid "Recheck internet connectivity"
+msgstr "Повторно проверить доступ к интернету"
+
+#: desktop-services
+msgid "Remove this group"
+msgstr "Удалить эту группу"
+
+#: desktop-services
+msgid "Restart audio services"
+msgstr "Перезапустить звуковые сервисы"
+
+#: desktop-services
+msgid "Restart sharing portals"
+msgstr "Перезапустить сервисы демонстрации экрана"
+
+#: desktop-services
+msgid "Save advanced backup settings"
+msgstr "Сохранить расширенные настройки копирования"
+
+#: desktop-services
+msgid "Search by name or Unicode code"
+msgstr "Поиск по названию или коду Unicode"
+
+#: desktop-services
+msgid "Send a file to %1"
+msgstr "Отправить файл на %1"
+
+#: desktop-services
+msgid "Send files"
+msgstr "Отправка файлов"
+
+#: desktop-services
+msgid "Show on-screen keyboard"
+msgstr "Показать экранную клавиатуру"
+
+#: desktop-services
+msgid "Show progress on the panel"
+msgstr "Показывать прогресс на панели"
+
+#: desktop-services
+msgid "Start input methods after login"
+msgstr "Запускать методы ввода при входе"
+
+#: desktop-services
+msgid "Start presentation on this screen"
+msgstr "Начать презентацию на этом экране"
+
+#: desktop-services
+msgid "Stay within each source filesystem"
+msgstr "Не переходить на другие файловые системы"
+
+#: desktop-services
+msgid "System update"
+msgstr "Обновление системы"
+
+#: desktop-services
+msgid "Time budget per run (milliseconds)"
+msgstr "Лимит времени на один запуск (миллисекунды)"
+
+#: desktop-services
+msgid "Transfer limit (KiB/s; 0 is unlimited)"
+msgstr "Ограничение скорости (КиБ/с; 0 — без ограничения)"
+
+#: desktop-services
+msgid "Try a repair"
+msgstr "Попробовать исправление"
+
+#: desktop-services
+msgid "Unmute audio output"
+msgstr "Включить звук на выходе"
+
+#: desktop-services
+msgid "Up to five pages per file and four changed PDFs per run"
+msgstr "До пяти страниц файла и четырёх изменённых PDF за запуск"
+
+#: desktop-services
+msgid "Use this group"
+msgstr "Использовать эту группу"
+
+#: desktop-services
+msgid "Validate and save policy"
+msgstr "Проверить и сохранить профиль"
+
+#: desktop-services
+msgid "What is not working?"
+msgstr "Что не работает?"
+
+#: desktop-services
+msgid "No sound or microphone"
+msgstr "Нет звука или не работает микрофон"
+
+#: desktop-services
+msgid "No internet"
+msgstr "Нет интернета"
+
+#: desktop-services
+msgid "Screen sharing does not work"
+msgstr "Не работает демонстрация экрана"
+
+#: desktop-services
+msgid "Check everything"
+msgstr "Проверить всё"
+
+#: desktop-services
+msgid "Allow camera portal access"
+msgstr "Разрешить системный доступ к камере"
+
+#: desktop-services
+msgid "Deny camera portal access"
+msgstr "Запретить системный доступ к камере"
+
+#: desktop-services
+msgid "Ask again next time"
+msgstr "Запросить разрешение заново"
+
+#: desktop-services
+msgid "Passwordless login requires the vault password"
+msgstr "При входе без пароля требуется пароль хранилища"
+
+#: desktop-services
+msgid "Indexed files"
+msgstr "Файлов в индексе"
+
+#: desktop-services
+msgid "Unchanged files reused"
+msgstr "Неизменённых файлов использовано повторно"
+
+#: desktop-services
+msgid "Copied files"
+msgstr "Скопировано файлов"
+
+#: desktop-services
+msgid "Transferred bytes"
+msgstr "Передано байт"
+
+#: desktop-services
+msgid "Configured limit reached"
+msgstr "Достигнут установленный лимит"
+
+#: desktop-services
+msgid "Choose a problem, run checks and follow concrete steps. The report includes only named checks and numeric states; passwords, tokens, connection names and raw logs are excluded."
+msgstr "Выберите проблему, запустите проверку и выполните предложенные действия. В отчёт входят только результаты проверок и числовые состояния: без паролей, токенов, названий подключений и сырых журналов."
+
+#: desktop-services
+msgid "Controls applications that use the camera portal. Direct camera device access bypasses portal grants; microphone permissions depend on the application's audio backend."
+msgstr "Управляет приложениями, использующими системный диалог камеры. Прямой доступ к устройству обходит эти разрешения. Доступ к микрофону зависит от звукового интерфейса приложения."
+
+#: desktop-services
+msgid "Hyprland checks native Wayland and X11 applications and offers Wait or Force quit using its themed recovery dialog. Force quit can discard unsaved changes."
+msgstr "Hyprland проверяет приложения Wayland и X11 и предлагает подождать или завершить зависшее приложение в системном диалоге. При принудительном завершении несохранённые изменения могут быть потеряны."
+
+#: desktop-services
+msgid "If the old vault password no longer matches your login password, change the vault password in the password manager using its old password. An administrator resetting your account password cannot decrypt the old vault."
+msgstr "Если пароль хранилища больше не совпадает с паролем входа, смените его в менеджере паролей, указав прежний пароль. Сброс пароля учётной записи администратором не позволяет расшифровать старое хранилище."
+
+#: desktop-services
+msgid "In the application menu, type the action prefix followed by files and a search query. Indexes selected folders without following symbolic links or entering hidden folders. Each run is limited to ten seconds; text extraction is limited to 8 MiB."
+msgstr "В меню приложений введите префикс действий, files и поисковый запрос. Индексируются выбранные папки, без перехода по ссылкам и чтения скрытых каталогов. По умолчанию запуск ограничен 10 секундами, объём текста — 8 МиБ."
+
+#: desktop-services
+msgid "Native applications are not automatically sandboxed. AppArmor only restricts an application with a matching enforced profile."
+msgstr "Обычные приложения автоматически не изолируются. AppArmor ограничивает приложение только при наличии соответствующего действующего профиля."
+
+#: desktop-services
+msgid "Per-user Flatpak overrides. Portal permissions and access already granted to running applications may require restarting the application."
+msgstr "Пользовательские разрешения Flatpak. Для применения изменений системных разрешений и уже выданного доступа может потребоваться перезапуск приложения."
+
+#: desktop-services
+msgid "Polkit confirms access to this management screen. It does not replace vault encryption or restrict every Secret Service client."
+msgstr "Polkit подтверждает доступ к этому экрану управления. Он не заменяет шифрование хранилища и не ограничивает все приложения, обращающиеся к Secret Service."
+
+#: desktop-services
+msgid "Removes the owning package, including its other launchers. Pacman keeps dependency checks; critical system packages are protected."
+msgstr "Удаляется пакет приложения вместе с другими его ярлыками. Pacman проверяет зависимости; критические системные пакеты защищены."
+
+#: desktop-services
+msgid "Requires administrator authorization. Saves a backup and validates syntax before replacing the file; use Enforce to load the saved policy."
+msgstr "Требуется авторизация администратора. Перед заменой файла сохраняется резервная копия и проверяется синтаксис. Для загрузки сохранённого профиля включите применение ограничений."
+
+#: desktop-services
+msgid "Right-click a character to add or remove it from favourites. Characters are copied so you can paste into the intended application."
+msgstr "Нажмите на символ правой кнопкой, чтобы добавить или убрать его из избранного. Символ копируется в буфер для вставки в нужное приложение."
+
+#: desktop-services
+msgid "The login manager can unlock the login vault using your login password through PAM. Passwordless login may still require the vault password."
+msgstr "Менеджер входа может разблокировать хранилище паролем входа через PAM. При входе без пароля может потребоваться отдельный пароль хранилища."
+
+#: desktop-services
+msgid "Timeshift manages system recovery separately from personal files. Its Btrfs mode requires a compatible @ and @home subvolume layout; other layouts can use its rsync mode. A snapshot on the same disk does not protect against disk failure."
+msgstr "Timeshift восстанавливает систему отдельно от личных файлов. Режим Btrfs требует совместимых подтомов @ и @home; для других схем предусмотрен rsync. Снимок на том же диске не защищает от поломки накопителя."
+
+#: desktop-services
+msgid "Read-only access for new folder grants"
+msgstr "Доступ только для чтения к новым папкам"
+
+#: desktop-services
+msgid "Grant access to a folder"
+msgstr "Разрешить доступ к папке"
+
+#: desktop-services
+msgid "Read-only"
+msgstr "Только чтение"
+
+#: desktop-services
+msgid "Read and write"
+msgstr "Чтение и запись"
+
+#: desktop-services
+msgid "Enable AppArmor at startup"
+msgstr "Запускать AppArmor при загрузке"
+
+#: desktop-services
+msgid "System-wide setting; requires AppArmor support in the running kernel"
+msgstr "Общесистемная настройка; требуется поддержка AppArmor в работающем ядре"
+
+#: desktop-services
+msgid "Browse backup files"
+msgstr "Просмотреть файлы снимка"
+
+#: desktop-services
+msgid "Disk maintenance"
+msgstr "Обслуживание диска"
+
+#: desktop-services
+msgid "Add a search folder"
+msgstr "Добавить папку для поиска"
+
+#: desktop-services
+msgid "Exclude a private folder"
+msgstr "Исключить личную папку"
+
+#: desktop-services
+msgid "List limit"
+msgstr "Ограничение списка"
+
+#: desktop-services
+msgid "Showing the first 1000 entries. Open a subfolder or enter the file path in the restore filter."
+msgstr "Показаны первые 1000 записей. Откройте вложенную папку или укажите путь в фильтре восстановления."

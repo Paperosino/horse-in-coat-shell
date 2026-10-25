@@ -32,4 +32,14 @@
     <message>Authentication is required to change system locale</message><message xml:lang="ru">Для изменения системной локали требуется подтверждение</message>
     <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
   </action>
+  <action id="org.hics.system.applications">
+    <description>Manage installed applications and AppArmor</description><description xml:lang="ru">Управление приложениями и AppArmor</description>
+    <message>Authentication is required to administer applications</message><message xml:lang="ru">Для управления приложениями требуется подтверждение</message>
+    <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
+  </action>
+  <action id="org.hics.system.secrets">
+    <description>Open personal password management</description><description xml:lang="ru">Открыть управление личными паролями</description>
+    <message>Authenticate as yourself to open password management</message><message xml:lang="ru">Подтвердите свою личность для управления паролями</message>
+    <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_self</allow_active></defaults>
+  </action>
 </policyconfig>

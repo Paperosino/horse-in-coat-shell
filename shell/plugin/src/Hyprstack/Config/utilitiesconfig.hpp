@@ -56,6 +56,23 @@ class UtilitiesCards : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, quickToggles, true)
 };
 
+class UtilitiesOperations : public settings::ObjectNode {
+    CONFIG_NODE(UtilitiesOperations, settings::ObjectNode)
+    CONFIG_PROPERTY(bool, autoShow, true)
+    CONFIG_PROPERTY(bool, retainErrors, true)
+    CONFIG_PROPERTY(int, completedSeconds, 12)
+    CONFIG_PROPERTY(bool, showProgress, true)
+    CONFIG_PROPERTY(bool, watchUnresponsive, true)
+    CONFIG_PROPERTY(int, unresponsiveMissedPings, 5)
+};
+
+class UtilitiesPresentation : public settings::ObjectNode {
+    CONFIG_NODE(UtilitiesPresentation, settings::ObjectNode)
+    CONFIG_PROPERTY(int, durationMinutes, 60)
+    CONFIG_PROPERTY(bool, hideNotifications, true)
+    CONFIG_PROPERTY(bool, hidePrivateContent, true)
+};
+
 class UtilitiesConfig : public settings::ObjectNode {
     CONFIG_NODE(UtilitiesConfig, settings::ObjectNode)
 
@@ -64,6 +81,8 @@ class UtilitiesConfig : public settings::ObjectNode {
     CONFIG_SUBOBJECT(UtilitiesCards, cards)
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesToasts, toasts)
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesVpn, vpn)
+    CONFIG_GLOBAL_SUBOBJECT(UtilitiesOperations, operations)
+    CONFIG_GLOBAL_SUBOBJECT(UtilitiesPresentation, presentation)
     CONFIG_LIST(EntryList, quickToggles,
         DEFAULT_ARG({
             LIST_ENTRY(wifi, true),
@@ -73,6 +92,8 @@ class UtilitiesConfig : public settings::ObjectNode {
             LIST_ENTRY(gameMode, true),
             LIST_ENTRY(dnd, true),
             LIST_ENTRY(vpn, false),
+            LIST_ENTRY(presentation, true),
+            LIST_ENTRY(camera, true),
         }))
 };
 

@@ -1,0 +1,21 @@
+[Unit]
+Description=hics background desktop operations
+PartOf=graphical-session.target
+After=graphical-session-pre.target
+[Service]
+Type=dbus
+BusName=org.hics.Desktop1
+ExecStart=@HICS_BIN_DIR@/hics-desktopd
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=5
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
+ProtectSystem=full
+PrivateTmp=no
+MemoryHigh=768M
+MemoryMax=1536M
+TasksMax=128
+[Install]
+WantedBy=graphical-session.target

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.components
+import qs.services
 
 Item {
     id: root
@@ -12,7 +13,7 @@ Item {
     property alias sessionPanel: content.sessionPanel
     property alias utilitiesPanel: content.utilitiesPanel
 
-    visible: height > 0
+    visible: height > 0 && !(Presentation.privateOn(root.screenState.modelData))
     anchors.topMargin: -5
     implicitWidth: Math.max(sidebarPanel.width, content.implicitWidth)
     implicitHeight: content.implicitHeight
