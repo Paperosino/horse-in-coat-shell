@@ -20,10 +20,21 @@ Singleton {
  readonly property string activeConnection:state.activeConnection??""
  readonly property bool wifiEnabled:state.wifiEnabled??false
  property bool scanning:false
- readonly property list<AccessPoint> networks:[]
+ property list<AccessPoint> networks:[]
  readonly property AccessPoint active:networks.find(n=>n.active)??null
- readonly property list<EthernetDevice> ethernetDevices:[]
+ property list<EthernetDevice> ethernetDevices:[]
  readonly property EthernetDevice activeEthernet:ethernetDevices.find(d=>d.connected)??null
+ readonly property bool hasWirelessHardware:wirelessInterfaces.length>0
+ readonly property string networkIcon:{
+  const wired=ethernetInterfaces.find(device=>device.connected);
+  const primaryWifi=wirelessInterfaces.some(device=>device.connected&&device.interface===activeInterface);
+  if(wired&&!primaryWifi)return "cable";
+  const wifi=(state.networks??[]).find(point=>point.active);
+  if(wifi)return Icons.getNetworkIcon(wifi.strength??0);
+  if(wired)return "cable";
+  if(isConnected)return "public";
+  return hasWirelessHardware?"wifi_off":"lan";
+ }
  readonly property bool hasAvailableEthernet:ethernetInterfaces.some(d=>d.carrier)
  readonly property var profiles:state.profiles??[]
  readonly property var savedConnections:profiles.map(p=>p.id)
@@ -50,19 +61,32 @@ Singleton {
  function savedSecurityFor(ssid:string):string{return savedConnectionSecurity[ssid.toLowerCase().trim()]??"";}
  function hasSavedProfile(ssid:string):bool{return profiles.some(p=>p.ssid===ssid||p.id===ssid);}
  function findNetwork(ssid:string):var{return networks.find(n=>n.ssid===ssid)??null;}
- function syncObjects(items:var,rows:var,component:var,key:string):void {
-  const wanted=new Map(rows.map(row=>[row[key],row]));
-  for(let i=items.length-1;i>=0;--i)if(!wanted.has(items[i].lastIpcObject[key])){const removed=items.splice(i,1)[0];removed.destroy();}
-  for(const row of rows){const object=items.find(o=>o.lastIpcObject[key]===row[key]);if(object)object.lastIpcObject=row;else items.push(component.createObject(root,{lastIpcObject:row}));}
+ function syncObjects(items:var,rows:var,component:var,key:string):var {
+  // A typed QML list passed to a JS function is a sequence value, not a
+  // writable reference to the property. Return and assign structural changes.
+  const remaining=new Map(items.map(item=>[item.lastIpcObject[key],item]));
+  const next=[];
+  for(const row of rows){
+   let item=remaining.get(row[key]);
+   if(item){remaining.delete(row[key]);item.lastIpcObject=row;}
+   else item=component.createObject(root,{lastIpcObject:row});
+   if(item)next.push(item);
+  }
+  for(const item of remaining.values())item.destroy();
+  return next;
  }
+ function sameObjects(left:var,right:var):bool {return left.length===right.length&&left.every((item,index)=>item===right[index]);}
  function details(iface:string,rows:var):var {
   const row=rows.find(d=>d.interface===iface)??rows.find(d=>d.connected);if(!row)return null;
   const result=Object.assign({},row);result.ipv4=row.ipAddress;result.mac=row.macAddress;
   const stats=NetworkService.interfaceStats(row.interface);result.speed=stats.speedMbps?stats.speedMbps>=1000?(stats.speedMbps/1000)+" Gbps":stats.speedMbps+" Mbps":"";
   return result;
  }
- onStateChanged:{
-  syncObjects(networks,state.networks??[],accessPoint,"ssid");syncObjects(ethernetDevices,ethernetInterfaces,ethernetDevice,"interface");
+ function syncState():void {
+  const points=syncObjects(networks,state.networks??[],accessPoint,"ssid");
+  if(!sameObjects(networks,points))networks=points;
+  const wired=syncObjects(ethernetDevices,ethernetInterfaces,ethernetDevice,"interface");
+  if(!sameObjects(ethernetDevices,wired))ethernetDevices=wired;
   wirelessDeviceDetails=details(wirelessDeviceDetails?.interface??"",wirelessInterfaces);
   ethernetDeviceDetails=details(ethernetDeviceDetails?.interface??"",ethernetInterfaces);
   if(pendingConnection){
@@ -111,7 +135,8 @@ Singleton {
  function setAutoconnect(name:string,enabled:bool,callback:var):void {run("autoconnect",{connection:profile(name)?.uuid??name,enabled:enabled},callback);}
  Timer {id:connectionTimeout;interval:60000;onTriggered:root.finishConnection({success:false,error:Tr.tr("Network connection timed out"),needsPassword:false,exitCode:1})}
  Timer {id:immediateCheck;property int checkCount:0;interval:1}
- Connections {target:NetworkService;function onOperationFinished(id:int,result:var):void {const callback=root.callbacks[id];delete root.callbacks[id];if(callback)callback(result);}}
+ Component.onCompleted:syncState()
+ Connections {target:NetworkService;function onStateChanged():void {root.syncState();}function onOperationFinished(id:int,result:var):void {const callback=root.callbacks[id];delete root.callbacks[id];if(callback)callback(result);}}
  Component {id:accessPoint;AccessPoint{}}
  Component {id:ethernetDevice;EthernetDevice{}}
  component AccessPoint:QtObject {

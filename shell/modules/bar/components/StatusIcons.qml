@@ -174,7 +174,8 @@ StyledRect {
                     delegate: EntryWrapper {
                         MaterialIcon {
                             animate: true
-                            text: Nmcli.activeEthernet ? "cable" : Nmcli.active ? Icons.getNetworkIcon(Nmcli.active.strength ?? 0) : "wifi_off"
+                            objectName:"networkStatusIcon"
+                            text: Nmcli.networkIcon
                             color: root.colour
                         }
                     }

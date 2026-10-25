@@ -59,6 +59,7 @@ ColumnLayout {
         IconButton {objectName:"networkSettingsButton";Accessible.name:Tr.tr("Network settings");icon:"settings";type:IconButton.Text;onClicked:root.openSettings()}
     }
     RowLayout {
+        visible:Nmcli.hasWirelessHardware
         Layout.fillWidth:true
         MaterialIcon {text:"wifi"}
         StyledText {Layout.fillWidth:true;text:Tr.tr("Wi-Fi")}

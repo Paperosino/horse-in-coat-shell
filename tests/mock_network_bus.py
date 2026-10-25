@@ -52,7 +52,7 @@ class Device(Object):
  def Disconnect(self):log('Disconnect',self.path)
  @dbus.service.method(NM+'.Device.Wireless',in_signature='a{sv}')
  def RequestScan(self,options):log('RequestScan')
-for index,kind in ((1,2),(2,1)):
+for index,kind in (((2,1),) if os.environ.get('NETWORK_TEST_NO_WIFI') else ((1,2),(2,1))):
  general={'Interface':'wlan-fixture' if index==1 else 'eth-fixture','IpInterface':'wlan-fixture' if index==1 else 'eth-fixture','DeviceType':dbus.UInt32(kind),'State':dbus.UInt32(30 if index==1 else 100),'StateReason':dbus.Struct((dbus.UInt32(30 if index==1 else 100),dbus.UInt32(0)),signature='uu'),'Managed':True,'Real':True,'Ip4Config':dbus.ObjectPath('/' if index==1 else IP),'ActiveConnection':dbus.ObjectPath('/' if index==1 else AC),'HwAddress':'00:11:22:33:44:55','InterfaceFlags':dbus.UInt32(3)}
  interfaces={NM+'.Device':general}
  if index==1:interfaces[NM+'.Device.Wireless']={'AccessPoints':paths([AP]),'ActiveAccessPoint':dbus.ObjectPath('/'),'WirelessCapabilities':dbus.UInt32(1023),'Mode':dbus.UInt32(2),'LastScan':dbus.Int64(10)}
@@ -71,6 +71,13 @@ class Manager(Object):
   objects[AP].PropertiesChanged(NM+'.AccessPoint',{'Strength':dbus.Byte(33)},[])
   self.interfaces[NM]['Connectivity']=dbus.UInt32(2)
   self.PropertiesChanged(NM,{'Connectivity':dbus.UInt32(2)},[])
-root=Manager(ROOT,{NM:{'Version':'1.52.0','State':dbus.UInt32(70),'NetworkingEnabled':True,'WirelessEnabled':True,'WirelessHardwareEnabled':True,'Devices':paths([WIFI,ETH]),'AllDevices':paths([WIFI,ETH]),'ActiveConnections':paths([AC]),'PrimaryConnection':dbus.ObjectPath(AC),'Connectivity':dbus.UInt32(4),'Startup':False}})
+ @dbus.service.method('org.hics.Test',in_signature='b')
+ def SetWiredState(self,connected):
+  device=objects[ETH];state=dbus.UInt32(100 if connected else 30)
+  values={'State':state,'StateReason':dbus.Struct((state,dbus.UInt32(0)),signature='uu'),'ActiveConnection':dbus.ObjectPath(AC if connected else '/')}
+  device.interfaces[NM+'.Device'].update(values);device.PropertiesChanged(NM+'.Device',values,[])
+  values={'State':dbus.UInt32(70 if connected else 20),'PrimaryConnection':dbus.ObjectPath(AC if connected else '/'),'ActiveConnections':paths([AC] if connected else [])}
+  self.interfaces[NM].update(values);self.PropertiesChanged(NM,values,[])
+root=Manager(ROOT,{NM:{'Version':'1.52.0','State':dbus.UInt32(70),'NetworkingEnabled':True,'WirelessEnabled':True,'WirelessHardwareEnabled':True,'Devices':paths([ETH] if os.environ.get('NETWORK_TEST_NO_WIFI') else [WIFI,ETH]),'AllDevices':paths([ETH] if os.environ.get('NETWORK_TEST_NO_WIFI') else [WIFI,ETH]),'ActiveConnections':paths([AC]),'PrimaryConnection':dbus.ObjectPath(AC),'Connectivity':dbus.UInt32(4),'Startup':False}})
 print('ready',flush=True)
 GLib.MainLoop().run()
