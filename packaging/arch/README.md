@@ -24,3 +24,10 @@ managers and restarts active `hic-session.service` instances automatically.
 Inactive shells stay inactive. Hyprland and applications remain running.
 If a user manager cannot be reached, the installer prints a warning and
 continues with other users; run `hics-session restart` in that session.
+
+Secrets use `libsecret` and the user's existing Secret Service. `gnome-keyring`
+is a required runtime dependency, providing a default service on fresh installs.
+The package does not replace an active provider, migrate collections, reset a
+master password, or modify the distribution's PAM configuration. Automatic
+unlocking depends on the login manager's PAM stack and matching login/keyring
+passwords; passwordless/autologin sessions may require a separate unlock prompt.

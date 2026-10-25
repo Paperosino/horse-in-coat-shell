@@ -29,6 +29,8 @@ in {
 
     services.dbus.packages = [ package ];
     security.polkit.enable = true;
+    # Use the existing Secret Service/PAM integration rather than a second vault.
+    services.gnome.gnome-keyring.enable = lib.mkDefault true;
     systemd.packages = [ package ];
 
     systemd.user.services.hic-session = {

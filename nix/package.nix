@@ -1,6 +1,6 @@
 { lib, stdenv, cmake, ninja, pkg-config, gettext, makeWrapper, qt6
 , hyprland, quickshell, python3, libqalculate, lm_sensors, pixman, libdrm
-, glib, libsecret, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
+, glib, libsecret, gnome-keyring, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
 , pipewire, pulseaudio, wireplumber, polkit, hyprlock, hyprpicker, xdg-utils, xdg-user-dirs
@@ -11,7 +11,7 @@ let
   runtime = [ glib quickshell hyprland python kitty firefox fuzzel btop pavucontrol
     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify brightnessctl
     networkmanager pipewire pulseaudio wireplumber polkit hyprlock hyprpicker xdg-utils
-    xdg-user-dirs libxml2 systemd libqalculate blueman ];
+    xdg-user-dirs libxml2 systemd libqalculate blueman gnome-keyring ];
 in
 assert lib.assertMsg (hyprland.version == "0.56.2") "Hyprstack requires Hyprland 0.56.2";
 assert lib.assertMsg (lib.versionAtLeast quickshell.version "0.3.1") "Hyprstack requires Quickshell >= 0.3.1";
