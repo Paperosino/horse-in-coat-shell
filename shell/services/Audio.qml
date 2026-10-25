@@ -32,6 +32,48 @@ Singleton {
     readonly property alias cava: cava
     readonly property alias beatTracker: beatTracker
 
+    readonly property bool privacyMuted: GlobalConfig.general.privacy.microphoneMuted
+    property var previousMutes: GlobalConfig.general.privacy.microphonePreviousMutes
+    readonly property var microphoneStreams: streams.filter(n => n.type === PwNodeType.AudioInStream)
+    readonly property real balance: {
+        const a=sink?.audio;if(!a)return 0;
+        const left=a.channels.indexOf(PwAudioChannel.FrontLeft),right=a.channels.indexOf(PwAudioChannel.FrontRight);
+        if(left<0||right<0)return 0;
+        const l=a.volumes[left],r=a.volumes[right],m=Math.max(l,r);
+        return m>0?(r-l)/m:0;
+    }
+    readonly property bool stereoOutput: sink?.audio?.channels.includes(PwAudioChannel.FrontLeft) && sink?.audio?.channels.includes(PwAudioChannel.FrontRight) || false
+    function setBalance(value:real):void {
+        const a=sink?.audio;if(!a)return;
+        const channels=a.channels,volumes=Array.from(a.volumes),l=channels.indexOf(PwAudioChannel.FrontLeft),r=channels.indexOf(PwAudioChannel.FrontRight);
+        if(l<0||r<0)return;
+        const peak=Math.max(volumes[l],volumes[r]);value=Math.max(-1,Math.min(1,value));
+        volumes[l]=peak*(value>0?1-value:1);volumes[r]=peak*(value<0?1+value:1);a.volumes=volumes;
+    }
+    function enforceMicrophonePrivacy():void {
+        if(!privacyMuted)return;
+        const old=Object.assign({},previousMutes);
+        for(const node of sources)if(node.ready&&node.audio){if(old[node.name]===undefined)old[node.name]=node.audio.muted;node.audio.muted=true;}
+        GlobalConfig.general.privacy.microphonePreviousMutes=old;
+    }
+    function setMicrophonePrivacy(blocked:bool):void {
+        if(blocked===privacyMuted)return;
+        GlobalConfig.general.privacy.microphoneMuted=blocked;
+    }
+    onPrivacyMutedChanged: {
+        if(privacyMuted)enforceMicrophonePrivacy();
+        else{for(const node of sources)if(node.ready&&node.audio&&previousMutes[node.name]!==undefined)node.audio.muted=previousMutes[node.name];GlobalConfig.general.privacy.microphonePreviousMutes=({});}
+    }
+    Instantiator {
+        model: root.sources
+        delegate: QtObject {
+            required property var modelData
+            property Connections muteWatch: Connections {target:modelData.audio;function onMutedChanged():void{if(root.privacyMuted&&modelData.ready&&!modelData.audio.muted)root.enforceMicrophonePrivacy();}}
+            property Connections readyWatch: Connections {target:modelData;function onReadyChanged():void{root.enforceMicrophonePrivacy();}}
+        }
+    }
+    onSourcesChanged: enforceMicrophonePrivacy()
+    Connections {target:root.source?.audio??null;function onMutedChanged():void{if(root.privacyMuted&&!root.source.audio.muted)root.source.audio.muted=true;}}
     function setVolume(newVolume: real): void {
         if (sink?.ready && sink?.audio) {
             sink.audio.muted = false;
@@ -48,6 +90,7 @@ Singleton {
     }
 
     function setSourceVolume(newVolume: real): void {
+        if (privacyMuted) return;
         if (source?.ready && source?.audio) {
             source.audio.muted = false;
             source.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
@@ -87,6 +130,7 @@ Singleton {
     }
 
     function setStreamMuted(stream: PwNode, muted: bool): void {
+        if(privacyMuted && sources.includes(stream) && !muted)return;
         if (stream?.ready && stream?.audio) {
             stream.audio.muted = muted;
         }
@@ -114,9 +158,9 @@ Singleton {
 
         for (const node of Pipewire.nodes.values) {
             if (!node.isStream) {
-                if (node.isSink)
+                if (node.audio && (node.type & PwNodeType.Sink))
                     newSinks.push(node);
-                else if (node.audio)
+                if (node.audio && (node.type & PwNodeType.Source))
                     newSources.push(node);
             } else if (node.audio) {
                 newStreams.push(node);

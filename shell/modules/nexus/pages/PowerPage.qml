@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Hyprstack.Config
+import Hyprstack.Services
 import Hyprstack.I18n
 import qs.components
 import qs.components.controls
@@ -23,6 +24,13 @@ PageBase {
         spacing: Tokens.spacing.large
 
         PowerProfilesSection {}
+        SettingsCard {
+            title: Tr.tr("Laptop & docking")
+            icon: "laptop_mac"
+            ToggleRow { first:true;last:true;text:Tr.tr("Stay awake with the lid closed when an external display is connected");checked:GlobalConfig.general.idle.keepAwakeDocked;onToggled:GlobalConfig.general.idle.keepAwakeDocked=checked }
+            InfoRow {first:true;last:true;label:Tr.tr("Lid handling");value:DesktopConveniences.dockInhibited?Tr.tr("External display: lid sleep is inhibited"):Tr.tr("System lid policy is active")}
+            FeatureError {error:DesktopConveniences.error}
+        }
 
         // Lock
         SettingsCard {
@@ -33,7 +41,7 @@ PageBase {
                 idleAction: "lock"
                 title: Tr.tr("Lock screen after")
                 subtext: Tr.tr("Lock the session after a period of inactivity")
-                presetMinutes: [1, 2, 3, 5, 10, 15]
+
             }
 
             // Screen
@@ -46,7 +54,7 @@ PageBase {
                 idleAction: "dpms off"
                 title: Tr.tr("Turn off screen after")
                 subtext: Tr.tr("Put displays to sleep; they wake on input")
-                presetMinutes: [1, 2, 3, 5, 10, 15, 30]
+
             }
 
             // Suspend
@@ -59,7 +67,7 @@ PageBase {
                 idleAction: ["suspend"]
                 title: Tr.tr("Suspend after")
                 subtext: Tr.tr("System sleeps after a period of inactivity")
-                presetMinutes: [5, 10, 15, 30, 45, 60, 120]
+
             }
 
             // Idle behaviour
@@ -98,8 +106,6 @@ PageBase {
         required property var idleAction
         required property string title
         required property string subtext
-        required property list<int> presetMinutes
-        property int maxMinutes: 720
 
         spacing: 0
         Layout.fillWidth: true
@@ -122,84 +128,24 @@ PageBase {
             return null;
         }
 
-        readonly property list<MenuItem> items: [...presetItems.instances, customItem, neverItem]
-
-        readonly property var activeItem: {
-            if (!chooser.entry || !chooser.entry.enabled)
-                return chooser.entry ? neverItem : null;
-            const minutes = chooser.entry.timeout / 60;
-            return presetItems.instances.find(i => i.value === minutes) ?? customItem;
-        }
-
-        function formatMinutes(m: int): string {
-            if (m < 60)
-                return Tr.trN("%n minute", "%n minutes", m);
-            if (m % 60 === 0)
-                return Tr.trN("%n hour", "%n hours", m / 60);
-            return Tr.trN("%n min", "%n mins", m);
-        }
-
-        Variants {
-            id: presetItems
-
-            model: chooser.presetMinutes
-
-            MenuItem {
-                required property var modelData
-
-                text: chooser.formatMinutes(modelData)
-                value: modelData
-            }
-        }
-
-        MenuItem {
-            id: customItem
-
-            text: Tr.tr("Custom…")
-            value: "custom"
-        }
-
-        MenuItem {
-            id: neverItem
-
-            text: Tr.tr("Never")
-            value: "never"
-        }
-
-        SelectRow {
-            first: true
-            label: chooser.title
-            subtext: chooser.entry ? chooser.subtext : Tr.tr("This idle action is not configured")
-            enabled: chooser.entry !== null
-            menuItems: chooser.items
-            active: chooser.activeItem
-            onSelected: item => {
-                if (!chooser.entry)
-                    return;
-                if (item.value === "never") {
-                    chooser.entry.enabled = false;
-                } else if (item.value === "custom") {
-                    chooser.entry.enabled = true;
-                } else {
-                    chooser.entry.enabled = true;
-                    chooser.entry.timeout = item.value * 60;
-                }
-            }
-        }
-
+        InfoRow {first:true;last:true;label:chooser.title;value:chooser.subtext}
+        ToggleRow {first:true;last:true;text:Tr.tr("Enabled");checked:chooser.entry?.enabled??false;enabled:chooser.entry!==null;onToggled:if(chooser.entry)chooser.entry.enabled=checked}
         StepperRow {
-            last: true
-            visible: chooser.activeItem === customItem && chooser.entry !== null
-            label: Tr.tr("Custom delay")
-            subtext: Tr.tr("Minutes of inactivity")
-            value: (chooser.entry?.timeout ?? 0) / 60
-            from: 1
-            to: chooser.maxMinutes
-            stepSize: 1
-            onMoved: v => {
-                if (chooser.entry)
-                    chooser.entry.timeout = Math.round(v * 60);
-            }
+            visible: chooser.entry !== null
+            label: Tr.tr("On battery (minutes)")
+            subtext: Tr.tr("0 disables this action")
+            value: Math.round((chooser.entry?.batteryTimeout >= 0 ? chooser.entry.batteryTimeout : chooser.entry?.timeout ?? 0)/60)
+            from:0;to:720;stepSize:1
+            onMoved: v => {if(chooser.entry){chooser.entry.enabled=true;chooser.entry.batteryTimeout=Math.round(v*60);}}
+        }
+        StepperRow {
+            last:true
+            visible: chooser.entry !== null
+            label: Tr.tr("Plugged in (minutes)")
+            subtext: Tr.tr("0 disables this action")
+            value: Math.round((chooser.entry?.acTimeout >= 0 ? chooser.entry.acTimeout : chooser.entry?.timeout ?? 0)/60)
+            from:0;to:720;stepSize:1
+            onMoved: v => {if(chooser.entry){chooser.entry.enabled=true;chooser.entry.acTimeout=Math.round(v*60);}}
         }
     }
 }

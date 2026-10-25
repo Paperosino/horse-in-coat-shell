@@ -17,6 +17,14 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         width: root.cappedWidth
         spacing: Tokens.spacing.large
+        SettingsCard {
+            title:Tr.tr("Microphone & camera privacy")
+            icon:"shield"
+            ToggleRow {first:true;last:true;text:Tr.tr("Mute all microphones");checked:Audio.privacyMuted;onToggled:Audio.setMicrophonePrivacy(checked)}
+            ToggleRow {first:true;last:true;text:Tr.tr("Disable camera access through PipeWire");subtext:Tr.tr("Restarts WirePlumber and briefly interrupts audio. Applications using /dev/video directly are not blocked; use a hardware shutter for a global camera switch.");checked:DesktopConveniences.cameraBlocked;enabled:!DesktopConveniences.busy;onToggled:DesktopConveniences.setCameraBlocked(checked)}
+            Repeater {model:Audio.microphoneStreams;InfoRow {required property var modelData;first:true;last:true;label:Audio.getStreamName(modelData);value:modelData.audio?.muted?Tr.tr("Microphone stream muted"):Tr.tr("Audio capture stream")}}
+            FeatureError {error:DesktopConveniences.error}
+        }
         InfoRow {
             first: true
             last: true

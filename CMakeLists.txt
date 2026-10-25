@@ -120,3 +120,10 @@ foreach(unit hics-displays hics-configuration)
     configure_file("distribution/systemd/user/${unit}.service.in" "${unit}.service" @ONLY)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${unit}.service" DESTINATION lib/systemd/user)
 endforeach()
+
+# Kept outside the Qt/QML process and its private runtime.
+pkg_check_modules(HicsPortalWebkit REQUIRED IMPORTED_TARGET webkitgtk-6.0)
+add_executable(hics-portal native/portal/main.cpp)
+target_link_libraries(hics-portal PRIVATE PkgConfig::HicsPortalWebkit)
+target_compile_definitions(hics-portal PRIVATE HICS_LOCALE_DIR="${CMAKE_INSTALL_FULL_DATADIR}/hics/translations")
+install(TARGETS hics-portal RUNTIME DESTINATION bin)

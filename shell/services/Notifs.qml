@@ -57,8 +57,8 @@ Singleton {
     }
 
     function expirationChanged(notif:var):void {
-        const timeout=notif.expireTimeout>0?notif.expireTimeout:notif.hasFullscreen?GlobalConfig.notifs.fullscreenExpireTimeout:GlobalConfig.notifs.defaultExpireTimeout;
-        notif.popupDeadline=notif.popup&&notif.expireTimeout!==0?Date.now()+Math.max(1,timeout):0;
+        const timeout=notif.expireTimeout>0?notif.expireTimeout:(notif.hasFullscreen?GlobalConfig.notifs.fullscreenExpireTimeout:GlobalConfig.notifs.defaultExpireTimeout);
+        notif.popupDeadline=notif.popup&&!notif.expiryPaused&&notif.expireTimeout!==0?Date.now()+Math.max(1,timeout):0;
         Qt.callLater(armExpiration);
     }
     function armExpiration():void {

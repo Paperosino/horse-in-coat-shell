@@ -4,10 +4,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Services.Pipewire
+import Hyprstack.Services
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
 import qs.components.controls
+import qs.modules.nexus
 import qs.services
 
 Item {
@@ -97,11 +99,20 @@ Item {
                 anchors.right: parent.right
                 implicitHeight: parent.implicitHeight
 
+                to:GlobalConfig.services.maxVolume
                 value: Audio.volume
                 onInteraction: value => Audio.setVolume(value)
             }
         }
 
+        IconTextButton {Layout.fillWidth:true;text:Audio.privacyMuted?Tr.tr("Unmute microphones"):Tr.tr("Mute all microphones");icon:Audio.privacyMuted?"mic_off":"mic";onClicked:Audio.setMicrophonePrivacy(!Audio.privacyMuted)}
+        RowLayout {
+            Layout.fillWidth:true
+            StyledText {Layout.fillWidth:true;text:Tr.tr("Camera (PipeWire)");font:Tokens.font.body.small}
+            StyledSwitch {checked:!DesktopConveniences.cameraBlocked;enabled:!DesktopConveniences.busy;onToggled:DesktopConveniences.setCameraBlocked(!checked)}
+        }
+        StyledText {Layout.fillWidth:true;wrapMode:Text.WordWrap;font:Tokens.font.body.small;color:Colours.palette.m3onSurfaceVariant;text:Tr.tr("Camera changes briefly interrupt audio")}
+        IconTextButton {Layout.fillWidth:true;text:Tr.tr("Privacy & active capture");icon:"shield";onClicked:WindowFactory.openPage("sharing")}
         IconTextButton {
             Layout.fillWidth: true
             Layout.topMargin: Tokens.spacing.medium

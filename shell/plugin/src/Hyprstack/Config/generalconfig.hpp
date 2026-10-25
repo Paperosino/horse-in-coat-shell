@@ -33,6 +33,8 @@ class GeneralIdleTimeout : public settings::ObjectNode {
     CONFIG_PROPERTY(QVariant, returnAction, {}, .allowedTypes = settings::unionTypes<QString, QStringList>())
     CONFIG_PROPERTY(bool, inhibitWhenAudio, false)
     CONFIG_PROPERTY(bool, inhibitWhenCharging, false)
+    CONFIG_PROPERTY(int, batteryTimeout, -1)
+    CONFIG_PROPERTY(int, acTimeout, -1)
     CONFIG_PROPERTY(bool, respectInhibitors, true)
 };
 CONFIG_LIST_TYPE(GeneralIdleTimeout, GeneralIdleTimeoutList)
@@ -40,6 +42,7 @@ CONFIG_LIST_TYPE(GeneralIdleTimeout, GeneralIdleTimeoutList)
 class GeneralIdle : public settings::ObjectNode {
     CONFIG_NODE(GeneralIdle, settings::ObjectNode)
 
+    CONFIG_PROPERTY(bool, keepAwakeDocked, false)
     CONFIG_PROPERTY(bool, lockBeforeSleep, true)
     CONFIG_PROPERTY(bool, inhibitWhenAudio, true)
     CONFIG_PROPERTY(bool, inhibitWhenCharging, false)
@@ -100,6 +103,22 @@ class GeneralBattery : public settings::ObjectNode {
     CONFIG_PROPERTY(int, criticalLevel, 3)
 };
 
+class GeneralPrivacy : public settings::ObjectNode {
+    CONFIG_NODE(GeneralPrivacy, settings::ObjectNode)
+    CONFIG_PROPERTY(bool, microphoneMuted, false)
+    CONFIG_PROPERTY(QVariantMap, microphonePreviousMutes, {})
+};
+
+class GeneralNetwork : public settings::ObjectNode {
+    CONFIG_NODE(GeneralNetwork, settings::ObjectNode)
+    CONFIG_PROPERTY(bool, captivePortalAutoOpen, true)
+};
+class GeneralMaintenance : public settings::ObjectNode {
+    CONFIG_NODE(GeneralMaintenance, settings::ObjectNode)
+    CONFIG_PROPERTY(bool, automaticThumbnailCleanup, false)
+    CONFIG_PROPERTY(int, thumbnailRetentionDays, 30)
+};
+
 class GeneralConfig : public settings::ObjectNode {
     CONFIG_NODE(GeneralConfig, settings::ObjectNode)
 
@@ -109,6 +128,9 @@ class GeneralConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(qreal, mediaGifSpeedAdjustment, 300)
     CONFIG_PROPERTY(qreal, sessionGifSpeed, 0.7)
     CONFIG_GLOBAL_SUBOBJECT(GeneralApps, apps)
+    CONFIG_GLOBAL_SUBOBJECT(GeneralPrivacy, privacy)
+    CONFIG_GLOBAL_SUBOBJECT(GeneralNetwork, network)
+    CONFIG_GLOBAL_SUBOBJECT(GeneralMaintenance, maintenance)
     CONFIG_GLOBAL_SUBOBJECT(GeneralIdle, idle)
     CONFIG_GLOBAL_SUBOBJECT(GeneralBattery, battery)
 };

@@ -10685,3 +10685,216 @@ msgstr "Также учитывать заголовок выбранного о
 
 msgid "Selected window"
 msgstr "Выбранное окно"
+
+msgid "0 disables this action"
+msgstr "0 отключает это действие"
+
+msgid "Audio capture stream"
+msgstr "Захват звука"
+
+msgid "Authorizing and scheduling maintenance"
+msgstr "Авторизация и запуск очистки"
+
+msgid "Automatically clean the package cache"
+msgstr "Автоматически очищать кэш пакетов"
+
+msgid "Automatically open network sign-in"
+msgstr "Автоматически открывать вход в сеть"
+
+msgid "Automatically remove old thumbnails"
+msgstr "Автоматически удалять старые миниатюры"
+
+msgid "Balance · left / right"
+msgstr "Баланс · левый / правый"
+
+msgid "Centre"
+msgstr "По центру"
+
+msgid "Check Internet access"
+msgstr "Проверить доступ к интернету"
+
+msgid "Clean package cache"
+msgstr "Очистить кэш пакетов"
+
+msgid "Confirm: clean package cache"
+msgstr "Подтвердить очистку кэша пакетов"
+
+msgid "Confirm: permanently empty Trash"
+msgstr "Подтвердить безвозвратную очистку корзины"
+
+msgid "Confirm: remove expired crash dumps"
+msgstr "Подтвердить удаление устаревших дампов"
+
+msgid "Confirm: remove old thumbnails"
+msgstr "Подтвердить удаление старых миниатюр"
+
+msgid "Connection status"
+msgstr "Состояние подключения"
+
+msgid "Connectivity checks"
+msgstr "Проверка подключения"
+
+msgid "Disable camera access through PipeWire"
+msgstr "Отключить доступ к камерам через PipeWire"
+
+msgid "Empty Trash"
+msgstr "Очистить корзину"
+
+msgid "External display: lid sleep is inhibited"
+msgstr "Внешний экран: закрытие крышки не переводит в сон"
+
+msgid "Free up space"
+msgstr "Освободить место"
+
+msgid "Internet access"
+msgstr "Доступ к интернету"
+
+msgid "Internet access is limited or not yet checked"
+msgstr "Доступ ограничен или ещё не проверен"
+
+msgid "Internet available"
+msgstr "Интернет доступен"
+
+msgid "KDE Connect"
+msgstr "KDE Connect"
+
+msgid "Keep thumbnails for (days)"
+msgstr "Хранить миниатюры (дней)"
+
+msgid "Keeps the three most recent cached versions; authorization is required"
+msgstr "Сохраняет три последние версии в кэше; требуется авторизация"
+
+msgid "Laptop & docking"
+msgstr "Ноутбук и док-станция"
+
+msgid "Lid handling"
+msgstr "Закрытие крышки"
+
+msgid "LocalSend"
+msgstr "LocalSend"
+
+msgid "Microphone & camera privacy"
+msgstr "Приватность микрофона и камеры"
+
+msgid "Microphone stream muted"
+msgstr "Звук входящего потока отключён"
+
+msgid "Mute all microphones"
+msgstr "Отключить все микрофоны"
+
+msgid "No connectivity check endpoint is configured in NetworkManager"
+msgstr "В NetworkManager не настроен адрес проверки подключения"
+
+msgid "On battery (minutes)"
+msgstr "От батареи (минут)"
+
+msgid "Open Trash"
+msgstr "Открыть корзину"
+
+msgid "Opens the Bluetooth transfer assistant; approve incoming transfers in notifications"
+msgstr "Открывает помощник Bluetooth; разрешайте входящие передачи в уведомлениях"
+
+msgid "Pair a phone for file transfers and device integration"
+msgstr "Подключите телефон для обмена файлами и управления устройствами"
+
+msgid "Permanently removes all trashed items, including mounted volumes"
+msgstr "Безвозвратно удаляет содержимое корзин, включая подключённые тома"
+
+msgid "Plugged in (minutes)"
+msgstr "От сети (минут)"
+
+msgid "Privacy & active capture"
+msgstr "Приватность и активный захват"
+
+msgid "Receive files over Bluetooth"
+msgstr "Принимать файлы по Bluetooth"
+
+msgid "Reclaimable files"
+msgstr "Место для освобождения"
+
+msgid "Refresh space estimate"
+msgstr "Обновить оценку места"
+
+msgid "Remove expired crash dumps"
+msgstr "Удалить устаревшие дампы сбоев"
+
+msgid "Remove old thumbnails"
+msgstr "Удалить старые миниатюры"
+
+msgid "Restarts WirePlumber and briefly interrupts audio. Applications using /dev/video directly are not blocked; use a hardware shutter for a global camera switch."
+msgstr "Перезапускает WirePlumber и ненадолго прерывает звук. Прямой доступ приложений к /dev/video не блокируется; для полного отключения используйте аппаратную шторку."
+
+msgid "Send & receive files"
+msgstr "Отправка и приём файлов"
+
+msgid "Send files over Bluetooth"
+msgstr "Отправить файлы по Bluetooth"
+
+msgid "Share with phones and computers on the same network"
+msgstr "Обмен с телефонами и компьютерами в одной сети"
+
+msgid "Sign in to network"
+msgstr "Войти в сеть"
+
+msgid "Sign in to this network to access the Internet"
+msgstr "Авторизуйтесь в сети для доступа к интернету"
+
+msgid "Stay awake with the lid closed when an external display is connected"
+msgstr "Не засыпать при закрытии крышки, если подключён внешний экран"
+
+msgid "System cleanup"
+msgstr "Очистка системы"
+
+msgid "System lid policy is active"
+msgstr "Действуют системные настройки крышки"
+
+msgid "Test left speaker"
+msgstr "Проверить левый динамик"
+
+msgid "Test right speaker"
+msgstr "Проверить правый динамик"
+
+msgid "Thumbnails are regenerated when needed; original files are kept"
+msgstr "Миниатюры создадутся заново при необходимости; исходные файлы сохраняются"
+
+msgid "Trash: %1 · Thumbnails: %2"
+msgstr "Корзина: %1 · Миниатюры: %2"
+
+msgid "Unmute microphones"
+msgstr "Включить микрофоны"
+
+msgid "Uses the system paccache timer and its retention settings"
+msgstr "Использует системный таймер paccache и его сроки хранения"
+
+msgid "Uses the system retention policy; recent diagnostic dumps are kept"
+msgstr "Соблюдает системный срок хранения; свежие диагностические дампы сохраняются"
+
+msgid "Allow volume above 100%"
+msgstr "Разрешить громкость выше 100%"
+
+msgid "Raises the limit to 150%; high levels may distort sound"
+msgstr "Повышает предел до 150%; высокая громкость может искажать звук"
+
+msgid "Network sign-in"
+msgstr "Вход в сеть"
+
+msgid "Network sign-in · Temporary browser session"
+msgstr "Вход в сеть · Временный сеанс браузера"
+
+msgid "Package cache cleanup"
+msgstr "Очистка кэша пакетов"
+
+msgid "Crash dump cleanup"
+msgstr "Очистка дампов сбоев"
+
+msgid "Not started"
+msgstr "Не запускалась"
+
+msgid "Trash size covers the home volume; other mounted volumes are not included"
+msgstr "Оценка корзины относится к домашнему тому; другие подключённые тома не учтены"
+
+msgid "Camera (PipeWire)"
+msgstr "Камера (PipeWire)"
+
+msgid "Camera changes briefly interrupt audio"
+msgstr "Изменение доступа к камере ненадолго прервёт звук"

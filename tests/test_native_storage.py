@@ -59,6 +59,16 @@ QTextStream(stdout)<<System::encode(result)<<Qt::endl; return 0;
     self.assertTrue(task['program'].endswith('/'+program));self.assertEqual(task['arguments'][1:],['--',str(target)])
     self.assertEqual(task['nice'],19);self.assertTrue(task['noNewPrivileges']);self.assertEqual(task['unit'],'hyprstack-disk-test.service')
   self.fixture('SetMount','sb','','true')
+ def test_cleanup_uses_fixed_commands_and_rejects_paths(self):
+  for op,program,args in [('clean-packages','paccache',['-r','-k3']),('clean-coredumps','systemd-tmpfiles',['--clean','--prefix=/var/lib/systemd/coredump'])]:
+   with self.subTest(operation=op):
+    result=self.probe('maintenance-'+op,{})
+    self.assertTrue(result.get('ok'),result)
+    output=subprocess.check_output(['busctl','--address='+self.env['DBUS_SYSTEM_BUS_ADDRESS'],'--json=short','call','org.freedesktop.systemd1','/org/freedesktop/systemd1','org.hics.Test','LastTask'],text=True)
+    task=json.loads(json.loads(output)['data'][0]);self.assertTrue(task['program'].endswith('/'+program));self.assertEqual(task['arguments'][1:],args);self.assertEqual(task['nice'],19)
+    invalid=self.probe('maintenance-'+op,{'path':'/home'})
+    self.assertEqual(invalid.get('code'),'invalid')
+  self.assertEqual(self.probe('maintenance-automatic-package-cleanup',{'enabled':'yes'}).get('code'),'invalid')
  def test_mount_options_preserve_unrelated_values(self):
   self.fixture('SetOptions','s','uid=1000,gid=1000,relatime,compress=zstd:1,rw,exec,auto')
   self.assertTrue(self.probe('configure',self.options())['ok'])

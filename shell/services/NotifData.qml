@@ -14,6 +14,9 @@ import "NotificationStore.js" as Store
 QtObject {
     id: notif
 
+    property bool expiryPaused:false
+    function pauseExpiry():void {expiryPaused=true;popupDeadline=0;Notifs.armExpiration();}
+    function resumeExpiry():void {expiryPaused=false;Notifs.expirationChanged(notif);}
     property real popupDeadline:0
     property bool popup
     property bool closed

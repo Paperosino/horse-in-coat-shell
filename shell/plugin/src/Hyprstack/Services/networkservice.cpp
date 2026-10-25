@@ -304,7 +304,11 @@ struct NetworkService::Worker {
       }
     for (auto it = unique.cbegin(); it != unique.cend(); ++it)
       aps << it.value();
-    post({{u"available"_s, bool(nm_client_get_nm_running(client))},
+    post({{u"connectivity"_s,int(nm_client_get_connectivity(client))},
+          {u"connectivityCheckAvailable"_s,bool(nm_client_connectivity_check_get_available(client))},
+          {u"connectivityCheckEnabled"_s,bool(nm_client_connectivity_check_get_enabled(client))},
+          {u"connectivityCheckUri"_s,str(nm_client_connectivity_check_get_uri(client))},
+          {u"available"_s, bool(nm_client_get_nm_running(client))},
           {u"wifiEnabled"_s, bool(nm_client_wireless_get_enabled(client))},
           {u"wireless"_s, wireless},
           {u"ethernet"_s, ethernet},
@@ -366,7 +370,9 @@ struct NetworkService::Worker {
     auto *job = static_cast<Job *>(data);
     auto *self = job->self;
     GError *error = nullptr;
-    if (job->kind == u"wifi"_s)
+    if (job->kind == u"connectivity"_s)
+      nm_client_check_connectivity_finish(NM_CLIENT(source),result,&error);
+    else if (job->kind == u"wifi"_s)
       nm_client_dbus_set_property_finish(NM_CLIENT(source), result, &error);
     else if (job->kind == u"scan"_s)
       nm_device_wifi_request_scan_finish(NM_DEVICE_WIFI(source), result,
@@ -436,6 +442,7 @@ struct NetworkService::Worker {
       --pending;
       quitIfDone();
     };
+    if(op == u"connectivity"_s){nm_client_check_connectivity_async(client,cancel,finished,job);return;}
     if (op == u"wifi"_s) {
       nm_client_dbus_set_property(
           client, NM_DBUS_PATH, NM_DBUS_INTERFACE, "WirelessEnabled",

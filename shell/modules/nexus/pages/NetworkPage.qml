@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Hyprstack.Services
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
@@ -24,6 +25,16 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
+        SettingsCard {
+            title:Tr.tr("Internet access")
+            icon:"public"
+            InfoRow {first:true;last:true;label:Tr.tr("Connection status");value:CaptivePortal.requiresSignIn?Tr.tr("Sign in to this network to access the Internet"):CaptivePortal.status==="online"?Tr.tr("Internet available"):Tr.tr("Internet access is limited or not yet checked")}
+            ToggleRow {first:true;last:true;text:Tr.tr("Automatically open network sign-in");checked:GlobalConfig.general.network.captivePortalAutoOpen;onToggled:GlobalConfig.general.network.captivePortalAutoOpen=checked}
+            RowButton {visible:CaptivePortal.requiresSignIn;text:Tr.tr("Sign in to network");icon:"login";onClicked:CaptivePortal.signIn()}
+            RowButton {text:Tr.tr("Check Internet access");icon:"refresh";onClicked:CaptivePortal.check()}
+            InfoRow {visible:!NetworkService.state.connectivityCheckAvailable;first:true;last:true;label:Tr.tr("Connectivity checks");value:Tr.tr("No connectivity check endpoint is configured in NetworkManager")}
+            FeatureError {error:DesktopConveniences.error}
+        }
         Timer {
             running: root.visible && Nmcli.wifiEnabled
             repeat: true

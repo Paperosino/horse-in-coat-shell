@@ -4,14 +4,14 @@
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
 , pipewire, pulseaudio, wireplumber, polkit, hyprlock, hyprpicker, xdg-utils, xdg-user-dirs
-, libxml2, adwaita-icon-theme, xkeyboard_config, src
+, webkitgtk_6_0, gtk4, blueman, libxml2, adwaita-icon-theme, xkeyboard_config, src
 }:
 let
   python = python3.withPackages (packages: [ packages.pillow ]);
   runtime = [ glib quickshell hyprland python kitty firefox fuzzel btop pavucontrol
     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify brightnessctl
     networkmanager pipewire pulseaudio wireplumber polkit hyprlock hyprpicker xdg-utils
-    xdg-user-dirs libxml2 systemd libqalculate ];
+    xdg-user-dirs libxml2 systemd libqalculate blueman ];
 in
 assert lib.assertMsg (hyprland.version == "0.56.2") "Hyprstack requires Hyprland 0.56.2";
 assert lib.assertMsg (lib.versionAtLeast quickshell.version "0.3.1") "Hyprstack requires Quickshell >= 0.3.1";
@@ -22,7 +22,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   inherit src;
 
   nativeBuildInputs = [ cmake ninja pkg-config gettext makeWrapper qt6.wrapQtAppsHook python hyprland ];
-  buildInputs = [ qt6.qtbase qt6.qtdeclarative qt6.qtshadertools qt6.qtmultimedia libqalculate lm_sensors networkmanager libsecret
+  buildInputs = [ webkitgtk_6_0 gtk4 qt6.qtbase qt6.qtdeclarative qt6.qtshadertools qt6.qtmultimedia libqalculate lm_sensors networkmanager libsecret
     hyprland.dev cups util-linux e2fsprogs lua5_4 hyprgraphics pixman libdrm libinput systemd wayland libxkbcommon pango cairo nlohmann_json ]
     ++ (hyprland.buildInputs or []);
 

@@ -60,7 +60,7 @@ StyledRect {
         spacing: 0
 
         Item {
-            visible: Recorder.busy || DesktopIntegration.microphoneTesting || DesktopIntegration.captureStreams.length > 0
+            visible: Audio.privacyMuted || Audio.microphoneStreams.length>0 || Recorder.busy || DesktopIntegration.microphoneTesting || DesktopIntegration.captureStreams.length > 0
             implicitWidth: visible ? captureIcon.implicitWidth + Tokens.padding.small : 0
             implicitHeight: captureIcon.implicitHeight
             Accessible.role: Accessible.Button
@@ -68,7 +68,7 @@ StyledRect {
             MaterialIcon {
                 id: captureIcon
                 anchors.centerIn: parent
-                text: DesktopIntegration.microphoneTesting ? "mic" : "screen_record"
+                text: Audio.privacyMuted ? "mic_off" : Audio.microphoneStreams.length>0 || DesktopIntegration.microphoneTesting ? "mic" : "screen_record"
                 color: Colours.palette.m3error
                 fontStyle: Tokens.font.icon.medium
             }

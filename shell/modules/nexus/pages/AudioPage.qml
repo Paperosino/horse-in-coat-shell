@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Hyprstack.Services
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.services
@@ -29,17 +30,23 @@ PageBase {
                 icon: Icons.getVolumeIcon(Audio.volume, Audio.muted)
                 label: Tr.trCtx("Output", "audio output")
                 valueLabel: Strings.percentOne(value)
+                to:GlobalConfig.services.maxVolume
                 value: Audio.volume
                 enabled: !Audio.muted
                 onMoved: v => Audio.setVolume(v)
             }
 
+            ToggleRow {text:Tr.tr("Allow volume above 100%");subtext:Tr.tr("Raises the limit to 150%; high levels may distort sound");checked:GlobalConfig.services.maxVolume>1;onToggled:{GlobalConfig.services.maxVolume=checked?1.5:1;if(Audio.sink?.audio&&Audio.volume>GlobalConfig.services.maxVolume)Audio.sink.audio.volume=GlobalConfig.services.maxVolume;}}
             ToggleRow {
                 text: Tr.trCtx("Muted", "audio output muted")
                 checked: Audio.muted
                 onToggled: Audio.setStreamMuted(Audio.sink, checked)
             }
 
+            SliderRow {visible:Audio.stereoOutput;label:Tr.tr("Balance · left / right");icon:"tune";from:-1;to:1;value:Audio.balance;valueLabel:Math.abs(value)<0.01?Tr.tr("Centre"):Math.round(Math.abs(value)*100)+"% "+(value<0?Tr.tr("Left"):Tr.tr("Right"));onMoved:v=>Audio.setBalance(v)}
+            RowButton {text:Tr.tr("Test left speaker");icon:"speaker";disabled:DesktopConveniences.speakerTesting;onClicked:DesktopConveniences.testSpeaker(0)}
+            RowButton {text:Tr.tr("Test right speaker");icon:"speaker";disabled:DesktopConveniences.speakerTesting;onClicked:DesktopConveniences.testSpeaker(1)}
+            FeatureError {error:DesktopConveniences.error}
             AudioDeviceList {
                 nodes: Audio.sinks
                 currentId: Audio.sink?.id ?? -1

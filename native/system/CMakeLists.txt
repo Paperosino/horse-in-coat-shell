@@ -10,7 +10,7 @@ add_library(hics-system-backend STATIC backend.cpp region.cpp backend.hpp storag
 set_target_properties(hics-system-backend PROPERTIES CXX_STANDARD 20)
 target_link_libraries(hics-system-backend PUBLIC Qt6::Core Qt6::DBus Cups::Cups)
 # Resolve fixed executables at build time, including non-/usr Nix installations.
-foreach(tool systemd-run systemctl fstrim e4defrag)
+foreach(tool systemd-run systemctl fstrim e4defrag paccache systemd-tmpfiles)
   string(TOUPPER "${tool}" tool_key)
   string(REPLACE "-" "_" tool_key "${tool_key}")
   find_program(HYPRSTACK_${tool_key} NAMES ${tool})

@@ -65,6 +65,7 @@ ColumnLayout {
         StyledSwitch {checked:Nmcli.wifiEnabled;onToggled:Nmcli.enableWifi(checked)}
         IconButton {Accessible.name:Tr.tr("Rescan networks");icon:"refresh";type:IconButton.Text;disabled:Nmcli.scanning||!Nmcli.wifiEnabled;onClicked:Nmcli.rescanWifi()}
     }
+    IconTextButton {Layout.fillWidth:true;visible:CaptivePortal.requiresSignIn;text:Tr.tr("Sign in to network");icon:"login";onClicked:{root.popouts.hasCurrent=false;CaptivePortal.signIn();}}
     ListView {
         id:connections
         objectName:"networkQuickConnections"

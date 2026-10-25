@@ -1,4 +1,10 @@
 #include "backend.hpp"
+#ifndef HYPRSTACK_PACCACHE
+#define HYPRSTACK_PACCACHE ""
+#endif
+#ifndef HYPRSTACK_SYSTEMD_TMPFILES
+#define HYPRSTACK_SYSTEMD_TMPFILES ""
+#endif
 #include <QDBusArgument>
 #include <QDBusMessage>
 #include <QDBusMetaType>
@@ -108,12 +114,12 @@ bool editable(const DiskConfigs &all, const QString &uuid) {
 QString unitOf(const QString &path) {
   return "hyprstack-disk-" + path.section('/', -1) + ".service";
 }
-QJsonObject jobState(const QString &path) {
+QJsonObject jobState(const QString &path, bool literalUnit = false) {
   try {
     auto p = qdbus_cast<QDBusObjectPath>(
                  invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
                         "org.freedesktop.systemd1.Manager", "GetUnit",
-                        {unitOf(path)})
+                        {literalUnit ? path : unitOf(path)})
                      .value(0))
                  .path();
     auto get = [&](const QString &iface) {
@@ -172,8 +178,10 @@ QJsonObject storageStatus() {
   for (auto device = objects.cbegin(); device != objects.cend(); ++device) {
     const auto block = device.value().value(B);
     const auto path = qdbus_cast<QDBusObjectPath>(block.value("Drive")).path();
-    if (!path.isEmpty() && path != "/" && !device.value().contains("org.freedesktop.UDisks2.Partition"))
-      driveSizes[path] = std::max(driveSizes.value(path), block.value("Size").toULongLong());
+    if (!path.isEmpty() && path != "/" &&
+        !device.value().contains("org.freedesktop.UDisks2.Partition"))
+      driveSizes[path] =
+          std::max(driveSizes.value(path), block.value("Size").toULongLong());
   }
   for (auto it = objects.cbegin(); it != objects.cend(); ++it) {
     auto fs = it.value().value(F), b = it.value().value(B);
@@ -182,10 +190,14 @@ QJsonObject storageStatus() {
     auto mount = mountOf(fs), uuid = b.value("IdUUID").toString();
     auto drivePath = qdbus_cast<QDBusObjectPath>(b.value("Drive")).path();
     if (drivePath.isEmpty() || drivePath == "/") {
-      const auto backing = objects.value(qdbus_cast<QDBusObjectPath>(b.value("CryptoBackingDevice"))).value(B);
+      const auto backing = objects
+                               .value(qdbus_cast<QDBusObjectPath>(
+                                   b.value("CryptoBackingDevice")))
+                               .value(B);
       drivePath = qdbus_cast<QDBusObjectPath>(backing.value("Drive")).path();
     }
-    auto interfaces = objects.value(QDBusObjectPath(drivePath.isEmpty() ? "/" : drivePath));
+    auto interfaces =
+        objects.value(QDBusObjectPath(drivePath.isEmpty() ? "/" : drivePath));
     const auto driveSize = driveSizes.value(drivePath);
     auto drive = interfaces.value("org.freedesktop.UDisks2.Drive");
     auto all = configs(b);
@@ -206,7 +218,8 @@ QJsonObject storageStatus() {
         {"filesystem", fsType},
         {"size", double(b.value("Size").toULongLong())},
         {"mountPoint", mount},
-        {"removable", drive.value("Removable").toBool() || drive.value("ConnectionBus").toString() == "usb"},
+        {"removable", drive.value("Removable").toBool() ||
+                          drive.value("ConnectionBus").toString() == "usb"},
         {"readOnly", b.value("ReadOnly").toBool()},
         {"model", drive.value("Model").toString()},
         {"serial", drive.value("Serial").toString()},
@@ -215,8 +228,8 @@ QJsonObject storageStatus() {
         {"mountEditable", editable(all, uuid)},
         {"configured", !entry.isEmpty()},
         {"automatic", !entry.isEmpty() && !opts.contains("noauto")},
-        {"mountDirectory", entry.isEmpty() ? "/mnt/hics-" + uuid
-                                           : bytes(entry.value("dir"))},
+        {"mountDirectory",
+         entry.isEmpty() ? "/mnt/hics-" + uuid : bytes(entry.value("dir"))},
         {"mountOptions", bytes(entry.value("opts"))},
         {"maintenance", jobState(it.key().path())},
         {"canTrim",
@@ -267,9 +280,38 @@ QJsonObject storageStatus() {
     }
     volumes.append(v);
   }
-  return {{"available", true}, {"volumes", volumes}};
+  bool automaticCleanup = false;
+  try {
+    automaticCleanup =
+        invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+               "org.freedesktop.systemd1.Manager", "GetUnitFileState",
+               {"paccache.timer"})
+            .value(0)
+            .toString() == "enabled";
+  } catch (const Failure &) {
+  }
+  return {{"available", true},
+          {"volumes", volumes},
+          {"automaticPackageCleanup", automaticCleanup},
+          {"packageCleanupAvailable",
+           !QString(HYPRSTACK_PACCACHE).isEmpty() &&
+               QFileInfo(QString(HYPRSTACK_PACCACHE)).isExecutable()},
+          {"cleanupJobs",
+           QJsonObject{
+               {"packages", jobState("hics-clean-packages.service", true)},
+               {"coredumps", jobState("hics-clean-coredumps.service", true)}}}};
 }
 void validateStorage(const QString &op, const QJsonObject &o) {
+  if (op == "automatic-package-cleanup") {
+    if (o.size() != 1 || !o.value("enabled").isBool())
+      throw Failure("invalid", "Expected an automatic cleanup switch");
+    return;
+  }
+  if (op == "clean-packages" || op == "clean-coredumps") {
+    if (!o.isEmpty())
+      throw Failure("invalid", "Cleanup does not accept paths or commands");
+    return;
+  }
   pathOf(o);
   if (!QStringList{"mount", "unmount", "configure", "smart-refresh",
                    "smart-short", "smart-extended", "smart-abort", "trim",
@@ -390,6 +432,78 @@ QJsonObject storageAction(const QString &op, const QJsonObject &o) {
 }
 void storageMaintenance(const QString &op, const QJsonObject &o) {
   validateStorage(op, o);
+  if (op == "automatic-package-cleanup") {
+    const bool enabled = o["enabled"].toBool();
+    if (enabled)
+      invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+             "org.freedesktop.systemd1.Manager", "EnableUnitFiles",
+             {QStringList{"paccache.timer"}, false, false});
+    else
+      invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+             "org.freedesktop.systemd1.Manager", "DisableUnitFiles",
+             {QStringList{"paccache.timer"}, false});
+    invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+           "org.freedesktop.systemd1.Manager", "Reload");
+    invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+           "org.freedesktop.systemd1.Manager",
+           enabled ? "StartUnit" : "StopUnit", {"paccache.timer", "replace"});
+    return;
+  }
+  if (op == "clean-packages" || op == "clean-coredumps") {
+    const QString program = op == "clean-packages"
+                                ? QString(HYPRSTACK_PACCACHE)
+                                : QString(HYPRSTACK_SYSTEMD_TMPFILES);
+    if (program.isEmpty() || !QFileInfo(program).isExecutable())
+      throw Failure("unavailable", "Cleanup utility is not installed");
+    const QString cleanupUnit = "hics-" + op + ".service";
+    if (jobState(cleanupUnit, true)["active"].toBool())
+      throw Failure("busy", "Cleanup is already running");
+    try {
+      invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+             "org.freedesktop.systemd1.Manager", "StopUnit",
+             {cleanupUnit, "replace"});
+    } catch (const Failure &) {
+    }
+    try {
+      invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+             "org.freedesktop.systemd1.Manager", "ResetFailedUnit",
+             {cleanupUnit});
+    } catch (const Failure &) {
+    }
+    QProcess process;
+    QStringList args{"--quiet",
+                     "--no-block",
+                     "--property=RemainAfterExit=yes",
+                     "--expand-environment=no",
+                     "--unit=hics-" + op,
+                     "--description=hics disk cleanup",
+                     "--property=Type=exec",
+                     "--property=Nice=19",
+                     "--property=IOSchedulingClass=idle",
+                     "--property=NoNewPrivileges=yes",
+                     "--property=ProtectSystem=strict",
+                     "--property=ReadWritePaths=" +
+                         QString(op == "clean-packages"
+                                     ? "/var/cache/pacman/pkg"
+                                     : "/var/lib/systemd/coredump"),
+                     "--property=ProtectHome=yes",
+                     "--property=PrivateTmp=yes"};
+    args << program;
+    if (op == "clean-packages")
+      args << "-r" << "-k3";
+    else
+      args << "--clean" << "--prefix=/var/lib/systemd/coredump";
+    process.start(HYPRSTACK_SYSTEMD_RUN, args);
+    if (!process.waitForFinished(10000)) {
+      process.kill();
+      process.waitForFinished();
+      throw Failure("unavailable", "Cleanup could not be scheduled");
+    }
+    if (process.exitCode() != 0)
+      throw Failure(
+          "busy", QString::fromUtf8(process.readAllStandardError()).left(1000));
+    return;
+  }
   if (op == "configure") {
     storageAction(op, o);
     invoke("org.freedesktop.systemd1", "/org/freedesktop/systemd1",

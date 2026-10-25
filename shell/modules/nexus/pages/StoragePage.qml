@@ -68,6 +68,7 @@ PageBase {
         width: root.cappedWidth
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: Tokens.spacing.large
+        StorageCleanup {backend:root.backend}
         NativeSystemBackend {
             id: system
             section: "storage"

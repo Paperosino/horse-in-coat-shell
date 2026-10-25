@@ -16,6 +16,9 @@ Scope {
     required property Lock lock
     readonly property bool hasPlayer: Players.list.some(p => p.isPlaying)
     readonly property bool isCharging: !UPower.onBattery
+    readonly property bool externalDisplay: Quickshell.screens.some(s => !s.name.startsWith("eDP-") && !s.name.startsWith("LVDS-"))
+    property var convenience: DesktopConveniences
+    Binding { target: DesktopConveniences; property: "dockInhibitRequested"; value: GlobalConfig.general.idle.keepAwakeDocked && root.externalDisplay }
     readonly property bool enabled: {
         if (GlobalConfig.general.idle.inhibitWhenAudio && hasPlayer)
             return false;
@@ -61,7 +64,9 @@ Scope {
         IdleMonitor {
             required property var modelData
 
+            readonly property int effectiveTimeout: (UPower.onBattery ? modelData.batteryTimeout : modelData.acTimeout) >= 0 ? (UPower.onBattery ? modelData.batteryTimeout : modelData.acTimeout) : modelData.timeout
             enabled: {
+                if (effectiveTimeout === 0) return false;
                 if (!root.enabled || !(modelData.enabled ?? true))
                     return false;
                 if (modelData.inhibitWhenAudio && root.hasPlayer)
@@ -70,7 +75,7 @@ Scope {
                     return false;
                 return true;
             }
-            timeout: modelData.timeout
+            timeout: Math.max(1,effectiveTimeout)
             respectInhibitors: modelData.respectInhibitors ?? true
             onIsIdleChanged: root.handleIdleAction(isIdle ? modelData.idleAction : modelData.returnAction)
         }

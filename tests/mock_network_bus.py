@@ -63,10 +63,14 @@ class Manager(Object):
  def GetPermissions(self):return {'org.freedesktop.NetworkManager.network-control':'yes','org.freedesktop.NetworkManager.settings.modify.system':'yes'}
  @dbus.service.method(NM,in_signature='ooo',out_signature='o')
  def ActivateConnection(self,profile,device,specific):log('ActivateConnection',profile);return AC
+ @dbus.service.method(NM,out_signature='u')
+ def CheckConnectivity(self):log('CheckConnectivity');return self.interfaces[NM]['Connectivity']
  @dbus.service.method('org.hics.Test')
  def Signal(self):
   objects[AP].interfaces[NM+'.AccessPoint']['Strength']=dbus.Byte(33)
   objects[AP].PropertiesChanged(NM+'.AccessPoint',{'Strength':dbus.Byte(33)},[])
+  self.interfaces[NM]['Connectivity']=dbus.UInt32(2)
+  self.PropertiesChanged(NM,{'Connectivity':dbus.UInt32(2)},[])
 root=Manager(ROOT,{NM:{'Version':'1.52.0','State':dbus.UInt32(70),'NetworkingEnabled':True,'WirelessEnabled':True,'WirelessHardwareEnabled':True,'Devices':paths([WIFI,ETH]),'AllDevices':paths([WIFI,ETH]),'ActiveConnections':paths([AC]),'PrimaryConnection':dbus.ObjectPath(AC),'Connectivity':dbus.UInt32(4),'Startup':False}})
 print('ready',flush=True)
 GLib.MainLoop().run()

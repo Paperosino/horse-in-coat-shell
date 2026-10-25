@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
+import Hyprstack.Services
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
@@ -27,6 +28,15 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
+        SettingsCard {
+            title:Tr.tr("Send & receive files")
+            icon:"send"
+            RowButton {first:true;text:Tr.tr("Send files over Bluetooth");icon:"bluetooth";disabled:!root.btEnabled;onClicked:DesktopConveniences.launch("bluetooth")}
+            RowButton {text:Tr.tr("Receive files over Bluetooth");subtext:Tr.tr("Opens the Bluetooth transfer assistant; approve incoming transfers in notifications");icon:"download";disabled:!root.btEnabled;onClicked:DesktopConveniences.launch("bluetooth-receive")}
+            RowButton {text:Tr.tr("LocalSend");subtext:Tr.tr("Share with phones and computers on the same network");icon:"devices";onClicked:DesktopConveniences.launch("localsend")}
+            RowButton {last:true;text:Tr.tr("KDE Connect");subtext:Tr.tr("Pair a phone for file transfers and device integration");icon:"smartphone";onClicked:DesktopConveniences.launch("kdeconnect")}
+            FeatureError {error:DesktopConveniences.error}
+        }
         ToggleRow {
             first: true
             text: Tr.tr("Bluetooth")
