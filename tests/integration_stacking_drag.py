@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Real-pointer maximized titlebar drag with PiP; isolated nested compositor."""
-import json,os,shlex,shutil,subprocess,tempfile,time
+import json,os,re,shlex,shutil,subprocess,tempfile,time
 from pathlib import Path
 from integration_support import require_wayland_session
 require_wayland_session()
@@ -47,14 +47,30 @@ with tempfile.TemporaryDirectory(prefix='hics-stacking-drag-') as directory:
   assert monitor['width']>=1000 and monitor['height']>=700,monitor
   env['HYPRSTACK_POINTER_WIDTH']=str(monitor['width']);env['HYPRSTACK_POINTER_HEIGHT']=str(monitor['height'])
   time.sleep(.4);assert not ctl('configerrors'),ctl('configerrors')
-  csd=bool(os.environ.get('HICS_TEST_DRAG_CSD'))
-  if csd:ctl('eval','hl.bind("mouse:272",hl.dsp.window.drag(),{mouse=true})')
-  main=subprocess.Popen(['kitty','--class','code' if csd else 'org.hics.DragFixture','--title','Drag fixture','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);apps.append(main)
+  x11=bool(os.environ.get('HICS_TEST_DRAG_X11'))
+  if x11:
+   flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','xcb'],text=True))
+   subprocess.run(['cc',str(fixtures/'x11-csd-drag.c'),*flags,'-o',str(base/'x11-csd')],check=True)
+   for _ in range(60):
+    children=subprocess.run(['ps','--ppid',str(compositor.pid),'-o','args='],capture_output=True,text=True).stdout
+    display=re.search(r'Xwayland\s+(:\d+)',children)
+    if display:break
+    time.sleep(.1)
+   assert display,children
+   env['DISPLAY']=display.group(1)
+  gtk=bool(os.environ.get('HICS_TEST_DRAG_GTK'))
+  csd=x11 or gtk or bool(os.environ.get('HICS_TEST_DRAG_CSD'))
+  if csd and not x11 and not gtk:ctl('eval','hl.bind("mouse:272",hl.dsp.window.drag(),{mouse=true})')
+  main=subprocess.Popen([str(base/'x11-csd')] if x11 else ['python3',str(fixtures/'canvas-input-app.py')] if gtk else ['kitty','--class','code' if csd else 'org.hics.DragFixture','--title','Drag fixture','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.PIPE if x11 else subprocess.DEVNULL,stderr=subprocess.DEVNULL,text=True);apps.append(main)
+  xid=main.stdout.readline().strip() if x11 else None
   def window(pid):return next((w for w in json.loads(ctl('-j','clients')) if w['pid']==pid),None)
   for _ in range(60):
    if window(main.pid):break
    time.sleep(.1)
   address=window(main.pid)['address']
+  if x11 or gtk:
+   klass='org.hics.X11CsdFixture' if x11 else 'org.hics.CanvasInputTest'
+   ctl('eval','hl.window_rule({name="fixture-no-bar",match={class=' + json.dumps(klass) + '},["hyprbars:no_bar"]=true})')
   # A second floating video exercises activation/z-order reentrancy during dragBegin.
   pip=subprocess.Popen(['kitty','--class','helium','--title','Picture-in-Picture','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);apps.append(pip)
   for _ in range(60):
@@ -69,6 +85,17 @@ with tempfile.TemporaryDirectory(prefix='hics-stacking-drag-') as directory:
   def send(command):
    pointer.stdin.write(command+'\n');pointer.stdin.flush()
    reply=pointer.stdout.readline().strip();assert reply=='ok',(reply,compositor.poll(),(base/'compositor.log').read_text()[-4500:]);time.sleep(.06)
+  if x11:
+   time.sleep(.3)
+   original=window(main.pid)
+   # Requests without an actual held button must not start a sticky grab.
+   subprocess.run([str(base/'x11-csd'),xid,'8'],env=env,check=True)
+   send('move 500 430');send('move 550 460')
+   assert window(main.pid)['at']==original['at'],'Unsolicited X11 move was accepted'
+   # The client body remains ordinary content, not a guessed draggable header.
+   send('move 500 430');send('button 272 1');send('move 550 460');send('button 272 0')
+   assert window(main.pid)['at']==original['at'],'Client content became draggable'
+   print('PASS: X11 late move rejected and client content untouched',flush=True)
   for iteration in range(5):
    ctl('eval','hyprstack_layouts.action("maximize-set",'+json.dumps(address)+')');time.sleep(.4)
    w=window(main.pid);assert w['fullscreenClient']==1,w
@@ -82,6 +109,20 @@ with tempfile.TemporaryDirectory(prefix='hics-stacking-drag-') as directory:
    assert restored['size'][0]<1200 and restored['size'][1]<850,restored
    assert window(pip.pid)['pinned']
    print('PASS: maximized drag restores normal geometry with PiP', 'CSD' if csd else 'server titlebar', 'round',iteration+1,flush=True)
+  if x11:
+   w=window(main.pid)
+   x=w['at'][0]+w['size'][0]-8;y=w['at'][1]+w['size'][1]-8
+   send(f'move {x} {y}');send('button 272 1')
+   for delta in (12,30,60):send(f'move {x+delta} {y+delta}')
+   send('button 272 0');time.sleep(.3)
+   resized=window(main.pid)
+   assert resized['size'][0]>w['size'][0]+20 and resized['size'][1]>w['size'][1]+20,(w,resized)
+   w=resized;x=w['at'][0]+160;y=w['at'][1]+20
+   send(f'move {x} {y}');send('button 272 1');send(f'move {x+20} {y+20}')
+   subprocess.run([str(base/'x11-csd'),xid,'11'],env=env,check=True);time.sleep(.5)
+   stopped=window(main.pid)['at'];send(f'move {x+90} {y+90}');send('button 272 0')
+   assert window(main.pid)['at']==stopped,('Cancelled X11 drag kept moving',stopped,window(main.pid))
+   print('PASS: native X11 CSD resize grip and cancel request',flush=True)
   assert not ctl('configerrors'),ctl('configerrors')
  except Exception:
   for path in (Path(os.environ['XDG_RUNTIME_DIR'])/'hypr'/instance['instance']).glob('*.log'):

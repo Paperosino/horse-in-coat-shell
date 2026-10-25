@@ -16,8 +16,16 @@
 #include <hyprland/src/protocols/XDGShell.hpp>
 #include <hyprland/src/protocols/core/Compositor.hpp>
 #include <hyprland/src/xwayland/XSurface.hpp>
+#include <hyprland/src/xwayland/XWayland.hpp>
+#include <hyprland/src/layout/LayoutManager.hpp>
+#include <hyprland/src/layout/supplementary/DragController.hpp>
+#include <hyprland/src/managers/SessionLockManager.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/desktop/state/ViewState.hpp>
+#include <hyprland/src/desktop/state/WindowState.hpp>
 #include "globals.hpp"
 #include <algorithm>
+#include <array>
 #include <stdexcept>
 
 static CFunctionHook* clientSurfaceUVHook = nullptr;
@@ -28,6 +36,50 @@ static CFunctionHook* clientStateHook = nullptr;
 static CFunctionHook* clientTextureBoxHook = nullptr;
 static CFunctionHook* clientMinSizeHook = nullptr;
 static CFunctionHook* clientMaxSizeHook = nullptr;
+#ifndef NO_XWAYLAND
+static CFunctionHook* clientX11MoveHook = nullptr;
+static PHLWINDOWREF clientX11Drag;
+
+// Hyprland 0.56.2 advertises _NET_WM_MOVERESIZE but its XWM ignores it.
+// Honour the client's actual move/resize grips, never guess a titlebar region.
+// EWMH 4.3: https://specifications.freedesktop.org/wm/latest/ar01s04.html
+using X11MessageFunction = void (*)(CXWM*, xcb_client_message_event_t*);
+static void clientX11Message(CXWM* wm, xcb_client_message_event_t* event) {
+    const auto atom = HYPRATOMS.find("_NET_WM_MOVERESIZE");
+    if (atom == HYPRATOMS.end() || event->type != atom->second)
+        return reinterpret_cast<X11MessageFunction>(clientX11MoveHook->m_original)(wm, event);
+    if (event->format != 32 || !g_pGlobalState || g_pSessionLockManager->isSessionLocked() || g_pInputManager->isConstrained()) return;
+    const auto drag = g_layoutManager->dragController().get();
+    const auto direction = event->data.data32[2];
+    if (direction == 11) {
+        const auto own = clientX11Drag.lock();
+        if (own && own->m_xwaylandSurface && own->m_xwaylandSurface->m_xID == event->window &&
+            drag->target() && drag->target()->window() == own) {
+            g_layoutManager->endDragTarget();
+            clientX11Drag.reset();
+        }
+        return;
+    }
+    // Reject late requests after button release, unsupported keyboard requests,
+    // and attempts to move another window or override an existing grab.
+    if (direction > 8 || drag->target() || !g_pInputManager->hasHeldButtons()) return;
+    const auto window = Desktop::focusState()->window();
+    if (!window || !window->m_isMapped || window->isHidden() || !window->m_isX11 ||
+        !window->m_xwaylandSurface || window->m_xwaylandSurface->m_overrideRedirect ||
+        window->m_xwaylandSurface->m_xID != event->window ||
+        (!window->m_isFloating && !g_pGlobalState->config.enabled->value()) ||
+        Fullscreen::controller()->getFullscreenModes(window).internal == Fullscreen::FSMODE_FULLSCREEN) return;
+    const auto underPointer = Desktop::viewState()->hitTest().windowAt(g_pInputManager->getMouseCoordsInternal(),
+        Desktop::View::ALLOW_FLOATING | Desktop::View::INPUT_EXTENTS | Desktop::View::RESERVED_EXTENTS);
+    if (underPointer != window) return;
+    static constexpr std::array<Layout::eRectCorner, 8> edges = {
+        Layout::CORNER_TOPLEFT, Layout::CORNER_TOP, Layout::CORNER_TOPRIGHT, Layout::CORNER_RIGHT,
+        Layout::CORNER_BOTTOMRIGHT, Layout::CORNER_BOTTOM, Layout::CORNER_BOTTOMLEFT, Layout::CORNER_LEFT};
+    clientX11Drag = window;
+    g_layoutManager->beginDragTarget(window->layoutTarget(), direction == 8 ? MBIND_MOVE : MBIND_RESIZE,
+        direction == 8 ? std::nullopt : std::optional{edges[direction]}, true);
+}
+#endif
 
 // xdg_toplevel size limits already use window-geometry coordinates. Adding
 // geometry.pos() (the client's shadow offset) makes fixed-size Qt windows
@@ -194,6 +246,11 @@ static void clientSurfaceUV(Render::IElementRenderer* renderer, PHLWINDOW window
 }
 
 static void removeClientSurfacePolicy(HANDLE handle) {
+#ifndef NO_XWAYLAND
+    clientX11Drag.reset();
+    if (clientX11MoveHook) HyprlandAPI::removeFunctionHook(handle, clientX11MoveHook);
+    clientX11MoveHook = nullptr;
+#endif
     if (clientPointerMotionHook) HyprlandAPI::removeFunctionHook(handle, clientPointerMotionHook);
     clientPointerMotionHook = nullptr;
     if (clientMaxSizeHook) HyprlandAPI::removeFunctionHook(handle, clientMaxSizeHook);
@@ -227,6 +284,9 @@ static void installClientSurfacePolicy(HANDLE handle) {
         return hook;
     };
     try {
+#ifndef NO_XWAYLAND
+        clientX11MoveHook = install("handleClientMessage", "CXWM::handleClientMessage(", reinterpret_cast<void*>(&clientX11Message));
+#endif
         clientMinSizeHook = install("layoutMinSize", "CXDGToplevelResource::layoutMinSize(", reinterpret_cast<void*>(&clientMinSize));
         clientMaxSizeHook = install("layoutMaxSize", "CXDGToplevelResource::layoutMaxSize(", reinterpret_cast<void*>(&clientMaxSize));
         clientTextureBoxHook = install("getTexBox", "CSurfacePassElement::getTexBox(", reinterpret_cast<void*>(&clientTextureBox));
