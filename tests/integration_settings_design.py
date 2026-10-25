@@ -27,10 +27,11 @@ ShellRoot {
  id:root
  property int hierarchyPhase:0
  property bool hierarchyDone:false
+ property int layoutAttempts:0
  property int phase:0
  property bool narrow:false
  property bool controlledExpanded:false
- property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power"]
+ property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power","accounts","firmware","tablets","colour-profiles"]
  FloatingWindow {
   id:win;visible:true;implicitWidth:1180;implicitHeight:820;color:Colours.palette.m3surface
   Nexus {id:settings;width:root.narrow?560:parent.width;height:parent.height;visible:!fixture.visible}
@@ -121,6 +122,11 @@ ShellRoot {
       if(!root.check(page.form.application==="org.example.Code" && page.form.title==="" && !page.form.regex,"open-window application picker failed"))return;
       page.pickWindow({address:"0xpip",application:"helium",title:"Picture-in-Picture"});
       if(!root.check(page.form.application==="helium" && page.form.title==="Picture-in-Picture","PiP window title selection failed"))return;
+      page.pickWindow({address:"0xdialog",application:"helium",title:"Document",initialTitle:"Open File"});
+      page.setScope("initial");
+      if(!root.check(page.form.initialTitle==="Open File"&&page.form.title==="","initial-title window type selection failed"))return;
+      page.pickApplication("helium");
+      if(!root.check(!page.selectedWindow&&page.form.title===""&&page.form.initialTitle==="","application selection retained a window-specific match"))return;
       page.form={application:"org.example.Code",name:"Code",mode:"stacking",titlebar:"hide",noShadow:false,rounding:12};
       page.preset("pip");
       if(!root.check(page.form.regex && new RegExp(page.form.application).test("org.example.Code") && !new RegExp(page.form.application).test("orgXexampleXCode") && page.form.pin,"PiP preset changed literal application matching"))return;
@@ -132,7 +138,7 @@ ShellRoot {
     const step=root.phase-root.shots.length*2;
     if(step===0){fixture.visible=true;fixture.nState.searchTarget="designAdvancedField";fixture.searchAttempts=0;fixture.searchRetry.restart();}
     if(step===1){if(!root.check(advanced.expanded,"search did not expand advanced controls"))return;if(!root.check(field.value==="Preserved","disclosure lost field data"))return;root.narrow=true;}
-    if(step===2){if(!root.check(field.width<360 && field.field.width>100 && field.field.width<=field.width,"narrow field exceeds card bounds"))return;advanced.changeExpansion(false);}
+    if(step===2){const fits=field.width<360 && field.field.width>100 && field.field.width<=field.width;if(!fits&&root.layoutAttempts++<10)return;if(!root.check(fits,"narrow field exceeds card bounds: "+field.width+" / "+field.field.width+" ancestors "+[field.parent,field.parent?.parent,field.parent?.parent?.parent,advanced,fixture.contentChild,fixture].map(item=>item?String(item)+":"+item.width+":"+item.visible+":"+item.implicitHeight:"null").join("; ")))return;advanced.changeExpansion(false);}
     if(step===3){if(!root.check(!advanced.expanded && field.value==="Preserved","collapse mutated settings"))return;advanced.changeExpansion(true);root.controlledExpanded=false;if(!root.check(!advanced.expanded,"disclosure broke the external model binding"))return;advanced.changeExpansion(true);GlobalConfig.appearance.highContrast=true;}
     if(step===4){if(!root.check(advanced.expanded,"reduce-motion disclosure did not finish"))return;fixture.grabToImage(result=>{result.saveToFile("/tmp/hics-settings-narrow.png");fixture.visible=false;settings.nState.openPage("network");settings.nState.openPage("audio");settings.nState.openPage("dock");});}
     if(step===5){
@@ -237,7 +243,11 @@ ShellRoot {
         env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'],QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'),QT_QPA_PLATFORM='wayland')
         if os.environ.get('HICS_TEST_NATIVE_DESKTOP'):
             desktop_daemon=subprocess.Popen([str(ROOT/'build/native/desktop/hics-desktopd')],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-            for _ in range(60):
+            for _ in range(100):
+                owner=subprocess.check_output(['gdbus','call','--session','--dest','org.freedesktop.DBus','--object-path','/org/freedesktop/DBus','--method','org.freedesktop.DBus.NameHasOwner','org.hics.Desktop1'],env=env,text=True)
+                if 'true' not in owner:
+                    time.sleep(.03)
+                    continue
                 ready=subprocess.run(['gdbus','call','--session','--dest','org.hics.Desktop1','--object-path','/org/hics/Desktop1','--method','org.hics.Desktop1.Status'],env=env,capture_output=True,text=True)
                 if ready.returncode==0:break
                 time.sleep(.05)

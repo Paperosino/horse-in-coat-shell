@@ -1,6 +1,7 @@
 #include "workspacetools.hpp"
 #include "workspacestore.hpp"
 #include "util/applicationenv.hpp"
+#include "util/applicationlaunch.hpp"
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
@@ -1267,6 +1268,7 @@ void WorkspaceSession::restore(const QString &id,
               launch.setProgram(argv.takeFirst());
               launch.setArguments(argv);
             }
+            hics::util::isolateApplication(launch);
             const bool ok=launch.startDetached();
             status = ok ? "Launched" : "Launch failed";
             if (ok)

@@ -174,3 +174,15 @@ Package 60 tightens integration discovery: advertising inode/directory or ZIP
 support does not make an application a file manager or archiver (Kate and terminal
 URL launchers are real counterexamples). List known implementations plus the
 user's existing custom default; tests exclude those misleading MIME handlers.
+
+## Platform work started (2026-10-26)
+
+The four accepted DE directions now have a first native implementation:
+separate application scopes, AccountsService/logind/fprintd, firmware discovery
+through fwupd, and tablet/ICC settings. The window rule editor also offers
+explicit application/current-title/initial-title matching from live windows.
+
+See [DE_PLATFORM.md](DE_PLATFORM.md) for usage, API sources, verification and
+remaining work. Interactive password/fingerprint/firmware operations currently
+use the established system tools. PAM policy is unchanged; native firmware
+wizard/progress and hardware-specific acceptance are not marked complete.

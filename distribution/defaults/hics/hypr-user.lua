@@ -13,7 +13,7 @@ if not installed then
     end
 end
 dofile(installed .. "/shell/assets/hyprland/layouts.lua")
-for _, name in ipairs({ "keyboard.lua", "monitors.lua", "system.lua", "rules.lua", "local.lua" }) do
+for _, name in ipairs({ "keyboard.lua", "monitors.lua", "system.lua", "rules.lua", "colour-profiles.lua", "local.lua" }) do
     local path = config .. "/hics/" .. name
     local file = io.open(path)
     if file then file:close(); dofile(path) end

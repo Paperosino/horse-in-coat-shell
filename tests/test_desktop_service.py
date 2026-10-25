@@ -19,6 +19,10 @@ class DesktopServiceTest(unittest.TestCase):
                 env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS=bus.stdout.readline().strip(), XDG_STATE_HOME=directory)
                 daemon = subprocess.Popen([os.environ.get('HICS_TEST_DESKTOP_DAEMON',str(ROOT/'build/native/desktop/hics-desktopd'))],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
                 for _ in range(60):
+                    owner=subprocess.run(['gdbus','call','--session','--dest','org.freedesktop.DBus','--object-path','/org/freedesktop/DBus','--method','org.freedesktop.DBus.NameHasOwner','org.hics.Desktop1'],env=env,capture_output=True,text=True)
+                    if 'true' not in owner.stdout:
+                        time.sleep(.05)
+                        continue
                     result=subprocess.run(['gdbus','call','--session','--dest','org.hics.Desktop1','--object-path','/org/hics/Desktop1','--method','org.hics.Desktop1.Status'],env=env,capture_output=True)
                     if not result.returncode: break
                     time.sleep(.05)
@@ -70,9 +74,11 @@ def fixture():
                 time.sleep(.02)
             raise AssertionError('job timeout '+op)
         try:
-            for _ in range(60):
-                try:call('Status');break
-                except subprocess.CalledProcessError:time.sleep(.05)
+            for _ in range(100):
+                owner=subprocess.check_output(['gdbus','call','--session','--dest','org.freedesktop.DBus','--object-path','/org/freedesktop/DBus','--method','org.freedesktop.DBus.NameHasOwner','org.hics.Desktop1'],env=env,text=True)
+                if 'true' in owner:break
+                if daemon.poll() is not None:raise AssertionError(daemon.stderr.read())
+                time.sleep(.03)
             integration=job('integration.status')['result']
             assert any(row['id']=='org.kde.dolphin.desktop' for row in integration['managers']),integration
             assert not any(row['id']=='org.kde.kate.desktop' for row in integration['managers']),integration

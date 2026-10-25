@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Hyprstack
 import Hyprstack.Config
 import qs.components
 import qs.components.containers
@@ -32,7 +33,7 @@ StyledListView {
             const op=mode==="symbols"?"input.symbols":query?"search.query":"search.recent";
             root.filesBackend.call(op,mode==="symbols"?{query,category:query?"all":"emoji"}:query?{query}: {},value=>{
                 if(generation!==root.fileRequest||root.stateForText(root.search.text)!==mode)return;
-                root.fileResults=(value.items??[]).map(item=>mode==="symbols"?({name:`${item.text}  ${item.name}`,desc:item.code??"",icon:"mood",onClicked:list=>{root.filesBackend.call("input.copy",{text:item.text});list.screenState.launcher=false;}}):({name:item.name,desc:item.path,icon:"description",onClicked:list=>{Quickshell.execDetached(["gio","open",item.path]);list.screenState.launcher=false;}}));
+                root.fileResults=(value.items??[]).map(item=>mode==="symbols"?({name:`${item.text}  ${item.name}`,desc:item.code??"",icon:"mood",onClicked:list=>{root.filesBackend.call("input.copy",{text:item.text});list.screenState.launcher=false;}}):({name:item.name,desc:item.path,icon:"description",onClicked:list=>{CUtils.execDetached(["gio","open",item.path]);list.screenState.launcher=false;}}));
             });
         }
     }

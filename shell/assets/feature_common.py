@@ -31,5 +31,6 @@ def output(value): print(json.dumps(value,ensure_ascii=False),flush=True)
 def lua(value):
     if isinstance(value,bool): return 'true' if value else 'false'
     if isinstance(value,(float,int)): return str(value)
+    if isinstance(value,(list,tuple)): return "{"+",".join(lua(v) for v in value)+"}"
     if isinstance(value,dict): return '{'+','.join('['+json.dumps(k)+']='+lua(v) for k,v in value.items())+'}'
     return json.dumps(str(value),ensure_ascii=False)

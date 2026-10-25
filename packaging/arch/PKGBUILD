@@ -2,14 +2,16 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=61
+pkgrel=63
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
+# Preserve bundled runtime/plugin checksums generated during packaging.
+options=(!strip !debug)
 install=hic-shell.install
 url="https://github.com/Paperosino/horse-in-coat-shell"
 license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US)
 depends=('ffmpeg' hyprland libqalculate lm_sensors pixman libdrm libinput systemd
-    hyprland-guiutils wayland libxkbcommon pango cairo libcups cups gamemode flatpak apparmor restic seahorse fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt squeekboard poppler icu python python-pillow kitty firefox fuzzel
+    hyprland-guiutils wayland libxkbcommon pango cairo libcups cups accountsservice fprintd fwupd colord gamemode flatpak apparmor restic seahorse fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt squeekboard poppler icu python python-pillow kitty firefox fuzzel
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
     glib2 gvfs libnotify brightnessctl networkmanager libnm libsecret gnome-keyring pipewire pipewire-pulse libpulse wireplumber
     polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2
@@ -25,7 +27,7 @@ makedepends=(base-devel git cmake ninja pkgconf python gettext nlohmann-json
 # The package is self-contained: the pinned quickshell v0.3.2 and the Qt
 # runtime it needs are built from source and bundled, so system quickshell and
 # qt6-* updates can never break the running shell.
-optdepends=('nautilus: GNOME file manager integration' 'dolphin: KDE file manager integration' 'thunar: Xfce file manager integration' 'nemo: Cinnamon file manager integration' 'pcmanfm-qt: LXQt file manager integration' 'caja: MATE file manager integration' 'file-roller: GNOME archive manager integration' 'ark: KDE archive manager integration' 'xarchiver: lightweight archive manager integration' 'engrampa: MATE archive manager integration' 'timeshift: optional system snapshots; may conflict with distribution Snapper integration' 'btrfs-assistant: manage existing Snapper snapshots' 'localsend: local file transfers with mobile devices' 'kdeconnect: phone integration' 'networkmanager-openvpn: OpenVPN profiles' 'networkmanager-pptp: PPTP profiles' 'networkmanager-l2tp: L2TP and IPsec profiles' 'networkmanager-openconnect: OpenConnect profiles' 'networkmanager-vpnc: Cisco IPsec profiles' 'networkmanager-fortisslvpn: Fortinet profiles' 'networkmanager-libreswan: Libreswan IPsec profiles' 'networkmanager-strongswan: alternative IKEv2 backend' 'networkmanager-ssh: SSH tunnels' 'linux-wallpaperengine: Wallpaper Engine scenes' 'ollama: local AI models' 'hyprsunset: night-light extension' 'e2fsprogs: ext4 defragmentation' 'util-linux: SSD TRIM' 'power-profiles-daemon: hardware power profiles')
+optdepends=('input-remapper: optional pen and tablet button mapping' 'nautilus: GNOME file manager integration' 'dolphin: KDE file manager integration' 'thunar: Xfce file manager integration' 'nemo: Cinnamon file manager integration' 'pcmanfm-qt: LXQt file manager integration' 'caja: MATE file manager integration' 'file-roller: GNOME archive manager integration' 'ark: KDE archive manager integration' 'xarchiver: lightweight archive manager integration' 'engrampa: MATE archive manager integration' 'timeshift: optional system snapshots; may conflict with distribution Snapper integration' 'btrfs-assistant: manage existing Snapper snapshots' 'localsend: local file transfers with mobile devices' 'kdeconnect: phone integration' 'networkmanager-openvpn: OpenVPN profiles' 'networkmanager-pptp: PPTP profiles' 'networkmanager-l2tp: L2TP and IPsec profiles' 'networkmanager-openconnect: OpenConnect profiles' 'networkmanager-vpnc: Cisco IPsec profiles' 'networkmanager-fortisslvpn: Fortinet profiles' 'networkmanager-libreswan: Libreswan IPsec profiles' 'networkmanager-strongswan: alternative IKEv2 backend' 'networkmanager-ssh: SSH tunnels' 'linux-wallpaperengine: Wallpaper Engine scenes' 'ollama: local AI models' 'hyprsunset: night-light extension' 'e2fsprogs: ext4 defragmentation' 'util-linux: SSD TRIM' 'power-profiles-daemon: hardware power profiles')
 conflicts=()
 provides=()
 source=()

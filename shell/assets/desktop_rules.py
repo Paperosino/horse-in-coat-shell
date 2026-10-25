@@ -4,7 +4,7 @@ from feature_common import CONFIG,read_json,atomic_json,run,lua,output
 APP=CONFIG/'application-rules.json';DEVICE=CONFIG/'device-rules.json';GENERATED=CONFIG/'rules.lua'
 
 def applications():
- return [dict(address=w['address'],application=w.get('initialClass') or w.get('class',''),title=w.get('title',''),workspace=w.get('workspace',{}).get('id',1),monitor=w.get('monitor'),x=w.get('at',[0,0])[0],y=w.get('at',[0,0])[1],width=w.get('size',[800,600])[0],height=w.get('size',[800,600])[1],floating=w.get('floating',False)) for w in json.loads(run(['hyprctl','-j','clients'])) if w.get('mapped')]
+ return [dict(address=w['address'],application=w.get('class') or w.get('initialClass',''),title=w.get('title',''),initialTitle=w.get('initialTitle',''),xwayland=w.get('xwayland',False),workspace=w.get('workspace',{}).get('id',1),monitor=w.get('monitor'),x=w.get('at',[0,0])[0],y=w.get('at',[0,0])[1],width=w.get('size',[800,600])[0],height=w.get('size',[800,600])[1],floating=w.get('floating',False)) for w in json.loads(run(['hyprctl','-j','clients'])) if w.get('mapped')]
 def devices():
  d=json.loads(run(['hyprctl','-j','devices']));rows=[]
  for group in ('keyboards','mice','touch','tablets'):
@@ -13,9 +13,9 @@ def devices():
  return rows
 
 def validate_rule(r):
- if not isinstance(r,dict) or set(r)-{'id','name','enabled','application','title','regex','floating','fullscreen','monitor','workspace','x','y','width','height','opacity','idleInhibit','center','pin','mode','titlebar','decorate','noBlur','noShadow','noAnim','keepAspectRatio','noInitialFocus','focusOnActivate','borderSize','rounding','matchXwayland','matchModal'}:raise ValueError('Unknown application rule field')
+ if not isinstance(r,dict) or set(r)-{'id','name','enabled','application','title','initialTitle','regex','floating','fullscreen','monitor','workspace','x','y','width','height','opacity','idleInhibit','center','pin','mode','titlebar','decorate','noBlur','noShadow','noAnim','keepAspectRatio','noInitialFocus','focusOnActivate','borderSize','rounding','matchXwayland','matchModal'}:raise ValueError('Unknown application rule field')
  if 'id' in r and (not isinstance(r['id'],str) or not re.fullmatch('[A-Za-z0-9_-]{1,80}',r['id'])):raise ValueError('Invalid rule identifier')
- for key in ('name','application','title','monitor'):
+ for key in ('name','application','title','initialTitle','monitor'):
   val=r.get(key,'')
   if not isinstance(val,str) or len(val)>256 or any(ord(c)<32 for c in val):raise ValueError('Invalid application rule text')
  if not r.get('application'):raise ValueError('Select an application to match')
@@ -24,7 +24,7 @@ def validate_rule(r):
  if r.get('mode','all') not in ('all','stacking','scrolling','tiling','canvas'):raise ValueError('Invalid window mode')
  if r.get('titlebar','auto') not in ('auto','show','hide'):raise ValueError('Invalid titlebar policy')
  if r.get('regex'):
-  for k in ('application','title'):
+  for k in ('application','title','initialTitle'):
    if r.get(k):
     try:re.compile(r[k])
     except re.error as e:raise ValueError('Invalid matching expression: '+str(e)) from e
@@ -37,6 +37,7 @@ def validate_rule(r):
 def rule_lua(r):
  match={k:(r[k] if r.get('regex') else '^'+re.escape(r[k])+'$') for k in ('application','title') if r.get(k)}
  match['class']=match.pop('application')
+ if r.get('initialTitle'):match['initial_title']=r['initialTitle'] if r.get('regex') else '^'+re.escape(r['initialTitle'])+'$'
  for source,dest in (('matchXwayland','xwayland'),('matchModal','modal')):
   if source in r:match[dest]=r[source]
  effects={'name':'hics-rule-'+r['id'],'match':match}
@@ -50,12 +51,14 @@ def rule_lua(r):
  if r.get('titlebar','auto')!='auto':effects['hyprbars:no_bar']=r['titlebar']=='hide'
  return 'hyprstack_layouts.application_rule('+lua(r.get('mode','all'))+','+lua(effects)+')'
 
-DEVICE_FIELDS={'sensitivity':('number',-1,1),'accel_profile':('choice',['','flat','adaptive']),'left_handed':('bool',),'natural_scroll':('bool',),'scroll_factor':('number',.1,10),'repeat_rate':('int',1,100),'repeat_delay':('int',100,2000),'kb_layout':('text',),'kb_variant':('text',),'kb_options':('text',),'tap-to-click':('bool',),'disable_while_typing':('bool',)}
+DEVICE_FIELDS={'sensitivity':('number',-1,1),'accel_profile':('choice',['','flat','adaptive']),'left_handed':('bool',),'natural_scroll':('bool',),'scroll_factor':('number',.1,10),'repeat_rate':('int',1,100),'repeat_delay':('int',100,2000),'kb_layout':('text',),'kb_variant':('text',),'kb_options':('text',),'tap-to-click':('bool',),'disable_while_typing':('bool',),'output':('output',),'relative_input':('bool',),'absolute_region_position':('bool',),'transform':('int',0,7),'active_area_size':('vec2',),'active_area_position':('vec2',),'region_size':('vec2',),'region_position':('vec2',)}
 def validate_device(d):
  if not isinstance(d,dict) or not isinstance(d.get('name'),str) or not d['name'] or len(d['name'])>256 or any(ord(c)<32 for c in d['name']) or not isinstance(d.get('values'),dict):raise ValueError('Invalid input device rule')
  for k,v in d['values'].items():
   if k not in DEVICE_FIELDS:raise ValueError('Unsupported device option')
   s=DEVICE_FIELDS[k]
+  if s[0]=='output' and (not isinstance(v,str) or not re.fullmatch('[A-Za-z0-9_.:-]{0,128}',v)):raise ValueError('Invalid tablet output')
+  if s[0]=='vec2' and (not isinstance(v,list) or len(v)!=2 or any(isinstance(n,bool) or not isinstance(n,(int,float)) or not math.isfinite(n) or abs(n)>100000 for n in v) or k.endswith('size') and any(n<0 for n in v)):raise ValueError('Invalid tablet area')
   if s[0]=='bool' and not isinstance(v,bool):raise ValueError('Expected a device switch')
   if s[0] in ('number','int') and (isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or not s[1]<=v<=s[2] or s[0]=='int' and int(v)!=v):raise ValueError('Invalid device numeric value')
   if s[0]=='choice' and v not in s[1]:raise ValueError('Invalid acceleration profile')

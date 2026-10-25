@@ -14,7 +14,7 @@ void Service::keyring(const QSharedPointer<Job> &job) {
     return;
   }
   if (job->operation == "keyring.manager") {
-    process(job, "seahorse", {}, false);
+    application(job, "seahorse", {});
     return;
   }
   if (!QStringList{"keyring.status", "keyring.lock", "keyring.unlock"}.contains(

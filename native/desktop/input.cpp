@@ -76,7 +76,7 @@ QString groupName(const QJsonObject &args) {
 } // namespace
 void Service::input(const QSharedPointer<Job> &job) {
   if (job->operation == "input.configure") {
-    process(job, "fcitx5-configtool", {}, false);
+    application(job, "fcitx5-configtool", {});
     return;
   }
   const auto op = job->operation, dir = directory;

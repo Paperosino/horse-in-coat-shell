@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import qs.utils
 import Quickshell
+import Hyprstack
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
@@ -54,7 +55,7 @@ PageBase {
    title:Tr.tr("Find a document");icon:"search"
    TextFieldRow {label:Tr.tr("Words or filename");value:root.query;onValueEdited:value=>root.query=value}
    RowButton {text:Tr.tr("Search");icon:"search";disabled:root.backend.busy||!root.query;onClicked:root.backend.call("search.query",{query:root.query},value=>root.results=value.items??[])}
-   Repeater {model:root.results;RowButton {required property var modelData;text:modelData.name;subtext:modelData.path;icon:"description";onClicked:Quickshell.execDetached(["gio","open",modelData.path])}}
+   Repeater {model:root.results;RowButton {required property var modelData;text:modelData.name;subtext:modelData.path;icon:"description";onClicked:CUtils.execDetached(["gio","open",modelData.path])}}
   }
  }
 }

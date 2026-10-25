@@ -81,8 +81,7 @@ void Service::integration(const QSharedPointer<Job> &job) {
               }
               // FileManager1 is optional: opening the parent works with every
               // default FM.
-              process(job, "gio", {"open", QFileInfo(path).absolutePath()},
-                      false, 10000);
+              application(job, "gio", {"open", QFileInfo(path).absolutePath()});
             });
     return;
   }
@@ -112,16 +111,13 @@ void Service::integration(const QSharedPointer<Job> &job) {
       const auto desktop =
           QString::fromUtf8(g_desktop_app_info_get_filename(app));
       g_object_unref(app);
-      process(job, "gio",
-              {"launch", desktop,
-               QUrl::fromLocalFile(path).toString(QUrl::FullyEncoded)},
-              false, 10000);
+      application(job, "gio", {"launch", desktop, QUrl::fromLocalFile(path).toString(QUrl::FullyEncoded)});
       return;
     } else {
       finish(job, {}, "Unknown file manager destination");
       return;
     }
-    process(job, "gio", {"open", path}, false, 10000);
+    application(job, "gio", {"open", path});
     return;
   }
   worker(job, [this, op, args] {

@@ -46,6 +46,9 @@
 
 !/native/
 /native/*
+!/native/app-launch/
+!/native/app-launch/*.cpp
+!/native/app-launch/CMakeLists.txt
 !/native/desktop/
 !/native/desktop/*.cpp
 !/native/desktop/*.hpp
@@ -181,3 +184,4 @@
 !/distribution/record_tour.py
 
 !/docs/DE_SERVICES_IMPLEMENTATION.md
+!/docs/DE_PLATFORM.md

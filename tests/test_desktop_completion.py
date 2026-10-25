@@ -35,6 +35,16 @@ class DesktopCompletion(unittest.TestCase):
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)
   for invalid in ({'application':'a','opacity':float('nan')},{'application':'a','workspace':0},{'application':'a','regex':True,'title':'['},{'application':'a','idleInhibit':'exec'}):
    with self.assertRaises(ValueError):rules.validate_rule(invalid)
+ def test_initial_title_rules_do_not_match_other_application_windows(self):
+  rule=rules.validate_rule({'id':'dialog','application':'app.name','initialTitle':'Open (file)','mode':'stacking','titlebar':'hide'})
+  text=rules.rule_lua(rule)
+  self.assertIn('initial_title',text);self.assertIn('app\\\\.name',text);self.assertNotIn('["title"]',text)
+  with self.assertRaises(ValueError):rules.validate_rule(dict(rule,initialTitle='bad\nvalue'))
+ def test_tablet_mapping_validates_vectors_and_generates_real_lua_tables(self):
+  device={'name':'fixture-pen','values':{'output':'DP-1','transform':3,'relative_input':False,'active_area_size':[152,95],'region_position':[-10,20]}}
+  text=rules.regenerate([], [device]);self.assertIn('["active_area_size"]={152,95}',text)
+  for values in ({'output':'DP-1;command'},{'active_area_size':[-1,2]},{'region_size':[float('inf'),0]},{'region_position':[1]},{'transform':8}):
+   with self.assertRaises(ValueError):rules.validate_device({'name':'fixture-pen','values':values})
  def test_mode_rules_are_registered_with_typed_effects(self):
   rule=rules.validate_rule({'id':'scoped','application':'Code','mode':'stacking','titlebar':'hide','decorate':True,'borderSize':0,'rounding':12,'noShadow':True,'keepAspectRatio':True,'noInitialFocus':True,'matchXwayland':False})
   text=rules.rule_lua(rule)

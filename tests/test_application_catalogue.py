@@ -22,7 +22,8 @@ class ApplicationCatalogueTests(unittest.TestCase):
             gio = base/'bin/gio'
             gio.write_text('#!/usr/bin/python3\nimport json,os,sys\nopen(os.environ["LAUNCH_LOG"],"w").write(json.dumps(sys.argv[1:]))\n')
             gio.chmod(0o700)
-            env = dict(os.environ, XDG_DATA_HOME=str(base/'data'), XDG_DATA_DIRS=str(base/'system'), LAUNCH_LOG=str(base/'launch'), PATH=str(base/'bin')+':'+os.environ['PATH'])
+            (base/'runtime').mkdir(mode=0o700)
+            env = dict(os.environ, XDG_RUNTIME_DIR=str(base/'runtime'), XDG_DATA_HOME=str(base/'data'), XDG_DATA_DIRS=str(base/'system'), LAUNCH_LOG=str(base/'launch'), PATH=str(base/'bin')+':'+os.environ['PATH'])
             result = subprocess.run([str(base/'probe')], env=env, capture_output=True, text=True, check=True, timeout=10)
             self.assertEqual(json.loads(result.stdout), dict(created=True, updated=True, removed=True, lookup=True))
             self.assertEqual(json.loads((base/'launch').read_text()), ['launch', str(base/'data/applications/org.hics.CatalogueFixture.desktop')])

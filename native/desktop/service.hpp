@@ -86,6 +86,9 @@ private:
   void initComfort();
   void updateComfort();
   void comfort(const QSharedPointer<Job> &);
+  void application(const QSharedPointer<Job> &, const QString &, const QStringList &);
+  void colour(const QSharedPointer<Job> &);
+  void platform(const QSharedPointer<Job> &);
   void integration(const QSharedPointer<Job> &);
   void applications(const QSharedPointer<Job> &);
   void keyring(const QSharedPointer<Job> &);

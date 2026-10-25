@@ -12382,3 +12382,294 @@ msgstr "Обновить список установленных приложе�
 #: desktop-comfort
 msgid "Until %1"
 msgstr "До %1"
+
+msgid "Users & sign-in"
+msgstr "Пользователи и вход"
+
+msgid "Accounts, passwords, sessions and fingerprint readers"
+msgstr "Учётные записи, пароли, сеансы и сканеры отпечатков"
+
+msgid "People on this computer"
+msgstr "Пользователи этого компьютера"
+
+msgid "Account changes use the system's AccountsService and polkit authorization."
+msgstr "Изменения учётных записей выполняет системная служба AccountsService с авторизацией через polkit."
+
+msgid "Administrator"
+msgstr "Администратор"
+
+msgid "Standard user"
+msgstr "Обычный пользователь"
+
+msgid "You"
+msgstr "Вы"
+
+msgid "Change my password"
+msgstr "Изменить мой пароль"
+
+msgid "Set this user's password"
+msgstr "Задать пароль пользователя"
+
+msgid "Opens the system password tool. Administrator resets do not unlock an existing encrypted keyring."
+msgstr "Откроется системное средство смены пароля. Административный сброс не разблокирует существующую зашифрованную связку ключей."
+
+msgid "The last available administrator cannot be demoted."
+msgstr "Нельзя убрать права у последнего доступного администратора."
+
+msgid "Add a user"
+msgstr "Добавить пользователя"
+
+msgid "Create the account, then select it above and set its initial password. Until then it cannot sign in."
+msgstr "Создайте учётную запись, затем выберите её выше и задайте начальный пароль. До этого вход будет недоступен."
+
+msgid "User name"
+msgstr "Имя пользователя"
+
+msgid "Create user"
+msgstr "Создать пользователя"
+
+msgid "Active sessions"
+msgstr "Активные сеансы"
+
+msgid "Ending another session closes its applications. Save its work first."
+msgstr "Завершение другого сеанса закроет его приложения. Сначала сохраните работу в нём."
+
+msgid "Switch to this session"
+msgstr "Переключиться в этот сеанс"
+
+msgid "End session"
+msgstr "Завершить сеанс"
+
+msgid "Confirm ending this session"
+msgstr "Подтвердить завершение сеанса"
+
+msgid "Fingerprint"
+msgstr "Отпечаток пальца"
+
+msgid "A compatible reader and fprintd are required."
+msgstr "Нужны совместимый сканер и служба fprintd."
+
+msgid "Enrolled fingers"
+msgstr "Зарегистрированные отпечатки"
+
+msgid "Enrol fingerprint"
+msgstr "Зарегистрировать отпечаток"
+
+msgid "Verify fingerprint"
+msgstr "Проверить отпечаток"
+
+msgid "Remove fingerprint"
+msgstr "Удалить отпечаток"
+
+msgid "Confirm removing fingerprint"
+msgstr "Подтвердить удаление отпечатка"
+
+msgid "Follow the reader instructions in the system enrolment tool, then refresh. This does not change your PAM login policy."
+msgstr "Следуйте инструкциям системного средства регистрации и обновите список. Политика входа PAM при этом не меняется."
+
+msgid "Finger"
+msgstr "Палец"
+
+msgid "right-index-finger"
+msgstr "Указательный палец правой руки"
+
+msgid "right-thumb"
+msgstr "Большой палец правой руки"
+
+msgid "left-index-finger"
+msgstr "Указательный палец левой руки"
+
+msgid "left-thumb"
+msgstr "Большой палец левой руки"
+
+msgid "right-middle-finger"
+msgstr "Средний палец правой руки"
+
+msgid "right-ring-finger"
+msgstr "Безымянный палец правой руки"
+
+msgid "right-little-finger"
+msgstr "Мизинец правой руки"
+
+msgid "left-middle-finger"
+msgstr "Средний палец левой руки"
+
+msgid "left-ring-finger"
+msgstr "Безымянный палец левой руки"
+
+msgid "left-little-finger"
+msgstr "Мизинец левой руки"
+
+msgid "Device firmware"
+msgstr "Прошивки устройств"
+
+msgid "Vendor firmware, supported devices and power requirements"
+msgstr "Прошивки производителя, совместимые устройства и требования к питанию"
+
+msgid "Firmware from your device vendor"
+msgstr "Прошивки от производителя устройства"
+
+msgid "fwupd verifies firmware and enforces device and power requirements. Connect AC power, keep the device connected, and save your work before updating."
+msgstr "fwupd проверяет прошивки, совместимость и питание. Перед обновлением подключите питание от сети, сохраните работу и не отключайте устройство."
+
+msgid "Check installed devices"
+msgstr "Проверить подключённые устройства"
+
+msgid "Refresh firmware metadata"
+msgstr "Обновить данные о прошивках"
+
+msgid "Downloads the latest metadata from configured fwupd remotes."
+msgstr "Загрузить актуальные данные из настроенных источников fwupd."
+
+msgid "Install fwupd to manage supported device firmware."
+msgstr "Установите fwupd для управления прошивками совместимых устройств."
+
+msgid "Update available"
+msgstr "Доступно обновление"
+
+msgid "Installed version"
+msgstr "Установленная версия"
+
+msgid "Available version"
+msgstr "Доступная версия"
+
+msgid "Requirements"
+msgstr "Требования"
+
+msgid "Confirm and open firmware updater"
+msgstr "Подтвердить и открыть обновление прошивки"
+
+msgid "Update this device"
+msgstr "Обновить устройство"
+
+msgid "The upstream updater opens in a terminal for power checks and any unplug/replug instructions. It asks before rebooting."
+msgstr "Системное средство обновления откроется в терминале: оно проверит питание и покажет необходимые действия с устройством. Перезагрузка потребует подтверждения."
+
+msgid "Graphics tablets & pens"
+msgstr "Графические планшеты и перо"
+
+msgid "Monitor mapping, orientation and active areas"
+msgstr "Привязка к экрану, ориентация и активные области"
+
+msgid "Map to monitor"
+msgstr "Привязка к монитору"
+
+msgid "All monitors"
+msgstr "Все мониторы"
+
+msgid "Current monitor"
+msgstr "Текущий монитор"
+
+msgid "Rotation / flip (0–7)"
+msgstr "Поворот и отражение (0–7)"
+
+msgid "Relative input"
+msgstr "Относительное позиционирование"
+
+msgid "Absolute mapped region position"
+msgstr "Абсолютное положение области экрана"
+
+msgid "Active area size in mm (width, height)"
+msgstr "Размер активной области в мм (ширина, высота)"
+
+msgid "Active area offset in mm (x, y)"
+msgstr "Смещение активной области в мм (x, y)"
+
+msgid "Mapped region size in pixels (width, height)"
+msgstr "Размер области экрана в пикселях (ширина, высота)"
+
+msgid "Mapped region position in pixels (x, y)"
+msgstr "Положение области экрана в пикселях (x, y)"
+
+msgid "Two numbers separated by a comma; 0, 0 uses the default area."
+msgstr "Два числа через запятую; 0, 0 — область по умолчанию."
+
+msgid "Enter two valid numbers separated by a comma."
+msgstr "Введите два корректных числа через запятую."
+
+msgid "Display colour profiles"
+msgstr "Цветовые профили экранов"
+
+msgid "ICC import, colord and per-monitor colour correction"
+msgstr "Импорт ICC, colord и цветокоррекция для каждого экрана"
+
+msgid "Colour accuracy for your display"
+msgstr "Точность цвета вашего экрана"
+
+msgid "Use a display-specific RGB ICC profile from your manufacturer or calibration tool. Hyprland applies it to the selected output; an ICC profile overrides its colour preset and is incompatible with HDR gaming."
+msgstr "Используйте RGB-профиль ICC для вашего монитора от производителя или средства калибровки. Hyprland применит его к выбранному экрану. ICC заменяет цветовой режим и несовместим с играми в HDR."
+
+msgid "Refresh monitors and profiles"
+msgstr "Обновить список мониторов и профилей"
+
+msgid "ICC profile"
+msgstr "Профиль ICC"
+
+msgid "No ICC override"
+msgstr "Без профиля ICC"
+
+msgid "Current hics assignment"
+msgstr "Текущий профиль в hics"
+
+msgid "Import a display ICC profile"
+msgstr "Импортировать профиль ICC экрана"
+
+msgid "Confirm colour profile change"
+msgstr "Подтвердить смену цветового профиля"
+
+msgid "Apply to this monitor"
+msgstr "Применить к этому монитору"
+
+msgid "Remove the ICC override"
+msgstr "Убрать профиль ICC"
+
+msgid "Installed display profiles are read from colord. Imported files are copied to your user ICC directory; printer and scanner profiles are excluded."
+msgstr "Установленные профили экранов загружаются из colord. Импортируемые файлы копируются в вашу папку ICC. Профили принтеров и сканеров не показываются."
+
+msgid "System colour service"
+msgstr "Системная служба цвета"
+
+msgid "Unavailable; user profiles still work"
+msgstr "Недоступна; пользовательские профили работают"
+
+msgid "Choose an open application"
+msgstr "Выбрать открытое приложение"
+
+msgid "Apply rule to"
+msgstr "Применять правило к"
+
+msgid "All windows of this application"
+msgstr "Всем окнам этого приложения"
+
+msgid "Windows with the selected title"
+msgstr "Окнам с выбранным заголовком"
+
+msgid "Windows with the same initial title"
+msgstr "Окнам с тем же начальным заголовком"
+
+msgid "Rule matching"
+msgstr "Условия правила"
+
+msgid "Pen and tablet buttons"
+msgstr "Кнопки пера и планшета"
+
+msgid "Drawing applications can handle tablet buttons themselves. For device-wide remapping, use the installed input-remapper tool; ordinary keyboard shortcuts remain separate."
+msgstr "Приложения для рисования могут сами обрабатывать кнопки планшета. Для переназначения на уровне устройства используется установленное средство input-remapper; обычные горячие клавиши настраиваются отдельно."
+
+msgid "Open device button mapping"
+msgstr "Открыть переназначение кнопок устройства"
+
+msgid "Open keyboard shortcuts"
+msgstr "Открыть горячие клавиши"
+
+msgid "Firmware update history"
+msgstr "История обновлений прошивок"
+
+msgid "Read update history"
+msgstr "Прочитать историю обновлений"
+
+msgid "Complete the update"
+msgstr "Завершение обновления"
+
+msgid "Save your work and restart or shut down as requested by fwupd."
+msgstr "Сохраните работу и перезагрузите или выключите компьютер согласно указаниям fwupd."

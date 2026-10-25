@@ -1,0 +1,7 @@
+find_package(Qt6 REQUIRED COMPONENTS Core)
+pkg_check_modules(LaunchGio REQUIRED IMPORTED_TARGET gio-unix-2.0)
+add_executable(hics-launch main.cpp)
+target_include_directories(hics-launch PRIVATE ../../shell/plugin/include)
+target_link_libraries(hics-launch PRIVATE Qt6::Core PkgConfig::LaunchGio)
+set_target_properties(hics-launch PROPERTIES CXX_STANDARD 20 INSTALL_RPATH "$ORIGIN/../share/hics/qs/lib")
+install(TARGETS hics-launch RUNTIME DESTINATION bin)

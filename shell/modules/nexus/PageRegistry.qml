@@ -25,7 +25,7 @@ QtObject {
             {label:Tr.tr("Everyday desktop"), pages:["notifications","presentation","focus","operations","performance","about"]}]},
         {id:"devices", label:Tr.tr("Bluetooth & devices"), icon:"devices", description:Tr.tr("Connected devices, keyboard, pointer and sharing"), groups:[
             {label:Tr.tr("Connected devices"), pages:["bluetooth","printers","sharing"]},
-            {label:Tr.tr("Keyboard and pointer"), pages:["keyboard","mouse","touchpad","input-devices"]}]},
+            {label:Tr.tr("Keyboard and pointer"), pages:["keyboard","mouse","touchpad","input-devices","tablets","colour-profiles"]}]},
         {id:"connections", label:Tr.tr("Network & internet"), icon:"wifi", description:Tr.tr("Wi-Fi, ethernet, VPN and connection settings"),
             landing:"network", groups:[{label:"",pages:["network"]}]},
         {id:"personalisation", label:Tr.tr("Personalisation"), icon:"palette", description:Tr.tr("Themes, panels, dock and window behaviour"), groups:[
@@ -37,10 +37,10 @@ QtObject {
         {id:"language", label:Tr.tr("Time & language"), icon:"language", description:Tr.tr("System language, regional formats, date and time"), groups:[{label:Tr.tr("Language and clock"),pages:["region","datetime"]}]},
         {id:"accessibility", label:Tr.tr("Accessibility"), icon:"accessibility_new", description:Tr.tr("Contrast, motion, scale and keyboard navigation"),
             landing:"accessibility",groups:[{label:"",pages:["accessibility"]}]},
-        {id:"privacy", label:Tr.tr("Privacy & security"), icon:"shield", description:Tr.tr("Passwords, application access and recovery"), groups:[{label:Tr.tr("Protection and recovery"),pages:["passwords","backup"]}]},
+        {id:"privacy", label:Tr.tr("Privacy & security"), icon:"shield", description:Tr.tr("Passwords, application access and recovery"), groups:[{label:Tr.tr("Protection and recovery"),pages:["accounts","passwords","backup"]}]},
         {id:"maintenance", label:Tr.tr("Maintenance & help"), icon:"handyman", description:Tr.tr("Troubleshooting, services and configuration recovery"), groups:[
             {label:Tr.tr("Help and diagnostics"),pages:["desktop-health","first-steps"]},
-            {label:Tr.tr("Advanced administration"),pages:["services","configuration-history","settings-workbench"]}]}
+            {label:Tr.tr("Advanced administration"),pages:["firmware","services","configuration-history","settings-workbench"]}]}
     ]
     function section(id: string): var { return sections.find(value => value.id === id) ?? sections[0]; }
     function sectionFor(id: string): var {
@@ -227,5 +227,9 @@ QtObject {
         {id:"performance",label:Tr.tr("Performance & games"),icon:"speed",description:Tr.tr("Game mode, adaptive effects, power and background work"),category:"shell"},
         {id:"focus",label:Tr.tr("Focus & breaks"),icon:"timer",description:Tr.tr("Focus sessions, breaks and temporary wake locks"),category:"shell"},
         {id:"file-integration",label:Tr.tr("File manager integration"),icon:"folder_open",description:Tr.tr("File managers, archive applications and desktop defaults"),category:"shell"},
+        {id:"accounts",label:Tr.tr("Users & sign-in"),icon:"manage_accounts",description:Tr.tr("Accounts, passwords, sessions and fingerprint readers"),category:"shell"},
+        {id:"firmware",label:Tr.tr("Device firmware"),icon:"system_update",description:Tr.tr("Vendor firmware, supported devices and power requirements"),category:"shell"},
+        {id:"tablets",label:Tr.tr("Graphics tablets & pens"),icon:"draw",description:Tr.tr("Monitor mapping, orientation and active areas"),category:"connectivity"},
+        {id:"colour-profiles",label:Tr.tr("Display colour profiles"),icon:"palette",description:Tr.tr("ICC import, colord and per-monitor colour correction"),category:"connectivity"},
     ]
 }

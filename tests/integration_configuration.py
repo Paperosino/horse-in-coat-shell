@@ -7,7 +7,13 @@ with tempfile.TemporaryDirectory(prefix='hics-configuration-test-') as directory
  base=Path(directory);cfg=base/'config/hics';cfg.mkdir(parents=True)
  (cfg/'shell.json').write_text('{"appearance":{"scale":1}}')
  (cfg/'hypr-user.lua').write_text('-- private rules\n')
- lua=base/'hyprland.lua';lua.write_text('hl.monitor({output="",mode="preferred",position="auto",scale=1})\ndofile('+json.dumps(str(cfg/'hypr-user.lua'))+')\n')
+ lua=base/'hyprland.lua';lua.write_text('package.path='+json.dumps(str(ASSETS/'hyprland/config/?.lua')+';')+'..package.path\n'+
+  'package.preload["scheme.current"]=function() return require("scheme.default") end\n'+
+  'hl.monitor({output="",mode="preferred",position="auto",scale=1})\n'+
+  'dofile('+json.dumps(str(ASSETS/'hyprland/config/hyprland/animations.lua'))+')\n'+
+  'dofile('+json.dumps(str(ASSETS/'hyprland/config/hyprland/gestures.lua'))+')\n'+
+  'dofile('+json.dumps(str(ASSETS/'hyprland/layouts.lua'))+')\n'+
+  'dofile('+json.dumps(str(cfg/'hypr-user.lua'))+')\n')
  env=dict(os.environ,AQ_BACKEND='wayland,headless',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'),HICS_CONFIG_NO_SYSTEMD='1',HICS_DISPLAY_NO_SYSTEMD='1');env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
  compositor=worker=app=None
  try:
@@ -67,12 +73,14 @@ with tempfile.TemporaryDirectory(prefix='hics-configuration-test-') as directory
    if shell_process.poll() is None:shell_process.terminate();shell_process.wait()
   # Rule must be accepted by the real compositor and affect a newly mapped client.
   call('desktop_rules.py','save-rule',{'application':'hics.rules.test','name':'Fixture','floating':True,'width':680,'height':420,'opacity':.85})
+  call('desktop_rules.py','save-rule',{'application':'hics.rules.test','name':'Window kind','initialTitle':'Private rules fixture','noShadow':True})
   app=subprocess.Popen(['kitty','--class','hics.rules.test','--title','Private rules fixture','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   client=wait(lambda:next((w for w in json.loads(ctl('-j','clients')) if w.get('class')=='hics.rules.test'),None))
   assert client['floating'] and client['size']==[680,420],client
   devices=json.loads(ctl('-j','devices'))
   if devices.get('mice'):
    name=devices['mice'][0]['name'];call('desktop_rules.py','save-device',{'name':name,'values':{'sensitivity':.25,'natural_scroll':True}})
+  call('desktop_rules.py','save-device',{'name':'hics-fixture-tablet','values':{'output':'current','transform':0,'relative_input':False,'active_area_size':[152,95],'active_area_position':[0,0],'region_size':[800,600],'region_position':[0,0]}})
   assert not ctl('configerrors'),ctl('configerrors')
   print('PASS: actual application geometry and per-device Lua rules',flush=True)
  finally:

@@ -267,7 +267,11 @@ QtObject {
         Component { StackPage { Component { PresentationPage {} } } },
         Component { StackPage { Component { PerformancePage {} } } },
         Component { StackPage { Component { FocusPage {} } } },
-        Component { StackPage { Component { FileIntegrationPage {} } } }
+        Component { StackPage { Component { FileIntegrationPage {} } } },
+        Component { StackPage { Component { AccountsPage {} } } },
+        Component { StackPage { Component { FirmwarePage {} } } },
+        Component { StackPage { Component { DesktopRulesPage { devicesOnly:true;tabletsOnly:true } } } },
+        Component { StackPage { Component { ColourProfilesPage {} } } }
     ]
 
     readonly property Component placeholderComp: Component {

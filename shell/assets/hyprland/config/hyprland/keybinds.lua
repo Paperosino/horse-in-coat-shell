@@ -226,12 +226,15 @@ bind_variable("kbSystemMonitorWs", fn.toggle("sysmon"))
 bind_variable("kbMusicWs", fn.toggle("music"))
 bind_variable("kbTodoWs", fn.toggle("todo"))
 
--- Apps
-bind_variable("kbTerminal", hl.dsp.exec_cmd(vars.terminal))
-bind_variable("kbBrowser", hl.dsp.exec_cmd(vars.browser))
-bind_variable("kbEditor", hl.dsp.exec_cmd(vars.editor))
-bind_variable("kbFileExplorer", hl.dsp.exec_cmd(vars.fileExplorer))
-bind_variable("kbAudioSettings", hl.dsp.exec_cmd(vars.audioSettings))
+-- Apps: keep GUI processes outside every hics service cgroup.
+local function app_command(command)
+    return hl.dsp.exec_cmd("hics-launch -- sh -c '" .. command:gsub("'", "'\\''") .. "'")
+end
+bind_variable("kbTerminal", app_command(vars.terminal))
+bind_variable("kbBrowser", app_command(vars.browser))
+bind_variable("kbEditor", app_command(vars.editor))
+bind_variable("kbFileExplorer", app_command(vars.fileExplorer))
+bind_variable("kbAudioSettings", app_command(vars.audioSettings))
 
 -- Utilities
 bind_variable("kbScreenshot", hl.dsp.exec_cmd("hics screenshot"), locked)

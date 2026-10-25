@@ -1,5 +1,6 @@
 #include "applicationcatalogue.hpp"
 #include "util/applicationenv.hpp"
+#include "util/applicationlaunch.hpp"
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QDateTime>
@@ -42,19 +43,14 @@ DesktopApplicationAction::DesktopApplicationAction(QString path, QString id,
     : QObject(parent), m_path(std::move(path)), m_id(std::move(id)),
       m_name(std::move(name)) {}
 void DesktopApplicationAction::execute() {
-  auto *app = g_desktop_app_info_new_from_filename(m_path.toUtf8().constData());
-  if (!app)
-    return;
-  auto *context = g_app_launch_context_new();
-  const auto environment = hics::util::applicationEnvironment();
-  for (const auto *key : {"LD_LIBRARY_PATH", "LD_PRELOAD", "QT_PLUGIN_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH"}) {
-    if (environment.contains(QString::fromLatin1(key)))
-      g_app_launch_context_setenv(context, key, environment.value(QString::fromLatin1(key)).toUtf8().constData());
-    else g_app_launch_context_unsetenv(context, key);
-  }
-  g_desktop_app_info_launch_action(app, m_id.toUtf8().constData(), context);
-  g_object_unref(context);
-  g_object_unref(app);
+  const auto helper = QStandardPaths::findExecutable("hics-launch");
+  if (helper.isEmpty()) return;
+  QProcess launch;
+  launch.setProcessEnvironment(hics::util::applicationEnvironment());
+  launch.setProgram(helper);
+  launch.setArguments({"--desktop-action", m_path, m_id});
+  hics::util::isolateApplication(launch);
+  launch.startDetached();
 }
 void DesktopApplication::execute() {
   // GIO handles DBusActivatable, quoting, field codes and the current desktop
@@ -103,6 +99,8 @@ void DesktopApplication::execute() {
     }
     process->deleteLater();
   });
+  process->setProperty("hics.application.log", logPath);
+  hics::util::isolateApplication(*process);
   process->start();
 }
 QString DesktopApplication::animationIcon() {

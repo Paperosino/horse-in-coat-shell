@@ -129,7 +129,10 @@ target_compile_definitions(hics-portal PRIVATE HICS_LOCALE_DIR="${CMAKE_INSTALL_
 install(TARGETS hics-portal RUNTIME DESTINATION bin)
 
 add_subdirectory(native/desktop)
+add_subdirectory(native/app-launch)
 configure_file(distribution/systemd/user/hics-desktop.service.in hics-desktop.service @ONLY)
 install(FILES "${CMAKE_BINARY_DIR}/hics-desktop.service" DESTINATION lib/systemd/user)
 configure_file(distribution/dbus/org.hics.Desktop1.service.in org.hics.Desktop1.service @ONLY)
 install(FILES "${CMAKE_BINARY_DIR}/org.hics.Desktop1.service" DESTINATION share/dbus-1/services)
+
+install(FILES docs/DE_PLATFORM.md DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/hics")

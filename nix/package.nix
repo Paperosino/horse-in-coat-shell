@@ -1,6 +1,6 @@
 { lib, stdenv, cmake, ninja, pkg-config, gettext, makeWrapper, qt6
 , hyprland, quickshell, python3, libqalculate, lm_sensors, pixman, libdrm
-, icu, poppler-utils, hyprland-guiutils, gamemode, flatpak, apparmor-utils, restic, timeshift, seahorse, fcitx5, fcitx5-configtool, squeekboard
+, accountsservice, fprintd, fwupd, colord, icu, poppler-utils, hyprland-guiutils, gamemode, flatpak, apparmor-utils, restic, timeshift, seahorse, fcitx5, fcitx5-configtool, squeekboard
 , glib, gvfs, libsecret, gnome-keyring, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
@@ -12,7 +12,7 @@ let
   runtime = [ glib gvfs quickshell hyprland python kitty firefox fuzzel btop pavucontrol
     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify brightnessctl
     networkmanager pipewire pulseaudio wireplumber polkit hyprlock hyprpicker xdg-utils
-    xdg-user-dirs libxml2 systemd libqalculate blueman gnome-keyring cups poppler-utils hyprland-guiutils gamemode flatpak apparmor-utils restic timeshift seahorse fcitx5 fcitx5-configtool squeekboard ];
+    xdg-user-dirs libxml2 systemd libqalculate blueman gnome-keyring cups accountsservice fprintd fwupd colord poppler-utils hyprland-guiutils gamemode flatpak apparmor-utils restic timeshift seahorse fcitx5 fcitx5-configtool squeekboard ];
 in
 assert lib.assertMsg (hyprland.version == "0.56.2") "Hyprstack requires Hyprland 0.56.2";
 assert lib.assertMsg (lib.versionAtLeast quickshell.version "0.3.1") "Hyprstack requires Quickshell >= 0.3.1";

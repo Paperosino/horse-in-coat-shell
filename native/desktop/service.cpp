@@ -111,6 +111,14 @@ Service::Service(QObject *parent)
   initComfort();
   pool.setMaxThreadCount(2);
   pool.setExpiryTimeout(1000);
+  QTimer::singleShot(0, this, [this] {
+    if (!QFileInfo::exists(directory + "/colour-rollback.json")) return;
+    auto recovery = QSharedPointer<Job>::create();
+    recovery->id = QUuid::createUuid().toString(QUuid::Id128);
+    recovery->operation = "colour.recover";
+    recovery->transient = true;
+    colour(recovery);
+  });
   const auto previous = readJson(directory + "/jobs.json");
   for (const auto &row : previous["jobs"].toArray()) {
     const auto o = row.toObject();
@@ -266,7 +274,7 @@ QString Service::enqueue(const QString &operation, const QString &raw) {
   job->order = QDateTime::currentMSecsSinceEpoch();
   job->description = operation;
   job->transient =
-      operation.startsWith("comfort.") || operation.startsWith("integration.") || operation.startsWith("input.") || QStringList{"apps.apparmor-read",
+      operation.startsWith("professional.") || operation.startsWith("colour.") || operation.startsWith("accounts.") || operation == "firmware.status" || operation == "firmware.history" || operation == "firmware.update" || operation.startsWith("comfort.") || operation.startsWith("integration.") || operation.startsWith("input.") || QStringList{"apps.apparmor-read",
                                                     "keyring.manager",
                                                     "backup.timeshift-manager",
                                                     "backup.snapper-manager",
@@ -744,6 +752,10 @@ void Service::dispatch(const QSharedPointer<Job> &job) {
       comfort(job);
     else if (job->operation.startsWith("integration."))
       integration(job);
+    else if (job->operation.startsWith("colour."))
+      colour(job);
+    else if (job->operation.startsWith("professional.") || job->operation.startsWith("accounts.") || job->operation.startsWith("firmware."))
+      platform(job);
     else if (job->operation.startsWith("input."))
       input(job);
     else

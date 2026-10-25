@@ -1,5 +1,6 @@
 #include "cutils.hpp"
 #include "util/applicationenv.hpp"
+#include "util/applicationlaunch.hpp"
 #include <QProcess>
 
 #include <qdir.h>
@@ -30,6 +31,7 @@ bool CUtils::execDetached(const QStringList &command, const QString &workingDire
     process.setArguments(command.mid(1));
     process.setWorkingDirectory(workingDirectory);
     process.setProcessEnvironment(hics::util::applicationEnvironment());
+    hics::util::isolateApplication(process);
     return process.startDetached();
 }
 bool CUtils::execDetached(const QVariantMap &options) {
