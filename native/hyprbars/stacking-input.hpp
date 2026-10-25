@@ -3,6 +3,9 @@
 
 #include "titlebar-actions.hpp"
 #include <utility>
+#include <array>
+#include <map>
+#include <hyprland/src/state/MonitorState.hpp>
 #include "scrolling-opening.hpp"
 #include "stacking-snap.hpp"
 #include <hyprland/src/desktop/state/FocusState.hpp>
@@ -95,6 +98,7 @@ class CStackingInput {
             // Native mouse bindings consume motion/release before the public
             // mouse signals. Reconcile only an active drag on existing frames.
             // This also covers client-side move requests without a shell bar.
+            if (stage == RENDER_PRE) syncReservedAreas();
             if (stage == RENDER_PRE && enabled()) {
                 if (g_layoutManager->dragController()->target()) processMove(g_pInputManager->getMouseCoordsInternal());
                 else if (m_dragWindow && m_dragMode != MBIND_INVALID) finishDrag();
@@ -141,6 +145,7 @@ class CStackingInput {
     }
 
     ~CStackingInput() {
+        if (m_workAreaTimer && g_pEventLoopManager) g_pEventLoopManager->removeTimer(m_workAreaTimer);
         if (m_releaseTimer && g_pEventLoopManager) g_pEventLoopManager->removeTimer(m_releaseTimer);
         if (m_transferTimer && g_pEventLoopManager) g_pEventLoopManager->removeTimer(m_transferTimer);
     }
@@ -154,6 +159,38 @@ class CStackingInput {
     }
 
   private:
+    void syncReservedAreas() {
+        if (!enabled()) { m_reservedAreas.clear(); return; }
+        const auto& monitors = State::monitorState()->monitors();
+        bool changed = monitors.size() != m_reservedAreas.size();
+        for (const auto& monitor : monitors) {
+            const auto& area = monitor->m_reservedArea;
+            const auto previous = m_reservedAreas.find(monitor->m_name);
+            if (previous == m_reservedAreas.end() || previous->second != std::array{area.left(), area.top(), area.right(), area.bottom()}) {
+                changed = true;
+                break;
+            }
+        }
+        if (!changed) return; // no allocations, Lua calls or geometry work on the steady path
+        m_reservedAreas.clear();
+        for (const auto& monitor : monitors) {
+            const auto& area = monitor->m_reservedArea;
+            m_reservedAreas.emplace(monitor->m_name, std::array{area.left(), area.top(), area.right(), area.bottom()});
+        }
+        // Layer surfaces commit after fullscreen IPC is processed. React to the
+        // actual compositor work area on an already scheduled frame; don't use
+        // a fixed delay, dock-size approximation or a background polling timer.
+        // Defer Lua/geometry changes out of the renderer's active transaction.
+        if (m_workAreaTimer) g_pEventLoopManager->removeTimer(m_workAreaTimer);
+        m_workAreaTimer = makeShared<CEventLoopTimer>(std::chrono::milliseconds(1),
+            [this](SP<CEventLoopTimer>, void*) {
+                if (!enabled()) return;
+                const auto manager = dynamic_cast<Config::Lua::CConfigManager*>(Config::mgr().get());
+                if (manager) manager->eval("if hyprstack_layouts and hyprstack_layouts.refresh_maximized_windows then hyprstack_layouts.refresh_maximized_windows() end", true);
+            }, nullptr);
+        g_pEventLoopManager->addTimer(m_workAreaTimer);
+    }
+
     void processMove(Vector2D pos) {
         // beginDragTarget/activation can synchronously synthesize another move.
         // One transaction owns the drag snapshot until its restore completes.
@@ -253,7 +290,8 @@ class CStackingInput {
     Time::steady_tp m_pressTime = Time::steadyNow();
     bool m_pressValid = false, m_dragMoved = false, m_processingMove = false;
     eMouseBindMode m_dragMode = MBIND_INVALID;
-    SP<CEventLoopTimer> m_releaseTimer;
+    SP<CEventLoopTimer> m_releaseTimer, m_workAreaTimer;
+    std::map<std::string, std::array<double, 4>> m_reservedAreas;
     struct STransfer { PHLWINDOWREF window; float width; };
     std::vector<STransfer> m_transfers;
     SP<CEventLoopTimer> m_transferTimer;

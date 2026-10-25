@@ -2325,7 +2325,7 @@ hl.on("window.open", function(window)
 end)
 hl.on("window.title", schedule_telegram_media)
 hl.on("window.move_to_workspace", sync_window)
-hl.on("window.fullscreen", function(window)
+local function sync_stacking_fullscreen(window)
     if telegram_media(window) then
         schedule_telegram_media(window)
         return
@@ -2341,18 +2341,11 @@ hl.on("window.fullscreen", function(window)
         record.video_fullscreen = true
         return
     end
-    if internal == 0 and client == 0 and record and record.video_fullscreen then
+    if internal == 0 and (client == 0 or client == 1) and record and record.video_fullscreen then
         record.video_fullscreen = nil
         if record.maximized then
-            local maximized = record.maximized
-            hl.timer(function()
-                if layouts.mode() == "stacking" and eligible(window) and record_for(window) == record
-                    and record.maximized == maximized and not record.minimized and window.fullscreen == 0
-                    and window.fullscreen_client == 0 then
-                    set_maximized(window, true)
-                    save()
-                end
-            end, { timeout = 1, type = "oneshot" })
+            set_maximized(window, true)
+            save()
             return
         end
     end
@@ -2366,17 +2359,49 @@ hl.on("window.fullscreen", function(window)
             save()
         end, { timeout = 1, type = "oneshot" })
     end
+end
+-- fullscreen_state updates its internal and client flags sequentially. Public
+-- fullscreen callbacks can observe the old client flag during that dispatch.
+-- Read the settled pair once, outside the controller's state transaction.
+local fullscreen_state_timers = {}
+hl.on("window.fullscreen", function(window)
+    -- Preserve even a fullscreen round trip completed within one IPC request.
+    if not changing and layouts.mode() == "stacking" and eligible(window) and window.fullscreen == 2 then
+        local record = record_for(window)
+        if record then record.video_fullscreen = true end
+    end
+    local address = window.address
+    if fullscreen_state_timers[address] then fullscreen_state_timers[address]:set_enabled(false) end
+    fullscreen_state_timers[address] = hl.timer(function()
+        fullscreen_state_timers[address] = nil
+        if window.mapped then sync_stacking_fullscreen(window) end
+    end, {timeout = 1, type = "oneshot"})
 end)
+hl.on("window.close", function(window)
+    local timer = fullscreen_state_timers[window.address]
+    if timer then timer:set_enabled(false); fullscreen_state_timers[window.address] = nil end
+end)
+-- Layout changes and late layer-shell reservations share the same calculation.
+-- Keep the saved normal rectangle intact while resizing only maximized floats.
+function layouts.refresh_maximized_windows()
+    if changing or layouts.mode() ~= "stacking" then return end
+    for _, window in ipairs(hl.get_windows()) do
+        local record = record_for(window)
+        if eligible(window) and record and record.maximized and not record.minimized and window.fullscreen == 0 then
+            local bounds = maximized_geometry(window)
+            local previous = geometry(window)
+            if math.abs(previous.x - bounds.x) > .5 or math.abs(previous.y - bounds.y) > .5
+                or math.abs(previous.width - bounds.width) > .5 or math.abs(previous.height - bounds.height) > .5 then
+                set_geometry(window, bounds)
+            end
+        end
+    end
+end
 hl.on("monitor.layout_changed", function()
     layouts.monitor_directions()
     if changing then return end
-    for _, window in ipairs(hl.get_windows()) do
-        local record = record_for(window)
-        if layouts.mode() == "stacking" and record and record.maximized and not record.minimized and window.fullscreen == 0 then
-            set_geometry(window, maximized_geometry(window))
-        end
-        sync_window(window)
-    end
+    layouts.refresh_maximized_windows()
+    for _, window in ipairs(hl.get_windows()) do sync_window(window) end
 end)
 hl.on("window.close", function(window)
     local recent = canvas_focus_history[1]

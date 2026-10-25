@@ -616,3 +616,34 @@ fixed variant exercises maximized server-header drag with PiP; setting
 Only the nested test surface is resized in its parent, so recovery-mode tiling
 cannot invalidate input coordinates. No host plugins are loaded/unloaded by
 these tests. The settings test also checks normal-window and PiP selection.
+
+### Fullscreen-to-maximized work area (package 53)
+
+Stacking's maximize rectangle uses Hyprland's actual monitor reservations,
+including all four dock edges, bar, extra panels and logical output scale.
+Previously it was recomputed on fullscreen/monitor layout changes only. The
+shell's layer surfaces can restore their exclusive zones later than fullscreen
+exit; that late reservation is not necessarily a monitor layout event. A window
+could consequently retain the fullscreen-sized rectangle behind the dock.
+
+The existing native RENDER_PRE callback now compares reserved-area snapshots.
+Only a change queues one coalesced event-loop callback, outside the rendering
+transaction, to resize eligible maximized floats. The steady path performs no
+allocations, Lua/IPC calls, window traversal or geometry updates; no recurring
+timer or synthetic frames are added. Minimized, pinned, fullscreen and normal
+windows are excluded. The saved normal rectangle remains untouched. Monitor
+layout changes reuse the same Lua function and unchanged rectangles are skipped.
+
+Fullscreen callbacks can see an old client state while the controller updates
+its internal/client flags sequentially. The listener records fullscreen entry
+and coalesces settlement per live window, cancelling on close. It handles direct
+return to client-maximized state and a round trip inside one IPC request.
+
+`tests/integration_stacking_workarea.py` creates real layer-shell reservations,
+hides them in fullscreen and restores them 300ms after exit. Package 52's native
+plugin reproduces bottom-dock overlap with this regression fixture. The fixed
+plugin checks all four edges with server/client headers, combined bar reserves,
+visible dock resizing, rapid fullscreen transitions and restore of the original
+normal rectangle. The same cases pass with output scale 1.25. It uses private config and snapshots native binaries; the
+host compositor's plugins are never reloaded by the test. Both stacking drag
+regressions (five server-titlebar and five headerless drags with PiP) also pass.
