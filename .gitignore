@@ -46,6 +46,8 @@
 
 !/native/
 /native/*
+!/native/portal/
+!/native/portal/*.cpp
 !/native/capture/
 /native/capture/*
 !/native/capture/*.cpp
