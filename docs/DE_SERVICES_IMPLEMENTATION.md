@@ -159,3 +159,13 @@ Package 59 validation: the full 269-test suite passes; focused native and nested
 GUI checks pass after final changes. A short fresh-process idle measurement showed
 0 CPU ticks over 3 seconds for both the previous and new desktop daemon; RSS was
 about 20 MiB in both runs (these short samples do not establish a RAM reduction).
+
+### Update isolation caveat
+
+Never stop a running session unit **after** masking it. Verified on this host with
+an isolated sleep-only unit: runtime masking changed the active unit's effective
+KillMode from `process` to `control-group`, even while the process remained active.
+Stopping that masked unit can therefore terminate applications sharing its cgroup.
+For controlled maintenance, stop an unmasked unit with verified KillMode=process
+first, then mask it while inactive; unmask before starting. Ordinary package hooks
+restart the unmasked unit. New recovery launches can use separate user app scopes.
