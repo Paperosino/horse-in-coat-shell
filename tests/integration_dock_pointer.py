@@ -16,16 +16,21 @@ with tempfile.TemporaryDirectory(prefix='hics-dock-pointer-') as directory:
     shell = base/'shell'
     shutil.copytree(ROOT/'shell', shell, ignore=shutil.ignore_patterns('plugin', 'extras', '__pycache__'))
     dock_source=shell/'modules/dock/DockContent.qml'
-    probe=dock_source.read_text().replace('id: root','id: root\n    property int testClicks: 0\n    property string testKey: ""\n    property int testPresses: 0\n    property int testCancels: 0\n    property bool testDropHover: false',1)
+    probe=dock_source.read_text().replace('id: root','id: root\n    property int testCreated: 0\n    property int testClicks: 0\n    property string testKey: ""\n    property int testPresses: 0\n    property int testCancels: 0\n    property bool testDropHover: false',1)
     probe=probe.replace('!root.draggedKey ? 1 : 0','!root.draggedKey && !root.testDropHover ? 1 : 0')
     probe=probe.replace('function activate(button: int): void {','function activate(button: int): void { root.testClicks++;root.testKey=task.modelData;',1)
     probe=probe.replace('onPressed: event => { pressPoint','onPressed: event => { root.testPresses++; pressPoint',1)
     probe=probe.replace('onCanceled: root.cancelDrag()','onCanceled: { root.testCancels++; root.cancelDrag(); }',1)
+    probe=probe.replace('required property string modelData','required property string modelData\n                        property int testIdentity:0',1)
+    probe=probe.replace('Component.onCompleted: Qt.callLater(()=>{previousMinimized=', 'Component.onCompleted: {root.testCreated++;testIdentity=root.testCreated;Qt.callLater(()=>{previousMinimized=',1)
+    probe=probe.replace('motionReady=true;})','motionReady=true;});}',1)
     dock_source.write_text(probe)
     (base/'config/hics').mkdir(parents=True)
     (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True, position='bottom', iconSize=44)))
     (base/'config/hics/shell.json').write_text(json.dumps({'dashboard':{'enabled':False},'utilities':{'enabled':False}}))
     (base/'config/hics/workspace.json').write_text(json.dumps({'clipboard': {'enabled':False}}))
+    entries=base/'data/applications';entries.mkdir(parents=True)
+    (entries/'fixture-dock.desktop').write_text('[Desktop Entry]\nType=Application\nName=Fixture dock application\nExec=kitty\nIcon=utilities-terminal\nStartupWMClass=org.hics.DockPointerFixture\n')
     state = base/'pointer-state.json'
     control = base/'control.txt';control.write_text('')
     (shell/'shell.qml').write_text('''import QtQuick
@@ -57,7 +62,7 @@ ShellRoot {
   status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},key:dock.testKey,clicks:dock.testClicks,presses:dock.testPresses,cancels:dock.testCancels,dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,dockBox:root.box(dock),membraneShapes:dock.membraneShapes,membraneBounds:dock.membraneBounds,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),listOpen:dock.listOpen,open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
    captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
    appsButtons:appsButtons.map(b=>Object.assign(root.box(b),{wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),
-   buttons:buttons.map(b=>Object.assign(root.box(b),{key:b.modelData,wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
+   buttons:buttons.map(b=>Object.assign(root.box(b),{key:b.modelData,identity:b.testIdentity,windowCount:b.windows.length,wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
  }}
 }'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))))
     fixtures = ROOT/'tests/fixtures'
@@ -81,8 +86,8 @@ ShellRoot {
         assert instance,'Nested compositor did not start'
         env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'],QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'),QT_QPA_PLATFORM='wayland',QSG_RHI_BACKEND='opengl',HYPRSTACK_POINTER_WIDTH='1280',HYPRSTACK_POINTER_HEIGHT='900')
         env.pop('QT_QUICK_BACKEND',None)
-        terminal=subprocess.Popen(['kitty','--class','org.hics.DockPointerFixture','--title','Dock preview fixture','-o','background=#d02040','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);processes.append(terminal)
-        terminal2=subprocess.Popen(['kitty','--class','org.hics.DockPointerFixture','--title','Dock preview fixture B','-o','background=#d02040','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);processes.append(terminal2)
+        terminal=subprocess.Popen(['kitty','--class','org.hics.DockPointerFixture','--title','Dock preview fixture','-o','background=#d02040','-o','confirm_os_window_close=0','sleep','600'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);processes.append(terminal)
+        terminal2=subprocess.Popen(['kitty','--class','org.hics.DockPointerFixture','--title','Dock preview fixture B','-o','background=#d02040','-o','confirm_os_window_close=0','sleep','600'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);processes.append(terminal2)
         time.sleep(1)
         runner=base/'run.py';runner.write_text('import os,sys\nos.environ["DBUS_SYSTEM_BUS_ADDRESS"]=os.environ["DBUS_SESSION_BUS_ADDRESS"]\nos.execvp(sys.argv[1],sys.argv[1:])\n')
         shell_log=(base/'shell.log').open('w')
@@ -98,7 +103,22 @@ ShellRoot {
                 if shell_process.poll() is not None:raise AssertionError((base/'shell.log').read_text()[-6000:])
                 time.sleep(.1)
             raise AssertionError(('Pointer condition timed out',read(),(base/'shell.log').read_text()[-3000:]))
+        def pinned_lifecycle():
+            pinned=next(button for button in read()['buttons'] if button['key']=='fixture-dock')
+            (base/'config/hics/taskbar.json').write_text(json.dumps({'pinned':['fixture-dock'],'order':[]}))
+            time.sleep(.3)
+            terminal.kill();terminal2.kill();terminal.wait();terminal2.wait()
+            print('Lifecycle clients after kill:',[(w.get('class'),w.get('pid')) for w in json.loads(subprocess.check_output(['hyprctl','-i',instance['instance'],'clients','-j']))],flush=True)
+            closed=wait_for(lambda s:any(b['key']=='fixture-dock' and b['windowCount']==0 for b in s.get('buttons',[])))
+            icon=next(b for b in closed['buttons'] if b['key']=='fixture-dock')
+            assert icon['identity']==pinned['identity'],'Closing an app replaced its pinned dock delegate'
+            restarted=subprocess.Popen(['kitty','--class','org.hics.DockPointerFixture','-o','confirm_os_window_close=0','sleep','60'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);processes.append(restarted)
+            reopened=wait_for(lambda s:any(b['key']=='fixture-dock' and b['windowCount']==1 for b in s.get('buttons',[])))
+            assert next(b for b in reopened['buttons'] if b['key']=='fixture-dock')['identity']==pinned['identity'],'Reopening an app replaced its pinned dock delegate'
+            print('PASS: pinned app keeps one dock delegate through close and reopen',flush=True)
         wait_for(lambda s:len(s.get('buttons',[]))==1)
+        if os.environ.get('HICS_DOCK_LIFECYCLE_ONLY'):
+            pinned_lifecycle();raise SystemExit(0)
         time.sleep(1.5)
         snapshot=read()
         pointer_env=dict(env,HYPRSTACK_POINTER_WIDTH=str(snapshot['screenSize']['w']),HYPRSTACK_POINTER_HEIGHT=str(snapshot['screenSize']['h']))
@@ -232,7 +252,7 @@ ShellRoot {
         print('PASS: apps button lifts with the membrane and accepts raised-edge clicks at both ends on all four sides',flush=True)
         (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,spread=120)))
         for i in range(4):
-            processes.append(subprocess.Popen(['kitty','--class',f'org.hics.MembraneFixture{i}','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL))
+            processes.append(subprocess.Popen(['kitty','--class',f'org.hics.MembraneFixture{i}','-o','confirm_os_window_close=0','sleep','600'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL))
         wait_for(lambda s:len(s.get('buttons',[]))==5)
         time.sleep(.8)
         buttons=read()['buttons'];target=buttons[2]
@@ -248,6 +268,8 @@ ShellRoot {
         assert_membrane(read())
         send('move',100,300);assert_membrane(read())
         print('PASS: the shared membrane contains neighbouring icons during pointer travel and spring return',flush=True)
+        pinned_lifecycle()
+
         (base/'config/hics/dock.json').write_text(json.dumps(dict(enabled=True,position='bottom',iconSize=44,animations=False)))
         time.sleep(.7);current=read();assert all(abs(b['visual']['y']-b['y'])<.5 for b in current['buttons']+current.get('appsButtons',[])),current
         print('PASS: disabling dock animations immediately settles the membrane',flush=True)

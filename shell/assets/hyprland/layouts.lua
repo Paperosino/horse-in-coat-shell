@@ -1654,6 +1654,10 @@ function layouts.action(operation, address, stable_id)
         end
         return
     end
+    if operation == "force-quit" then
+        hl.dispatch(hl.dsp.window.signal({ window = window, signal = 9 }))
+        return
+    end
     if operation == "close" then
         hl.dispatch(hl.dsp.window.close({ window = window }))
         return

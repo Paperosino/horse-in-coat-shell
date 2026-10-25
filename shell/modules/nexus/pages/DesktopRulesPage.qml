@@ -15,12 +15,24 @@ PageBase {
  pageIcon:devicesOnly?"devices":"rule"
  property var form:({})
  property var selectedWindow:null
+ readonly property int matchingWindows:{
+  if(form.regex||form.matchModal!==undefined)return -1;
+  if(!form.application)return 0;
+  return (DesktopRules.data.windows??[]).filter(w=>w.application===form.application&&(!form.title||w.title===form.title)&&(!form.initialTitle||w.initialTitle===form.initialTitle)&&(form.matchXwayland===undefined||w.xwayland===form.matchXwayland)).length;
+ }
  readonly property var openApplications:{
   const rows=[];
   for(const win of DesktopRules.data.windows??[]){if(win.application&&!rows.some(row=>row.value===win.application))rows.push({value:win.application,label:win.application});}
   return rows;
  }
+ function editRule(rule):void {
+  selectedWindow=null;
+  form=JSON.parse(JSON.stringify(rule));
+  matchScope=form.initialTitle?"initial":form.title?"title":"application";
+ }
+ function newRule():void {editRule({name:"",application:"",enabled:true,regex:false,mode:LayoutModes.mode||"all"});}
  function pickApplication(application):void {
+  if(!Object.keys(form).length)return;
   root.selectedWindow=null;root.matchScope="application";
   const next=Object.assign({},form,{name:form.name||application,application,title:"",initialTitle:"",regex:false,enabled:form.enabled!==false,mode:form.mode||LayoutModes.mode||"all"});
   delete next.matchModal;delete next.matchXwayland;form=next;
@@ -31,7 +43,7 @@ PageBase {
   delete next.matchModal;form=next;
  }
  function pickWindow(window):void {
-  if(!window)return;
+  if(!window||!Object.keys(form).length)return;
   selectedWindow=window;
   const title=window.title??"";
   root.matchScope="application";
@@ -74,10 +86,50 @@ PageBase {
   FeatureError {error:DesktopRules.error}
   FeatureError {error:root.deviceError}
   SettingsCard {
-   title:Tr.tr(root.devicesOnly?"A different feel for each device":"Choose a window to build a rule")
-   description:Tr.tr(root.devicesOnly?"Device overrides follow the device name. Reset an individual value to inherit the global setting again.":"Rules match the application rather than its temporary window address. Placement rules apply to new windows; dynamic effects also update matching windows.")
+   visible:root.devicesOnly
+   title:Tr.tr("A different feel for each device")
+   description:Tr.tr("Device overrides follow the device name. Reset an individual value to inherit the global setting again.")
    icon:root.pageIcon
    RowButton {text:Tr.tr("Refresh connected devices and windows");icon:"refresh";onClicked:DesktopRules.refresh()}
+   Repeater {
+    model:root.devicesOnly?(DesktopRules.data.devices??[]).filter(d=>!root.tabletsOnly||d.kind==="tablets"):[]
+    RowButton {
+     required property var modelData
+     text:modelData.name;subtext:modelData.kind;icon:"devices"
+     onClicked:root.pickDevice(modelData)
+    }
+   }
+  }
+  SettingsCard {
+   visible:!root.devicesOnly;title:Tr.tr("Window controls");icon:"window";collapsible:true;expanded:false
+   description:Tr.tr("One button layout for shell titlebars and GTK applications. Applications may hide unavailable actions or provide their own header.")
+   GenericSettingRow {spec:({label:"Button side",type:"choice",choices:[{value:"left",label:"Left"},{value:"right",label:"Right"}],value:root.controls.side});onEdited:v=>root.control("side",v)}
+   Repeater {model:[{id:"minimize",label:"Minimize"},{id:"maximize",label:"Maximize"},{id:"close",label:"Close"}];ToggleRow {required property var modelData;text:Tr.tr(modelData.label);checked:root.controls.order.includes(modelData.id);onToggled:root.toggleControl(modelData.id,checked)}}
+   GenericSettingRow {spec:({label:"Button order (left to right)",type:"choice",choices:["minimize,maximize,close","minimize,close,maximize","maximize,minimize,close","maximize,close,minimize","close,minimize,maximize","close,maximize,minimize"].map(v=>({value:v,label:v.split(",").map(k=>Tr.tr(k==="close"?"Close":k==="maximize"?"Maximize":"Minimize")).join(" · ")})),value:[...root.controls.order,...["minimize","maximize","close"].filter(v=>!root.controls.order.includes(v))].join(",")});onEdited:v=>root.control("order",v.split(",").filter(k=>root.controls.order.includes(k)))}
+   RowButton {text:Tr.tr("Apply window controls");icon:"check";disabled:DesktopRules.busy;onClicked:DesktopRules.call("save-controls",root.controls)}
+  }
+  SettingsCard {
+   visible:!root.devicesOnly;title:Tr.tr("Saved application rules");icon:"rule"
+   description:Tr.tr("Later rules take precedence. Editing a rule preserves its position.")
+   Repeater {model:DesktopRules.data.rules;RowLayout {
+    required property var modelData
+    required property int index
+    Layout.fillWidth:true
+    RowButton {Layout.fillWidth:true;text:parent.modelData.name||parent.modelData.application;subtext:parent.modelData.application+" · "+Tr.tr(parent.modelData.mode??"all")+(parent.modelData.enabled===false?" · "+Tr.tr("Disabled"):"");icon:"rule";onClicked:root.editRule(parent.modelData)}
+    IconButton {icon:"arrow_upward";enabled:!DesktopRules.busy&&parent.index>0;onClicked:DesktopRules.call("move-rule",{id:parent.modelData.id,direction:-1})}
+    IconButton {icon:"arrow_downward";enabled:!DesktopRules.busy&&parent.index<DesktopRules.data.rules.length-1;onClicked:DesktopRules.call("move-rule",{id:parent.modelData.id,direction:1})}
+   }}
+   RowButton {text:Tr.tr("Create a rule");icon:"add";onClicked:root.newRule()}
+  }
+  SettingsCard {
+   visible:!root.devicesOnly&&Object.keys(root.form).length>0;title:Tr.tr("Rule details");icon:"tune"
+   description:Tr.tr("Dynamic appearance updates existing windows. Placement is applied when a window opens in the selected mode; switching modes does not move existing windows.")
+   SettingsCard {
+    objectName:"ruleWindowMatcher"
+    title:Tr.tr("Window matching");icon:"filter_alt"
+    description:Tr.tr("Use an open window to fill this rule's matching fields. Its name, window mode and effects stay unchanged.")
+    InfoRow {visible:root.matchingWindows>=0;label:Tr.tr("Matching open windows");value:String(root.matchingWindows)}
+    RowButton {text:Tr.tr("Refresh open windows");icon:"refresh";disabled:DesktopRules.busy;onClicked:DesktopRules.refresh()}
    GenericSettingRow {
     visible:!root.devicesOnly
     spec:({label:"Choose an open application",type:"choice",choices:[{value:"",label:"Choose an open application"},...root.openApplications],value:root.form.application??""})
@@ -101,39 +153,8 @@ PageBase {
     onToggled:root.setScope(checked?"title":"application")
    }
    InfoRow {visible:!root.devicesOnly&&!!root.selectedWindow;label:Tr.tr("Selected window");value:root.selectedWindow?.title??""}
-   Repeater {
-    model:root.devicesOnly?(DesktopRules.data.devices??[]).filter(d=>!root.tabletsOnly||d.kind==="tablets"):[]
-    RowButton {
-     required property var modelData
-     text:modelData.name;subtext:modelData.kind;icon:"devices"
-     onClicked:root.pickDevice(modelData)
-    }
+
    }
-  }
-  SettingsCard {
-   visible:!root.devicesOnly;title:Tr.tr("Window controls");icon:"window"
-   description:Tr.tr("One button layout for shell titlebars and GTK applications. Applications may hide unavailable actions or provide their own header.")
-   GenericSettingRow {spec:({label:"Button side",type:"choice",choices:[{value:"left",label:"Left"},{value:"right",label:"Right"}],value:root.controls.side});onEdited:v=>root.control("side",v)}
-   Repeater {model:[{id:"minimize",label:"Minimize"},{id:"maximize",label:"Maximize"},{id:"close",label:"Close"}];ToggleRow {required property var modelData;text:Tr.tr(modelData.label);checked:root.controls.order.includes(modelData.id);onToggled:root.toggleControl(modelData.id,checked)}}
-   GenericSettingRow {spec:({label:"Button order (left to right)",type:"choice",choices:["minimize,maximize,close","minimize,close,maximize","maximize,minimize,close","maximize,close,minimize","close,minimize,maximize","close,maximize,minimize"].map(v=>({value:v,label:v.split(",").map(k=>Tr.tr(k==="close"?"Close":k==="maximize"?"Maximize":"Minimize")).join(" · ")})),value:[...root.controls.order,...["minimize","maximize","close"].filter(v=>!root.controls.order.includes(v))].join(",")});onEdited:v=>root.control("order",v.split(",").filter(k=>root.controls.order.includes(k)))}
-   RowButton {text:Tr.tr("Apply window controls");icon:"check";disabled:DesktopRules.busy;onClicked:DesktopRules.call("save-controls",root.controls)}
-  }
-  SettingsCard {
-   visible:!root.devicesOnly;title:Tr.tr("Saved application rules");icon:"rule"
-   description:Tr.tr("Later rules take precedence. Editing a rule preserves its position.")
-   Repeater {model:DesktopRules.data.rules;RowLayout {
-    required property var modelData
-    required property int index
-    Layout.fillWidth:true
-    RowButton {Layout.fillWidth:true;text:parent.modelData.name||parent.modelData.application;subtext:parent.modelData.application+" · "+Tr.tr(parent.modelData.mode??"all")+(parent.modelData.enabled===false?" · "+Tr.tr("Disabled"):"");icon:"rule";onClicked:root.form=JSON.parse(JSON.stringify(parent.modelData))}
-    IconButton {icon:"arrow_upward";enabled:!DesktopRules.busy&&parent.index>0;onClicked:DesktopRules.call("move-rule",{id:parent.modelData.id,direction:-1})}
-    IconButton {icon:"arrow_downward";enabled:!DesktopRules.busy&&parent.index<DesktopRules.data.rules.length-1;onClicked:DesktopRules.call("move-rule",{id:parent.modelData.id,direction:1})}
-   }}
-   RowButton {text:Tr.tr("Create a rule manually");icon:"add";onClicked:root.form={name:"",application:"",enabled:true,regex:false}}
-  }
-  SettingsCard {
-   visible:!root.devicesOnly&&Object.keys(root.form).length>0;title:Tr.tr("Rule details");icon:"tune"
-   description:Tr.tr("Dynamic appearance updates existing windows. Placement is applied when a window opens in the selected mode; switching modes does not move existing windows.")
    GenericSettingRow {spec:({label:"Apply in window mode",type:"choice",choices:[{value:"all",label:"All window modes"},{value:"stacking",label:"Stacking"},{value:"scrolling",label:"Scrolling"},{value:"tiling",label:"Tiling"},{value:"canvas",label:"Canvas"}],value:root.form.mode??"all"});onEdited:v=>root.change("mode",v)}
    TextFieldRow {label:Tr.tr("Rule name");value:root.form.name??"";onValueEdited:v=>root.change("name",v)}
    TextFieldRow {label:Tr.tr("Application class");value:root.form.application??"";onValueEdited:v=>root.change("application",v)}
@@ -142,6 +163,7 @@ PageBase {
    ToggleRow {text:Tr.tr("Match using regular expressions");checked:root.form.regex??false;onToggled:root.change("regex",checked)}
    SettingsCard {
     title:Tr.tr("Advanced matching");icon:"filter_alt";collapsible:true;expanded:false
+    TextFieldRow {label:Tr.tr("Initial window title (optional)");value:root.form.initialTitle??"";onValueEdited:value=>root.change("initialTitle",value)}
     Repeater {model:[{key:"matchXwayland",label:"XWayland window"},{key:"matchModal",label:"Modal window"}];GenericSettingRow {required property var modelData;spec:({label:modelData.label,type:"choice",choices:[{value:"any",label:"Any"},{value:"yes",label:"Yes"},{value:"no",label:"No"}],value:root.form[modelData.key]===undefined?"any":root.form[modelData.key]?"yes":"no"});onEdited:v=>root.optional(modelData.key,v==="any"?null:v==="yes")}}
    }
    SettingsCard {

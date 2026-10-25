@@ -398,7 +398,7 @@ Item {
                     id: taskRepeater
 
                     model: ScriptModel {
-                        values: root.groups.map(g => g.app)
+                        values: root.groups.map(g => g.key)
                     }
 
                     delegate: Item {
@@ -413,7 +413,7 @@ Item {
 
                         required property string modelData
 
-                        readonly property var group: root.groups.find(g => g.app === modelData)
+                        readonly property var group: root.groups.find(g => g.key === modelData) ?? ({key:modelData,app:modelData,windows:[],entry:null})
                         readonly property var windows: group?.windows ?? []
                         readonly property bool active: windows.some(w => w === Hypr.activeToplevel && !Hypr.isMinimized(w))
                         readonly property bool allMinimized: windows.length > 0 && windows.every(w => Hypr.isMinimized(w))
@@ -774,7 +774,7 @@ Item {
 
             StyledText {
                 width: parent.width
-                text: taskMenu.selectedTask.entry?.name ?? taskMenu.selectedTask.modelData ?? ""
+                text: taskMenu.selectedTask.entry?.name ?? taskMenu.selectedTask.group?.app ?? taskMenu.selectedTask.modelData ?? ""
                 elide: Text.ElideRight
                 font: Tokens.font.body.medium
             }
@@ -837,9 +837,7 @@ Item {
                             width: (menuColumn.width - 6 * Tokens.scale) * 0.7
                             text: Tr.tr("Force quit")
                             onClicked: {
-                                const address = menuWindow.modelData?.lastIpcObject?.address;
-                                root.closeMenu();
-                                if (address) Hypr.dispatch("signalwindow address:" + address + ",9");
+                                taskMenu.selectedTask.act("force-quit", menuWindow.modelData);
                             }
                         }
                     }

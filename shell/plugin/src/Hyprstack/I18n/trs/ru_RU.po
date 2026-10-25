@@ -12673,3 +12673,21 @@ msgstr "Завершение обновления"
 
 msgid "Save your work and restart or shut down as requested by fwupd."
 msgstr "Сохраните работу и перезагрузите или выключите компьютер согласно указаниям fwupd."
+
+msgid "Create a rule"
+msgstr "Создать правило"
+
+msgid "Window matching"
+msgstr "Условия выбора окон"
+
+msgid "Use an open window to fill this rule's matching fields. Its name, window mode and effects stay unchanged."
+msgstr "Выберите открытое окно, чтобы заполнить условия этого правила. Его имя, режим окон и эффекты сохраняются."
+
+msgid "Refresh open windows"
+msgstr "Обновить список открытых окон"
+
+msgid "Matching open windows"
+msgstr "Подходящих открытых окон"
+
+msgid "Initial window title (optional)"
+msgstr "Начальный заголовок окна (необязательно)"

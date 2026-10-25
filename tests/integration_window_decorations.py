@@ -66,7 +66,10 @@ with tempfile.TemporaryDirectory(prefix='hics-decoration-integration-') as temp:
    pixels=Counter(strip.getdata());colour,count=pixels.most_common(1)[0]
    background=image.getpixel((x+width//2,y-60))
    has_bar=colour!=background and count>strip.width*strip.height*.60
-   assert has_bar==expected,(klass,expected,colour,count,window['at'])
+   measured=json.loads(ctl('repl','local w=hl.get_window("address:'+address+'");return hl.plugin.hyprbars.animate_window(w.address,string.format("%x",w.stable_id),"titlebar-height")'))
+   assert (measured>0)==expected,(klass,expected,measured)
+   if y>=60:assert has_bar==expected,(klass,expected,colour,count,window['at'])
+   has_bar=measured>0
    print('PASS:',klass,'server titlebar' if has_bar else 'client-owned header',flush=True)
    if klass=='org.hics.Scoped':
     def bar_height():return json.loads(ctl('repl','local w=hl.get_window("address:'+address+'");return hl.plugin.hyprbars.animate_window(w.address,string.format("%x",w.stable_id),"titlebar-height")'))
@@ -85,6 +88,14 @@ with tempfile.TemporaryDirectory(prefix='hics-decoration-integration-') as temp:
     ctl('eval','hyprstack_layouts.set_mode("stacking")');time.sleep(.5)
     assert bar_height()==0 and not gate_enabled()
     print('PASS: mode-scoped titlebar survives scrolling/tiling round trips',flush=True)
+   if klass=='org.hics.WindowFixture':
+    import signal
+    os.kill(terminal.pid,signal.SIGSTOP)
+    ctl('eval','hyprstack_layouts.action("force-quit",'+json.dumps(address)+',"00000000")')
+    assert terminal.poll() is None,'Stale window identity killed an application'
+    ctl('eval','hyprstack_layouts.action("force-quit",'+json.dumps(address)+','+json.dumps(window['stableId'])+')')
+    assert terminal.wait(timeout=4)==-signal.SIGKILL,'Unresponsive window was not killed'
+    print('PASS: force quit kills a stopped client and rejects stale identities',flush=True)
    terminal.terminate();terminal.wait(timeout=5);terminal=None
   pip=subprocess.Popen(['kitty','--class','helium','-o','confirm_os_window_close=0','sh','-c',"printf '\\033]2;Video fixture\\007'; sleep 2; printf '\\033]2;Picture-in-Picture\\007'; sleep 30"],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);fixtures.append(pip)
   for _ in range(60):

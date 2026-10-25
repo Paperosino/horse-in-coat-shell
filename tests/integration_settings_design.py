@@ -118,7 +118,13 @@ ShellRoot {
       function findRulePage(item){if(item.form!==undefined && item.devicesOnly!==undefined)return item;for(const child of item.children??[]){const found=findRulePage(child);if(found)return found;}return null;}
       const page=findRulePage(settings);
       if(!root.check(!!page,"application rule editor did not load"))return;
+      page.form={};
+      page.pickWindow({address:"0xignored",application:"ShouldNotCreate",title:"Ignored"});
+      if(!root.check(Object.keys(page.form).length===0,"picker created a rule outside the editor"))return;
+      page.editRule({id:"existing-chatgpt",name:"ChatGPT",application:"AI",mode:"stacking",titlebar:"hide",enabled:false,rounding:12});
+      if(!root.check(!!root.named(settings,"ruleWindowMatcher"),"window picker is not inside the editor"))return;
       page.pickWindow({address:"0xfixture",application:"org.example.Code",title:"Editor"});
+      if(!root.check(page.form.id==="existing-chatgpt"&&page.form.name==="ChatGPT"&&page.form.mode==="stacking"&&page.form.titlebar==="hide"&&page.form.enabled===false&&page.form.rounding===12,"window selection changed existing rule properties"))return;
       if(!root.check(page.form.application==="org.example.Code" && page.form.title==="" && !page.form.regex,"open-window application picker failed"))return;
       page.pickWindow({address:"0xpip",application:"helium",title:"Picture-in-Picture"});
       if(!root.check(page.form.application==="helium" && page.form.title==="Picture-in-Picture","PiP window title selection failed"))return;
