@@ -39,6 +39,7 @@ def fixture():
     with tempfile.TemporaryDirectory(prefix='hics-desktop-test-') as temporary:
         base = Path(temporary)
         env = dict(os.environ, XDG_STATE_HOME=str(base/'state'), XDG_CONFIG_HOME=str(base/'config'), XDG_DATA_HOME=str(base/'data'), HOME=str(base/'home'))
+        runtime=base/'runtime';runtime.mkdir(mode=0o700);env['XDG_RUNTIME_DIR']=str(runtime);env['GIO_USE_VFS']='local'
         home=base/'home'; home.mkdir()
         docs=home/'Documents'; docs.mkdir()
         (docs/'public.txt').write_text('public searchable orchard')
@@ -46,6 +47,15 @@ def fixture():
         hidden=docs/'.hidden'; hidden.mkdir(); (hidden/'hidden.txt').write_text('hidden sentinel')
         outside=base/'outside'; outside.mkdir(); (outside/'outside.txt').write_text('outside sentinel')
         (docs/'link').symlink_to(outside, target_is_directory=True)
+        applications=base/'data/applications';applications.mkdir(parents=True)
+        spy=base/'launch.py';spy.write_text('import json,sys,os\nwith open(os.environ["HICS_LAUNCH_TRACE"],"a") as target:target.write(json.dumps(sys.argv[1:])+"\\n")\n')
+        env['HICS_LAUNCH_TRACE']=str(base/'launch.jsonl');env['HICS_FM_TRACE']=str(base/'reveal.json')
+        for ident,name in [('org.gnome.Nautilus','Fixture Nautilus'),('org.kde.dolphin','Fixture Dolphin'),('org.gnome.FileRoller','Fixture Archiver')]:
+            (applications/(ident+'.desktop')).write_text('[Desktop Entry]\nType=Application\nName='+name+'\nExec=/usr/bin/python3 '+str(spy)+' '+ident+' %U\nMimeType=inode/directory;application/zip;\n')
+        config=base/'config';config.mkdir()
+        mimeapps=config/'mimeapps.list';original='[Default Applications]\ninode/directory=org.gnome.Nautilus.desktop;\n'
+        mimeapps.write_text(original)
+        env['XDG_CURRENT_DESKTOP']='HicsFixture'
         mock = subprocess.Popen(['python3',str(ROOT/'tests/mock_desktop_jobs_bus.py')],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
         assert mock.stdout.readline().strip()=='ready'
         daemon = subprocess.Popen([os.environ.get('HICS_TEST_DESKTOP_DAEMON',str(ROOT/'build/native/desktop/hics-desktopd'))], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -63,6 +73,39 @@ def fixture():
             for _ in range(60):
                 try:call('Status');break
                 except subprocess.CalledProcessError:time.sleep(.05)
+            integration=job('integration.status')['result']
+            assert any(row['id']=='org.kde.dolphin.desktop' for row in integration['managers']),integration
+            assert not job('integration.prefer',kind='manager',id='org.kde.dolphin.desktop')['error']
+            assert 'org.kde.dolphin.desktop' in mimeapps.read_text()
+            assert not job('integration.undo')['error']
+            assert mimeapps.read_text()==original,mimeapps.read_text()
+            assert not job('integration.prefer',kind='archiver',id='org.gnome.FileRoller.desktop')['error']
+            mimeapps.write_text(mimeapps.read_text()+'# external edit\n')
+            assert job('integration.undo')['error'] and mimeapps.read_text().endswith('# external edit\n')
+            assert job('integration.prefer',kind='manager',id='injected.desktop')['error']
+            assert not job('integration.open',target='home')['error']
+            import zipfile
+            archive=base/'test archive.zip'
+            with zipfile.ZipFile(archive,'w') as output:output.writestr('hello.txt','fixture')
+            assert not job('integration.open',target='archive',path=str(archive))['error']
+            for _ in range(50):
+                if (base/'launch.jsonl').exists() and len((base/'launch.jsonl').read_text().splitlines())>=2:break
+                time.sleep(.02)
+            launches=[json.loads(line) for line in (base/'launch.jsonl').read_text().splitlines()]
+            assert any(row[0]=='org.gnome.Nautilus' for row in launches),launches
+            assert any(row[0]=='org.gnome.FileRoller' for row in launches),launches
+            assert not job('integration.reveal',path=str(archive))['error']
+            assert json.loads((base/'reveal.json').read_text())==[archive.as_uri()]
+
+            assert not job('comfort.focus-start',minutes=25,quiet=True)['error']
+            assert call('Status')['comfort']['focus']['phase']=='work'
+            assert not job('comfort.focus-options',quiet=False,keepAwake=True)['error']
+            assert call('Status')['comfort']['focus']['quiet'] is False
+            assert not job('comfort.focus-pause')['error']
+            assert call('Status')['comfort']['focus']['paused']
+            assert not job('comfort.focus-resume')['error']
+            assert not job('comfort.awake',minutes=30)['error']
+            assert job('comfort.awake',minutes=-1)['error']
             result=job('search.configure',folders=[str(docs)],excluded=[str(private)],contents=True,maxFiles=100)
             assert not result['error'], result
             result=job('search.index');assert result['result']['count']==1,result
@@ -97,7 +140,7 @@ def fixture():
             assert 'true' in acknowledged
             result=job('diagnostics.check');encoded=json.dumps(result);assert 'ultrasecret' not in encoded and str(base) not in encoded,result
             rows=call('Status')['jobs'];assert rows and all(row['finished'] for row in rows)
-            assert not any(row['operation'].startswith('input.') for row in rows),rows
+            assert not any(row['operation'].startswith(('input.','comfort.','integration.')) for row in rows),rows
             external=call('Report','surviving-fixture','update.install','running','0.1',str(os.getpid()),'')['id']
             daemon.terminate();daemon.wait(timeout=5)
             state_path=base/'state/hics/desktop/jobs.json'; state=json.loads(state_path.read_text());assert 'arguments' not in json.dumps(state)
@@ -106,9 +149,23 @@ def fixture():
             assert any(row.get('result',{}).get('checks') for row in state['jobs']),state
             daemon=subprocess.Popen([os.environ.get('HICS_TEST_DESKTOP_DAEMON',str(ROOT/'build/native/desktop/hics-desktopd'))],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
             time.sleep(.2)
+            assert call('Status')['comfort']['focus']['phase']=='work'
+            assert call('Status')['comfort']['awakeDeadline']>time.time()*1000
+            assert not job('comfort.focus-stop')['error']
+            assert call('Status')['comfort']['awakeDeadline']>0
             restored=call('Status')['jobs'];assert len(restored)==len(rows)+1
             assert any(row['id']==external and not row['finished'] for row in restored),restored
             assert call('Report','surviving-fixture','update.install','completed','1.0',str(os.getpid()),'')['id']==external
+            # Restart with an elapsed deadline: one full break, no busy loop or
+            # automatic new work interval, including malformed persisted rounds.
+            daemon.terminate();daemon.wait(timeout=5)
+            comfort_path=base/'state/hics/desktop/comfort.json'
+            value=json.loads(comfort_path.read_text());value['focus']={'phase':'work','deadline':int(time.time()*1000)-1000,'rounds':0,'longBreakSeconds':60};comfort_path.write_text(json.dumps(value))
+            daemon=subprocess.Popen([os.environ.get('HICS_TEST_DESKTOP_DAEMON',str(ROOT/'build/native/desktop/hics-desktopd'))],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+            time.sleep(.2)
+            elapsed=call('Status')['comfort']['focus']
+            assert elapsed['phase']=='break' and elapsed['deadline']>time.time()*1000,elapsed
+            assert not job('comfort.focus-stop')['error']
             print('DESKTOP_SERVICE_OK')
         finally:
             mock.terminate();mock.wait(timeout=3)

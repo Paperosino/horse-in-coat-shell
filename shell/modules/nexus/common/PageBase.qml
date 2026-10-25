@@ -219,6 +219,21 @@ ColumnLayout {
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 }
             }
+            IconButton {
+                objectName:"settingsPinButton"
+                visible: !root.nState.showingSection && !root.isSubPage
+                readonly property string pageId: PageRegistry.pages[root.nState.currentPageIdx]?.id ?? ""
+                readonly property bool pinned: GlobalConfig.utilities.comfort.settingsPins.includes(pageId)
+                enabled: pinned || GlobalConfig.utilities.comfort.settingsPins.length < 12
+                icon: pinned ? "keep" : "keep_off"
+                type: IconButton.Text
+                Accessible.name: pinned ? Tr.tr("Unpin from settings home") : Tr.tr("Pin to settings home")
+                onClicked: {
+                    const values = GlobalConfig.utilities.comfort.settingsPins.filter(id=>id!==pageId);
+                    if(!pinned && values.length<12)values.push(pageId);
+                    GlobalConfig.utilities.comfort.settingsPins=values;
+                }
+            }
         }
     }
 

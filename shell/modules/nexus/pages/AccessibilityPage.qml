@@ -24,6 +24,14 @@ PageBase {
         spacing: Tokens.spacing.large
 
         SettingsCard {
+            title:Tr.tr("Find the pointer");icon:"my_location"
+            description:Tr.tr("Show a high-contrast ring at the pointer's current position. Reduced motion uses a still ring, and clicks pass through it.")
+            ToggleRow {text:Tr.tr("Enable pointer locator");checked:GlobalConfig.utilities.comfort.cursorLocator;onToggled:GlobalConfig.utilities.comfort.cursorLocator=checked}
+            StepperRow {label:Tr.tr("Pointer highlight duration (seconds)");from:1;to:5;value:GlobalConfig.utilities.comfort.cursorLocatorSeconds;onMoved:value=>GlobalConfig.utilities.comfort.cursorLocatorSeconds=value}
+            RowButton {text:Tr.tr("Find my pointer now");icon:"my_location";onClicked:CursorLocator.show()}
+            InfoRow {label:Tr.tr("Custom shortcut");value:"hics-shell ipc call comfort findCursor"}
+        }
+        SettingsCard {
             title: Tr.tr("Interface")
             icon: "contrast"
 

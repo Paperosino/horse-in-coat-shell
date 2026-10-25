@@ -122,3 +122,40 @@ orphan workers after isolated/nested sessions end.
 Design references: [Windows Settings navigation](https://support.microsoft.com/en-us/windows/experience/exploring-windows-settings),
 [Microsoft settings card guidance](https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings),
 [hierarchical navigation and breadcrumbs](https://learn.microsoft.com/en-us/windows/apps/design/basics/navigation-basics).
+
+## Everyday convenience integrations (package 59)
+
+| Feature | Entry point | Implementation and limits |
+| --- | --- | --- |
+| File managers and archivers | Applications → File manager integration; launcher actions | Installed Nautilus, Dolphin, Thunar, Nemo, PCManFM, Caja/SpaceFM, File Roller, Ark, Xarchiver and Engrampa. Uses GIO MIME defaults and FileManager1.ShowItems; no shell-owned filesystem/archive implementation. Undo refuses newer MIME edits. |
+| Focus and breaks | System → Focus & breaks; active panel indicator | Native persistent deadline, work/short/long break settings, pause/resume, explicit start of the next work interval. Temporary notification/sleep policy preserves user preferences. |
+| Timed wake lock | Power settings, quick wake card, Focus page | Presets and a custom 1–1440 minute duration; cancellation independent of the focus timer. Does not override lid policy or manual suspend. |
+| Plain clipboard text | Clipboard settings; launcher; comfort.clipboardPlain IPC/global shortcut | On-demand wl-paste/wl-copy, at most 1 MiB, Unicode retained. Converted clipboard ownership offers plain text and is marked sensitive; existing privacy policy remains authoritative. |
+| Bluetooth battery reminders | Bluetooth settings | BlueZ/Quickshell signals, configurable threshold, one warning until charged above threshold plus hysteresis. Bounded remembered-device map. |
+| Safer audio output changes | Audio settings | Opt-in one-time starting-volume cap when a different output becomes active. Does not persistently constrain volume or unmute the output. |
+| Application keyboard layouts | Keyboard settings | Opt-in, session-only application-class map, at most 128 entries; invalidated when layout configuration changes; no polling or hyprctl subprocesses. |
+| Cursor locator | Accessibility; launcher; comfort.findCursor IPC/global shortcut | One IPC position request; short-lived click-through overlay on the correct monitor; static ring for reduced motion; no idle surface or cursor polling. |
+| Recording quiet mode | Audio settings | Opt-in temporary suppression while microphone streams exist, including voice notes. Removes existing popups and restores ordinary behavior when streams disappear, without overwriting DND. |
+| Pinned settings | Pin control in page headers; Settings Home | Up to 12 root pages; stable route identifiers; detail editors requiring context are not pinned. No background service. |
+
+The existing desktop daemon hosts the new native functions. Deadline timers sleep
+until the next deadline; the panel updates remaining time only while a timer runs.
+Bluetooth/audio/window behavior is event driven. Heavy operations and additional
+resident helper daemons were not introduced. `gvfs` supplies the standard virtual
+filesystem integration; file managers and archivers are optional alternatives,
+so the package does not install several competing applications.
+
+Validation includes isolated MIME handlers and FileManager1, byte-for-byte default
+restoration and refusal after external edits, timer pause/resume/restart/elapsed
+state, GUI policy restoration, bounded layout memory, Bluetooth notification
+hysteresis, cursor overlay expiry, pinned navigation and a real nested Wayland
+clipboard. Tests do not change host MIME associations, volume or clipboard.
+
+References: [FileManager1](https://wiki.freedesktop.org/www/Specifications/file-manager-interface/),
+[GIO default handlers](https://docs.gtk.org/gio/type_func.AppInfo.launch_default_for_uri.html),
+[Bluetooth device battery API](https://quickshell.org/docs/v0.3.1/types/Quickshell.Bluetooth/BluetoothDevice/).
+
+Package 59 validation: the full 269-test suite passes; focused native and nested
+GUI checks pass after final changes. A short fresh-process idle measurement showed
+0 CPU ticks over 3 seconds for both the previous and new desktop daemon; RSS was
+about 20 MiB in both runs (these short samples do not establish a RAM reduction).

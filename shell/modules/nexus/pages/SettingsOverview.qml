@@ -21,7 +21,7 @@ PageBase {
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: Tokens.spacing.large
         SettingsCard {
-            visible: root.home
+            visible: root.home && GlobalConfig.utilities.comfort.settingsPins.length > 0
             title: Tr.tr("Quick access")
             icon: "tune"
             description: Tr.tr("Common settings, one step away")
@@ -31,7 +31,7 @@ PageBase {
                 columnSpacing: Tokens.spacing.small
                 rowSpacing: Tokens.spacing.small
                 Repeater {
-                    model: root.home ? PageRegistry.entries(["display","audio","network","appearance"]) : []
+                    model: root.home ? PageRegistry.entries(GlobalConfig.utilities.comfort.settingsPins) : []
                     SettingsLink {
                         required property var modelData
                         objectName: "settings-link-" + modelData.id

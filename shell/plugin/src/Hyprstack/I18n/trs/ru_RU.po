@@ -12038,3 +12038,347 @@ msgstr "Ограничения и расписание индексирован�
 #: settings-navigation
 msgid "Collapse navigation"
 msgstr "Свернуть меню"
+
+#: desktop-comfort
+msgid "Focus & breaks"
+msgstr "Концентрация и перерывы"
+
+#: desktop-comfort
+msgid "Open home folder"
+msgstr "Открыть домашнюю папку"
+
+#: desktop-comfort
+msgid "Use your default file manager"
+msgstr "Использовать файловый менеджер по умолчанию"
+
+#: desktop-comfort
+msgid "Open downloads"
+msgstr "Открыть загрузки"
+
+#: desktop-comfort
+msgid "Open trash"
+msgstr "Открыть корзину"
+
+#: desktop-comfort
+msgid "Restore files in your file manager"
+msgstr "Восстановление файлов в вашем файловом менеджере"
+
+#: desktop-comfort
+msgid "File manager integration"
+msgstr "Интеграция файловых менеджеров"
+
+#: desktop-comfort
+msgid "File managers and archive applications"
+msgstr "Файловые менеджеры и архиваторы"
+
+#: desktop-comfort
+msgid "Focus sessions and temporary wake locks"
+msgstr "Концентрация и временный запрет сна"
+
+#: desktop-comfort
+msgid "Find my pointer now"
+msgstr "Найти курсор"
+
+#: desktop-comfort
+msgid "Highlight the pointer without moving it"
+msgstr "Подсветить курсор, не перемещая его"
+
+#: desktop-comfort
+msgid "Remove clipboard formatting"
+msgstr "Убрать форматирование из буфера"
+
+#: desktop-comfort
+msgid "Prepare the current text for Ctrl+V"
+msgstr "Подготовить текущий текст для вставки через Ctrl+V"
+
+#: desktop-comfort
+msgid "Focus sessions, breaks and temporary wake locks"
+msgstr "Концентрация, перерывы и временный запрет сна"
+
+#: desktop-comfort
+msgid "File managers, archive applications and desktop defaults"
+msgstr "Файловые менеджеры, архиваторы и приложения по умолчанию"
+
+#: desktop-comfort
+msgid "Unpin from settings home"
+msgstr "Открепить от главной страницы настроек"
+
+#: desktop-comfort
+msgid "Pin to settings home"
+msgstr "Закрепить на главной странице настроек"
+
+#: desktop-comfort
+msgid "Find the pointer"
+msgstr "Поиск курсора"
+
+#: desktop-comfort
+msgid "Show a high-contrast ring at the pointer's current position. Reduced motion uses a still ring, and clicks pass through it."
+msgstr "Контрастное кольцо подсветит текущее положение курсора. При уменьшении движения кольцо неподвижно, а нажатия проходят сквозь него."
+
+#: desktop-comfort
+msgid "Enable pointer locator"
+msgstr "Включить подсветку курсора"
+
+#: desktop-comfort
+msgid "Pointer highlight duration (seconds)"
+msgstr "Длительность подсветки курсора (секунды)"
+
+#: desktop-comfort
+msgid "Safer output switching and calls"
+msgstr "Громкость при переключении и тишина во время звонков"
+
+#: desktop-comfort
+msgid "Limit starting volume after an output switch"
+msgstr "Ограничивать начальную громкость при смене выхода"
+
+#: desktop-comfort
+msgid "Applies once when a different output becomes active; you can increase the volume afterwards."
+msgstr "Применяется один раз при переключении на другой выход. После этого громкость можно увеличить вручную."
+
+#: desktop-comfort
+msgid "Starting volume limit (%)"
+msgstr "Предел начальной громкости (%)"
+
+#: desktop-comfort
+msgid "Silence notifications while the microphone is in use"
+msgstr "Скрывать уведомления при использовании микрофона"
+
+#: desktop-comfort
+msgid "Applies to every recording stream, including voice notes. Your usual quiet-mode setting is preserved."
+msgstr "Действует для любой записи, в том числе голосовых сообщений. Обычная настройка тихого режима сохраняется."
+
+#: desktop-comfort
+msgid "Device battery reminders"
+msgstr "Напоминания о зарядке устройств"
+
+#: desktop-comfort
+msgid "Warn when Bluetooth devices need charging"
+msgstr "Предупреждать о низком заряде Bluetooth-устройств"
+
+#: desktop-comfort
+msgid "Low battery threshold (%)"
+msgstr "Порог низкого заряда (%)"
+
+#: desktop-comfort
+msgid "Keeps the current text for Ctrl+V and marks the converted copy sensitive. Your clipboard privacy settings remain in control."
+msgstr "Сохраняет текущий текст для Ctrl+V и помечает преобразованную копию как конфиденциальную. Действуют ваши настройки приватности буфера."
+
+#: desktop-comfort
+msgid "A keyboard layout for each application"
+msgstr "Раскладка для каждого приложения"
+
+#: desktop-comfort
+msgid "Remember layout choices per application during this session. Changing the configured layout list clears incompatible choices; at most 128 applications are kept."
+msgstr "Запоминает раскладку каждого приложения в текущем сеансе. При изменении списка раскладок память очищается. Хранится не более 128 приложений."
+
+#: desktop-comfort
+msgid "Restore the layout when switching applications"
+msgstr "Восстанавливать раскладку при переходе в приложение"
+
+#: desktop-comfort
+msgid "Forget remembered layouts"
+msgstr "Очистить запомненные раскладки"
+
+#: desktop-comfort
+msgid "Temporary wake lock"
+msgstr "Временный запрет сна"
+
+#: desktop-comfort
+msgid "Stay awake for 30 minutes"
+msgstr "Не засыпать 30 минут"
+
+#: desktop-comfort
+msgid "End temporary wake lock"
+msgstr "Завершить временный запрет сна"
+
+#: desktop-comfort
+msgid "Work intervals, breaks and more wake-lock durations"
+msgstr "Рабочие интервалы, перерывы и другие сроки запрета сна"
+
+#: desktop-comfort
+msgid "Clipboard unavailable"
+msgstr "Буфер обмена недоступен"
+
+#: desktop-comfort
+msgid "Plain text is ready"
+msgstr "Текст без форматирования готов"
+
+#: desktop-comfort
+msgid "Press Ctrl+V to paste without formatting"
+msgstr "Нажмите Ctrl+V для вставки без форматирования"
+
+#: desktop-comfort
+msgid "Bluetooth device needs charging"
+msgstr "Bluetooth-устройство пора зарядить"
+
+#: desktop-comfort
+msgid "A little time to concentrate"
+msgstr "Время сосредоточиться"
+
+#: desktop-comfort
+msgid "Work and break timers survive shell reloads. A new work interval starts only when you choose; your normal notification and sleep settings are preserved."
+msgstr "Таймеры работы и отдыха сохраняются при перезапуске оболочки. Новый рабочий интервал начинается по вашей команде. Обычные настройки уведомлений и сна сохраняются."
+
+#: desktop-comfort
+msgid "Current interval"
+msgstr "Текущий интервал"
+
+#: desktop-comfort
+msgid "Focus time"
+msgstr "Концентрация"
+
+#: desktop-comfort
+msgid "Break time"
+msgstr "Перерыв"
+
+#: desktop-comfort
+msgid "Ready to start"
+msgstr "Можно начинать"
+
+#: desktop-comfort
+msgid "Start focus time"
+msgstr "Начать рабочий интервал"
+
+#: desktop-comfort
+msgid "Resume timer"
+msgstr "Продолжить таймер"
+
+#: desktop-comfort
+msgid "Pause timer"
+msgstr "Приостановить таймер"
+
+#: desktop-comfort
+msgid "Stop timer"
+msgstr "Остановить таймер"
+
+#: desktop-comfort
+msgid "Focus duration (minutes)"
+msgstr "Продолжительность работы (минуты)"
+
+#: desktop-comfort
+msgid "Break duration (minutes)"
+msgstr "Продолжительность перерыва (минуты)"
+
+#: desktop-comfort
+msgid "Silence notifications during focus"
+msgstr "Скрывать уведомления во время работы"
+
+#: desktop-comfort
+msgid "Keep awake during focus"
+msgstr "Не засыпать во время работы"
+
+#: desktop-comfort
+msgid "Long breaks"
+msgstr "Длинные перерывы"
+
+#: desktop-comfort
+msgid "Work intervals before a long break"
+msgstr "Рабочих интервалов до длинного перерыва"
+
+#: desktop-comfort
+msgid "Long break duration (minutes)"
+msgstr "Продолжительность длинного перерыва (минуты)"
+
+#: desktop-comfort
+msgid "Stay awake for a while"
+msgstr "Некоторое время не засыпать"
+
+#: desktop-comfort
+msgid "Temporarily prevent idle sleep without changing your regular power settings. This does not override lid handling or a manual suspend request."
+msgstr "Временно запрещает сон при бездействии, сохраняя обычные настройки питания. Не меняет поведение крышки и не мешает вручную отправить компьютер в сон."
+
+#: desktop-comfort
+msgid "Stay awake for %1 minutes"
+msgstr "Не засыпать %1 минут"
+
+#: desktop-comfort
+msgid "Until"
+msgstr "До"
+
+#: desktop-comfort
+msgid "Open an archive"
+msgstr "Открыть архив"
+
+#: desktop-comfort
+msgid "Show a file in its folder"
+msgstr "Показать файл в его папке"
+
+#: desktop-comfort
+msgid "Your familiar file manager"
+msgstr "Привычный файловый менеджер"
+
+#: desktop-comfort
+msgid "hics uses installed file managers and their standard desktop integration. File operations remain in the application you choose."
+msgstr "hics использует установленные файловые менеджеры и стандартные интерфейсы рабочего стола. Операции с файлами выполняются в выбранном приложении."
+
+#: desktop-comfort
+msgid "Default file manager"
+msgstr "Файловый менеджер по умолчанию"
+
+#: desktop-comfort
+msgid "Use for folders"
+msgstr "Использовать для папок"
+
+#: desktop-comfort
+msgid "No file manager found"
+msgstr "Файловый менеджер не найден"
+
+#: desktop-comfort
+msgid "Install Nautilus, Dolphin, Thunar, Nemo, PCManFM or Caja with your package manager."
+msgstr "Установите Nautilus, Dolphin, Thunar, Nemo, PCManFM или Caja через менеджер пакетов."
+
+#: desktop-comfort
+msgid "Archive applications"
+msgstr "Архиваторы"
+
+#: desktop-comfort
+msgid "Choose an installed archive manager. Creation, extraction and encrypted archives are handled by that application, not by the shell."
+msgstr "Выберите установленный архиватор. Он будет создавать, распаковывать и открывать зашифрованные архивы."
+
+#: desktop-comfort
+msgid "Default archive manager"
+msgstr "Архиватор по умолчанию"
+
+#: desktop-comfort
+msgid "Use for archive formats"
+msgstr "Использовать для форматов архивов"
+
+#: desktop-comfort
+msgid "No archive manager found"
+msgstr "Архиватор не найден"
+
+#: desktop-comfort
+msgid "Install File Roller, Ark, Xarchiver or Engrampa with your package manager."
+msgstr "Установите File Roller, Ark, Xarchiver или Engrampa через менеджер пакетов."
+
+#: desktop-comfort
+msgid "Show integrated actions in the application menu"
+msgstr "Показывать встроенные действия в меню приложений"
+
+#: desktop-comfort
+msgid "Restore application defaults"
+msgstr "Возврат приложений по умолчанию"
+
+#: desktop-comfort
+msgid "Restore the previous associations only if they have not been changed by another application since."
+msgstr "Возвращает прежние ассоциации, если после этого их не меняло другое приложение."
+
+#: desktop-comfort
+msgid "Undo the last default application change"
+msgstr "Отменить последний выбор приложения по умолчанию"
+
+#: desktop-comfort
+msgid "Custom wake lock (minutes)"
+msgstr "Время запрета сна (минуты)"
+
+#: desktop-comfort
+msgid "Start temporary wake lock"
+msgstr "Включить временный запрет сна"
+
+#: desktop-comfort
+msgid "Refresh installed applications"
+msgstr "Обновить список установленных приложений"
+
+#: desktop-comfort
+msgid "Until %1"
+msgstr "До %1"

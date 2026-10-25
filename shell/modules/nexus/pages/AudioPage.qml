@@ -22,6 +22,12 @@ PageBase {
         spacing: Tokens.spacing.large
 
         SettingsCard {
+            title:Tr.tr("Safer output switching and calls");icon:"hearing"
+            ToggleRow {text:Tr.tr("Limit starting volume after an output switch");subtext:Tr.tr("Applies once when a different output becomes active; you can increase the volume afterwards.");checked:GlobalConfig.utilities.comfort.safeAudioSwitch;onToggled:GlobalConfig.utilities.comfort.safeAudioSwitch=checked}
+            StepperRow {label:Tr.tr("Starting volume limit (%)");from:5;to:100;stepSize:5;value:GlobalConfig.utilities.comfort.switchVolumePercent;onMoved:value=>GlobalConfig.utilities.comfort.switchVolumePercent=value}
+            ToggleRow {text:Tr.tr("Silence notifications while the microphone is in use");subtext:Tr.tr("Applies to every recording stream, including voice notes. Your usual quiet-mode setting is preserved.");checked:GlobalConfig.utilities.comfort.quietDuringCalls;onToggled:GlobalConfig.utilities.comfort.quietDuringCalls=checked}
+        }
+        SettingsCard {
             title: Tr.trCtx("Output", "audio output")
             icon: "speaker"
 

@@ -112,6 +112,12 @@ PageBase {
         spacing: Tokens.spacing.large
 
         SettingsCard {
+            title:Tr.tr("A keyboard layout for each application");icon:"keyboard"
+            description:Tr.tr("Remember layout choices per application during this session. Changing the configured layout list clears incompatible choices; at most 128 applications are kept.")
+            ToggleRow {text:Tr.tr("Restore the layout when switching applications");checked:GlobalConfig.utilities.comfort.applicationLayouts;onToggled:GlobalConfig.utilities.comfort.applicationLayouts=checked}
+            RowButton {text:Tr.tr("Forget remembered layouts");icon:"restart_alt";onClicked:ApplicationLayouts.clear()}
+        }
+        SettingsCard {
             title: Tr.tr("Pointing devices")
             icon: "keyboard"
 

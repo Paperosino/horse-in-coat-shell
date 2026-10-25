@@ -81,6 +81,12 @@ private:
   QThreadPool pool;
   QTimer updates, schedule, producers, journal, reap;
   bool stopping = false;
+  QJsonObject comfortState;
+  QTimer comfortDeadline;
+  void initComfort();
+  void updateComfort();
+  void comfort(const QSharedPointer<Job> &);
+  void integration(const QSharedPointer<Job> &);
   void applications(const QSharedPointer<Job> &);
   void keyring(const QSharedPointer<Job> &);
   void backup(const QSharedPointer<Job> &);

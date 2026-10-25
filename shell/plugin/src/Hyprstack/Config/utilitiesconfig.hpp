@@ -73,6 +73,26 @@ class UtilitiesPresentation : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, hidePrivateContent, true)
 };
 
+class UtilitiesComfort : public settings::ObjectNode {
+    CONFIG_NODE(UtilitiesComfort, settings::ObjectNode)
+    CONFIG_PROPERTY(int, focusMinutes, 25)
+    CONFIG_PROPERTY(int, breakMinutes, 5)
+    CONFIG_PROPERTY(int, longBreakMinutes, 15)
+    CONFIG_PROPERTY(int, focusRounds, 4)
+    CONFIG_PROPERTY(bool, focusQuiet, true)
+    CONFIG_PROPERTY(bool, focusKeepAwake, false)
+    CONFIG_PROPERTY(bool, bluetoothBatteryAlerts, true)
+    CONFIG_PROPERTY(int, bluetoothBatteryThreshold, 20)
+    CONFIG_PROPERTY(bool, safeAudioSwitch, false)
+    CONFIG_PROPERTY(int, switchVolumePercent, 40)
+    CONFIG_PROPERTY(bool, applicationLayouts, false)
+    CONFIG_PROPERTY(bool, quietDuringCalls, false)
+    CONFIG_PROPERTY(bool, cursorLocator, true)
+    CONFIG_PROPERTY(int, cursorLocatorSeconds, 2)
+    CONFIG_PROPERTY(bool, launcherActions, true)
+    CONFIG_PROPERTY(QStringList, settingsPins, DEFAULT_ARG(QStringList{u"display"_s, u"audio"_s, u"network"_s, u"appearance"_s}))
+};
+
 class UtilitiesConfig : public settings::ObjectNode {
     CONFIG_NODE(UtilitiesConfig, settings::ObjectNode)
 
@@ -83,6 +103,7 @@ class UtilitiesConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesVpn, vpn)
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesOperations, operations)
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesPresentation, presentation)
+    CONFIG_GLOBAL_SUBOBJECT(UtilitiesComfort, comfort)
     CONFIG_LIST(EntryList, quickToggles,
         DEFAULT_ARG({
             LIST_ENTRY(wifi, true),

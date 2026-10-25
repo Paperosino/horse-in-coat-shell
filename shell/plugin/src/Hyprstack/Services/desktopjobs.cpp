@@ -61,6 +61,7 @@ void DesktopJobs::deliver(const Pending &pending, const QVariantMap &result) {
 void DesktopJobs::stateChanged(const QString &raw) {
   const auto value = decode(raw);
   m_jobs = value.value(u"jobs"_s).toList();
+  m_comfort = value.value(u"comfort"_s).toMap();
   m_available = true;
   emit changed();
 }

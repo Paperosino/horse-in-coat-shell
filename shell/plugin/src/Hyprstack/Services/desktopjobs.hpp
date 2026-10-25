@@ -11,10 +11,12 @@ class DesktopJobs : public QObject {
   QML_ELEMENT
   QML_SINGLETON
   Q_PROPERTY(QVariantList jobs READ jobs NOTIFY changed)
+  Q_PROPERTY(QVariantMap comfort READ comfort NOTIFY changed)
   Q_PROPERTY(bool available READ available NOTIFY changed)
 public:
   explicit DesktopJobs(QObject *parent = nullptr);
   QVariantList jobs() const { return m_jobs; }
+  QVariantMap comfort() const { return m_comfort; }
   bool available() const { return m_available; }
   Q_INVOKABLE void request(const QString &, const QVariantMap &,
                            QJSValue callback = QJSValue(),
@@ -43,6 +45,7 @@ private:
   void deliver(const Pending &, const QVariantMap &);
   QHash<QString, Pending> m_pending;
   QVariantList m_jobs;
+  QVariantMap m_comfort;
   bool m_available = false;
 };
 } // namespace hyprstack::services

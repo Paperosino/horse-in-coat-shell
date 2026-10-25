@@ -265,7 +265,9 @@ QtObject {
         Component { StackPage { Component { BackupPage {} } } },
         Component { StackPage { Component { FileSearchPage {} } } },
         Component { StackPage { Component { PresentationPage {} } } },
-        Component { StackPage { Component { PerformancePage {} } } }
+        Component { StackPage { Component { PerformancePage {} } } },
+        Component { StackPage { Component { FocusPage {} } } },
+        Component { StackPage { Component { FileIntegrationPage {} } } }
     ]
 
     readonly property Component placeholderComp: Component {

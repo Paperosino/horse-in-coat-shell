@@ -108,6 +108,7 @@ Service::Service(QObject *parent)
   QFile::setPermissions(directory, QFileDevice::ReadOwner |
                                        QFileDevice::WriteOwner |
                                        QFileDevice::ExeOwner);
+  initComfort();
   pool.setMaxThreadCount(2);
   pool.setExpiryTimeout(1000);
   const auto previous = readJson(directory + "/jobs.json");
@@ -265,7 +266,7 @@ QString Service::enqueue(const QString &operation, const QString &raw) {
   job->order = QDateTime::currentMSecsSinceEpoch();
   job->description = operation;
   job->transient =
-      operation.startsWith("input.") || QStringList{"apps.apparmor-read",
+      operation.startsWith("comfort.") || operation.startsWith("integration.") || operation.startsWith("input.") || QStringList{"apps.apparmor-read",
                                                     "keyring.manager",
                                                     "backup.timeshift-manager",
                                                     "backup.snapper-manager",
@@ -301,7 +302,7 @@ QString Service::Status() const {
   for (auto job : values)
     if (!job->transient)
       list.append(job->metadata());
-  return encode({{"jobs", list}});
+  return encode({{"jobs", list}, {"comfort", comfortState}});
 }
 QString Service::Result(const QString &id) const {
   if (!permitted())
@@ -739,6 +740,10 @@ void Service::dispatch(const QSharedPointer<Job> &job) {
       diagnostics(job);
     else if (job->operation.startsWith("transfer."))
       transfer(job);
+    else if (job->operation.startsWith("comfort."))
+      comfort(job);
+    else if (job->operation.startsWith("integration."))
+      integration(job);
     else if (job->operation.startsWith("input."))
       input(job);
     else

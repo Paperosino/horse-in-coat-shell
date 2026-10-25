@@ -22,7 +22,7 @@ QtObject {
         {id:"home", label:Tr.tr("Settings home"), icon:"home", description:Tr.tr("Frequently used settings and desktop categories"), groups:[]},
         {id:"system", label:Tr.tr("System"), icon:"computer", description:Tr.tr("Display, sound, power and everyday desktop tools"), groups:[
             {label:Tr.tr("Screen, sound and power"), pages:["display","audio","power","storage"]},
-            {label:Tr.tr("Everyday desktop"), pages:["notifications","presentation","operations","performance","about"]}]},
+            {label:Tr.tr("Everyday desktop"), pages:["notifications","presentation","focus","operations","performance","about"]}]},
         {id:"devices", label:Tr.tr("Bluetooth & devices"), icon:"devices", description:Tr.tr("Connected devices, keyboard, pointer and sharing"), groups:[
             {label:Tr.tr("Connected devices"), pages:["bluetooth","printers","sharing"]},
             {label:Tr.tr("Keyboard and pointer"), pages:["keyboard","mouse","touchpad","input-devices"]}]},
@@ -32,7 +32,7 @@ QtObject {
             {label:Tr.tr("Look and feel"), pages:["appearance","desktop-profiles","panels","dock"]},
             {label:Tr.tr("Windows and workspaces"), pages:["windows","application-rules","shortcuts","projects"]}]},
         {id:"applications", label:Tr.tr("Applications"), icon:"apps", description:Tr.tr("Installed applications, defaults, startup and extensions"), groups:[
-            {label:Tr.tr("Applications and startup"), pages:["apps","default-apps","autostart","session-recovery"]},
+            {label:Tr.tr("Applications and startup"), pages:["apps","default-apps","file-integration","autostart","session-recovery"]},
             {label:Tr.tr("Extensions and tools"), pages:["plugins","assistant","clipboard","file-search"]}]},
         {id:"language", label:Tr.tr("Time & language"), icon:"language", description:Tr.tr("System language, regional formats, date and time"), groups:[{label:Tr.tr("Language and clock"),pages:["region","datetime"]}]},
         {id:"accessibility", label:Tr.tr("Accessibility"), icon:"accessibility_new", description:Tr.tr("Contrast, motion, scale and keyboard navigation"),
@@ -224,6 +224,8 @@ QtObject {
         {id:"backup",label:Tr.tr("Backup & restore"),icon:"backup",description:Tr.tr("User files and system snapshots"),category:"shell"},
         {id:"file-search",label:Tr.tr("File search"),icon:"manage_search",description:Tr.tr("Documents, content and private exclusions"),category:"shell"},
         {id:"presentation",label:Tr.tr("Presentation mode"),icon:"present_to_all",description:Tr.tr("Screens, privacy and temporary power policy"),category:"shell"},
-        {id:"performance",label:Tr.tr("Performance & games"),icon:"speed",description:Tr.tr("Game mode, adaptive effects, power and background work"),category:"shell"}
+        {id:"performance",label:Tr.tr("Performance & games"),icon:"speed",description:Tr.tr("Game mode, adaptive effects, power and background work"),category:"shell"},
+        {id:"focus",label:Tr.tr("Focus & breaks"),icon:"timer",description:Tr.tr("Focus sessions, breaks and temporary wake locks"),category:"shell"},
+        {id:"file-integration",label:Tr.tr("File manager integration"),icon:"folder_open",description:Tr.tr("File managers, archive applications and desktop defaults"),category:"shell"},
     ]
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Render the real settings UI and verify disclosure, narrow forms and navigation."""
 import json
+import ast
 import os
 from pathlib import Path
 import shutil
@@ -29,7 +30,7 @@ ShellRoot {
  property int phase:0
  property bool narrow:false
  property bool controlledExpanded:false
- property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation"]
+ property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power"]
  FloatingWindow {
   id:win;visible:true;implicitWidth:1180;implicitHeight:820;color:Colours.palette.m3surface
   Nexus {id:settings;width:root.narrow?560:parent.width;height:parent.height;visible:!fixture.visible}
@@ -175,6 +176,47 @@ ShellRoot {
  function check(value,message)''')
         qml=qml.replace('settings.grabToImage(result=>{result.saveToFile("/tmp/hics-settings-narrow-navigation.png");console.log("SETTINGS_DESIGN_OK");','if(!root.check(root.widgetDone,"widget checks did not complete"))return;settings.grabToImage(result=>{result.saveToFile("/tmp/hics-settings-narrow-navigation.png");console.log("SETTINGS_DESIGN_OK");')
         (base/'shell/shell.qml').write_text(qml)
+    if os.environ.get('HICS_TEST_WIDGET'):
+        p=base/'shell/shell.qml';qml=p.read_text().replace('import Hyprstack.Services\n','import Hyprstack.Services\nimport Hyprstack\nimport Quickshell.Io\n',1)
+        qml=qml.replace(' property int phase:0',' property bool featuresDone:false\n property var savedComfort:({})\n property bool savedDnd:false\n property bool savedIdle:false\n property int phase:0',1)
+        qml=qml.replace('   if(!root.hierarchyDone){','   if(!root.featuresDone)return;\n   if(!root.hierarchyDone){',1)
+        qml=qml.replace(' function named(item,name)',''' Process {id:plainReader;command:["wl-paste","--no-newline","--type","text/plain"];stdout:StdioCollector {id:plainResult}}
+ Process {id:plainProvider;command:["wl-copy","--type","text/plain;charset=utf-8"];stdinEnabled:true;onStarted:{write("Plain café fixture");stdinEnabled=false;}}
+ QtObject {id:layoutKeyboard;property string layout:"us,ru";property var lastIpcObject:({active_layout_index:0,variant:""})}
+ QtObject {id:layoutExtras;function request(command,callback){const index=Number(command.split(" ").pop());layoutKeyboard.lastIpcObject={active_layout_index:index,variant:""};layoutHypr.kbLayoutFull=index===0?"English":"Russian";callback(true,"ok");}}
+ QtObject {id:layoutHypr;property var keyboard:layoutKeyboard;property var extras:layoutExtras;property string kbLayout:"us";property string kbLayoutFull:"English";property var activeToplevel:({lastIpcObject:{class:"FixtureA"}})}
+ Timer {
+  property int step:0
+  interval:400;repeat:true;running:!root.featuresDone
+  onTriggered:{
+   const phase=step++;
+   if(phase===0){
+    root.savedDnd=Notifs.dnd;root.savedIdle=IdleInhibitor.enabled;
+    root.savedComfort={applicationLayouts:GlobalConfig.utilities.comfort.applicationLayouts,quietDuringCalls:GlobalConfig.utilities.comfort.quietDuringCalls,cursorLocatorSeconds:GlobalConfig.utilities.comfort.cursorLocatorSeconds,settingsPins:Array.from(GlobalConfig.utilities.comfort.settingsPins)};
+    DesktopJobs.request("comfort.focus-start",{minutes:1,quiet:true,keepAwake:true});
+   }
+   if(phase===1){if(!root.check(Comfort.focusing&&Comfort.quiet&&IdleInhibitor.effectiveEnabled&&!Notifs.shouldShowPopup()&&root.named(statusWidget,"focusTimerIndicator").visible,"focus policy or panel timer did not activate"))return;DesktopJobs.request("comfort.focus-pause",{});}
+   if(phase===2){if(!root.check(!!Comfort.focus.paused&&!Comfort.focusing&&Notifs.dnd===root.savedDnd,"pausing focus changed persistent settings"))return;DesktopJobs.request("comfort.focus-resume",{});}
+   if(phase===3){if(!root.check(Comfort.focusing&&Notifs.shouldShowPopup(true),"resumed focus or its break reminder policy failed"))return;DesktopJobs.request("comfort.awake",{minutes:30});DesktopJobs.request("comfort.focus-stop",{});}
+   if(phase===4){if(!root.check(Comfort.awake&&!Comfort.focusing&&IdleInhibitor.enabled===root.savedIdle,"focus stop destroyed an independent temporary wake lock"))return;DesktopJobs.request("comfort.awake",{minutes:0});GlobalConfig.utilities.comfort.quietDuringCalls=true;Comfort.recordingStreams=[{}];}
+   if(phase===5){if(!root.check(Comfort.callActive&&!Notifs.shouldShowPopup()&&Notifs.dnd===root.savedDnd,"automatic recording quiet mode changed user DND"))return;Comfort.recordingStreams=[];ApplicationLayouts.backend=layoutHypr;GlobalConfig.utilities.comfort.applicationLayouts=true;ApplicationLayouts.focus();}
+   if(phase===6){if(!root.check(!Comfort.callActive&&!Comfort.awake,"temporary policies did not stop"))return;layoutKeyboard.lastIpcObject={active_layout_index:1,variant:""};layoutHypr.kbLayoutFull="Russian";}
+   if(phase===7){layoutHypr.activeToplevel={lastIpcObject:{class:"FixtureB"}};}
+   if(phase===8){layoutKeyboard.lastIpcObject={active_layout_index:0,variant:""};layoutHypr.kbLayoutFull="English";}
+   if(phase===9){layoutHypr.activeToplevel={lastIpcObject:{class:"FixtureA"}};}
+   if(phase===10){if(!root.check(layoutKeyboard.lastIpcObject.active_layout_index===1&&ApplicationLayouts.memory.FixtureB===0,"per-application keyboard layout restoration failed"))return;GlobalConfig.utilities.comfort.applicationLayouts=false;ApplicationLayouts.backend=Hypr;CursorLocator.show();}
+   if(phase===11){if(!root.check(!!CursorLocator.output,"native pointer locator did not map an output"))return;GlobalConfig.utilities.comfort.cursorLocatorSeconds=1;CursorLocator.show();const device={address:"battery-fixture",name:"Fixture headset",connected:true,batteryAvailable:true,battery:0.1};Comfort.checkBattery(device);const count=Toaster.toasts.length;Comfort.checkBattery(device);if(!root.check(Toaster.toasts.length===count,"Bluetooth battery warning repeated without recharging"))return;device.battery=0.9;Comfort.checkBattery(device);if(!root.check(!Comfort.warnedBatteries[device.address],"recharging did not rearm the battery reminder"))return;}
+   if(phase===12){settings.nState.openPage("audio");}
+   if(phase===13){const pin=root.named(settings,"settingsPinButton");if(!root.check(!!pin,"settings pin control is missing"))return;GlobalConfig.utilities.comfort.settingsPins=[];pin.clicked();}
+   if(phase===14){if(!root.check(GlobalConfig.utilities.comfort.settingsPins.includes("audio")&&!CursorLocator.output,"pinning or automatic pointer highlight expiry failed"))return;settings.nState.openSection("home");}
+   if(phase===15){if(!root.check(!!root.named(settings,"settings-link-audio"),"pinned page did not appear on settings home"))return;for(const key of Object.keys(root.savedComfort))GlobalConfig.utilities.comfort[key]=root.savedComfort[key];Comfort.recordingStreams=Qt.binding(()=>Audio.microphoneStreams);plainProvider.running=true;}
+   if(phase===16){DesktopJobs.request("comfort.plain-text",{},value=>{if(!root.check(!value.error,"native clipboard conversion failed: "+value.error))return;});}
+   if(phase===17){plainReader.running=true;}
+   if(phase===18){if(!root.check(DesktopJobs.available&&plainResult.text==="Plain café fixture","clipboard conversion failed to preserve Unicode text"))return;root.featuresDone=true;console.log("DESKTOP_COMFORT_OK");}
+  }
+ }
+ function named(item,name)''',1)
+        p.write_text(qml)
     # Timer searchRetry is intentionally private to PageBase; call the public
     # reveal routine repeatedly once the new page has settled instead.
     p=base/'shell/shell.qml';p.write_text(p.read_text().replace('fixture.searchAttempts=0;fixture.searchRetry.restart();','fixture.revealSearchTarget();'))
@@ -182,6 +224,7 @@ ShellRoot {
     env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'))
     env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
     compositor=None
+    desktop_daemon=None
     try:
         log=(base/'compositor.log').open('w');compositor=subprocess.Popen(['Hyprland','--config',str(base/'compositor.lua')],env=env,stdout=log,stderr=subprocess.STDOUT)
         instance=None
@@ -192,6 +235,15 @@ ShellRoot {
         assert instance,'No nested compositor'
         resize_nested_compositor(compositor.pid)
         env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'],QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'),QT_QPA_PLATFORM='wayland')
+        if os.environ.get('HICS_TEST_NATIVE_DESKTOP'):
+            desktop_daemon=subprocess.Popen([str(ROOT/'build/native/desktop/hics-desktopd')],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            for _ in range(60):
+                ready=subprocess.run(['gdbus','call','--session','--dest','org.hics.Desktop1','--object-path','/org/hics/Desktop1','--method','org.hics.Desktop1.Status'],env=env,capture_output=True,text=True)
+                if ready.returncode==0:break
+                time.sleep(.05)
+            assert ready.returncode==0,'Nested desktop daemon not ready'
+            for operation in ['diagnostics.check','unknown.fixture']:
+                subprocess.run(['gdbus','call','--session','--dest','org.hics.Desktop1','--object-path','/org/hics/Desktop1','--method','org.hics.Desktop1.Start',operation,'{}'],env=env,capture_output=True,check=True)
         result=subprocess.run(['/usr/share/hics/qs/bin/hics-qs','-p',str(base/'shell')],env=env,capture_output=True,text=True,timeout=65)
         output=result.stdout+result.stderr
         (Path('/tmp/hics-settings-design-render.log')).write_text(output)
@@ -201,6 +253,10 @@ ShellRoot {
         assert not any(s in live for s in ('TypeError:','ReferenceError:','Binding loop','Cannot assign','Unable to assign')),live[-7000:]
         print('PASS: live settings screenshots, searchable disclosure, narrow forms, reduced motion, high contrast and rapid navigation')
     finally:
+        if desktop_daemon:
+            desktop_daemon.terminate()
+            try:desktop_daemon.wait(timeout=5)
+            except subprocess.TimeoutExpired:desktop_daemon.kill();desktop_daemon.wait()
         if compositor:
             compositor.terminate()
             try:compositor.wait(timeout=5)

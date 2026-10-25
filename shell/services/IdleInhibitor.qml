@@ -8,7 +8,7 @@ Singleton {
     id: root
 
     property alias enabled: props.enabled
-    readonly property bool effectiveEnabled: props.enabled || Presentation.active
+    readonly property bool effectiveEnabled: props.enabled || Presentation.active || Comfort.inhibit
     readonly property alias enabledSince: props.enabledSince
 
     onEnabledChanged: {

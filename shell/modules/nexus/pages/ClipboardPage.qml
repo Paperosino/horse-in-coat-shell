@@ -30,6 +30,7 @@ PageBase {
                 RowButton {text:Tr.tr(root.config.paused?"Resume capture":"Pause capture");icon:root.config.paused?"play_arrow":"pause";onClicked:root.set("paused",!root.config.paused)}
                 RowButton {text:Tr.tr("Clear unpinned");icon:"delete_sweep";onClicked:root.backend.clear(true)}
             }
+            RowButton {text:Tr.tr("Remove clipboard formatting");subtext:Tr.tr("Keeps the current text for Ctrl+V and marks the converted copy sensitive. Your clipboard privacy settings remain in control.");icon:"format_clear";onClicked:Comfort.plainText()}
             FeatureError {error:root.backend.error}
             StyledText {Layout.fillWidth:true;text:root.config.paused?Tr.tr("Capture is paused. Existing entries remain available."):(root.backend.capturing?Tr.tr("Watching for copied text and images"):Tr.tr("Clipboard capture is not running"));wrapMode:Text.WordWrap;color:Colours.palette.m3onSurfaceVariant;font:Tokens.font.body.small}
         }

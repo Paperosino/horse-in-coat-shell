@@ -142,8 +142,13 @@ Singleton {
         function onActiveChanged(): void {if(Presentation.active && Presentation.hideNotifications)for(const notif of root.popups)notif.popup=false;}
     }
 
-    function shouldShowPopup(): bool {
-        if ((Presentation.active && Presentation.hideNotifications) || (GameMode.enabled && hasFullscreen()) || props.dnd || NotificationPolicy.paused || ShellState.anySidebarOpen())
+    Connections {
+        target:Comfort
+        function onQuietChanged():void {if(Comfort.quiet)for(const notif of root.popups)notif.popup=false;}
+    }
+
+    function shouldShowPopup(focusBoundary=false): bool {
+        if (Comfort.callActive || (!focusBoundary && Comfort.focusing && !!Comfort.focus.quiet) || (Presentation.active && Presentation.hideNotifications) || (GameMode.enabled && hasFullscreen()) || props.dnd || NotificationPolicy.paused || ShellState.anySidebarOpen())
             return false;
         if (GlobalConfig.notifs.fullscreen === NotifsFullscreen.Off && hasFullscreen())
             return false;
@@ -230,7 +235,7 @@ Singleton {
                 && n.notificationId === String(notif.id) && n.appName === notif.appName) : null;
 
             const comp = notifComp.createObject(root, {
-                popup: !notif.lastGeneration && mode !== "silent" && root.shouldShowPopup(),
+                popup: !notif.lastGeneration && mode !== "silent" && root.shouldShowPopup(notif.appName === "hics" && notif.hints["x-hics-focus"] === true),
                 read: ShellState.anySidebarOpen(),
                 fromPreviousGeneration: notif.lastGeneration,
                 notification: notif

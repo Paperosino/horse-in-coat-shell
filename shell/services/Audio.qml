@@ -13,6 +13,23 @@ Singleton {
     id: root
     readonly property bool visualiserAvailable: cava.available
 
+    property string safetyLastSink: ""
+    property string safetyTarget: ""
+    function protectOutputSwitch(): void {
+        const id=sink?.name??"";
+        if(!id||id===safetyLastSink)return;
+        const previous=safetyLastSink;safetyLastSink=id;
+        if(previous&&GlobalConfig.utilities.comfort.safeAudioSwitch){safetyTarget=id;outputSafety.restart();}
+    }
+    Timer {
+        id:outputSafety;interval:250
+        onTriggered:{
+            if(!GlobalConfig.utilities.comfort.safeAudioSwitch||root.sink?.name!==root.safetyTarget||!root.sink?.ready||!root.sink?.audio)return;
+            const limit=Math.max(5,Math.min(100,GlobalConfig.utilities.comfort.switchVolumePercent))/100;
+            if(root.sink.audio.volume>limit)root.sink.audio.volume=limit;
+        }
+    }
+    Connections {target:root.sink;function onReadyChanged():void{if(root.sink?.ready&&root.sink.name===root.safetyTarget)outputSafety.restart();}}
     property string previousSinkName: ""
     property string previousSourceName: ""
 
@@ -173,6 +190,7 @@ Singleton {
     }
 
     onSinkChanged: {
+        protectOutputSwitch();
         if (!sink?.ready)
             return;
 

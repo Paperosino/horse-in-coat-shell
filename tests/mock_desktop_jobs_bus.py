@@ -1,12 +1,13 @@
 """Private Fcitx, portal and OBEX fixture; never contacts host devices."""
 import json
+import os
 import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 DBusGMainLoop(set_as_default=True)
 bus=dbus.SessionBus()
-names=[dbus.service.BusName(name,bus) for name in ['org.fcitx.Fcitx5','org.bluez.obex','sm.puri.OSK0','org.freedesktop.impl.portal.PermissionStore']]
+names=[dbus.service.BusName(name,bus) for name in ['org.fcitx.Fcitx5','org.bluez.obex','sm.puri.OSK0','org.freedesktop.impl.portal.PermissionStore','org.freedesktop.FileManager1']]
 class Input(dbus.service.Object):
  def __init__(self):super().__init__(bus,'/controller');self.groups={'Default':('us',[('keyboard-us','')])};self.current='Default';self.method='keyboard-us'
  @dbus.service.method('org.fcitx.Fcitx.Controller1',out_signature='a(ssssssb)')
@@ -58,6 +59,12 @@ class Client(dbus.service.Object):
  def CreateSession(self,destination,options):return '/org/bluez/obex/session1'
  @dbus.service.method('org.bluez.obex.Client1',in_signature='o')
  def RemoveSession(self,session):pass
-objects=[Input(),Keyboard(),Permissions()];transfer=Transfer();objects.extend([transfer,Session(transfer),Client()])
+class FileManager(dbus.service.Object):
+ def __init__(self):super().__init__(bus,'/org/freedesktop/FileManager1')
+ @dbus.service.method('org.freedesktop.FileManager1',in_signature='ass')
+ def ShowItems(self,uris,startup):
+  if os.environ.get('HICS_FM_TRACE'):
+   with open(os.environ['HICS_FM_TRACE'],'w') as target:json.dump([str(uri) for uri in uris],target)
+objects=[Input(),Keyboard(),Permissions(),FileManager()];transfer=Transfer();objects.extend([transfer,Session(transfer),Client()])
 print('ready',flush=True)
 GLib.MainLoop().run()

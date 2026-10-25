@@ -1,7 +1,7 @@
 { lib, stdenv, cmake, ninja, pkg-config, gettext, makeWrapper, qt6
 , hyprland, quickshell, python3, libqalculate, lm_sensors, pixman, libdrm
 , icu, poppler-utils, hyprland-guiutils, gamemode, flatpak, apparmor-utils, restic, timeshift, seahorse, fcitx5, fcitx5-configtool, squeekboard
-, glib, libsecret, gnome-keyring, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
+, glib, gvfs, libsecret, gnome-keyring, cups, util-linux, e2fsprogs, lua5_4, hyprgraphics, libinput, systemd, wayland, libxkbcommon, pango, cairo, nlohmann_json
 , kitty, firefox, fuzzel, btop, pavucontrol, wl-clipboard, cliphist
 , grim, slurp, wf-recorder, swappy, libnotify, brightnessctl, networkmanager
 , pipewire, pulseaudio, wireplumber, polkit, hyprlock, hyprpicker, xdg-utils, xdg-user-dirs
@@ -9,7 +9,7 @@
 }:
 let
   python = python3.withPackages (packages: [ packages.pillow ]);
-  runtime = [ glib quickshell hyprland python kitty firefox fuzzel btop pavucontrol
+  runtime = [ glib gvfs quickshell hyprland python kitty firefox fuzzel btop pavucontrol
     wl-clipboard cliphist grim slurp wf-recorder swappy libnotify brightnessctl
     networkmanager pipewire pulseaudio wireplumber polkit hyprlock hyprpicker xdg-utils
     xdg-user-dirs libxml2 systemd libqalculate blueman gnome-keyring cups poppler-utils hyprland-guiutils gamemode flatpak apparmor-utils restic timeshift seahorse fcitx5 fcitx5-configtool squeekboard ];
@@ -23,7 +23,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   inherit src;
 
   nativeBuildInputs = [ cmake ninja pkg-config gettext makeWrapper qt6.wrapQtAppsHook python hyprland ];
-  buildInputs = [ webkitgtk_6_0 gtk4 qt6.qtbase qt6.qtdeclarative qt6.qtshadertools qt6.qtmultimedia libqalculate lm_sensors networkmanager libsecret icu
+  buildInputs = [ glib webkitgtk_6_0 gtk4 qt6.qtbase qt6.qtdeclarative qt6.qtshadertools qt6.qtmultimedia libqalculate lm_sensors networkmanager libsecret icu
     hyprland.dev cups util-linux e2fsprogs lua5_4 hyprgraphics pixman libdrm libinput systemd wayland libxkbcommon pango cairo nlohmann_json ]
     ++ (hyprland.buildInputs or []);
 
@@ -43,7 +43,7 @@ assert lib.assertMsg (lib.versionAtLeast qt6.qtbase.version "6.9") "Hyprstack re
   '';
 
   postInstall = ''
-    for program in hics-shell hics-session hics-session-runner hics-doctor hics-workspace; do
+    for program in hics-shell hics-session hics-session-runner hics-doctor hics-workspace hics-desktopd; do
       wrapProgram "$out/bin/$program" \
         --set HYPRSTACK_DATA_DIR "$out/share/hics" \
         --set HYPRSTACK_TITLEBAR_PLUGIN "$out/share/hics/native/hics-bars.so" \

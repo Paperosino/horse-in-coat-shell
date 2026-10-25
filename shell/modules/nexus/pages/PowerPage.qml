@@ -25,6 +25,12 @@ PageBase {
 
         PowerProfilesSection {}
         SettingsCard {
+            title:Tr.tr("Temporary wake lock");icon:"coffee"
+            RowButton {text:Tr.tr("Stay awake for 30 minutes");icon:"schedule";onClicked:DesktopJobs.request("comfort.awake",{minutes:30})}
+            RowButton {visible:Comfort.awake;text:Tr.tr("End temporary wake lock");icon:"close";onClicked:DesktopJobs.request("comfort.awake",{minutes:0})}
+            NavRow {text:Tr.tr("Focus & breaks");subtext:Tr.tr("Work intervals, breaks and more wake-lock durations");onClicked:root.nState.openPage("focus")}
+        }
+        SettingsCard {
             title: Tr.tr("Laptop & docking")
             icon: "laptop_mac"
             ToggleRow { first:true;last:true;text:Tr.tr("Stay awake with the lid closed when an external display is connected");checked:GlobalConfig.general.idle.keepAwakeDocked;onToggled:GlobalConfig.general.idle.keepAwakeDocked=checked }

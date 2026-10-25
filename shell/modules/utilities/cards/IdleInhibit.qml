@@ -5,6 +5,7 @@ import Hyprstack.I18n
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.modules.nexus
 
 StyledRect {
     id: root
@@ -31,14 +32,14 @@ StyledRect {
             implicitHeight: icon.implicitHeight + Tokens.padding.large
 
             radius: Tokens.rounding.full
-            color: IdleInhibitor.enabled ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
+            color: IdleInhibitor.effectiveEnabled ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
 
             MaterialIcon {
                 id: icon
 
                 anchors.centerIn: parent
                 text: "coffee"
-                color: IdleInhibitor.enabled ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
+                color: IdleInhibitor.effectiveEnabled ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
                 fontStyle: Tokens.font.icon.large
             }
         }
@@ -56,13 +57,18 @@ StyledRect {
 
             StyledText {
                 Layout.fillWidth: true
-                text: IdleInhibitor.enabled ? Tr.trCtx("Preventing sleep mode", "idle inhibitor") : Tr.trCtx("Normal power management", "idle inhibitor")
+                text: Comfort.awake ? Tr.tr("Until %1").arg(Qt.formatTime(new Date(Comfort.state.awakeDeadline),"hh:mm")) : IdleInhibitor.effectiveEnabled ? Tr.trCtx("Preventing sleep mode", "idle inhibitor") : Tr.trCtx("Normal power management", "idle inhibitor")
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.body.small
                 elide: Text.ElideRight
             }
         }
 
+        IconButton {
+            icon:"schedule"
+            Accessible.name:Tr.tr("Temporary wake lock")
+            onClicked:WindowFactory.openPage("focus")
+        }
         StyledSwitch {
             checked: IdleInhibitor.enabled
             onToggled: IdleInhibitor.enabled = checked

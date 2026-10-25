@@ -76,6 +76,19 @@ StyledRect {
         }
 
         Item {
+            objectName:"focusTimerIndicator"
+            visible:Comfort.running||!!Comfort.focus.paused||Comfort.awake
+            implicitWidth:visible?focusLabel.implicitWidth+Tokens.padding.medium:0
+            implicitHeight:Tokens.sizes.bar.innerWidth
+            Row {
+                id:focusLabel;anchors.centerIn:parent;spacing:Tokens.spacing.extraSmall
+                MaterialIcon {text:Comfort.running||Comfort.focus.paused?"timer":"coffee";color:root.colour;fontStyle:Tokens.font.icon.medium}
+                StyledText {visible:Comfort.running||!!Comfort.focus.paused;text:Math.floor(Comfort.secondsLeft/60)+":"+String(Comfort.secondsLeft%60).padStart(2,"0");font:Tokens.font.mono.small;color:root.colour;anchors.verticalCenter:parent.verticalCenter}
+            }
+            StateLayer {keyboardFocusable:true;Accessible.name:Tr.tr("Focus & breaks");onClicked:WindowFactory.openPage("focus")}
+        }
+
+        Item {
             id:operationsIndicator
             objectName:"backgroundOperationsIndicator"
             property string name:"operations"

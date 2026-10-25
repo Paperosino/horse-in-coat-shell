@@ -12,6 +12,8 @@ Scope {
         // Force certain singletons to load on shell init instead of lazily
 
         DesktopJobs;
+        Comfort;
+        ApplicationLayouts;
         HungApplications;
         CaptivePortal;
         DesktopConfiguration;

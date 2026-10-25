@@ -33,6 +33,11 @@ PageBase {
         spacing: Tokens.spacing.large
 
         SettingsCard {
+            title:Tr.tr("Device battery reminders");icon:"battery_alert"
+            ToggleRow {text:Tr.tr("Warn when Bluetooth devices need charging");checked:GlobalConfig.utilities.comfort.bluetoothBatteryAlerts;onToggled:GlobalConfig.utilities.comfort.bluetoothBatteryAlerts=checked}
+            StepperRow {label:Tr.tr("Low battery threshold (%)");from:5;to:50;stepSize:5;value:GlobalConfig.utilities.comfort.bluetoothBatteryThreshold;onMoved:value=>GlobalConfig.utilities.comfort.bluetoothBatteryThreshold=value}
+        }
+        SettingsCard {
             title:Tr.tr("Send & receive files")
             icon:"send"
             Repeater {model:root.adapter?.devices.values.filter(device=>device.paired)??[];RowButton {required property var modelData;text:Tr.tr("Send a file to %1").arg(modelData.name||modelData.address);icon:"send";disabled:root.transfers.busy||!root.btEnabled;onClicked:{root.sendAddress=modelData.address;root.sender.open();}}}
