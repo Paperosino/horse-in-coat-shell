@@ -11890,3 +11890,151 @@ msgstr "Ограничение списка"
 #: desktop-services
 msgid "Showing the first 1000 entries. Open a subfolder or enter the file path in the restore filter."
 msgstr "Показаны первые 1000 записей. Откройте вложенную папку или укажите путь в фильтре восстановления."
+
+#: settings-navigation
+msgid "Frequently used settings and desktop categories"
+msgstr "Частые настройки и разделы управления системой"
+
+#: settings-navigation
+msgid "Display, sound, power and everyday desktop tools"
+msgstr "Экран, звук, питание и инструменты рабочего стола"
+
+#: settings-navigation
+msgid "Screen, sound and power"
+msgstr "Экран, звук и питание"
+
+#: settings-navigation
+msgid "Everyday desktop"
+msgstr "Повседневные задачи"
+
+#: settings-navigation
+msgid "Bluetooth & devices"
+msgstr "Bluetooth и устройства"
+
+#: settings-navigation
+msgid "Connected devices, keyboard, pointer and sharing"
+msgstr "Подключённые устройства, клавиатура, указатель и трансляция"
+
+#: settings-navigation
+msgid "Keyboard and pointer"
+msgstr "Клавиатура и указатель"
+
+#: settings-navigation
+msgid "Network & internet"
+msgstr "Сеть и интернет"
+
+#: settings-navigation
+msgid "Wi-Fi, ethernet, VPN and connection settings"
+msgstr "Wi-Fi, Ethernet, VPN и параметры подключений"
+
+#: settings-navigation
+msgid "Themes, panels, dock and window behaviour"
+msgstr "Темы, панели, док и поведение окон"
+
+#: settings-navigation
+msgid "Look and feel"
+msgstr "Внешний вид"
+
+#: settings-navigation
+msgid "Windows and workspaces"
+msgstr "Окна и рабочие пространства"
+
+#: settings-navigation
+msgid "Installed applications, defaults, startup and extensions"
+msgstr "Установленные приложения, приложения по умолчанию, автозапуск и расширения"
+
+#: settings-navigation
+msgid "Applications and startup"
+msgstr "Приложения и автозапуск"
+
+#: settings-navigation
+msgid "Extensions and tools"
+msgstr "Расширения и инструменты"
+
+#: settings-navigation
+msgid "Time & language"
+msgstr "Время и язык"
+
+#: settings-navigation
+msgid "System language, regional formats, date and time"
+msgstr "Язык системы, региональные форматы, дата и время"
+
+#: settings-navigation
+msgid "Language and clock"
+msgstr "Язык и часы"
+
+#: settings-navigation
+msgid "Privacy & security"
+msgstr "Конфиденциальность и защита"
+
+#: settings-navigation
+msgid "Passwords, application access and recovery"
+msgstr "Пароли, доступ приложений и восстановление"
+
+#: settings-navigation
+msgid "Protection and recovery"
+msgstr "Защита и восстановление"
+
+#: settings-navigation
+msgid "Maintenance & help"
+msgstr "Обслуживание и помощь"
+
+#: settings-navigation
+msgid "Troubleshooting, services and configuration recovery"
+msgstr "Диагностика, службы и восстановление настроек"
+
+#: settings-navigation
+msgid "Help and diagnostics"
+msgstr "Помощь и диагностика"
+
+#: settings-navigation
+msgid "Advanced administration"
+msgstr "Расширенное администрирование"
+
+#: settings-navigation
+msgid "Window matching, placement and behaviour"
+msgstr "Выбор окон, размещение и поведение"
+
+#: settings-navigation
+msgid "Quick access"
+msgstr "Быстрый доступ"
+
+#: settings-navigation
+msgid "Common settings, one step away"
+msgstr "Частые настройки в одно нажатие"
+
+#: settings-navigation
+msgid "All settings"
+msgstr "Все настройки"
+
+#: settings-navigation
+msgid "Application permissions"
+msgstr "Разрешения приложений"
+
+#: settings-navigation
+msgid "Choose an installed application to manage its permissions, AppArmor profile and startup behaviour."
+msgstr "Выберите установленное приложение для настройки разрешений, профиля AppArmor и автозапуска."
+
+#: settings-navigation
+msgid "Installed applications"
+msgstr "Установленные приложения"
+
+#: settings-navigation
+msgid "Settings home"
+msgstr "Главная"
+
+#: settings-navigation
+msgid "Expand navigation"
+msgstr "Развернуть меню"
+
+#: settings-navigation
+msgid "Advanced backup settings"
+msgstr "Расширенные настройки резервного копирования"
+
+#: settings-navigation
+msgid "Indexing limits and schedule"
+msgstr "Ограничения и расписание индексирования"
+
+#: settings-navigation
+msgid "Collapse navigation"
+msgstr "Свернуть меню"

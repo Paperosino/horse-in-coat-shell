@@ -23,10 +23,15 @@ ConnectedRect {
 
     Layout.fillWidth: true
     implicitHeight: row.implicitHeight + Tokens.padding.medium * 2
+    scale: stateLayer.pressed ? 0.99 : 1
+    Behavior on scale { Anim { type: Anim.FastSpatial } }
 
     StateLayer {
         id: stateLayer
         keyboardFocusable: true
+        Accessible.name: root.text
+        Accessible.description: root.subtext
+        Accessible.role: Accessible.Button
 
         onClicked: e => root.clicked(e)
     }
@@ -67,6 +72,7 @@ ConnectedRect {
                 anchors.left: parent.left
                 anchors.right: parent.right
 
+                textFormat: Text.PlainText
                 font: Tokens.font.body.medium
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }

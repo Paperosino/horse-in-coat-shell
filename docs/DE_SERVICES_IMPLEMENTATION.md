@@ -95,3 +95,30 @@ Primary references checked during implementation:
 - [Flatseal permission-to-override mapping](https://github.com/tchx84/Flatseal/blob/master/DOCUMENTATION.md)
 - [Restic restoration and overwrite modes](https://github.com/restic/restic/blob/master/doc/050_restore.rst)
 - [Hyprland 0.56.2 native ANR manager](https://github.com/hyprwm/Hyprland/blob/v0.56.2/src/managers/ANRManager.cpp)
+
+## Settings navigation refactor (package 58)
+
+The sidebar now contains ten top-level entries: Home, System, Bluetooth & devices,
+Network & internet, Personalisation, Applications, Time & language, Accessibility,
+Privacy & security, Maintenance & help. Individual tools are grouped inside their
+section, rather than appended to the sidebar. Network and Accessibility open
+straight to their functional pages. Permissions are managed from the installed
+application; Privacy links to that same entry rather than duplicating the editor.
+
+The common PageBase provides breadcrumbs and the existing themed header. Shared
+navigation cards, hover/press feedback and reduced-motion-aware transitions reuse
+hics tokens and components. Home offers common actions and category cards. Narrow
+windows use a collapsible icon rail with tooltips; Ctrl+F/Ctrl+E opens search.
+Backup and indexing limits/schedules are in animated advanced expanders.
+
+Page indices and existing alias routes remain stable for search and external
+widgets. History records section/page/detail routes; deferred construction is
+coalesced, and obsolete StackPages cannot consume another page's navigation
+signals. Graphical coverage checks every section, back navigation, same-index
+routes, cross-page detail routes, narrow layouts and existing settings pages.
+Native desktop workers also exit when their session bus disappears, avoiding
+orphan workers after isolated/nested sessions end.
+
+Design references: [Windows Settings navigation](https://support.microsoft.com/en-us/windows/experience/exploring-windows-settings),
+[Microsoft settings card guidance](https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings),
+[hierarchical navigation and breadcrumbs](https://learn.microsoft.com/en-us/windows/apps/design/basics/navigation-basics).

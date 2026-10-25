@@ -87,7 +87,7 @@ PageBase {
                 text: Tr.tr("Weather settings")
                 subtext: Tr.tr("City, automatic IP location and weather provider")
                 onClicked: {
-                    root.nState.currentPageIdx = PageRegistry.indexOf("region");
+                    root.nState.openPage("region");
                     root.nState.searchTarget = "weatherProvider";
                     root.nState.searchRequested();
                 }

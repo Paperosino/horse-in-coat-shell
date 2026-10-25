@@ -9,6 +9,7 @@ StackView {
 
     required property NexusState nState
     default property list<Component> pages
+    property int ownerPageIdx: -1
     readonly property int animMovement: 12 * Tokens.scale
 
     function openSubPage(idx: int, immediate: bool): void {
@@ -26,6 +27,7 @@ StackView {
     clip: busy
 
     Component.onCompleted: {
+        ownerPageIdx = nState.currentPageIdx;
         openSubPage(0, true);
         for (const page of nState.subPageIdxStack)
             openSubPage(page, true);
@@ -105,6 +107,7 @@ StackView {
     }
 
     Connections {
+        enabled: !root.nState.showingSection && root.ownerPageIdx === root.nState.currentPageIdx
         function onSubPageOpened(idx: int): void {
             root.openSubPage(idx, false);
         }

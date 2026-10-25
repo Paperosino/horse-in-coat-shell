@@ -16,24 +16,49 @@ QtObject {
     }
     function indexOf(id: string): int { return pages.findIndex(p => p.id === route(id).id); }
 
-    readonly property var navigationPages: ([
-        ...navigationGroup("personalisation", ["appearance", "desktop-profiles", "panels", "dock", "windows", "application-rules"]),
-        ...navigationGroup("devices", ["display", "audio", "printers", "storage"]),
-        ...navigationGroup("input", ["keyboard", "mouse", "touchpad", "input-devices", "shortcuts", "clipboard", "accessibility"]),
-        ...navigationGroup("connections", ["network", "bluetooth", "sharing"]),
-        ...navigationGroup("applications", ["apps", "default-apps", "autostart", "session-recovery", "projects", "notifications", "plugins", "assistant"]),
-        ...navigationGroup("system", ["power", "performance", "region", "datetime", "configuration-history", "settings-workbench", "desktop-health", "passwords", "operations", "backup", "file-search", "presentation", "services", "first-steps", "about"])
-    ])
-    function navigationGroup(category: string, ids: list<string>): var {
-        return ids.map(id => {
-            const index = pages.findIndex(p => p.id === id);
-            return Object.assign({}, pages[index], {pageIndex:index, category:category});
-        });
+    // Pages keep stable indices for search, saved routes and external widgets.
+    // Only sections appear in the sidebar; leaves live on their overview pages.
+    readonly property var sections: [
+        {id:"home", label:Tr.tr("Settings home"), icon:"home", description:Tr.tr("Frequently used settings and desktop categories"), groups:[]},
+        {id:"system", label:Tr.tr("System"), icon:"computer", description:Tr.tr("Display, sound, power and everyday desktop tools"), groups:[
+            {label:Tr.tr("Screen, sound and power"), pages:["display","audio","power","storage"]},
+            {label:Tr.tr("Everyday desktop"), pages:["notifications","presentation","operations","performance","about"]}]},
+        {id:"devices", label:Tr.tr("Bluetooth & devices"), icon:"devices", description:Tr.tr("Connected devices, keyboard, pointer and sharing"), groups:[
+            {label:Tr.tr("Connected devices"), pages:["bluetooth","printers","sharing"]},
+            {label:Tr.tr("Keyboard and pointer"), pages:["keyboard","mouse","touchpad","input-devices"]}]},
+        {id:"connections", label:Tr.tr("Network & internet"), icon:"wifi", description:Tr.tr("Wi-Fi, ethernet, VPN and connection settings"),
+            landing:"network", groups:[{label:"",pages:["network"]}]},
+        {id:"personalisation", label:Tr.tr("Personalisation"), icon:"palette", description:Tr.tr("Themes, panels, dock and window behaviour"), groups:[
+            {label:Tr.tr("Look and feel"), pages:["appearance","desktop-profiles","panels","dock"]},
+            {label:Tr.tr("Windows and workspaces"), pages:["windows","application-rules","shortcuts","projects"]}]},
+        {id:"applications", label:Tr.tr("Applications"), icon:"apps", description:Tr.tr("Installed applications, defaults, startup and extensions"), groups:[
+            {label:Tr.tr("Applications and startup"), pages:["apps","default-apps","autostart","session-recovery"]},
+            {label:Tr.tr("Extensions and tools"), pages:["plugins","assistant","clipboard","file-search"]}]},
+        {id:"language", label:Tr.tr("Time & language"), icon:"language", description:Tr.tr("System language, regional formats, date and time"), groups:[{label:Tr.tr("Language and clock"),pages:["region","datetime"]}]},
+        {id:"accessibility", label:Tr.tr("Accessibility"), icon:"accessibility_new", description:Tr.tr("Contrast, motion, scale and keyboard navigation"),
+            landing:"accessibility",groups:[{label:"",pages:["accessibility"]}]},
+        {id:"privacy", label:Tr.tr("Privacy & security"), icon:"shield", description:Tr.tr("Passwords, application access and recovery"), groups:[{label:Tr.tr("Protection and recovery"),pages:["passwords","backup"]}]},
+        {id:"maintenance", label:Tr.tr("Maintenance & help"), icon:"handyman", description:Tr.tr("Troubleshooting, services and configuration recovery"), groups:[
+            {label:Tr.tr("Help and diagnostics"),pages:["desktop-health","first-steps"]},
+            {label:Tr.tr("Advanced administration"),pages:["services","configuration-history","settings-workbench"]}]}
+    ]
+    function section(id: string): var { return sections.find(value => value.id === id) ?? sections[0]; }
+    function sectionFor(id: string): var {
+        const target = route(id).id;
+        return sections.find(value => value.groups.some(group => group.pages.includes(target))) ?? sections[0];
     }
-    function categoryLabel(category: string): string {
-        return ({personalisation:Tr.tr("Personalisation"),devices:Tr.tr("Devices"),
-            input:Tr.tr("Input & interaction"),connections:Tr.tr("Connections"),applications:Tr.tr("Applications"),system:Tr.tr("System")})[category] ?? "";
+    function entries(ids): var { return ids.map(id => pages.find(page => page.id === id)).filter(Boolean); }
+    readonly property var navigationPages: {
+        const values = [];
+        for (const section of sections)
+            for (const group of section.groups)
+                for (const id of group.pages) {
+                    const pageIndex = pages.findIndex(page => page.id === id);
+                    values.push(Object.assign({}, pages[pageIndex], {pageIndex, category:section.id}));
+                }
+        return values;
     }
+    function categoryLabel(category: string): string { return section(category).label; }
 
     readonly property list<var> pages: [
         // Appearance

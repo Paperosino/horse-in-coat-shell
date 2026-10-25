@@ -24,6 +24,8 @@ import qs.modules.nexus.common
 import qs.services
 ShellRoot {
  id:root
+ property int hierarchyPhase:0
+ property bool hierarchyDone:false
  property int phase:0
  property bool narrow:false
  property bool controlledExpanded:false
@@ -49,6 +51,39 @@ ShellRoot {
  Timer {
   interval:400;repeat:true;running:true
   onTriggered:{
+   if(!root.hierarchyDone){
+    const step=root.hierarchyPhase++;
+    if(step===0){
+     if(!root.check(PageRegistry.sections.length===10 && settings.nState.showingSection,"settings must open at Home with ten sidebar categories"))return;
+     const ids=PageRegistry.navigationPages.map(page=>page.id);
+     if(!root.check(ids.every((id,index)=>ids.indexOf(id)===index) && PageRegistry.navigationPages.every(page=>page.pageIndex>=0),"categories contain duplicated or invalid pages"))return;
+     settings.grabToImage(result=>{result.saveToFile("/tmp/hics-settings-home.png");settings.nState.openSection("system");});
+    }
+    if(step===1){
+     if(!root.check(!!root.named(settings,"settingsSectionOverview"),"system overview did not load"))return;
+     const link=root.named(settings,"settings-link-storage");
+     if(!root.check(!!link,"storage is missing from System"))return;
+     settings.grabToImage(result=>{result.saveToFile("/tmp/hics-settings-system-overview.png");link.clicked();});
+    }
+    if(step===2){if(!root.check(!settings.nState.showingSection && settings.nState.sectionId==="system" && PageRegistry.pages[settings.nState.currentPageIdx].id==="storage","category link did not open its settings"))return;settings.nState.goBack();}
+    if(step===3){if(!root.check(settings.nState.showingSection && settings.nState.sectionId==="system","Back did not restore the category"))return;root.narrow=true;settings.nState.openSection("personalisation");}
+    if(step===4){if(!root.check(settings.compactNavigation,"narrow settings did not collapse navigation"))return;settings.grabToImage(result=>{result.saveToFile("/tmp/hics-settings-category-narrow.png");settings.nState.openPage("themes");});}
+    if(step===5){if(!root.check(!settings.nState.showingSection&&settings.nState.subPageIdxStack[0]===4,"saved theme route did not open its detail page"))return;settings.nState.goBack();}
+    if(step===6){if(!root.check(settings.nState.subPageIdxStack.length===0,"Back did not close the detail page"))return;settings.nState.goBack();}
+    if(step===7){if(!root.check(settings.nState.showingSection&&settings.nState.sectionId==="personalisation","Back lost the source category"))return;settings.nState.openPage("appearance");}
+    if(step===8){if(!root.check(!settings.nState.showingSection&&PageRegistry.pages[settings.nState.currentPageIdx].id==="appearance","same-index page opening remained stuck on the category"))return;root.narrow=false;settings.nState.openPage("audio");}
+    if(step===9)settings.nState.openPage("themes");
+    if(step===10 && !root.check(settings.nState.subPageIdxStack[0]===4,"a stale stack consumed another page detail route"))return;
+    if(step===11)settings.nState.openSection("home");
+    const categories=["devices","connections","applications","language","accessibility","privacy","maintenance"];
+    if(step>=12 && step<12+categories.length*2){
+     const index=Math.floor((step-12)/2),id=categories[index];
+     if((step-12)%2===0)settings.nState.openSection(id);
+     else if(!root.check(settings.nState.sectionId===id && (PageRegistry.section(id).landing || !!root.named(settings,"settingsSectionOverview")),"category failed to load: "+id))return;
+    }
+    if(step===12+categories.length*2){root.hierarchyDone=true;settings.nState.openSection("home");console.log("SETTINGS_HIERARCHY_OK");}
+    return;
+   }
    if(root.phase<root.shots.length*2){
     const index=Math.floor(root.phase/2);
     if(root.phase%2===0){
@@ -157,7 +192,7 @@ ShellRoot {
         assert instance,'No nested compositor'
         resize_nested_compositor(compositor.pid)
         env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'],QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'),QT_QPA_PLATFORM='wayland')
-        result=subprocess.run(['/usr/share/hics/qs/bin/hics-qs','-p',str(base/'shell')],env=env,capture_output=True,text=True,timeout=45)
+        result=subprocess.run(['/usr/share/hics/qs/bin/hics-qs','-p',str(base/'shell')],env=env,capture_output=True,text=True,timeout=65)
         output=result.stdout+result.stderr
         (Path('/tmp/hics-settings-design-render.log')).write_text(output)
         assert result.returncode==0 and 'SETTINGS_DESIGN_OK' in output,output[-7000:]

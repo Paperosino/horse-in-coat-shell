@@ -46,7 +46,7 @@ Singleton {
             contentItem.Config.screen: screen.name
             contentItem.Tokens.screen: screen.name
 
-            title: Tr.tr("Nexus — %1").arg(PageRegistry.pages[nexus.nState.currentPageIdx].label)
+            title: Tr.tr("Nexus — %1").arg((nexus.nState.showingSection ? PageRegistry.section(nexus.nState.sectionId).label : PageRegistry.pages[nexus.nState.currentPageIdx].label))
 
             Nexus {
                 id: nexus
@@ -55,9 +55,7 @@ Singleton {
                 nState.screen: win.screen
                 nState.isWindow: true
                 Component.onCompleted: if (win.pageId) {
-                    const route = PageRegistry.route(win.pageId);
-                    nState.currentPageIdx = Math.max(0, PageRegistry.indexOf(route.id));
-                    if (route.subPage !== undefined) nState.subPageIdxStack = [route.subPage];
+                    nState.openPage(win.pageId);
                 }
                 onClose: win.destroy()
             }

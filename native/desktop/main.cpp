@@ -21,6 +21,10 @@ int main(int argc, char **argv) {
     QTextStream(stderr) << bus.lastError().message() << Qt::endl;
     return 1;
   }
+  // D-Bus activation also runs without a user systemd manager, for example in
+  // nested sessions. Do not outlive that session or keep inherited pipes open.
+  bus.connect(QString(), "/org/freedesktop/DBus/Local",
+              "org.freedesktop.DBus.Local", "Disconnected", &app, SLOT(quit()));
   System::ShutdownSignals shutdown(&app, [&] { service.stop(); });
   return app.exec();
 }

@@ -2,18 +2,27 @@ import QtQuick
 import Hyprstack.Config
 import qs.components
 import qs.modules.nexus
+import qs.modules.nexus.pages
 
 Item {
     id: root
     required property NexusState nState
-    property int lastPageIdx: nState.currentPageIdx
     property int generation: 0
+    property bool loadScheduled: false
+    function requestPage(): void {
+        if (loadScheduled) return;
+        loadScheduled = true;
+        Qt.callLater(() => {
+            root.loadScheduled = false;
+            root.loadPage(root.nState.currentPageIdx);
+        });
+    }
     property Item currentItem
     function loadPage(idx: int): void {
         // Commit the active editor before constructing a page which may read it.
         container.forceActiveFocus();
         const request = ++generation;
-        const component = PageCompRegistry.pageComps[idx] ?? PageCompRegistry.placeholderComp;
+        const component = nState.showingSection ? sectionComponent : (PageCompRegistry.pageComps[idx] ?? PageCompRegistry.placeholderComp);
         const incubator = component.incubateObject(container, {
             nState
         });
@@ -29,8 +38,7 @@ Item {
                 previous.destroy();
             entrance.stop();
             container.opacity = GlobalConfig.appearance.reducedMotion ? 1 : 0;
-            movement.y = GlobalConfig.appearance.reducedMotion ? 0 : (idx >= lastPageIdx ? 1 : -1) * 12 * Tokens.scale;
-            lastPageIdx = idx;
+            movement.y = GlobalConfig.appearance.reducedMotion ? 0 : nState.navigationDirection * 12 * Tokens.scale;
             entrance.restart();
         };
         if (incubator.status === Component.Ready)
@@ -41,6 +49,7 @@ Item {
                     attach();
             };
     }
+    Component { id: sectionComponent; SettingsOverview {} }
     Item {
         id: container
         objectName: "PageContainer"
@@ -48,15 +57,17 @@ Item {
         transform: Translate {
             id: movement
         }
-        Component.onCompleted: root.loadPage(root.nState.currentPageIdx)
+        Component.onCompleted: root.requestPage()
     }
     Connections {
         target: root.nState
         function onCurrentPageIdxChanged(): void {
-            root.loadPage(root.nState.currentPageIdx);
+            root.requestPage();
         }
+        function onShowingSectionChanged(): void { root.requestPage(); }
+        function onSectionIdChanged(): void { if(root.nState.showingSection) root.requestPage(); }
         function onSearchRequested(): void {
-            root.loadPage(root.nState.currentPageIdx);
+            root.requestPage();
         }
     }
     ParallelAnimation {

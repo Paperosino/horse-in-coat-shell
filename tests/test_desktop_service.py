@@ -11,6 +11,25 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 class DesktopServiceTest(unittest.TestCase):
+    def test_service_exits_with_session_bus(self):
+        with tempfile.TemporaryDirectory(prefix='hics-disconnected-bus-') as directory:
+            bus = subprocess.Popen(['dbus-daemon','--session','--nofork','--print-address=1'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+            daemon = None
+            try:
+                env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS=bus.stdout.readline().strip(), XDG_STATE_HOME=directory)
+                daemon = subprocess.Popen([os.environ.get('HICS_TEST_DESKTOP_DAEMON',str(ROOT/'build/native/desktop/hics-desktopd'))],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+                for _ in range(60):
+                    result=subprocess.run(['gdbus','call','--session','--dest','org.hics.Desktop1','--object-path','/org/hics/Desktop1','--method','org.hics.Desktop1.Status'],env=env,capture_output=True)
+                    if not result.returncode: break
+                    time.sleep(.05)
+                self.assertEqual(result.returncode,0)
+                bus.terminate(); bus.wait(timeout=3)
+                self.assertEqual(daemon.wait(timeout=5),0)
+            finally:
+                if daemon and daemon.poll() is None: daemon.terminate(); daemon.wait(timeout=5)
+                if bus.poll() is None: bus.terminate(); bus.wait(timeout=3)
+                bus.stdout.close()
+
     def test_private_session(self):
         result = subprocess.run(['dbus-run-session', '--', 'python3', str(Path(__file__).resolve()), '--fixture'], capture_output=True, text=True, timeout=40)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

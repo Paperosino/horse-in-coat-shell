@@ -169,8 +169,7 @@ PageBase {
                     text: Tr.tr("Open native Wallpaper Engine integration")
                     icon: "wallpaper"
                     onClicked: {
-                        root.nState.currentPageIdx = PageRegistry.indexOf("appearance");
-                        root.nState.openSubPage(5);
+                        root.nState.openPage("live-wallpapers");
                     }
                 }
                 Repeater {

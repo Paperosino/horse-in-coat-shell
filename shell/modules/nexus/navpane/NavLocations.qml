@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import Hyprstack.Config
 import qs.components
 import qs.components.containers
@@ -12,9 +13,10 @@ VerticalFadeFlickable {
     id: root
 
     required property NexusState nState
+    property bool compact: false
 
     function revealCurrent(): void {
-        const index=PageRegistry.navigationPages.findIndex(p=>p.pageIndex===nState.currentPageIdx);
+        const index=PageRegistry.sections.findIndex(p=>p.id===nState.sectionId);
         const row=list.itemAt(index);
         if(!row || height<=0)return;
         const y=row.mapToItem(contentItem,0,0).y;
@@ -26,7 +28,7 @@ VerticalFadeFlickable {
         scrollTo.restart();
     }
     Component.onCompleted:Qt.callLater(revealCurrent)
-    Connections {target:root.nState;function onCurrentPageIdxChanged():void {Qt.callLater(root.revealCurrent);}}
+    Connections {target:root.nState;function onSectionIdChanged():void {Qt.callLater(root.revealCurrent);}}
     Anim {id:scrollTo;target:root;property:"contentY";type:Anim.FastEffects}
 
     fadeAmount:Math.min(0.08,16*Tokens.scale/Math.max(1,height))
@@ -49,7 +51,7 @@ VerticalFadeFlickable {
         Repeater {
             id: list
 
-            model: PageRegistry.navigationPages
+            model: PageRegistry.sections
 
             StyledRect {
                 id: item
@@ -57,12 +59,12 @@ VerticalFadeFlickable {
                 required property var modelData
                 required property int index
 
-                readonly property bool isCurrentPage: modelData.pageIndex === root.nState.currentPageIdx
-                readonly property bool isCategoryStart: index === 0 || PageRegistry.navigationPages[index - 1].category !== modelData.category
-                readonly property bool isCategoryEnd: index === list.model.length - 1 || PageRegistry.navigationPages[index + 1].category !== modelData.category
+                readonly property bool isCurrentPage: modelData.id === root.nState.sectionId
+                readonly property bool isCategoryStart: index === 0
+                readonly property bool isCategoryEnd: index === list.count - 1
 
                 Layout.fillWidth: true
-                Layout.topMargin: isCategoryStart ? groupTitle.implicitHeight + Tokens.spacing.medium * 2 : 0
+                Layout.topMargin: 0
                 implicitHeight: {
                     const h = layout.implicitHeight + layout.anchors.margins * 2;
                     return h % 2 === 0 ? h : h + 1;
@@ -88,11 +90,11 @@ VerticalFadeFlickable {
 
                 StyledText {
                     id: groupTitle
-                    visible: item.isCategoryStart
+                    visible: false
                     anchors.left: parent.left
                     anchors.bottom: parent.top
                     anchors.bottomMargin: Tokens.spacing.small
-                    text: PageRegistry.categoryLabel(item.modelData.category)
+                    text: ""
                     font: Tokens.font.label.medium
                     color: Colours.palette.m3onSurfaceVariant
                 }
@@ -111,7 +113,18 @@ VerticalFadeFlickable {
                     Accessible.description:item.modelData.description
                     Accessible.role:Accessible.PageTab
                     Accessible.selected:item.isCurrentPage
-                    onClicked: root.nState.currentPageIdx = item.modelData.pageIndex
+                    onClicked: root.nState.openSection(item.modelData.id)
+                }
+
+                ToolTip {
+                    visible: root.compact && stateLayer.containsMouse
+                    delay: 600
+                    text: item.modelData.label
+                    x: item.width + Tokens.spacing.small
+                    y: (item.height - height) / 2
+                    padding: Tokens.padding.medium
+                    background: StyledRect { radius: Tokens.rounding.medium; color: Colours.palette.m3inverseSurface }
+                    contentItem: StyledText { text: item.modelData.label; font: Tokens.font.body.small; color: Colours.palette.m3inverseOnSurface }
                 }
 
                 RowLayout {
@@ -142,6 +155,7 @@ VerticalFadeFlickable {
                     }
 
                     ColumnLayout {
+                        visible: !root.compact
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         spacing: 0
@@ -156,7 +170,7 @@ VerticalFadeFlickable {
 
                         StyledText {
                             Layout.fillWidth: true
-                            visible: item.isCurrentPage
+                            visible: false
                             maximumLineCount:2
                             elide:Text.ElideRight
                             text: item.modelData.description

@@ -34,6 +34,13 @@ PageBase {
    Repeater {model:root.prefs.excluded??[];RowLayout {required property string modelData;Layout.fillWidth:true;MaterialIcon {text:"folder_off";color:Colours.palette.m3onSurfaceVariant}StyledText {Layout.fillWidth:true;text:modelData;wrapMode:Text.WrapAnywhere;textFormat:Text.PlainText}IconButton {icon:"close";onClicked:root.save({excluded:root.prefs.excluded.filter(path=>path!==modelData)})}}}
    ToggleRow {text:Tr.tr("Index text contents");checked:root.prefs.contents??false;onToggled:root.save({contents:checked})}
    ToggleRow {text:Tr.tr("Extract PDF text");subtext:Tr.tr("Up to five pages per file and four changed PDFs per run");checked:root.prefs.pdf??false;onToggled:root.save({pdf:checked})}
+   RowButton {text:Tr.tr("Build index now");icon:"refresh";disabled:root.backend.busy;onClicked:root.backend.call("search.index",{},value=>root.summary=value.error??Tr.tr("Indexed %1 files").arg(value.count??0)+(value.limited?" · "+Tr.tr("Limit reached"):""))}
+   RowButton {text:Tr.tr("Erase index");icon:"delete";disabled:root.backend.busy;onClicked:root.backend.call("search.clear",{},()=>root.results=[])}
+   InfoRow {visible:!!root.summary;label:Tr.tr("Last run");value:root.summary}
+   FeatureError {error:root.backend.error}
+  }
+  SettingsCard {
+   title:Tr.tr("Indexing limits and schedule");icon:"tune";collapsible:true;expanded:false
    ToggleRow {text:Tr.tr("Automatically refresh the index");checked:root.prefs.automatic??false;onToggled:root.save({automatic:checked})}
    ToggleRow {text:Tr.tr("Pause automatic indexing on battery");checked:root.prefs.pauseOnBattery??true;onToggled:root.save({pauseOnBattery:checked})}
    ToggleRow {text:Tr.tr("Pause automatic indexing during games");checked:root.prefs.pauseForGames??true;onToggled:root.save({pauseForGames:checked})}
@@ -42,10 +49,6 @@ PageBase {
    StepperRow {label:Tr.tr("Maximum indexed files");from:100;to:50000;stepSize:100;value:root.prefs.maxFiles??10000;onMoved:value=>root.save({maxFiles:value})}
    StepperRow {label:Tr.tr("Maximum content size (MiB)");from:1;to:64;stepSize:1;value:root.prefs.contentMiB??8;onMoved:value=>root.save({contentMiB:value})}
    StepperRow {label:Tr.tr("Pause above CPU load (%)");from:10;to:95;stepSize:5;value:root.prefs.maxCpuLoadPercent??70;onMoved:value=>root.save({maxCpuLoadPercent:value})}
-   RowButton {text:Tr.tr("Build index now");icon:"refresh";disabled:root.backend.busy;onClicked:root.backend.call("search.index",{},value=>root.summary=value.error??Tr.tr("Indexed %1 files").arg(value.count??0)+(value.limited?" · "+Tr.tr("Limit reached"):""))}
-   RowButton {text:Tr.tr("Erase index");icon:"delete";disabled:root.backend.busy;onClicked:root.backend.call("search.clear",{},()=>root.results=[])}
-   InfoRow {visible:!!root.summary;label:Tr.tr("Last run");value:root.summary}
-   FeatureError {error:root.backend.error}
   }
   SettingsCard {
    title:Tr.tr("Find a document");icon:"search"

@@ -15,7 +15,7 @@ ColumnLayout {
 
     required property string title
     required property NexusState nState
-    readonly property var pageInfo: PageRegistry.pages.find(p => p.label === title) ?? PageRegistry.pages[nState.currentPageIdx] ?? ({})
+    readonly property var pageInfo: nState.showingSection ? PageRegistry.section(nState.sectionId) : PageRegistry.pages.find(p => p.label === title) ?? PageRegistry.pages[nState.currentPageIdx] ?? ({})
     property string pageIcon: pageInfo.icon ?? "tune"
     property string pageDescription: isSubPage ? (pageInfo.label ?? "") : (pageInfo.description ?? "")
     property bool isSubPage: nState.subPageIdxStack.length > 0
@@ -158,7 +158,14 @@ ColumnLayout {
         onTriggered: root.searchHighlight = null
     }
 
-    spacing: Tokens.spacing.extraLargeIncreased
+    spacing: Tokens.spacing.large
+
+    SettingsBreadcrumbs {
+        Layout.fillWidth: true
+        nState: root.nState
+        title: root.title
+        detail: root.isSubPage
+    }
 
     StyledRect {
         Layout.fillWidth: true

@@ -45,6 +45,13 @@ PageBase {
    TextFieldRow {label:Tr.tr("Backup interval in hours");subtext:Tr.tr("0 disables scheduling; between 1 and 168 hours");value:String(root.intervalHours);onEditingFinished:value=>root.intervalHours=Math.max(0,Math.min(168,parseInt(value)||0))}
    StyledTextField {id:password;Layout.fillWidth:true;placeholderText:Tr.tr("Repository password (leave blank to keep saved password)");echoMode:TextInput.Password;maximumLength:1024}
    RowButton {text:Tr.tr("Save configuration");icon:"save";disabled:root.backend.busy;onClicked:root.save()}
+   RowButton {text:Tr.tr("Initialize a new repository");subtext:Tr.tr("Use once for a new, empty repository");icon:"create_new_folder";disabled:root.backend.busy;onClicked:root.backend.call("backup.init",{})}
+   RowButton {text:Tr.tr("Back up now");icon:"backup";disabled:root.backend.busy;onClicked:root.backend.call("backup.run",{})}
+   RowButton {text:Tr.tr("Check repository integrity");icon:"verified_user";disabled:root.backend.busy;onClicked:root.backend.call("backup.check",{})}
+   FeatureError {error:root.backend.error}
+  }
+  SettingsCard {
+   title:Tr.tr("Advanced backup settings");icon:"tune";collapsible:true;expanded:false
    TextFieldRow {label:Tr.tr("Excluded paths or patterns");value:(root.prefs.excluded??[]).join("; ");onEditingFinished:value=>root.preference("excluded",value.split(";").map(v=>v.trim()).filter(v=>v))}
    ToggleRow {text:Tr.tr("Exclude marked cache folders");checked:root.prefs.excludeCaches??true;onToggled:root.preference("excludeCaches",checked)}
    ToggleRow {text:Tr.tr("Stay within each source filesystem");checked:root.prefs.oneFileSystem??false;onToggled:root.preference("oneFileSystem",checked)}
@@ -52,10 +59,6 @@ PageBase {
    StepperRow {label:Tr.tr("Transfer limit (KiB/s; 0 is unlimited)");from:0;to:1048576;stepSize:1024;value:root.prefs.limitKiB??0;onMoved:value=>root.preference("limitKiB",value)}
    StepperRow {label:Tr.tr("Minimum free disk space (MiB)");from:0;to:1048576;stepSize:256;value:root.prefs.minFreeMiB??256;onMoved:value=>root.preference("minFreeMiB",value)}
    RowButton {text:Tr.tr("Save advanced backup settings");icon:"save";disabled:root.backend.busy;onClicked:root.save()}
-   RowButton {text:Tr.tr("Initialize a new repository");subtext:Tr.tr("Use once for a new, empty repository");icon:"create_new_folder";disabled:root.backend.busy;onClicked:root.backend.call("backup.init",{})}
-   RowButton {text:Tr.tr("Back up now");icon:"backup";disabled:root.backend.busy;onClicked:root.backend.call("backup.run",{})}
-   RowButton {text:Tr.tr("Check repository integrity");icon:"verified_user";disabled:root.backend.busy;onClicked:root.backend.call("backup.check",{})}
-   FeatureError {error:root.backend.error}
   }
   SettingsCard {
    title:Tr.tr("Restore safely");icon:"restore"

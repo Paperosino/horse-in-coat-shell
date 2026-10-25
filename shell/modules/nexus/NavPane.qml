@@ -13,6 +13,11 @@ ColumnLayout {
     id: root
 
     required property NexusState nState
+    property bool compact: false
+    property bool collapsible: false
+    signal collapseRequested
+    signal expansionRequested
+    function focusSearch(): void { searchField.forceActiveFocus(); }
     readonly property var searchResults: {
         Tr.language;
         return Search.find(nState.searchQuery, (text, context) => context ? Tr.trCtx(text, context) : Tr.tr(text));
@@ -23,7 +28,7 @@ ColumnLayout {
             return;
         searchField.text = "";
         searchField.focus = false;
-        nState.currentPageIdx = result.page;
+        nState.openPage(PageRegistry.pages[result.page].id);
         nState.subPageIdxStack = result.subpages;
         nState.searchTarget = result.target;
         nState.searchTargetText = result.match ? (result.context ? Tr.trCtx(result.match, result.context) : Tr.tr(result.match)) : "";
@@ -36,20 +41,36 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.leftMargin: Tokens.padding.small
         spacing: Tokens.spacing.small
+        IconButton {
+            visible: root.compact || root.collapsible
+            icon: root.compact ? "menu" : "menu_open"
+            Accessible.name: root.compact ? Tr.tr("Expand navigation") : Tr.tr("Collapse navigation")
+            onClicked: root.compact ? root.expansionRequested() : root.collapseRequested()
+        }
         MaterialIcon {
+            visible: !root.compact
             text: "tune"
             color: Colours.palette.m3primary
             fontStyle: Tokens.font.icon.medium
         }
         StyledText {
+            visible: !root.compact
             text: Tr.tr("Settings")
             font: Tokens.font.title.medium
             Layout.fillWidth: true
         }
     }
 
+    IconButton {
+        visible: root.compact
+        icon: "search"
+        Accessible.name: Tr.tr("Search settings")
+        onClicked: { root.expansionRequested(); Qt.callLater(root.focusSearch); }
+    }
+
     SearchBar {
         id: searchField
+        visible: !root.compact
         objectName: "settingsSearchField"
 
         Layout.fillWidth: true
@@ -94,6 +115,7 @@ ColumnLayout {
         Layout.topMargin: -topMargin
         Layout.bottomMargin: -bottomMargin
         nState: root.nState
+        compact: root.compact
     }
 
     SearchResults {

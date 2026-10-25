@@ -16,6 +16,11 @@ Item {
 
         onClose: root.close()
     }
+    property bool navigationExpanded: false
+    readonly property bool narrowNavigation: width < 900 * Tokens.scale
+    readonly property bool compactNavigation: narrowNavigation && !navigationExpanded
+    property real navigationExtent: compactNavigation ? 0 : 1
+    Behavior on navigationExtent { enabled: root.narrowNavigation; Anim { type: Anim.FastSpatial } }
     property color blobColour: Colours.tPalette.m3surfaceContainerLow
 
     signal close
@@ -107,7 +112,22 @@ Item {
         anchors.margins: Tokens.padding.large
 
         nState: nState
-        width: Math.min(Tokens.sizes.nexus.maxNavWidth, 260 * Tokens.scale, Math.round(root.width / 3))
+        compact: root.compactNavigation
+        collapsible: root.narrowNavigation
+        onExpansionRequested: root.navigationExpanded = true
+        onCollapseRequested: root.navigationExpanded = false
+        width: 68 * Tokens.scale + (Math.min(Tokens.sizes.nexus.maxNavWidth, 260 * Tokens.scale, Math.round(root.width / 3)) - 68 * Tokens.scale) * root.navigationExtent
+    }
+
+    Connections {
+        target: nState
+        function onCurrentPageIdxChanged(): void { root.navigationExpanded = false; }
+        function onSectionIdChanged(): void { root.navigationExpanded = false; }
+    }
+    Shortcut {
+        sequences: [StandardKey.Find, "Ctrl+E"]
+        enabled: root.visible
+        onActivated: { root.navigationExpanded = true; Qt.callLater(navPane.focusSearch); }
     }
 
     Pages {
