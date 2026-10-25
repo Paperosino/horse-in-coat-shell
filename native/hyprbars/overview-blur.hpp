@@ -16,6 +16,10 @@ namespace HyprstackOverview {
 class WallpaperBlur {
   public:
     const std::string& error() const { return m_error; }
+    void releaseScratch() { m_half.reset(); m_horizontal.reset(); if (m_output) m_small.reset(); }
+    uint64_t bytes() const {
+        uint64_t total=0;for(const auto& buffer:{m_half,m_small,m_horizontal,m_output})if(buffer)total+=uint64_t(buffer->m_size.x)*uint64_t(buffer->m_size.y)*8;return total;
+    }
 
     SP<Render::IFramebuffer> render(SP<Render::IFramebuffer> source, double sigma) {
         auto* renderer = g_pHyprRenderer.get();
@@ -49,9 +53,12 @@ class WallpaperBlur {
             fb->setImageDescription(description);
             return true;
         };
-        if (!allocate(m_half, half, "Overview wallpaper downsample") || !allocate(m_small, quarter, "Overview wallpaper linear") ||
-            !allocate(m_horizontal, quarter, "Overview wallpaper Gaussian X") || !allocate(m_vertical, quarter, "Overview wallpaper Gaussian Y") ||
-            !allocate(m_output, source->m_size, "Overview wallpaper Gaussian")) return nullptr;
+        const auto function = description->value().transferFunction;
+        const bool linear = function == NColorManagement::CM_TRANSFER_FUNCTION_LINEAR || function == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
+        if (!allocate(m_half, half, "Overview wallpaper downsample") || !allocate(m_small, quarter, "Overview wallpaper Gaussian") ||
+            !allocate(m_horizontal, quarter, "Overview wallpaper Gaussian X") ||
+            (!linear && !allocate(m_output, source->m_size, "Overview wallpaper encoded"))) return nullptr;
+        if (linear) m_output.reset();
         renderer->blend(false);
         Render::GL::g_pHyprOpenGL->setCapStatus(GL_STENCIL_TEST, false);
         renderer->disableScissor();
@@ -66,12 +73,16 @@ class WallpaperBlur {
         kernel(sigma * quarter.x / source->m_size.x);
         draw(m_small->getTexture(), m_horizontal, 2, {1.0 / quarter.x, 0.0});
         kernel(sigma * quarter.y / source->m_size.y);
-        draw(m_horizontal->getTexture(), m_vertical, 2, {0.0, 1.0 / quarter.y});
+        draw(m_horizontal->getTexture(), m_small, 2, {0.0, 1.0 / quarter.y});
         // Upsample in linear light, then encode the original working transfer
         // function. Gamut, HDR range and the compositor's output transform stay intact.
-        draw(m_vertical->getTexture(), m_output, 3, {});
+        // Linear working buffers can be sampled at quarter resolution directly:
+        // the compositor performs the same GL_LINEAR upsample and output CM.
+        // Nonlinear/HDR encoded working buffers retain the final linear-light
+        // upsample-before-encode pass to preserve gradients and transfer semantics.
+        if (!linear) draw(m_small->getTexture(), m_output, 3, {});
         m_error.clear();
-        return m_output;
+        return linear ? m_small : m_output;
     }
 
   private:
@@ -197,7 +208,7 @@ void main() {
     }
 
     SP<CShader> m_shader;
-    SP<Render::IFramebuffer> m_half, m_small, m_horizontal, m_vertical, m_output;
+    SP<Render::IFramebuffer> m_half, m_small, m_horizontal, m_output;
     bool m_attempted = false;
     std::string m_error;
     GLint m_stage=-1, m_transfer=-1, m_texel=-1, m_direction=-1, m_centre=-1, m_count=-1, m_pairs=-1;

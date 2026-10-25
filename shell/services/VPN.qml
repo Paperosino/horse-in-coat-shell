@@ -1,5 +1,6 @@
 pragma Singleton
 
+import Hyprstack.Services
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -230,11 +231,8 @@ Singleton {
             return;
         const iface = active.interface;
         if (/^[a-zA-Z0-9_.:-]{1,15}$/.test(iface) && iface !== "." && iface !== "..") {
-            if (!statsProc.running) {
-                statsProc.interfaceName = iface;
-                statsProc.command = ["cat", "--", `/sys/class/net/${iface}/statistics/rx_bytes`, `/sys/class/net/${iface}/statistics/tx_bytes`];
-                statsProc.running = true;
-            }
+            const stats=NetworkService.interfaceStats(iface);
+            if(stats.rx!==undefined){root.bytesIn=Units.formatBytes(Number(stats.rx));root.bytesOut=Units.formatBytes(Number(stats.tx));}
             // Measure latency over the tunnel by binding the ping to the VPN
             // interface (-I), so the result reflects the VPN path, not the LAN.
             if (!pingProc.running) {
@@ -607,15 +605,7 @@ Singleton {
 
     // ── Generic engine ──────────────────────────────────────────────────────
 
-    Process {
-        id: nmMonitor
-
-        running: root.selectedProvider.length > 0
-        command: ["nmcli", "monitor"]
-        stdout: SplitParser {
-            onRead: statusCheckTimer.restart()
-        }
-    }
+    Connections {target:NetworkService;function onStateChanged():void {if(root.selectedProvider.length>0)statusCheckTimer.restart();}}
 
     Process {
         id: statusProc
@@ -762,22 +752,6 @@ Singleton {
     }
 
     // Reads cumulative rx/tx bytes for the active VPN interface from sysfs.
-    Process {
-        id: statsProc
-        property string interfaceName
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (!root.connected || statsProc.interfaceName !== root.active.interface) return;
-                const nums = text.trim().split("\n").map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
-                if (nums.length >= 2) {
-                    root.bytesIn = Units.formatBytes(nums[0]);
-                    root.bytesOut = Units.formatBytes(nums[1]);
-                }
-            }
-        }
-    }
-
     Process {
         id: pingProc
         property string interfaceName

@@ -52,18 +52,24 @@ Singleton {
     }
 
     property bool refreshPending: false
+    property bool queryRunning:false
 
     function refresh(): void {
         if (!active)
             return;
-        if (query.running) {
+        if (queryRunning) {
             refreshPending = true;
             return;
         }
         refreshPending = false;
-        query.generation = generation;
-        query.command = ["hyprctl", "repl", `return hyprstack_layouts.overview_snapshot(${JSON.stringify(monitorName)})`];
-        query.running = true;
+        queryRunning = true;
+        const requestedGeneration = generation;
+        Hypr.extras.request(`j/repl return hyprstack_layouts.overview_snapshot(${Hypr.luaJsonText(monitorName)})`, (success,text) => {
+            queryRunning = false;
+            if (!active || requestedGeneration !== generation) { if (active) refresh(); return; }
+            if (!success) {error=text;close(false);return;}
+            acceptSnapshot(text);
+        });
     }
 
     property string lastScenePayload: ""
@@ -148,13 +154,7 @@ Singleton {
     Component.onCompleted: Hypr.extras.message('eval hyprstack_layouts.overview_scene("reset"); hyprstack_layouts.set_overview(false)')
     onScreenChanged: if (active && !screen) close(false)
 
-    Process {
-        id: query
-        property int generation: -1
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (!root.active || query.generation !== root.generation)
-                    return;
+    function acceptSnapshot(text:string):void {
                 try {
                     const state = JSON.parse(text.trim());
                     if (!state.monitor || (root.nativeStarted && !state.renderer?.active)) {
@@ -200,16 +200,11 @@ Singleton {
                         root.refresh();
                     }
                 }
-            }
-        }
     }
 
-    Timer {
-        interval: 500
-        repeat: true
-        running: root.active
-        onTriggered: root.refresh()
-    }
+    // Retain crash recovery without polling window snapshots or spawning hyprctl.
+    Timer {interval:750;repeat:true;running:root.active;onTriggered:Hypr.extras.message('eval hyprstack_layouts.overview_scene("heartbeat")')}
+    Timer {id:refreshDelay;interval:35;onTriggered:root.refresh()}
 
     Connections {
         target: Hypr
@@ -218,8 +213,8 @@ Singleton {
     Connections {
         target: Hyprland
         function onRawEvent(event: HyprlandEvent): void {
-            if (root.active && event.name === "closewindow")
-                root.refresh();
+            if (root.active && ["openwindow","closewindow","movewindow","movewindowv2","changefloatingmode","fullscreen","windowtitle","windowtitlev2","workspace","workspacev2","monitoradded","monitorremoved"].includes(event.name))
+                refreshDelay.restart();
         }
     }
 

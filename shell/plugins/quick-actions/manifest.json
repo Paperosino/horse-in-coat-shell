@@ -12,8 +12,8 @@
     {
       "label": "Home folder",
       "command": [
-        "xdg-open",
-        "/home/paperos"
+        "hics",
+        "home"
       ]
     },
     {
@@ -26,7 +26,7 @@
     {
       "label": "Take a screenshot",
       "command": [
-        "hyprstack",
+        "hics",
         "screenshot"
       ]
     }

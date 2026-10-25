@@ -1,13 +1,21 @@
 #include "tickingservice.hpp"
+#include "telemetrypolicy.hpp"
+#include <QEvent>
 
 #include "config/dashboardconfig.hpp"
 #include "config/rootnodes.hpp"
 
 namespace hyprstack::services {
-
+bool TickingService::gaming(){return hics::performance::telemetryGaming();}
+void TickingService::setGameMode(bool active){hics::performance::setTelemetryGaming(active);}
+bool TickingService::eventFilter(QObject* watched,QEvent* event){
+ if(watched==hics::performance::telemetryPolicy()&&event->type()==QEvent::DynamicPropertyChange)applyInterval(m_baseInterval);
+ return Service::eventFilter(watched,event);
+}
 TickingService::TickingService(QObject* parent)
     : Service(parent)
     , m_timer(new QTimer(this)) {
+    hics::performance::telemetryPolicy()->installEventFilter(this);
     m_timer->setSingleShot(false);
     QObject::connect(m_timer, &QTimer::timeout, this, [this] {
         tick();
@@ -39,7 +47,8 @@ void TickingService::stop() {
 }
 
 void TickingService::applyInterval(int ms) {
-    ms = qMax(250, ms);
+    m_baseInterval = qMax(250, ms);
+    ms = m_baseInterval * (gaming() ? 5 : 1);
     if (ms == m_interval) {
         return;
     }

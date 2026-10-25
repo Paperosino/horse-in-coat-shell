@@ -21,6 +21,9 @@
 class CStackingInput {
   public:
     CStackingInput() {
+        m_fullscreen = Event::bus()->m_events.window.fullscreen.listen([](PHLWINDOW window) {
+            if (window && Fullscreen::controller()->getFullscreenModes(window).internal == Fullscreen::FSMODE_FULLSCREEN) CTaskAnimation::clear(window);
+        });
         m_workspaceMove = Event::bus()->m_events.window.moveToWorkspace.listen([this](PHLWINDOW window, PHLWORKSPACE destination) {
             if (enabled() || !validMapped(window) || window->m_isFloating || window->m_pinned || !destination || destination->m_isSpecialWorkspace) return;
             const auto target = window->layoutTarget();
@@ -192,6 +195,7 @@ class CStackingInput {
     }
 
     void processMove(Vector2D pos) {
+        if (g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) return;
         // beginDragTarget/activation can synchronously synthesize another move.
         // One transaction owns the drag snapshot until its restore completes.
         if (std::exchange(m_processingMove, true)) return;
@@ -285,7 +289,7 @@ class CStackingInput {
             window->m_suppressedEvents |= Desktop::View::SUPPRESS_ACTIVATE | Desktop::View::SUPPRESS_ACTIVATE_FOCUSONLY;
     }
 
-    CHyprSignalListener m_button, m_move, m_rules, m_reload, m_render, m_openEarly, m_openLate, m_workspaceMove;
+    CHyprSignalListener m_button, m_move, m_rules, m_reload, m_render, m_fullscreen, m_openEarly, m_openLate, m_workspaceMove;
     PHLWINDOWREF m_pressedFocus, m_dragWindow, m_openingWindow, m_openingAnchor;
     Time::steady_tp m_pressTime = Time::steadyNow();
     bool m_pressValid = false, m_dragMoved = false, m_processingMove = false;

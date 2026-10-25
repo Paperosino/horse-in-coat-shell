@@ -1,6 +1,7 @@
 pragma Singleton
 pragma ComponentBehavior: Bound
 
+import QtQml.Models
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -24,6 +25,53 @@ Singleton {
     readonly property string imageHelper: Paths.toLocalFile(Qt.resolvedUrl("../assets/notification_tools.py"))
     property string lastError
     property alias dnd: props.dnd
+
+    property var imageActions:[]
+    property string activeImageAction:""
+    function imageAction(notif:var,action:string):void {
+        if(imageActions.length>=32)return;
+        imageActions.push({id:notif.historyId,action:action,path:notif.screenshotPath,image:notif.image});
+        nextImageAction();
+    }
+    function nextImageAction():void {
+        if(imageActionProcess.running||!imageActions.length)return;
+        const task=imageActions.shift();activeImageAction=task.id;
+        imageActionProcess.command=["python3",imageHelper,"action",task.action,task.path,task.image];
+        imageActionProcess.running=true;
+    }
+    function cacheImage(notif:var,source:string,original:bool):void {
+        const id=notif.historyId;
+        NotificationImages.cache(source,original,path=>{
+            const current=list.find(n=>n.historyId===id);
+            if(path&&current&&current.image===source)current.image=path;
+        });
+    }
+    Process {
+        id:imageActionProcess
+        stdout:StdioCollector {onStreamFinished:{
+            try {const result=JSON.parse(text);if(result.error)root.lastError=result.error;
+                else if(result.action==="save"){const notif=root.list.find(n=>n.historyId===root.activeImageAction);if(notif)notif.screenshotPath=result.path;}
+            }catch(error){root.lastError=String(error);}
+        }}
+        onExited:Qt.callLater(root.nextImageAction)
+    }
+
+    function expirationChanged(notif:var):void {
+        const timeout=notif.expireTimeout>0?notif.expireTimeout:notif.hasFullscreen?GlobalConfig.notifs.fullscreenExpireTimeout:GlobalConfig.notifs.defaultExpireTimeout;
+        notif.popupDeadline=notif.popup&&notif.expireTimeout!==0?Date.now()+Math.max(1,timeout):0;
+        Qt.callLater(armExpiration);
+    }
+    function armExpiration():void {
+        expiration.stop();let deadline=Infinity;
+        for(const notif of list)if(notif.popup&&notif.popupDeadline>0)deadline=Math.min(deadline,notif.popupDeadline);
+        if(isFinite(deadline)){expiration.interval=Math.max(1,Math.min(2147483647,deadline-Date.now()));expiration.start();}
+    }
+    Timer {id:expiration;onTriggered:{
+        const now=Date.now();for(const notif of root.list)if(notif.popup&&notif.popupDeadline>0&&notif.popupDeadline<=now){
+            notif.popupDeadline=0;if(GlobalConfig.notifs.expire||notif.hasFullscreen||notif.isTransient)notif.popup=false;
+        }root.armExpiration();
+    }}
+    Instantiator {model:root.list.filter(n=>!!n.notification);delegate:NotifLiveBinding {required property var modelData;notif:modelData}}
 
     property bool loaded
 
@@ -90,7 +138,7 @@ Singleton {
     }
 
     function shouldShowPopup(): bool {
-        if (props.dnd || NotificationPolicy.paused || ShellState.anySidebarOpen())
+        if ((GameMode.enabled && hasFullscreen()) || props.dnd || NotificationPolicy.paused || ShellState.anySidebarOpen())
             return false;
         if (GlobalConfig.notifs.fullscreen === NotifsFullscreen.Off && hasFullscreen())
             return false;
@@ -124,6 +172,7 @@ Singleton {
     }
 
     onListChanged: {
+        Qt.callLater(armExpiration);
         scheduleSave();
     }
 

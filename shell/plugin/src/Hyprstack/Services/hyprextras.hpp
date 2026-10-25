@@ -4,6 +4,7 @@
 #include <qobject.h>
 #include <qqmlintegration.h>
 #include <qpointer.h>
+#include <QJSValue>
 #include <qvariant.h>
 
 namespace hyprstack::services::hypr {
@@ -25,6 +26,7 @@ public:
     [[nodiscard]] QVariantHash options() const;
     [[nodiscard]] HyprDevices* devices() const;
 
+    Q_INVOKABLE void request(const QString& message, QJSValue callback);
     Q_INVOKABLE void message(const QString& message);
     Q_INVOKABLE void batchMessage(const QStringList& messages);
     Q_INVOKABLE void applyOptions(const QVariantHash& options);

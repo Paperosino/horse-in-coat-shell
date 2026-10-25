@@ -87,6 +87,7 @@ private:
   QHash<QString, CachedFile> m_cachedFiles;
   QSet<QString> m_dirtyFiles;
   QHash<QString, DesktopApplication *> m_entries;
+  mutable QHash<QString, DesktopApplication *> m_lookupCache;
   QObjectList m_visible;
   QFileSystemWatcher m_watcher;
   QTimer m_debounce, m_reconcile;

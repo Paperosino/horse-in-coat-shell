@@ -10,6 +10,7 @@ with tempfile.TemporaryDirectory(prefix='hics-performance-ui-') as directory:
  (base/'shell/shell.qml').write_text('''import QtQuick
 import Quickshell
 import Hyprstack.Services
+import Hyprstack.Config
 import qs.modules.nexus
 import qs.modules.nexus.pages
 import qs.services
@@ -33,9 +34,13 @@ ShellRoot {
     root.game(2,12345);root.phase=1;break;
    case 1:
     if(!GameMode.enabled||String(Hypr.options["general:gaps_in"])!=="0 0 0 0")return;
+    RuntimePerformance.setSessionState(true,false,false);
+    if(!root.require(Cpu.updateInterval===GlobalConfig.dashboard.resourceUpdateInterval*5,"game telemetry did not throttle"))return;
     GameMode.enabled=false;root.phase=2;break;
    case 2:
     if(GameMode.enabled||Hypr.options["general:gaps_in"]!==root.original.gaps)return;
+    RuntimePerformance.setSessionState(false,false,false);
+    if(!root.require(Cpu.updateInterval===GlobalConfig.dashboard.resourceUpdateInterval,"game telemetry interval did not restore"))return;
     root.game(2,12345);if(!root.require(!GameMode.enabled,"manual disable was overridden"))return;
     root.game(1,12345);root.game(2,12345);if(!root.require(!GameMode.enabled,"fullscreen transition cleared manual disable"))return;
     RuntimePerformance.observeWindow({});root.game(2,12345);if(!root.require(!GameMode.enabled,"focus round trip cleared manual disable"))return;

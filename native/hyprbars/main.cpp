@@ -320,6 +320,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprstackShaders::install();
 
     g_pGlobalState                    = makeUnique<SGlobalState>();
+    g_pGlobalState->pointerMove = Event::bus()->m_events.input.mouse.move.listen([](Vector2D point, Event::SCallbackInfo& info) { CHyprBar::dispatchPointerMove(point,info); });
+    g_pGlobalState->pointerButton = Event::bus()->m_events.input.mouse.button.listen([](IPointer::SButtonEvent event, Event::SCallbackInfo& info) { CHyprBar::dispatchPointerButton(event,info); });
     g_pGlobalState->nobarRuleIdx      = Desktop::Rule::windowEffects()->registerEffect("hyprbars:no_bar");
     g_pGlobalState->barColorRuleIdx   = Desktop::Rule::windowEffects()->registerEffect("hyprbars:bar_color");
     g_pGlobalState->titleColorRuleIdx = Desktop::Rule::windowEffects()->registerEffect("hyprbars:title_color");

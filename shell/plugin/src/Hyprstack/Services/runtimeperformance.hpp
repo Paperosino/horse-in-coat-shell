@@ -42,6 +42,7 @@ signals:
 
 private:
   void evaluateGame();
+  void publishGameActivity();
   void updateTimer();
   void sample();
   void updateLease();

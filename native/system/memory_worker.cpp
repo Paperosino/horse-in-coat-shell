@@ -1,4 +1,5 @@
 #include "memory.hpp"
+#include "game_activity.hpp"
 #include "boundedio.hpp"
 #include <QCoreApplication>
 #include <QDateTime>
@@ -319,11 +320,13 @@ public:
                                         : zr ? 1
                                              : 0,
                                         m["ramPercent"].toDouble(), percent);
+        const bool gaming=hics::game::active();
+        if(gaming&&mode=="smart")stage=std::max(stage,disk?2:zr?1:0);
         double managedUsed = 0;
         for (auto row : m["swaps"].toArray())
           if (owned(row.toObject()["path"].toString(), owner))
             managedUsed += row.toObject()["used"].toDouble();
-        if (mode == "smart" && c["releaseIdle"].toBool() && stage > 0 &&
+        if (!gaming && mode == "smart" && c["releaseIdle"].toBool() && stage > 0 &&
             Memory::recoveryPressureLow(c, m["total"].toDouble(),
                                         m["available"].toDouble(),
                                         managedUsed)) {
@@ -366,6 +369,7 @@ public:
                   {"phase", stage == 0   ? "ram"
                             : stage == 1 ? "zram"
                                          : "zswap"},
+                  {"gameHold",gaming},
                   {"zramPercent", percent}};
       }
     } catch (const std::exception &e) {

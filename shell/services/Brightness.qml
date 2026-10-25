@@ -2,6 +2,7 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 
 import Hyprstack
+import Hyprstack.Services
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -60,37 +61,24 @@ Singleton {
             monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
     }
 
-    onMonitorsChanged: {
-        ddcMonitors = [];
-        ddcProc.running = true;
+    property string displaySignature:""
+    function refreshDisplayBuses():void {
+        const signature=JSON.stringify(Quickshell.screens.map(s=>[s.name,s.model,s.serialNumber]));
+        if(signature===displaySignature)return;
+        displaySignature=signature;
+        const external=Quickshell.screens.some(s=>!s.name.startsWith("eDP-")&&!s.name.startsWith("LVDS-"));
+        ddcMonitors=external&&PlatformResources.hasExecutable("ddcutil")?PlatformResources.displayBuses():[];
+        const studio=Quickshell.screens.some(s=>(s.model??"").replace(/ /g,"").startsWith("StudioDisplay"));
+        if(studio&&PlatformResources.hasExecutable("asdbctl")&&!appleProbe.running)appleProbe.running=true;
+        else if(!studio)appleDisplayPresent=false;
     }
-
-    Variants {
-        id: variants
-
-        model: Quickshell.screens // Don't respect excluded screens cause ipc
-
-        Monitor {}
-    }
-
+    onMonitorsChanged:Qt.callLater(refreshDisplayBuses)
+    Component.onCompleted:refreshDisplayBuses()
+    Variants {id:variants;model:Quickshell.screens;Monitor{}}
     Process {
-        running: true
-        command: ["sh", "-c", "asdbctl get"] // To avoid warnings if asdbctl is not installed
-        stdout: StdioCollector {
-            onStreamFinished: root.appleDisplayPresent = text.trim().length > 0
-        }
-    }
-
-    Process {
-        id: ddcProc
-
-        command: ["ddcutil", "detect", "--brief"]
-        stdout: StdioCollector {
-            onStreamFinished: root.ddcMonitors = text.trim().split("\n\n").filter(d => d.startsWith("Display ")).map(d => ({
-                        busNum: d.match(/I2C bus:[ ]*\/dev\/i2c-([0-9]+)/)[1],
-                        connector: d.match(/DRM connector:\s+(.*)/)[1].replace(/^card\d+-/, "") // strip "card1-"
-                    }))
-        }
+        id:appleProbe
+        command:["asdbctl","get"]
+        stdout:StdioCollector {onStreamFinished:root.appleDisplayPresent=text.trim().length>0}
     }
 
     // qmllint disable unresolved-type
@@ -169,7 +157,7 @@ Singleton {
         readonly property var ddcInfo: root.ddcMonitorMap[modelData?.name??""] ?? null
         readonly property bool isDdc: ddcInfo !== null
         readonly property string busNum: ddcInfo?.busNum ?? ""
-        readonly property bool isAppleDisplay: root.appleDisplayPresent && (modelData?.model??"").startsWith("StudioDisplay")
+        readonly property bool isAppleDisplay: root.appleDisplayPresent && (modelData?.model??"").replace(/ /g,"").startsWith("StudioDisplay")
         property real brightness
         property real queuedBrightness: NaN
 
@@ -228,8 +216,11 @@ Singleton {
                 initProc.command = ["asdbctl", "get"];
             else if (isDdc)
                 initProc.command = ["ddcutil", "-b", busNum, "getvcp", "10", "--brief"];
-            else
-                initProc.command = ["sh", "-c", "echo a b c $(brightnessctl g) $(brightnessctl m)"];
+            else {
+                const native=PlatformResources.backlight();
+                monitor.brightness=native.value??NaN;
+                return;
+            }
 
             initProc.running = true;
         }

@@ -338,6 +338,7 @@ void Gpu::startGpuUsage() {
             m_nvidiaQuerying=false;return;
         }
         if (m_type!=GpuType::Nvidia) {m_nvidiaQuerying=false;resetUsage();return;}
+        if (TickingService::gaming()) {m_nvidiaQuerying=false;return;}
         // Unsupported NVIDIA drivers retain the bounded CLI fallback at <= 0.2 Hz.
         if (m_fallbackSample.isValid() && m_fallbackSample.elapsed()<5000) {m_nvidiaQuerying=false;return;}
         m_fallbackSample.start();

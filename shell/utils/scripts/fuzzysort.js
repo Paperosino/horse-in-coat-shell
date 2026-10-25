@@ -321,6 +321,7 @@ var getPrepared = (target) => {
     var targetPrepared = preparedCache.get(target)
     if(targetPrepared !== undefined) return targetPrepared
     targetPrepared = prepare(target)
+    if(preparedCache.size >= 1024) preparedCache.clear()
     preparedCache.set(target, targetPrepared)
     return targetPrepared
 }
@@ -329,6 +330,7 @@ var getPreparedSearch = (search) => {
     var searchPrepared = preparedSearchCache.get(search)
     if(searchPrepared !== undefined) return searchPrepared
     searchPrepared = prepareSearch(search)
+    if(preparedSearchCache.size >= 128) preparedSearchCache.clear()
     preparedSearchCache.set(search, searchPrepared)
     return searchPrepared
 }

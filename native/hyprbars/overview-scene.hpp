@@ -345,6 +345,7 @@ class Scene {
             g_pHyprRenderer->m_directScanoutBlocked = m_previousScanout;
         }
         m_running = m_closing = false;
+        m_blur.releaseScratch();
         m_dragActive = m_dragMoved = false;
         m_dragAddress.clear();
         m_windows.clear(); m_closed.clear(); m_rows.clear(); m_input = Json::object();
@@ -484,6 +485,7 @@ class Scene {
 
     Json status() const {
         Json result = {{"active", m_running && !m_closing}, {"closing", m_closing}, {"renderer", "native"}, {"frames", Json::array()}};
+        result["blurBufferBytes"] = m_blur.bytes();
         if (!m_running) return result;
         const auto cam = currentCamera();
         result["camera"] = {{"x", cam.x}, {"y", cam.y}, {"zoom", cam.zoom}};
@@ -717,12 +719,13 @@ class Scene {
         if (!target) return elements;
         const CBox canvas{{}, monitor->m_transformedSize};
         if (!m_background || m_backgroundMonitor != monitor || m_backgroundScale != monitor->m_scale ||
-            m_backgroundTransform != static_cast<int>(monitor->m_transform) || m_background->m_size != target->m_size ||
-            m_background->imageDescription() != target->imageDescription()) m_backgroundDirty = true;
+            m_backgroundTransform != static_cast<int>(monitor->m_transform) || m_backgroundSourceSize != target->m_size ||
+            m_backgroundDescription != target->imageDescription()) m_backgroundDirty = true;
         if (m_backgroundDirty) {
             m_background = m_blur.render(target, 48.0 * monitor->m_scale);
             if (!m_background) return elements;
             m_backgroundDirty = false;
+            m_backgroundSourceSize = target->m_size; m_backgroundDescription = target->imageDescription();
             m_backgroundMonitor = monitor; m_backgroundScale = monitor->m_scale;
             m_backgroundTransform = static_cast<int>(monitor->m_transform);
             ++m_backgroundRenders;
@@ -809,6 +812,8 @@ class Scene {
     CHyprColor m_colour;
     std::string m_wallpaper;
     SP<Render::IFramebuffer> m_background;
+    Vector2D m_backgroundSourceSize;
+    NColorManagement::PImageDescription m_backgroundDescription;
     WallpaperBlur m_blur;
     uint64_t m_syntheticFrames = 0;
     bool m_animationPending = false;

@@ -133,15 +133,16 @@ Singleton {
             rule = "keyword layerrule %1 %2, match:namespace hyprstack-drawers";
             trEnabled = transparency.enabled && Effects.effectiveBlurEnabled ? 1 : 0;
         }
-        Hypr.extras.batchMessage([rule.arg("blur").arg(trEnabled), rule.arg("ignore_alpha").arg(Math.max(0, transparency.base - 0.03))]);
+        const requests = [rule.arg("blur").arg(trEnabled), rule.arg("ignore_alpha").arg(Math.max(0, transparency.base - 0.03))];
         if (Hypr.usingLua) {
-            Hypr.extras.message(`eval if hyprstack_layouts then hyprstack_layouts.effects({enabled=${transparency.enabled},opacity=${GlobalConfig.appearance.transparency.base},blur=${Effects.effectiveBlurEnabled}}) end`);
+            requests.push(`eval if hyprstack_layouts then hyprstack_layouts.effects({enabled=${transparency.enabled},opacity=${GlobalConfig.appearance.transparency.base},blur=${Effects.effectiveBlurEnabled}}) end`);
             const palette = {};
             for (const role of ["surfaceContainerLow", "surfaceContainerHigh", "onSurfaceVariant", ...Tiling.baseBorderColorRoles, ...Object.keys(root.palette.sourceColours)])
                 palette[role] = colourForRole(role, root.palette).toString();
             const fields = Object.entries(palette).map(([role, color]) => `[${JSON.stringify(role)}]=${JSON.stringify(color)}`).join(",");
-            Hypr.extras.message(`eval if hyprstack_layouts then hyprstack_layouts.theme({${fields}}) end`);
+            requests.push(`eval if hyprstack_layouts then hyprstack_layouts.theme({${fields}}) end`);
         }
+        Hypr.extras.batchMessage(requests);
     }
 
     function requestReloadHyprRules(): void {
@@ -184,7 +185,7 @@ Singleton {
     ImageAnalyser {
         id: analyser
 
-        source: Wallpapers.current
+        source: root.transparency.enabled ? Wallpapers.current : ""
     }
 
     Timer {

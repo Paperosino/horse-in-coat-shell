@@ -17,7 +17,7 @@ base=Path(workspace.name)
 (base/'config/hics').mkdir(parents=True)
 (base/'data/native').mkdir(parents=True)
 for plugin in ['libhics-render-dispatch.so','hics-bars.so','libspatialoverview.so']:
- candidates=[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hics/native')/plugin]
+ candidates=([Path(os.environ['HICS_TEST_NATIVE_DIR'])/plugin] if os.environ.get('HICS_TEST_NATIVE_DIR') else [])+[repo/'build'/plugin,repo/'build/third_party/phantomat'/plugin,Path('/usr/share/hics/native')/plugin]
  source=next((p for p in candidates if p.is_file()),None)
  if source is None:raise RuntimeError('Build native modules before running this integration test')
  # Snapshot plugins: rebuilding must never change a running test's mappings.
@@ -278,11 +278,14 @@ ShellRoot {
   time.sleep(.35);settled=overview_status()
   assert settled['syntheticFrames']==first['syntheticFrames'],('Settled overview still generates continuous frames',first,settled)
   count=settled['backgroundRenders']
+  print('OVERVIEW_BLUR_ACTIVE_BYTES',settled.get('blurBufferBytes'),flush=True)
   ctl('repl','hyprstack_layouts.overview_scene("reset");hyprstack_layouts.set_overview(false)')
   ctl('repl','hyprstack_layouts.set_overview(true);return hyprstack_layouts.overview_scene("show",'+json.dumps(json.dumps(scene))+')')
   time.sleep(.4);reopened=overview_status()
   assert reopened['backgroundRenders']==count,('Unchanged wallpaper blur was recomputed',count,reopened)
   ctl('repl','hyprstack_layouts.overview_scene("reset");hyprstack_layouts.set_overview(false)')
+  closed=overview_status();print('OVERVIEW_BLUR_CACHED_BYTES',closed.get('blurBufferBytes'),flush=True)
+  assert 0<closed['blurBufferBytes']<=settled['blurBufferBytes'],'Scratch blur buffers were retained after closing'
   print('PASS: settled overview stops synthetic frames and reuses unchanged wallpaper blur',flush=True)
   if os.environ.get('HYPRSTACK_RELOAD_PLUGIN'):
    # Leave a closing/fading window when the plugins unload. Its decoration

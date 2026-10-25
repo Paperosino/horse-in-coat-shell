@@ -36,7 +36,7 @@ import qs.services
 import qs.modules.drawers as Drawers
 ShellRoot {
  id:root
- Drawers.ContentWindow {id:win;screen:Quickshell.screens[0]}
+ Drawers.ContentWindow {id:win;targetScreen:Quickshell.screens[0]}
  Component.onCompleted:{ShellState.shellRoot=root;GlobalConfig.dashboard.enabled=false;GlobalConfig.utilities.enabled=false;}
  function find(item,name,result) {
   if(item.objectName===name && item.visible)result.push(item);

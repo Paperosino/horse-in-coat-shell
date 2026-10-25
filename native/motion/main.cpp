@@ -2,12 +2,15 @@
 #include <hyprland/src/desktop/state/WindowState.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include "task-animation.hpp"
+#include <hyprland/src/event/EventBus.hpp>
+#include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
 
 namespace {
+CHyprSignalListener fullscreenListener;
 CHyprColor color(lua_State* L, int index, const char* fallback) {
     std::string value = luaL_optstring(L, index, fallback);
     if (value.starts_with('#')) value.erase(0, 1);
@@ -52,8 +55,12 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() { return HYPRLAND_API_VERSION; }
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     if (std::string(__hyprland_api_get_hash()) != __hyprland_api_get_client_hash()) throw std::runtime_error("hics motion: compositor ABI mismatch");
     HyprlandAPI::addLuaFunction(handle,"hics_motion","animate_window",animate);
+    fullscreenListener = Event::bus()->m_events.window.fullscreen.listen([](PHLWINDOW window) {
+        if (window && Fullscreen::controller()->getFullscreenModes(window).internal == Fullscreen::FSMODE_FULLSCREEN) CExpressiveTaskAnimation::clear(window);
+    });
     return {"hics-motion","Expressive dock window transitions","hics","1.0"};
 }
 APICALL EXPORT void PLUGIN_EXIT() {
+    fullscreenListener.reset();
     for (const auto& window : Desktop::windowState()->windows()) CExpressiveTaskAnimation::clear(window);
 }

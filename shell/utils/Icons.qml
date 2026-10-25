@@ -143,9 +143,8 @@ Singleton {
 
     function getAppIcon(name: string, fallback: string): string {
         const shortName = (name ?? "").replace(/\.desktop$/, "").split(".").pop();
-        const entry = ApplicationCatalogue.applications.values.find(e => e.startupClass
-            && e.startupClass.toLowerCase() === (name ?? "").toLowerCase())
-            ?? ApplicationCatalogue.heuristicLookup(name ?? "")
+        const revision = ApplicationCatalogue.applications; // reactive invalidation after desktop/theme changes
+        const entry = ApplicationCatalogue.heuristicLookup(name ?? "")
             ?? ApplicationCatalogue.heuristicLookup(shortName);
         const icon = entry?.icon ? Quickshell.iconPath(entry.icon, true) : "";
         if (icon)

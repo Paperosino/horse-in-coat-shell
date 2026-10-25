@@ -1,4 +1,6 @@
 #include "barDeco.hpp"
+#include <hyprland/src/desktop/state/ViewState.hpp>
+#include <hyprland/src/managers/SessionLockManager.hpp>
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
@@ -117,13 +119,13 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     }
 
     // button events
-    m_pMouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([&](IPointer::SButtonEvent e, Event::SCallbackInfo& info) { onMouseButton(info, e); });
+
     m_pTouchDownCallback   = Event::bus()->m_events.input.touch.down.listen([&](ITouch::SDownEvent e, Event::SCallbackInfo& info) { onTouchDown(info, e); });
     m_pTouchUpCallback     = Event::bus()->m_events.input.touch.up.listen([&](ITouch::SUpEvent e, Event::SCallbackInfo& info) { onTouchUp(info, e); });
 
     // move events
     m_pTouchMoveCallback = Event::bus()->m_events.input.touch.motion.listen([&](ITouch::SMotionEvent e, Event::SCallbackInfo& info) { onTouchMove(info, e); });
-    m_pMouseMoveCallback = Event::bus()->m_events.input.mouse.move.listen([&](Vector2D c, Event::SCallbackInfo& info) { onMouseMove(c); });
+
 
     Animation::mgr()->createAnimation(configColor(g_pGlobalState->config.barColor->value()), m_cRealBarColor, Config::animationTree()->getAnimationPropertyConfig("border"),
                                       pWindow, AVARDAMAGE_NONE);
@@ -201,6 +203,41 @@ bool CHyprBar::inputIsValid() {
         return false;
 
     return true;
+}
+
+static WP<CHyprBar> pointerBar(Vector2D pos) {
+    const auto window = Desktop::viewState()->hitTest().windowAt(pos,
+        Desktop::View::ALLOW_FLOATING | Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
+    if (!validMapped(window) || Fullscreen::controller()->getFullscreenModes(window).internal == Fullscreen::FSMODE_FULLSCREEN) return {};
+    for (const auto& decoration : window->m_windowDecorations)
+        if (auto* bar = dynamic_cast<CHyprBar*>(decoration.get())) return bar->m_self;
+    return {};
+}
+void CHyprBar::dispatchPointerMove(Vector2D pos, Event::SCallbackInfo& info) {
+    if (!g_pGlobalState) return;
+    auto& hovered = g_pGlobalState->pointerHovered;
+    auto& pressed = g_pGlobalState->pointerPressed;
+    if (!g_pGlobalState->config.enabled->value() || g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) {
+        if (hovered && hovered->m_iButtonHoverState) { hovered->m_iButtonHoverState=0; hovered->damageEntire(); }
+        hovered.reset(); pressed.reset(); return;
+    }
+    if (pressed) { pressed->onMouseMove(pos); return; }
+    const auto current = info.cancelled ? WP<CHyprBar>{} : pointerBar(pos);
+    if (hovered != current && hovered) { hovered->m_iButtonHoverState=0; hovered->m_bButtonHovered=false; hovered->damageEntire(); }
+    hovered=current;
+    if (hovered) hovered->onMouseMove(pos);
+}
+void CHyprBar::dispatchPointerButton(IPointer::SButtonEvent event, Event::SCallbackInfo& info) {
+    if (!g_pGlobalState || !g_pGlobalState->config.enabled->value() || g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) return;
+    auto& pressed = g_pGlobalState->pointerPressed;
+    if (event.state == WL_POINTER_BUTTON_STATE_PRESSED) {
+        if (info.cancelled) return;
+        pressed=pointerBar(g_pInputManager->getMouseCoordsInternal());
+        if (pressed) pressed->onMouseButton(info,event);
+    } else {
+        if (pressed) pressed->onMouseButton(info,event);
+        pressed.reset();
+    }
 }
 
 void CHyprBar::onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e) {
@@ -550,6 +587,7 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
         return;
 
     const auto PWINDOW = m_pWindow.lock();
+    if (Fullscreen::controller()->getFullscreenModes(PWINDOW).internal == Fullscreen::FSMODE_FULLSCREEN) return;
 
     if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault())
         return;

@@ -67,6 +67,16 @@ HyprDevices* HyprExtras::devices() const {
     return m_devices;
 }
 
+void HyprExtras::request(const QString& message, QJSValue callback) {
+    if (m_requestSocket.isEmpty() || message.isEmpty()) {
+        if (callback.isCallable()) callback.call({false, QStringLiteral("Hyprland socket unavailable")});
+        return;
+    }
+    makeRequest(message, [callback](bool success, QByteArray response) mutable {
+        if (callback.isCallable()) callback.call({success, QString::fromUtf8(response)});
+    });
+}
+
 void HyprExtras::message(const QString& message) {
     if (message.isEmpty()) {
         return;

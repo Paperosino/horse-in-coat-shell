@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Home is user-specific; open it before loading the Python CLI or bundled Qt.
+if [[ ${1:-} == home ]]; then exec xdg-open "$HOME"; fi
 for key in DATA_DIR SHELL_DIR LIB_DIR PAM_SERVICE LANGUAGE WALLPAPERS_DIR RECORDINGS_DIR ASSISTANT_KEY; do
     current="HICS_$key"
     if [[ -v $current ]]; then export "HYPRSTACK_$key=${!current}"; fi

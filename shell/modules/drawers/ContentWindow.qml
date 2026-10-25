@@ -18,7 +18,9 @@ StyledWindow {
     readonly property alias bar: bar
     readonly property alias interactionWrapper: interactions
 
-    readonly property ScreenState screenState: ShellState.forScreen(screen)
+    required property ShellScreen targetScreen
+    screen: targetScreen
+    readonly property ScreenState screenState: ShellState.forScreen(targetScreen)
 
     readonly property HyprlandMonitor monitor: Hypr.monitorFor(screen)
     readonly property bool hasSpecialWorkspace: (monitor?.lastIpcObject.specialWorkspace?.name.length ?? 0) > 0
@@ -85,14 +87,14 @@ StyledWindow {
 
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
+    WlrLayershell.layer: GameMode.enabled || (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
     WlrLayershell.keyboardFocus: screenState.sidebar || screenState.launcher || screenState.session || screenState.clipboard || panels.dock.listOpen || panels.dock.menuOpen
         ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     // Open popups receive the dismissing click even over client
     // windows. The normal shaped input region resumes as soon as it closes.
     mask: screenState.clipboard || panels.dock.menuOpen || panels.dock.listOpen ? null
-        : hasFullscreen && !(contentItem.Config.general.showOverFullscreen && focusGrab.active)
+        : hasFullscreen && !((contentItem.Config.general.showOverFullscreen || GameMode.quietOn(targetScreen)) && focusGrab.active)
             ? emptyRegion : regions
 
     anchors.top: true
@@ -159,6 +161,7 @@ StyledWindow {
         id: focusGrab
 
         active: {
+            if (!root.backingWindowVisible) return false;
             if (panels.dock.listOpen || panels.dock.menuOpen) return true;
             const s = root.screenState;
             const conf = root.contentItem.Config;

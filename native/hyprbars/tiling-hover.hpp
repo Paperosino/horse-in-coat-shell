@@ -165,6 +165,7 @@ class Controller {
         return result;
     }
     void update(Vector2D point) {
+        if (g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) { clear(true); return; }
         PHLMONITOR monitor;
         for (const auto& candidate : State::monitorState()->monitors())
             if (candidate->logicalBox().containsPoint(point)) { monitor = candidate; break; }

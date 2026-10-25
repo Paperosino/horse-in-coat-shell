@@ -163,22 +163,23 @@ QObject *ApplicationCatalogue::byId(QString id) const {
   return m_entries.value(id, nullptr);
 }
 QObject *ApplicationCatalogue::heuristicLookup(QString name) const {
-  if (auto *entry = byId(name))
-    return entry;
-  name = name.toLower();
-  for (auto *entry : m_entries) {
-    if (entry->id().toLower() == name ||
-        entry->startupClass().toLower() == name)
-      return entry;
+  if (name.isEmpty()) return nullptr;
+  const QString key = name.toCaseFolded();
+  if (m_lookupCache.contains(key)) return m_lookupCache.value(key);
+  DesktopApplication *match = qobject_cast<DesktopApplication *>(byId(name));
+  if (!match) for (auto *entry : m_entries) {
+    if (entry->id().compare(name, Qt::CaseInsensitive)==0 || entry->startupClass().compare(name, Qt::CaseInsensitive)==0) { match=entry; break; }
   }
-  for (auto *entry : m_entries) {
-    if (entry->id().section('.', -1).compare(name, Qt::CaseInsensitive) == 0)
-      return entry;
+  if (!match) for (auto *entry : m_entries) {
+    if (entry->id().section('.', -1).compare(name, Qt::CaseInsensitive)==0) { match=entry; break; }
   }
-  return nullptr;
+  if (m_lookupCache.size() >= 4096) m_lookupCache.clear();
+  m_lookupCache.insert(key,match);
+  return match;
 }
 void ApplicationCatalogue::refresh(bool force) { scan(force); }
 void ApplicationCatalogue::scan(bool force) {
+  m_lookupCache.clear();
   QSet<QString> seen, watched, filesSeen;
   bool entriesChanged = false;
   QObjectList visible;

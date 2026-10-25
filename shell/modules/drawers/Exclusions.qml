@@ -40,6 +40,7 @@ Scope {
     }
 
     component ExclusionZone: StyledWindow {
+        visible: !GameMode.quietOn(root.screen)
         screen: root.screen
         name: "border-exclusion"
         exclusiveZone: root.frameThickness

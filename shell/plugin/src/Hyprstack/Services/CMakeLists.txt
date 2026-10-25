@@ -8,6 +8,9 @@ endif()
 qml_module(hyprstack-services
     URI Hyprstack.Services
     SOURCES
+        platformresources.cpp
+        networkservice.cpp
+        notificationimages.cpp
         runtimeperformance.cpp
         applicationcatalogue.cpp
         workspacetools.cpp
@@ -35,6 +38,7 @@ qml_module(hyprstack-services
         hyprextras.cpp
     LIBRARIES
         PkgConfig::Secret
+        Qt::Quick
         PkgConfig::NetworkManager
         Qt::Concurrent
         Qt::DBus

@@ -50,6 +50,7 @@ class Controller {
         });
         m_move = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D point, Event::SCallbackInfo& info) {
             if (!m_active && !m_pending) return;
+            if (g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) { stop(); return; }
             if (!valid()) { stop(); return; }
             m_delta = point - m_origin;
             if (m_pending) {

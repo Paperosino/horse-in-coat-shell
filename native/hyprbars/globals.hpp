@@ -27,6 +27,8 @@ class CHyprBar;
 struct SGlobalState {
     std::vector<SHyprButton>  buttons;
     std::vector<WP<CHyprBar>> bars;
+    CHyprSignalListener pointerMove, pointerButton;
+    WP<CHyprBar> pointerHovered, pointerPressed;
     uint32_t                  nobarRuleIdx      = 0;
     uint32_t                  barColorRuleIdx   = 0;
     uint32_t                  titleColorRuleIdx = 0;

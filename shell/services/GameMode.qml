@@ -29,6 +29,12 @@ Singleton {
         if (scanout) values["render:direct_scanout"] = scanout === 1 ? 2 : 1;
         return values;
     }
+    function quietOn(screen:var):bool {
+        if(!enabled||!screen)return false;
+        const monitor=Hypr.monitorFor(screen);
+        if(monitor?.lastIpcObject.specialWorkspace?.name)return false;
+        return monitor?.activeWorkspace?.toplevels.values.some(t=>(t.lastIpcObject.fullscreen&2)!==0)??false;
+    }
     function captureOptions(): bool {
         const original = {};
         for (const key of Object.keys(overrides)) {

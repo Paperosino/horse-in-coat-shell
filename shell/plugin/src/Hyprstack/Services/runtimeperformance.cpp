@@ -1,4 +1,6 @@
 #include "runtimeperformance.hpp"
+#include "telemetrypolicy.hpp"
+#include "../../../../../native/system/game_activity.hpp"
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
@@ -136,6 +138,8 @@ RuntimePerformance::RuntimePerformance(QObject *parent)
   updateTimer();
 }
 RuntimePerformance::~RuntimePerformance() {
+  m_gameMode=false;publishGameActivity();
+  hics::performance::setTelemetryGaming(false);
   if (m_prefetch) {
     m_prefetch->disconnect(this);
     m_prefetch->setParent(nullptr);
@@ -308,11 +312,24 @@ void RuntimePerformance::evaluateGame() {
   updateLease();
   emit gameChanged();
 }
+void RuntimePerformance::publishGameActivity() {
+  const QString root=QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation)+"/hics";
+  const QString path=root+"/game-mode-"+QString::number(QCoreApplication::applicationPid())+".json";
+  if(!m_gameMode){QFile::remove(path);return;}
+  QDir().mkpath(root);
+  const auto pid=QCoreApplication::applicationPid();
+  const auto start=hics::game::processStart("/proc/"+QString::number(pid)+"/stat");
+  if(start.isEmpty())return;
+  QSaveFile file(path);file.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner);
+  if(file.open(QIODevice::WriteOnly)){file.write(QJsonDocument(QJsonObject{{"active",true},{"pid",pid},{"start",QString::fromLatin1(start)}}).toJson(QJsonDocument::Compact));file.commit();}
+}
 void RuntimePerformance::setSessionState(bool gameMode, bool onBattery,
                                          bool locked) {
   if (m_gameMode == gameMode && m_onBattery == onBattery && m_locked == locked)
     return;
   m_gameMode = gameMode;
+  hics::performance::setTelemetryGaming(gameMode);
+  publishGameActivity();
   m_onBattery = onBattery;
   m_locked = locked;
   if (gameMode || locked ||

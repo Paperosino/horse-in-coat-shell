@@ -23,6 +23,8 @@ namespace Event {
 class CHyprBar : public IHyprWindowDecoration {
   public:
     CHyprBar(PHLWINDOW);
+    static void dispatchPointerMove(Vector2D, Event::SCallbackInfo&);
+    static void dispatchPointerButton(IPointer::SButtonEvent, Event::SCallbackInfo&);
     virtual ~CHyprBar();
 
     virtual SDecorationPositioningInfo getPositioningInfo();
@@ -101,12 +103,12 @@ class CHyprBar : public IHyprWindowDecoration {
     CBox assignedBoxGlobal();
 
     CHyprSignalListener m_pMinimizeCallback;
-    CHyprSignalListener m_pMouseButtonCallback;
+
     CHyprSignalListener m_pTouchDownCallback;
     CHyprSignalListener m_pTouchUpCallback;
 
     CHyprSignalListener m_pTouchMoveCallback;
-    CHyprSignalListener m_pMouseMoveCallback;
+
 
     std::string         m_szLastTitle;
 

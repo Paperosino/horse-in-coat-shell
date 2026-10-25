@@ -13,6 +13,8 @@ class TickingService : public Service {
 
 public:
     explicit TickingService(QObject* parent = nullptr);
+    static void setGameMode(bool active);
+    static bool gaming();
 
     [[nodiscard]] int updateInterval() const;
 
@@ -20,6 +22,7 @@ signals:
     void updateIntervalChanged();
 
 protected:
+    bool eventFilter(QObject* watched,QEvent* event) override;
     virtual void tick() = 0;
     virtual void onStopped() {}
 
@@ -30,7 +33,7 @@ private:
     void applyInterval(int ms);
 
     QTimer* m_timer;
-    int m_interval = 1000;
+    int m_interval = 1000, m_baseInterval = 1000;
     bool m_running = false;
 };
 
