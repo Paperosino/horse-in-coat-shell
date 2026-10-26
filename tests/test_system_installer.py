@@ -23,7 +23,7 @@ class SystemInstaller(unittest.TestCase):
 
  def test_fresh_checkout_includes_installer_dependencies(self):
   if not (ROOT/'.git').exists():self.skipTest('archive checkout')
-  required=['native/system/CMakeLists.txt','third_party/phantomat/main.cpp','distribution/install_system_helper.py','distribution/native_plugins.py','shell/assets/gtk_theme.py','packaging/arch/hic-shell.install','tests/fixtures/virtual-pointer.c']
+  required=['install.sh','native/system/CMakeLists.txt','third_party/phantomat/main.cpp','distribution/install_system_helper.py','distribution/native_plugins.py','shell/assets/gtk_theme.py','packaging/arch/hic-shell.install','tests/fixtures/virtual-pointer.c']
   result=subprocess.run(['git','check-ignore',*required],cwd=ROOT,text=True,capture_output=True)
   self.assertEqual(result.stdout,'',result.stdout)
 
@@ -89,13 +89,35 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
   self.assertIn(['--global','enable','hics-desktop.service'],commands)
 
  def test_first_install_starts_shell_only_with_hyprland_environment(self):
-  self.env['HICS_TEST_MANAGER_ENV']='HYPRLAND_INSTANCE_SIGNATURE=fixture\nWAYLAND_DISPLAY=wayland-1'
+  import socket
+  runtime=self.directory/'runtime';(runtime/'hypr/fixture').mkdir(parents=True)
+  sockets=[]
+  for name in ('hypr/fixture/.socket.sock','wayland-1'):
+   sock=socket.socket(socket.AF_UNIX);sock.bind(str(runtime/name));sockets.append(sock);self.addCleanup(sock.close)
+  self.env['HICS_TEST_MANAGER_ENV']='HYPRLAND_INSTANCE_SIGNATURE=fixture\nWAYLAND_DISPLAY=wayland-1\nXDG_RUNTIME_DIR='+str(runtime)
   result,commands=self.run_hook()
   self.assertIn(['--user','--machine=1000@.host','restart','hic-session.service'],commands)
   self.assertIn(['--user','--machine=1001@.host','restart','hic-session.service'],commands)
+  for unit in ('hics-configuration.service','hics-displays.service','hics-desktop.service'):
+   self.assertIn(['--user','--machine=1000@.host','restart',unit],commands)
 
  def test_no_running_user_managers_do_not_start_a_shell(self):
   self.env['HICS_TEST_UNITS']=''
   result,commands=self.run_hook()
   self.assertEqual(len(commands),1)
   self.assertEqual(commands[0][0],'list-units')
+
+ def test_stale_graphical_environment_without_sockets_does_not_start_services(self):
+  self.env['HICS_TEST_MANAGER_ENV']='HYPRLAND_INSTANCE_SIGNATURE=gone\nWAYLAND_DISPLAY=wayland-999\nXDG_RUNTIME_DIR='+str(self.directory)
+  _,commands=self.run_hook()
+  self.assertFalse(any('restart' in command or 'start' in command for command in commands))
+ def test_offline_install_still_enables_all_own_services(self):
+  import json
+  if not Path('/usr/share/hyprstack').is_symlink():self.skipTest('requires existing compatibility link')
+  result=subprocess.run(['bash','-c','. "$1"; hics_systemd_running() { return 1; }; post_install','hook-test',str(ROOT/'packaging/arch/hic-shell.install')],env=self.env,text=True,capture_output=True)
+  self.assertEqual(result.returncode,0,result.stderr)
+  commands=[json.loads(line) for line in self.log.read_text().splitlines()]
+  for unit in ('hics-system.service','hics-memory.service'):self.assertIn(['enable',unit],commands)
+  for unit in ('hic-session.service','hics-desktop.service','hics-displays.service','hics-configuration.service'):self.assertIn(['--global','enable',unit],commands)
+  self.assertFalse(any('restart' in command or 'daemon-reload' in command for command in commands))
+  self.assertFalse(any('hics-screen-reader.service' in command for command in commands))

@@ -244,7 +244,7 @@ def main(argv=None):
                     update.transaction("install")
         if shutil.which("systemctl"):
             subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
-            subprocess.run(["systemctl", "--user", "enable", "hic-session.service", "hics-desktop.service"], check=True)
+            subprocess.run(["systemctl", "--user", "enable", "hic-session.service", "hics-desktop.service", "hics-displays.service", "hics-configuration.service"], check=True)
         successful = True
         print("Готово. Войдите в Hyprland и выполните hics-doctor.", flush=True)
         return 0

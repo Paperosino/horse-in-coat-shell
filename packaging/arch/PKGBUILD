@@ -2,7 +2,7 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=66
+pkgrel=67
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 # Preserve bundled runtime/plugin checksums generated during packaging.
@@ -10,7 +10,7 @@ options=(!strip !debug)
 install=hic-shell.install
 url="https://github.com/Paperosino/horse-in-coat-shell"
 license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US)
-depends=('ffmpeg' hyprland libqalculate lm_sensors pixman libdrm libinput systemd
+depends=('ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman libdrm libinput systemd
     hyprland-guiutils wayland libxkbcommon pango cairo libcups cups accountsservice fprintd fwupd colord gamemode flatpak apparmor restic seahorse fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt squeekboard poppler icu python python-pillow kitty firefox fuzzel
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
     glib2 gvfs libnotify brightnessctl networkmanager libnm libsecret gnome-keyring pipewire pipewire-pulse libpulse wireplumber
@@ -20,7 +20,7 @@ depends=('ffmpeg' hyprland libqalculate lm_sensors pixman libdrm libinput system
     'util-linux>=2.41' kmod btrfs-progs bubblewrap
     orca python-atspi at-spi2-core speech-dispatcher espeak-ng
     xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland)
-makedepends=(base-devel git cmake ninja pkgconf python gettext nlohmann-json
+makedepends=(base-devel git rsync cmake ninja pkgconf python gettext nlohmann-json
     qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-svg
     qt6-imageformats qt6-multimedia spirv-tools wayland wayland-protocols mesa vulkan-headers
     libpipewire pam polkit glib2 cli11 hyprland lua hyprgraphics)

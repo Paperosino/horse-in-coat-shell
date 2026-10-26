@@ -46,6 +46,10 @@ if command -v systemctl >/dev/null && systemctl --user show-environment >/dev/nu
         systemctl --user stop hic-session.service 2>/dev/null || true
         exec python3 "$data_dir/shell/assets/session_runner.py" stop
     fi
+    # Import the real compositor environment before starting conditional units.
+    # start is idempotent and leaves active display rollback/history jobs intact.
+    systemctl --user enable hic-session.service hics-desktop.service hics-displays.service hics-configuration.service
+    systemctl --user start hics-desktop.service hics-displays.service hics-configuration.service
     systemctl --user "$action" hic-session.service
     # Wait for observable compositor/configuration readiness, then load once.
     if [[ $action != stop ]] && command -v hyprctl >/dev/null 2>&1; then

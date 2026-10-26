@@ -14,6 +14,23 @@ Hyprland, PAM and Polkit modules, and **Qt ≥ 6.9**.
 
 <a id="arch"></a>
 
+## One-command Arch installation
+
+Run as a regular user: `./install.sh`. It installs missing runtime and build
+dependencies from `packaging/arch/PKGBUILD`, validates Hyprland 0.56.2 and its
+headers, builds a package, and installs it through pacman. Sudo prompts normally.
+`./install.sh --package /path/to/hic-shell.pkg.tar.zst` installs a prebuilt package
+and its runtime dependencies without build tools. Add `--dry-run` to inspect the plan.
+
+The package enables `hics-system` and `hics-memory` system services, and
+`hic-session`, `hics-desktop`, `hics-displays`, `hics-configuration` user services.
+Active Hyprland sessions start all four user services immediately. Offline/chroot
+installation enables units for the next suitable session. Screen reader and
+optional packages remain user-controlled. Existing configuration is preserved;
+initial compositor configuration is described below. No partial database refresh
+or automatic full OS upgrade is performed. Native plugin updates need a new
+compositor session; user applications are preserved during shell restarts.
+
 ## Arch Linux / CachyOS / EndeavourOS / Manjaro
 
 ### 1. Dependencies
@@ -48,7 +65,7 @@ cd hics
 packaging/arch/build-package.sh --install
 ```
 
-The script installs any missing build dependencies and builds the
+The script installs any missing runtime and build dependencies and builds the
 `hic-shell` package with a bundled runtime: its own Quickshell
 **v0.3.2** and private Qt libraries in `/usr/share/hics/qs`. System
 updates of the `quickshell` and `qt6-*` packages no longer affect the shell;

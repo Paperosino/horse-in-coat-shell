@@ -1,3 +1,16 @@
+# A user manager may retain an old compositor environment after logout.
+# Never start a graphical shell based on environment strings alone.
+hics_hyprland_environment_ready() {
+    hics_signature=$(printf '%s\n' "$2" | sed -n 's/^HYPRLAND_INSTANCE_SIGNATURE=//p')
+    hics_wayland=$(printf '%s\n' "$2" | sed -n 's/^WAYLAND_DISPLAY=//p')
+    hics_runtime=$(printf '%s\n' "$2" | sed -n 's/^XDG_RUNTIME_DIR=//p')
+    case "$hics_signature" in ''|*[!a-zA-Z0-9_.-]*) return 1 ;; esac
+    [ -n "$hics_wayland" ] || return 1
+    hics_runtime=${hics_runtime:-/run/user/$1}
+    [ -S "$hics_runtime/hypr/$hics_signature/.socket.sock" ] || return 1
+    case "$hics_wayland" in /*) [ -S "$hics_wayland" ] ;; *) [ -S "$hics_runtime/$hics_wayland" ] ;; esac
+}
+
 hics_restart_user_sessions() {
     # Connect only to running user managers. An explicit Hyprland environment
     # is required before starting a previously inactive graphical shell.
@@ -16,43 +29,53 @@ hics_restart_user_sessions() {
                 printf 'hics: could not reload user manager %s; session was not restarted.\n' "$hics_uid" >&2
                 continue
             fi
-            systemctl --user --machine="$hics_uid@.host" try-restart hics-configuration.service || true
-            systemctl --user --machine="$hics_uid@.host" try-restart hics-displays.service || true
-            systemctl --user --machine="$hics_uid@.host" try-restart hics-desktop.service || true
             hics_action=try-restart
-            if systemctl --user --machine="$hics_uid@.host" show-environment |
-                grep -q '^HYPRLAND_INSTANCE_SIGNATURE=.'; then
+            if ! hics_environment=$(systemctl --user --machine="$hics_uid@.host" show-environment); then
+                printf 'hics: could not read session environment for user %s.\n' "$hics_uid" >&2
+                continue
+            fi
+            if hics_hyprland_environment_ready "$hics_uid" "$hics_environment"; then
                 hics_action=restart
             fi
+            for hics_helper in hics-configuration.service hics-displays.service hics-desktop.service; do
+                if ! systemctl --user --machine="$hics_uid@.host" "$hics_action" "$hics_helper"; then
+                    printf 'hics: could not activate %s for user %s.\n' "$hics_helper" "$hics_uid" >&2
+                fi
+            done
             if ! systemctl --user --machine="$hics_uid@.host" "$hics_action" hic-session.service; then
                 printf 'hics: could not restart the active shell for user %s.\n' "$hics_uid" >&2
             fi
         done
 }
 
+hics_systemd_running() {
+    [ -d /run/systemd/system ]
+}
+
 post_install() {
-    if [ -d /run/systemd/system ]; then
+    # Enabling writes persistent symlinks and also works inside an offline
+    # pacstrap/chroot. Only daemon-reload/start needs a running system manager.
+    install -d -m755 /etc/hics /etc/systemd/zram-generator.conf.d
+    if hics_systemd_running; then
         systemctl stop hyprstack-system.service 2>/dev/null || true
-        systemctl daemon-reload
-        systemctl enable hics-system.service || return 1
-        systemctl restart hics-system.service || return 1
-        install -d -m755 /etc/hics /etc/systemd/zram-generator.conf.d
-        systemctl enable hics-memory.service || return 1
-        systemctl restart hics-memory.service || return 1
-        systemctl --global enable hic-session.service || return 1
-        systemctl --global enable hics-displays.service || return 1
-        systemctl --global enable hics-configuration.service || return 1
-        systemctl --global enable hics-desktop.service || return 1
-        # Keep existing compositor configuration paths usable across the rename.
-        if [ ! -L /usr/share/hyprstack ]; then
-            if [ -e /usr/share/hyprstack ]; then
-                # Preserve files modified outside the package before replacing
-                # the old data path with its compatibility link.
-                mv /usr/share/hyprstack "/usr/share/hyprstack.legacy-$(date +%s)"
-            fi
-            ln -s hics /usr/share/hyprstack
+        systemctl daemon-reload || return 1
+    fi
+    systemctl enable hics-system.service || return 1
+    systemctl enable hics-memory.service || return 1
+    for hics_unit in hic-session.service hics-displays.service hics-configuration.service hics-desktop.service; do
+        systemctl --global enable "$hics_unit" || return 1
+    done
+    # Screen reader is user-controlled, never enabled as a side effect.
+    if [ ! -L /usr/share/hyprstack ]; then
+        if [ -e /usr/share/hyprstack ]; then
+            mv /usr/share/hyprstack "/usr/share/hyprstack.legacy-$(date +%s)" || return 1
         fi
-        systemctl reload dbus.service
+        ln -s hics /usr/share/hyprstack || return 1
+    fi
+    if hics_systemd_running; then
+        systemctl restart hics-system.service || return 1
+        systemctl restart hics-memory.service || return 1
+        systemctl reload dbus.service || return 1
         hics_restart_user_sessions
     fi
 }
