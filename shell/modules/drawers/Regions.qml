@@ -84,9 +84,9 @@ Region {
 
     Region {
         readonly property var surface: root.panels.dock.previewSurface
-        x: root.panels.x + root.panels.dock.x + surface.x
+        x: root.panels.x + root.panels.dock.x + surface.x + surface.revealX
         y: root.panels.y + root.panels.dock.y + surface.y
-        width: surface.visible ? surface.width : 0
+        width: surface.visible ? surface.revealWidth : 0
         height: surface.visible ? surface.height : 0
         intersection: Intersection.Subtract
     }

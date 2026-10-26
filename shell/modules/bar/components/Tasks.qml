@@ -287,7 +287,7 @@ StyledClippingRect {
                         entry?.execute();
                     }
 
-                    IconImage {
+                    ScalableIcon {
                         id: appIcon
                         anchors.left: parent.left
                         anchors.leftMargin: 9 * Tokens.scale
@@ -546,7 +546,7 @@ StyledClippingRect {
         color: Colours.palette.m3surfaceContainerHighest
         radius: Tokens.rounding.full
         border.color: Colours.palette.m3primary
-        IconImage {
+        ScalableIcon {
             anchors.left: parent.left
             anchors.leftMargin: 9 * Tokens.scale
             anchors.verticalCenter: parent.verticalCenter

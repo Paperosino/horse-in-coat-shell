@@ -38,9 +38,9 @@ QFont FontStyleBase::buildFont(const settings::ObjectNode* cfg, const QString& f
 
     QFont font;
     font.setFamily(family.isEmpty() ? fallbackFamily : family);
-    const int scaledSize = static_cast<int>(size * scale);
-    const int cappedSize = scaledSize > 0 ? scaledSize : 1;
-    font.setPointSize(cappedSize);
+    const qreal cappedSize = std::max(qreal(1), size * scale);
+    font.setPointSizeF(cappedSize);
+    font.setStyleStrategy(QFont::PreferAntialias);
     font.setVariableAxis("opsz", static_cast<float>(cappedSize));
     font.setWeight(weight);
     font.setVariableAxis("wght", weight);
@@ -115,7 +115,7 @@ IconFontStyle::IconFontStyle(QObject* parent)
     : FontStyleBase(parent)
     , m_builders(new IconFontBuilders(this, this)) {}
 
-FontBuilder IconFontStyle::size(int pointSize) {
+FontBuilder IconFontStyle::size(qreal pointSize) {
     return FontBuilder(m_small).size(pointSize);
 }
 

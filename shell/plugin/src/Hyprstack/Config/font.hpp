@@ -106,7 +106,7 @@ class IconFontStyle : public FontStyleBase {
 public:
     explicit IconFontStyle(QObject* parent = nullptr);
 
-    Q_INVOKABLE FontBuilder size(int pointSize);
+    Q_INVOKABLE FontBuilder size(qreal pointSize);
 
     void bind(settings::ObjectNode* cfg) override;
 

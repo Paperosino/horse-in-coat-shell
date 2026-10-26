@@ -15,7 +15,7 @@ public:
     explicit FontBuilder(const QFont& font);
 
     [[nodiscard]] Q_INVOKABLE FontBuilder family(const QString& family);
-    [[nodiscard]] Q_INVOKABLE FontBuilder size(int pointSize);
+    [[nodiscard]] Q_INVOKABLE FontBuilder size(qreal pointSize);
     [[nodiscard]] Q_INVOKABLE FontBuilder weight(QFont::Weight weight);
     [[nodiscard]] Q_INVOKABLE FontBuilder italic(bool on = true);
     [[nodiscard]] Q_INVOKABLE FontBuilder stretch(int stretch);

@@ -49,6 +49,12 @@ ShellRoot {
   if(item.objectName===name && item.visible)result.push(item);
   for(const child of item.children??[])find(child,name,result);
  }
+ function visualInfo(button) {
+  const badge=button.visual.children.find(c=>c.objectName==="dockNotificationBadge");
+  const label=badge?.children.find(c=>c.objectName==="dockBadgeLabel");
+  const icon=button.visual.children.find(c=>c.objectName==="dockApplicationIcon");
+  return {badgeHeight:badge?.height??0,badgePoints:label?.font.pointSize??0,rasterExtent:icon?.rasterExtent??0};
+ }
  function box(item) {const p=item.mapToItem(win.contentItem,0,0);return {x:p.x,y:p.y,w:item.width,h:item.height,text:item.text??""};}
  FileView {id:status;path:STATE;printErrors:false}
  FileView {path:CONTROL;watchChanges:true;printErrors:false;onFileChanged:reload();onLoaded:{
@@ -67,9 +73,9 @@ ShellRoot {
   if(!dock)return;
   let buttons=[],appsButtons=[],titles=[],clocks=[],captures=[];root.find(dock,"dockAppsButton",appsButtons);root.find(dock.previewSurface,"dockWindowCapture",captures);root.find(win.contentItem,"taskbarClock",clocks);root.find(dock,"dockTaskButton",buttons);root.find(dock,"dockWindowTitle",titles);
   status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},key:dock.testKey,clicks:dock.testClicks,presses:dock.testPresses,cancels:dock.testCancels,dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,dockBox:root.box(dock),membraneShapes:dock.membraneShapes,membraneBounds:dock.membraneBounds,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),listOpen:dock.listOpen,open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
-   captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
+   captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewReveal:dock.previewSurface.reveal,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
    appsButtons:appsButtons.map(b=>Object.assign(root.box(b),{wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),
-   buttons:buttons.map(b=>Object.assign(root.box(b),{badgeCount:b.badgeCount,key:b.modelData,identity:b.testIdentity,windowCount:b.windows.length,wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
+   buttons:buttons.map(b=>Object.assign(root.box(b),{visualInfo:root.visualInfo(b),badgeCount:b.badgeCount,key:b.modelData,identity:b.testIdentity,windowCount:b.windows.length,wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
  }}
 }'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))).replace('BADGE_EMITTER',json.dumps(str(base/'badge-emitter'))))
     fixtures = ROOT/'tests/fixtures'
@@ -137,6 +143,17 @@ ShellRoot {
         print('PASS: application counts override history, hide explicitly, and clear on sender exit; reading history clears fallback',flush=True)
         if os.environ.get('HICS_DOCK_LIFECYCLE_ONLY'):
             pinned_lifecycle();raise SystemExit(0)
+        measured=[]
+        for size in (32,44,64):
+            prefs=json.loads((base/'config/hics/dock.json').read_text());prefs['iconSize']=size
+            (base/'config/hics/dock.json').write_text(json.dumps(prefs))
+            value=wait_for(lambda s:bool(s.get('buttons')) and abs(s['buttons'][0]['w']-size)<.1)
+            measured.append(value['buttons'][0]['visualInfo'])
+        assert abs(measured[2]['badgeHeight']/measured[0]['badgeHeight']-2)<.01,measured
+        assert abs(measured[2]['badgePoints']/measured[0]['badgePoints']-2)<.01,measured
+        prefs['iconSize']=44;(base/'config/hics/dock.json').write_text(json.dumps(prefs))
+        wait_for(lambda s:abs(s['buttons'][0]['w']-44)<.1)
+        print('PASS: badge geometry and fractional text scale with dock icon size',flush=True)
         time.sleep(1.5)
         snapshot=read()
         pointer_env=dict(env,HYPRSTACK_POINTER_WIDTH=str(snapshot['screenSize']['w']),HYPRSTACK_POINTER_HEIGHT=str(snapshot['screenSize']['h']))
@@ -154,6 +171,7 @@ ShellRoot {
         raised=read()
         assert raised['hoverAmount']>.8,('Dock hover field never activated',raised)
         assert raised['buttons'][0]['visual']['y'] < raised['buttons'][0]['y']-15,('Icon did not lift',raised)
+        assert raised['buttons'][0]['visualInfo']['rasterExtent']==button['visualInfo']['rasterExtent'],'Hover reloaded the icon texture'
         assert abs(raised['dockWidth']-base_width)<1,'Hover changed dock width'
         def assert_membrane(snapshot):
             for button in snapshot['buttons']+snapshot.get('appsButtons',[]):
@@ -195,9 +213,10 @@ ShellRoot {
             return read()
         menu=open_menu();title=menu['titles'][0];send('move',title['x']+30,title['y']+title['h']/2)
         time.sleep(.3);assert not read()['preview'],'Preview appeared before the one-second hover delay'
-        snapshot=wait_for(lambda s:s.get('preview'),3)
+        snapshot=wait_for(lambda s:s.get('preview') and 0<s.get('previewReveal',0)<1,3)
+        print('PASS: preview content and shared blob reveal through intermediate animation states',flush=True)
         assert snapshot['source'],'Preview has no toplevel capture source'
-        snapshot=wait_for(lambda s:s.get('hasContent'),4)
+        snapshot=wait_for(lambda s:s.get('hasContent') and s.get('previewReveal',0)>.999,4)
         image=base/'preview.png';subprocess.run(['grim',str(image)],env=env,check=True,capture_output=True)
         from PIL import Image
         box=snapshot['captureGeometry'];crop=Image.open(image).convert('RGB').crop((round(box['x']),round(box['y']),round(box['x']+box['w']),round(box['y']+box['h'])))

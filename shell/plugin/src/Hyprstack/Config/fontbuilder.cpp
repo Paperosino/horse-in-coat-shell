@@ -1,6 +1,7 @@
 #include "fontbuilder.hpp"
 
 #include <qloggingcategory.h>
+#include <cmath>
 
 namespace {
 
@@ -13,17 +14,17 @@ namespace hyprstack::config {
 using Qt::StringLiterals::operator""_s;
 
 FontBuilder::FontBuilder(const QFont& font)
-    : m_font(font) {}
+    : m_font(font) { m_font.setStyleStrategy(QFont::PreferAntialias); }
 
 FontBuilder FontBuilder::family(const QString& family) {
     m_font.setFamily(family);
     return *this;
 }
 
-FontBuilder FontBuilder::size(int pointSize) {
-    if (pointSize <= 0)
+FontBuilder FontBuilder::size(qreal pointSize) {
+    if (!std::isfinite(pointSize) || pointSize <= 0)
         pointSize = 1;
-    m_font.setPointSize(pointSize);
+    m_font.setPointSizeF(pointSize);
     m_font.setVariableAxis("opsz", static_cast<float>(pointSize));
     return *this;
 }
@@ -93,7 +94,7 @@ FontBuilder FontBuilder::width(float value) {
 }
 
 FontBuilder FontBuilder::scale(qreal factor) {
-    return size(static_cast<int>(m_font.pointSize() * factor));
+    return size(m_font.pointSizeF() * factor);
 }
 
 } // namespace hyprstack::config

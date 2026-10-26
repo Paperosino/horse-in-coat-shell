@@ -270,9 +270,9 @@ StyledWindow {
             readonly property var surface: panels.dock.previewSurface
             visible: surface.visible
             group: visible ? blobGroup : null
-            x: panels.x + panels.dock.x + surface.x
+            x: panels.x + panels.dock.x + surface.x + surface.revealX
             y: panels.y + panels.dock.y + surface.y
-            implicitWidth: surface.width
+            implicitWidth: surface.revealWidth
             implicitHeight: surface.height
             radius: Tokens.rounding.extraLarge
             deformScale: 0

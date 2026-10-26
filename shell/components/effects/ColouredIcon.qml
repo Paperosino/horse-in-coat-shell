@@ -1,16 +1,19 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell.Widgets
+import qs.components
 import Hyprstack.Images
 
-IconImage {
+ScalableIcon {
     id: root
 
     required property color colour
 
     asynchronous: true
 
+    layer.textureSize: effectTextureSize
+    layer.smooth: true
+    layer.mipmap: true
     layer.enabled: true
     layer.effect: Colouriser {
         sourceColor: analyser.dominantColour

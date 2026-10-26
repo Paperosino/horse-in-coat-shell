@@ -125,6 +125,7 @@ Item {
     Bar {
         id: content
 
+        iconRasterScale: root.panelScale
         width: root.width / root.panelScale
         height: root.contentWidth / root.panelScale
         scale: root.panelScale

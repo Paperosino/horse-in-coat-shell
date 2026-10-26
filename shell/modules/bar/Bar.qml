@@ -15,6 +15,7 @@ import "../../utils/scripts/panel-layout.js" as PanelLayout
 Item {
     id: root
 
+    property real iconRasterScale: 1
     required property ShellScreen screen
     required property ScreenState screenState
     required property BarPopouts.Wrapper popouts

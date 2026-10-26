@@ -260,6 +260,8 @@ ShellRoot {
     p=base/'shell/shell.qml';p.write_text(p.read_text().replace('fixture.searchAttempts=0;fixture.searchRetry.restart();','fixture.revealSearchTarget();'))
     if os.environ.get('HICS_TEST_PANEL_CONTROLS'):
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/panel-controls.qml').read_text())
+    if os.environ.get('HICS_TEST_SCALING'):
+        (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/scaling-quality.qml').read_text())
     (base/'compositor.lua').write_text('hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})\n')
     env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'))
     env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)

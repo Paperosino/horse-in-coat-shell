@@ -3,6 +3,7 @@ import Hyprstack.Config
 import qs.services
 
 StyledText {
+    renderTypeQuality: Text.HighRenderTypeQuality
     property real fill
     property int grade: Colours.light ? 0 : -25
     property font fontStyle: Tokens.font.icon.small

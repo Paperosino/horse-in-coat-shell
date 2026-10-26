@@ -28,6 +28,7 @@ Item {
     property real maxWidth: screen.width
     property real maxHeight: screen.height
     property real viewportHeight: screen.height
+    readonly property real iconRasterScale: Math.max(1, DockConf.magnification * 1.12 * 1.05)
     readonly property real iconSize: DockConf.iconSize * Tokens.scale
     readonly property alias listSurface: appList
     readonly property alias menuSurface: taskMenu
@@ -252,7 +253,9 @@ Item {
         const inside = surfaces.some(surface => {
             if (!surface.visible) return false;
             const p = surface.mapFromItem(item, x, y);
-            return p.x >= 0 && p.y >= 0 && p.x <= surface.width && p.y <= surface.height;
+            const left = surface === windowPreview ? windowPreview.revealX : 0;
+            const width = surface === windowPreview ? windowPreview.revealWidth : surface.width;
+            return p.x >= left && p.y >= 0 && p.x <= left + width && p.y <= surface.height;
         });
         if (!inside) closePopups();
     }
@@ -440,6 +443,7 @@ Item {
                         readonly property string badgeId: ApplicationBadges.canonicalId(entry?.id || group?.key || "")
                         readonly property var appBadge: ApplicationBadges.entries[badgeId]
                         readonly property int notificationCount: Notifs.unreadByApplication[badgeId] ?? 0
+                        readonly property real badgeScale: root.iconSize / 44
                         readonly property int badgeCount: !DockConf.notificationBadges || Presentation.privateOn(root.screen) ? 0
                             : DockConf.badgeSource !== "notifications" && appBadge !== undefined
                                 ? (appBadge.visible ? appBadge.count : 0)
@@ -555,24 +559,27 @@ Item {
                             anchors.right: parent.right; anchors.top: parent.top
                             anchors.rightMargin: 0; anchors.topMargin: 0
                             readonly property bool showing: task.badgeCount > 0
-                            width: Math.max(18 * Tokens.scale, badgeLabel.implicitWidth + 8 * Tokens.scale)
-                            height: 18 * Tokens.scale; radius: height / 2
+                            width: Math.max(18 * task.badgeScale, badgeLabel.implicitWidth + 8 * task.badgeScale)
+                            height: 18 * task.badgeScale; radius: height / 2
                             color: Colours.palette.m3error
-                            border.width: 1.5 * Tokens.scale; border.color: Colours.palette.m3surfaceContainer
+                            border.width: 1.5 * task.badgeScale; border.color: Colours.palette.m3surfaceContainer
                             opacity: showing ? 1 : 0
                             scale: showing ? 1 : 0.65
                             visible: opacity > 0
                             Behavior on opacity { enabled: !GlobalConfig.appearance.reducedMotion; Anim { type: Anim.FastEffects } }
                             Behavior on scale { enabled: !GlobalConfig.appearance.reducedMotion; Anim { type: Anim.FastSpatial } }
                             StyledText {
-                                id: badgeLabel; anchors.centerIn: parent
+                                id: badgeLabel; objectName: "dockBadgeLabel"; anchors.centerIn: parent
                                 text: task.badgeCount > 99 ? "99+" : String(task.badgeCount)
-                                color: Colours.palette.m3onError; font: Tokens.font.label.small
+                                color: Colours.palette.m3onError
+                                renderTypeQuality: Text.HighRenderTypeQuality
+                                font: Tokens.font.label.builders.small.scale(DockConf.iconSize / 44).build()
                             }
                         }
 
-                        IconImage {
+                        ScalableIcon {
                             id: appIcon
+                            objectName: "dockApplicationIcon"
 
                             anchors.centerIn: parent
                             implicitSize: Math.round(parent.width * 0.62)
@@ -852,36 +859,58 @@ Item {
 
     Item {
         id: windowPreview
-        visible: root.menuOpen && !!root.previewWindow && taskMenu.visible && !(Presentation.privateOn(root.screen))
+        readonly property bool requested: root.menuOpen && !!root.previewWindow && taskMenu.visible && !Presentation.privateOn(root.screen)
+        property var heldWindow: null
+        property var requestedWindow: root.previewWindow
+        property real contentOpacity: 1
+        onRequestedWindowChanged: if (requestedWindow) {
+            heldWindow = requestedWindow;
+            if (reveal > 0.999) contentArrival.restart();
+        }
+        Anim { id: contentArrival; target: windowPreview; property: "contentOpacity"; from: 0.65; to: 1; type: Anim.FastEffects }
+        property real reveal: requested ? 1 : 0
+        Behavior on reveal { enabled: root.menuOpen; Anim { type: Anim.FastSpatial } }
+        onRevealChanged: if (reveal < 0.001 && !requested) heldWindow = null
+        readonly property bool opensRight: x >= taskMenu.x
+        readonly property real revealX: opensRight ? 0 : width * (1 - reveal)
+        readonly property real revealWidth: width * reveal
+        visible: root.menuOpen && taskMenu.visible && !Presentation.privateOn(root.screen) && (requested || reveal > 0.001)
         width: Math.min(320 * Tokens.scale, root.screen.width - 32 * Tokens.scale)
         height: 200 * Tokens.scale
-        // Overlap the menu edge so both surfaces form one continuous blob.
+        // The reveal and background grow together from the menu's shared edge.
         x: taskMenu.x + taskMenu.width + width - 14 * Tokens.scale <= root.maxWidth - root.x
             ? taskMenu.x + taskMenu.width - 14 * Tokens.scale : taskMenu.x - width + 14 * Tokens.scale
         y: Math.max(-root.y, Math.min(root.viewportHeight - root.y - height, taskMenu.y))
         HoverHandler { onHoveredChanged: { if (hovered) previewReset.stop(); else if (!root.hoveredWindow) previewReset.restart(); } }
-        Column {
-            anchors.fill: parent
-            anchors.margins: 18 * Tokens.scale
-            spacing: 8 * Tokens.scale
-            StyledText { width: parent.width; text: root.previewWindow?.title ?? ""; elide: Text.ElideRight; font: Tokens.font.body.small }
-            StyledClippingRect {
-                width: parent.width
-                height: parent.height - 30 * Tokens.scale
-                radius: Tokens.rounding.medium
-                color: Colours.palette.m3surfaceContainerLowest
-                clip: true
-                Loader {
-                    anchors.fill: parent
-                    active: windowPreview.visible && !!root.previewWindow?.wayland
-                    sourceComponent: ScreencopyView {
-                        objectName: "dockWindowCapture"
-                        captureSource: root.previewWindow?.wayland ?? null
-                        live: true
-                        constraintSize: Qt.size(320, 180)
+        Item {
+            x: windowPreview.revealX; width: windowPreview.revealWidth; height: windowPreview.height
+            clip: true
+            Column {
+                x: 18 * Tokens.scale - parent.x
+                y: 18 * Tokens.scale + (1 - windowPreview.reveal) * 6 * Tokens.scale
+                width: windowPreview.width - 36 * Tokens.scale
+                height: windowPreview.height - 36 * Tokens.scale
+                opacity: windowPreview.reveal * windowPreview.contentOpacity
+                spacing: 8 * Tokens.scale
+                StyledText { width: parent.width; text: windowPreview.heldWindow?.title ?? ""; elide: Text.ElideRight; font: Tokens.font.body.small }
+                StyledClippingRect {
+                    width: parent.width
+                    height: parent.height - 30 * Tokens.scale
+                    radius: Tokens.rounding.medium
+                    color: Colours.palette.m3surfaceContainerLowest
+                    clip: true
+                    Loader {
+                        anchors.fill: parent
+                        active: windowPreview.visible && !!windowPreview.heldWindow?.wayland
+                        sourceComponent: ScreencopyView {
+                            objectName: "dockWindowCapture"
+                            captureSource: windowPreview.heldWindow?.wayland ?? null
+                            live: true
+                            constraintSize: Qt.size(320, 180)
+                        }
                     }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (windowPreview.requested && windowPreview.heldWindow) taskMenu.selectedTask.act("dock-activate", windowPreview.heldWindow); } }
                 }
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: taskMenu.selectedTask.act("dock-activate", root.previewWindow) }
             }
         }
     }
@@ -946,7 +975,7 @@ Item {
         color: Colours.palette.m3outlineVariant
     }
 
-    IconImage {
+    ScalableIcon {
         visible: root.draggedKey !== ""
         x: root.dragPoint.x - width / 2
         y: root.dragPoint.y - height / 2
