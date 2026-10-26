@@ -89,6 +89,18 @@ def sync_window_controls(config_root):
                 update_settings(folder/"settings.ini", "Settings", {"gtk-decoration-layout": layout})
 
 
+def apply_font_rendering(config_root):
+    """Shared grayscale AA; never change font selection, size or display DPI."""
+    atomic_text(Path(config_root) / "fontconfig/conf.d/99-hics-rendering.conf", '\n'.join([
+        '<?xml version="1.0"?>', '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">',
+        '<fontconfig><match target="font">',
+        '<edit name="antialias" mode="assign"><bool>true</bool></edit>',
+        '<edit name="hinting" mode="assign"><bool>true</bool></edit>',
+        '<edit name="hintstyle" mode="assign"><const>hintslight</const></edit>',
+        '<edit name="rgba" mode="assign"><const>none</const></edit>',
+        '</match></fontconfig>', '']))
+
+
 def apply_palette(colours, config_root, mode=None):
     names = ("surface", "onSurface", "surfaceContainer", "primary", "onPrimary", "outlineVariant")
     values = {}
@@ -155,8 +167,9 @@ def apply_palette(colours, config_root, mode=None):
         f"*:disabled {{ color: {muted}; }}",
     ]
     css = "/* Generated from the hics palette. */\n" + "\n".join(definitions + rules) + "\n"
+    apply_font_rendering(config_root)
     # GTK2 has no CSS support; it needs a real RC palette, not GTK3 theme names.
-    rc = ["# Generated from the hics palette.", 'style "hics-palette" {', '  xthickness = 2', '  ythickness = 2']
+    rc = ["# Generated from the hics palette.", 'gtk-xft-antialias = 1', 'gtk-xft-hinting = 1', 'gtk-xft-hintstyle = "hintslight"', 'gtk-xft-rgba = "none"', 'style "hics-palette" {', '  xthickness = 2', '  ythickness = 2']
     for state, bg, fg in (("NORMAL",surface,ink),("PRELIGHT",hover,ink),("ACTIVE",pressed,ink),("SELECTED",accent,on_accent),("INSENSITIVE",container,muted)):
         rc += [f'  bg[{state}] = "{bg}"', f'  base[{state}] = "{surface if state == "NORMAL" else bg}"', f'  fg[{state}] = "{fg}"', f'  text[{state}] = "{fg}"']
     rc += ['}', 'class "*" style "hics-palette"', 'widget_class "*" style "hics-palette"', '']
@@ -195,6 +208,8 @@ def apply_palette(colours, config_root, mode=None):
             "gtk-theme-name": "Adwaita-dark" if dark else "Adwaita",
             "gtk-application-prefer-dark-theme": int(dark),
             "gtk-decoration-layout": decoration_layout(config_root),
+            "gtk-xft-antialias": 1, "gtk-xft-hinting": 1,
+            "gtk-xft-hintstyle": "hintslight", "gtk-xft-rgba": "none",
         })
     # QPalette colour-role order, used by both qt5ct and qt6ct. Preserve
     # icon/font preferences while replacing the palette and widget style.
@@ -266,7 +281,7 @@ def sync_flatpaks(colours, mode=None, only_new=False):
         base = Path.home() / ".var/app" / app / "config"
         # Do not let configuration symlinks overwrite another application's
         # settings (or a host theme) while synchronising private sandboxes.
-        managed = ("gtk-2.0", "gtk-3.0", "gtk-4.0", "qt5ct", "qt6ct", "hics")
+        managed = ("gtk-2.0", "gtk-3.0", "gtk-4.0", "qt5ct", "qt6ct", "hics", "fontconfig", "fontconfig/conf.d")
         if any(parent.is_symlink() for parent in (base, base.parent, base.parent.parent, base.parent.parent.parent)) or any((base / name).is_symlink() for name in (*managed, "qt5ct/colors", "qt6ct/colors")):
             print("Skipping symlinked Flatpak config:", app, file=sys.stderr)
             continue
@@ -310,9 +325,15 @@ def sync_session_preference(colours, config_root, mode=None):
     if shutil.which("gsettings"):
         # The GTK portal forwards these changes to sandboxed GTK/Qt clients.
         for key, value in (("color-scheme", "prefer-dark" if dark else "prefer-light"),
-                           ("gtk-theme", "Adwaita-dark" if dark else "Adwaita")):
+                           ("gtk-theme", "Adwaita-dark" if dark else "Adwaita"),
+                           ("font-antialiasing", "grayscale"), ("font-hinting", "slight"),
+                           ("font-rgba-order", "none")):
             run(["gsettings", "set", "org.gnome.desktop.interface", key, value])
         run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", decoration_layout(config_root)])
+    resources = Path(config_root) / "hics/fonts.Xresources"
+    atomic_text(resources, "Xft.antialias: 1\nXft.hinting: 1\nXft.hintstyle: hintslight\nXft.rgba: none\n")
+    if os.environ.get("DISPLAY") and shutil.which("xrdb"):
+        run(["xrdb", "-merge", str(resources)])
     target = Path(os.environ.get("XDG_DATA_HOME", Path.home()/".local/share")) / "color-schemes/hics.colors"
     write_kde_scheme(config_root, target)
     environment={"QT_QPA_PLATFORMTHEME":"hics", "QT_QUICK_CONTROLS_CONF":str(Path(config_root)/"hics/qtquickcontrols2.conf")}

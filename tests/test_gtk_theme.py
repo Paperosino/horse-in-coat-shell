@@ -10,6 +10,37 @@ from gtk_theme import apply_palette
 
 
 class GtkPaletteTests(unittest.TestCase):
+    def test_font_rendering_is_shared_and_idempotent(self):
+        from gtk_theme import apply_font_rendering
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            apply_font_rendering(root)
+            target = root / "fontconfig/conf.d/99-hics-rendering.conf"
+            stamp = target.stat().st_mtime_ns
+            apply_font_rendering(root)
+            self.assertEqual(stamp, target.stat().st_mtime_ns)
+            env = dict(os.environ, XDG_CONFIG_HOME=str(root))
+            result = subprocess.run(["fc-match", "-f", "%{antialias} %{hinting} %{hintstyle} %{rgba}", "sans"],
+                                    env=env, capture_output=True, text=True, check=True)
+            self.assertEqual(result.stdout, "True True 1 5")
+            self.assertNotIn('name="dpi"', target.read_text())
+
+    def test_flatpak_font_policy_and_symlink_boundary(self):
+        from gtk_theme import sync_flatpaks
+        colours=dict(surface="101018",onSurface="e0e0e0",surfaceContainer="202028",primary="aaccee",onPrimary="102030",outlineVariant="505060")
+        with tempfile.TemporaryDirectory() as directory:
+            home=Path(directory)
+            base=home/".var/app/org.example.Test/config"
+            with patch("gtk_theme.installed_flatpaks",return_value=["org.example.Test"]), patch("pathlib.Path.home",return_value=home), patch.dict(os.environ,{"XDG_CONFIG_HOME":str(home/"config"),"XDG_DATA_HOME":str(home/"data")}):
+                sync_flatpaks(colours,"dark")
+                self.assertTrue((base/"fontconfig/conf.d/99-hics-rendering.conf").is_file())
+                import shutil
+                shutil.rmtree(base/"fontconfig")
+                outside=home/"outside";outside.mkdir()
+                (base/"fontconfig").symlink_to(outside,target_is_directory=True)
+                sync_flatpaks(colours,"dark")
+                self.assertEqual(list(outside.iterdir()),[])
+
     def test_window_buttons_follow_shell_order_and_side(self):
         from gtk_theme import decoration_layout, validate_window_controls
         import json, configparser
@@ -22,6 +53,7 @@ class GtkPaletteTests(unittest.TestCase):
             for version in ("3.0","4.0"):
                 ini=configparser.ConfigParser();ini.read(root/("gtk-"+version)/"settings.ini")
                 self.assertEqual(ini["Settings"]["gtk-decoration-layout"],"close,minimize:")
+                self.assertEqual(ini["Settings"]["gtk-xft-antialias"],"1")
             css=(root/"gtk-4.0/hics.css").read_text()
             self.assertIn("--headerbar-border-color: #505060",css)
             self.assertIn("--headerbar-shade-color: transparent",css)
