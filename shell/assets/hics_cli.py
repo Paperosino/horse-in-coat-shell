@@ -585,6 +585,8 @@ def parser():
     shell.add_argument("-k", "--kill", action="store_true")
     shell.add_argument("-r", "--restart", action="store_true")
     shell.add_argument("message", nargs="*")
+    recovery = sub.add_parser("recovery", help=_("Safe shell startup and configuration recovery"))
+    recovery.add_argument("action", choices=["status","on","resume","restore","mark"], nargs="?", default="status")
     sub.add_parser("doctor", help=_("Check the installation"))
     return p
 
@@ -594,7 +596,12 @@ def main():
         return record_worker(sys.argv[2:])
     args = parser().parse_args()
     try:
-        if args.command == "scheme": scheme_command(args)
+        if args.command == "recovery":
+            from shell_recovery import command
+            result=command(args.action)
+            print(json.dumps(result,ensure_ascii=False))
+            return 1 if result.get('error') else 0
+        elif args.command == "scheme": scheme_command(args)
         elif args.command == "wallpaper": wallpaper_command(args)
         elif args.command == "screenshot": screenshot_command(args)
         elif args.command == "record": record_command(args)

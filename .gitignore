@@ -88,6 +88,9 @@
 !/shell/CMakeLists.txt
 !/shell/LICENSE
 !/shell/shell.qml
+!/shell/recovery/
+!/shell/recovery/shell.qml
+!/shell/recovery/fonts.conf
 !/shell/assets/
 !/shell/components/
 !/shell/extras/

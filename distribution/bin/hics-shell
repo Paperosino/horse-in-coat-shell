@@ -16,6 +16,11 @@ hics_bin_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 export HICS_HELPER_DIR=${HICS_HELPER_DIR:-$hics_bin_dir}
 export HYPRSTACK_DATA_DIR="$data_dir"
 export HYPRSTACK_SHELL_DIR=${HYPRSTACK_SHELL_DIR:-$data_dir/shell}
+if [[ ${HICS_SAFE_MODE:-0} == 1 ]]; then
+    export HYPRSTACK_SHELL_DIR="$data_dir/shell/recovery"
+    export QT_QPA_PLATFORMTHEME= QT_QUICK_CONTROLS_CONF= QT_QUICK_CONTROLS_STYLE=Basic
+    export FONTCONFIG_FILE="$data_dir/shell/recovery/fonts.conf"
+fi
 export QML_IMPORT_PATH="$data_dir/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
 export QML2_IMPORT_PATH="$data_dir/qml${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
 export HYPRSTACK_LIB_DIR="$data_dir/lib"
@@ -23,7 +28,7 @@ export PATH="$PATH:$HOME/.local/bin"
 export PYTHONDONTWRITEBYTECODE=1
 migration_marker="${XDG_STATE_HOME:-$HOME/.local/state}/hics/migrations/branding-v2"
 migration_script="$data_dir/shell/assets/migrate_branding.py"
-if [[ ! "$migration_marker" -nt "$migration_script" || "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.lua" -nt "$migration_marker" ]]; then
+if [[ ${HICS_SAFE_MODE:-0} != 1 ]] && [[ ! "$migration_marker" -nt "$migration_script" || "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.lua" -nt "$migration_marker" ]]; then
     python3 "$migration_script"
 fi
 qs_bin=$data_dir/qs/bin/hics-qs

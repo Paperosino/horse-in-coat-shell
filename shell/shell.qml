@@ -17,6 +17,7 @@ import "modules/switcher" as SwitcherModule
 import "modules/polkit" as PolkitModule
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Hyprstack
 import qs.services
 
@@ -24,6 +25,9 @@ ShellRoot {
     id: root
 
     settings.watchFiles: false
+    property bool startupFrameSeen: false
+    FrameAnimation { running: !root.startupFrameSeen; onTriggered: root.startupFrameSeen = true }
+    IpcHandler { target: "sessionHealth"; function ready(): bool { return root.startupFrameSeen; } }
 
     Component.onCompleted: AnimationClock.activate()
 

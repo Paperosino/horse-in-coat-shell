@@ -31,7 +31,7 @@ ShellRoot {
  property int phase:0
  property bool narrow:false
  property bool controlledExpanded:false
- property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","statusbar-layout","panel-options","panel-status-icons","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power","accounts","firmware","tablets","colour-profiles"]
+ property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","statusbar-layout","panel-options","panel-status-icons","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power","accounts","firmware","tablets","colour-profiles","configuration-history"]
  FloatingWindow {
   id:win;visible:true;implicitWidth:1180;implicitHeight:820;color:Colours.palette.m3surface
   Nexus {id:settings;width:root.narrow?560:parent.width;height:parent.height;visible:!fixture.visible}
@@ -260,6 +260,26 @@ ShellRoot {
     p=base/'shell/shell.qml';p.write_text(p.read_text().replace('fixture.searchAttempts=0;fixture.searchRetry.restart();','fixture.revealSearchTarget();'))
     if os.environ.get('HICS_TEST_PANEL_CONTROLS'):
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/panel-controls.qml').read_text())
+    if os.environ.get('HICS_TEST_RECOVERY'):
+        stub=base/'recovery-stub.py'
+        stub.write_text('import json,sys\nprint(json.dumps({"startupCheckpoint":{"available":True},"pending":{"token":"fixture"} if sys.argv[1]=="restore" else {},"restarting":sys.argv[1]=="resume"}))\n')
+        fixture=(ROOT/'shell/recovery/shell.qml').read_text()
+        fixture=fixture.replace('Component.onCompleted: invoke("status")','Component.onCompleted: {root.helperCommand=["python3",'+json.dumps(str(stub))+'];root.invoke("status");}')
+        checks="""
+ property int phase:0
+ function named(item,name){if(item.objectName===name)return item;for(const child of item.children??[]){const found=named(child,name);if(found)return found;}return null;}
+ Timer {interval:350;running:true;repeat:true;onTriggered:{
+  if(worker.running)return;
+  if(root.phase===0){if(!root.data.startupCheckpoint?.available)throw new Error("Missing startup checkpoint");root.named(recoveryContent,"restoreStartup").clicked();if(!root.confirmation)throw new Error("Recovery must require review");}
+  if(root.phase===1)root.named(recoveryContent,"restoreStartup").clicked();
+  if(root.phase===2){if(!root.data.pending?.token)throw new Error("No guarded restore");recoveryContent.grabToImage(result=>result.saveToFile("/tmp/hics-recovery-mode.png"));root.named(recoveryContent,"resumeStartup").clicked();}
+  if(root.phase===3){if(!root.data.restarting)throw new Error("Resume missing");console.log("SETTINGS_DESIGN_OK RECOVERY_MODE_OK");Qt.quit();}
+  root.phase++;
+ }}
+"""
+        fixture=fixture[:fixture.rfind('}')]+checks+'}\n'
+        (base/'shell/shell.qml').write_text(fixture)
+        (base/'config/hics/shell.json').write_bytes(b'{intentionally broken')
     if os.environ.get('HICS_TEST_FONT_RENDERING'):
         fixture=(ROOT/'tests/fixtures/font-rendering.qml').read_text()
         if os.environ['HICS_TEST_FONT_RENDERING']=='narrow':fixture=fixture.replace('implicitWidth: 1000','implicitWidth: 560')
@@ -271,6 +291,7 @@ ShellRoot {
     (base/'compositor.lua').write_text('hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})\n')
     env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'))
     env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
+    if os.environ.get('HICS_TEST_RECOVERY'):env['FONTCONFIG_FILE']=str(ROOT/'shell/recovery/fonts.conf')
     compositor=None
     desktop_daemon=None
     try:

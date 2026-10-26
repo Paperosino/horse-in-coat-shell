@@ -68,7 +68,7 @@ if("plugin" IN_LIST ENABLE_MODULES)
 endif()
 
 if("shell" IN_LIST ENABLE_MODULES)
-    foreach(dir components modules services utils Commons Services Widgets plugins)
+    foreach(dir components modules services utils Commons Services Widgets plugins recovery)
         install(DIRECTORY ${dir} DESTINATION "${INSTALL_QSCONFDIR}"
             PATTERN "__pycache__" EXCLUDE PATTERN "*.pyc" EXCLUDE
             PATTERN "README.md" EXCLUDE PATTERN "pam.d" EXCLUDE)

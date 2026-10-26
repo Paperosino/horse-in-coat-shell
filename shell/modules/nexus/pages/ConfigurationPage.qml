@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Io
 import QtQuick.Dialogs
 import Hyprstack.Config
 import Hyprstack.I18n
@@ -17,6 +18,11 @@ PageBase {
  property string selected:""
  property var sections:[]
  property bool importing:false
+ property string recoveryError:""
+ readonly property var recoveryHelper: Process {
+  command:["python3",Paths.toLocalFile(Qt.resolvedUrl("../../../assets/shell_recovery.py")),"on"]
+  stdout:StdioCollector {onStreamFinished:{try{root.recoveryError=JSON.parse(text).error??"";}catch(e){root.recoveryError=Tr.tr("Unable to enter safe mode");}}}
+ }
  readonly property FileDialog file:FileDialog {fileMode:root.importing?FileDialog.OpenFile:FileDialog.SaveFile;nameFilters:["hics profile (*.json)"];onAccepted:DesktopConfiguration.call(root.importing?"inspect-import":"export-profile",{id:root.selected,path:Paths.toLocalFile(selectedFile)})}
  function inspect(id:string):void {importing=false;selected=id;DesktopConfiguration.call(profilesOnly?"inspect-profile":"inspect-history",{id:id});}
  readonly property Connections previewChange:Connections {target:DesktopConfiguration;function onPreviewChanged():void {root.sections=DesktopConfiguration.preview.files??[];}}
@@ -25,6 +31,15 @@ PageBase {
   width:root.cappedWidth;anchors.horizontalCenter:parent.horizontalCenter;spacing:Tokens.spacing.medium
   FeatureError {error:DesktopConfiguration.error}
   FeatureError {error:DesktopConfiguration.data.recoveryWarning || ""}
+  SettingsCard {
+   visible:!root.profilesOnly
+   title:Tr.tr("Startup protection");icon:"health_and_safety"
+   description:Tr.tr("A separate recovery interface can start even when the normal shell fails. Restoring a startup checkpoint uses a timed preview.")
+   RowButton {text:Tr.tr("Mark current startup settings as working");icon:"verified";disabled:DesktopConfiguration.busy||!!DesktopConfiguration.pending;onClicked:DesktopConfiguration.call("mark-startup")}
+   RowButton {text:Tr.tr("Try working startup settings");icon:"restore";disabled:DesktopConfiguration.busy||!!DesktopConfiguration.pending||!DesktopConfiguration.data.startupCheckpoint?.available;onClicked:DesktopConfiguration.call("restore-startup")}
+   RowButton {text:Tr.tr("Enter safe mode");icon:"shield";subtext:Tr.tr("Restarts only the shell; applications remain open");onClicked:root.recoveryHelper.running=true}
+   FeatureError {error:root.recoveryError}
+  }
   SettingsCard {
    title:Tr.tr(root.profilesOnly?"Your whole desktop, together":"A way back from every change")
    description:Tr.tr(root.profilesOnly?"Panels, dock, widgets, typography, colours, wallpapers and window mode travel together. Try a profile before keeping it.":"Automatic checkpoints record configuration changes without clipboard contents or assistant credentials. Restore only the sections you need.")

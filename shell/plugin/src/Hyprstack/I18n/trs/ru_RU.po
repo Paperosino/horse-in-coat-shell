@@ -13062,3 +13062,24 @@ msgstr "Не удалось применить настройки шрифтов
 
 msgid "Applied. Reopen applications that cache font settings. Applications with their own text renderer may ignore system preferences."
 msgstr "Применено. Перезапустите приложения, которые кэшируют настройки шрифтов. Приложения с собственной отрисовкой текста могут игнорировать системные параметры."
+
+msgid "Startup protection"
+msgstr "Защита запуска"
+
+msgid "A separate recovery interface can start even when the normal shell fails. Restoring a startup checkpoint uses a timed preview."
+msgstr "Отдельный интерфейс восстановления запускается при сбоях обычной оболочки. Точка возврата применяется с подтверждением по таймеру."
+
+msgid "Mark current startup settings as working"
+msgstr "Сохранить текущие настройки запуска как рабочие"
+
+msgid "Try working startup settings"
+msgstr "Попробовать рабочие настройки запуска"
+
+msgid "Enter safe mode"
+msgstr "Запустить безопасный режим"
+
+msgid "Restarts only the shell; applications remain open"
+msgstr "Перезапускает только оболочку; приложения остаются открытыми"
+
+msgid "Unable to enter safe mode"
+msgstr "Не удалось запустить безопасный режим"

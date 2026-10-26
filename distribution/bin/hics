@@ -26,7 +26,7 @@ fi
 export PYTHONDONTWRITEBYTECODE=1
 migration_marker="${XDG_STATE_HOME:-$HOME/.local/state}/hics/migrations/branding-v2"
 migration_script="$data_dir/shell/assets/migrate_branding.py"
-if [[ ! "$migration_marker" -nt "$migration_script" || "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.lua" -nt "$migration_marker" ]]; then
+if [[ ${1:-} != recovery ]] && [[ ! "$migration_marker" -nt "$migration_script" || "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.lua" -nt "$migration_marker" ]]; then
     python3 "$migration_script"
 fi
 exec python3 "$shell_dir/assets/hics_cli.py" "$@"

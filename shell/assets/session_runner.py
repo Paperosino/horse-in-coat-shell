@@ -133,7 +133,19 @@ def run_session():
         result = 0
         session_disconnected = False
         try:
-            prepare_session()
+            import shell_recovery
+            safe_mode = shell_recovery.begin()
+            if safe_mode:
+                os.environ['HICS_SAFE_MODE'] = '1'
+                os.environ['QT_QPA_PLATFORMTHEME'] = ''
+                os.environ['QT_QUICK_CONTROLS_CONF'] = ''
+                os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Basic'
+                recovery_data=Path(os.environ.get('HICS_DATA_DIR',os.environ.get('HYPRSTACK_DATA_DIR','/usr/share/hics')))
+                os.environ['FONTCONFIG_FILE']=str(recovery_data/'shell/recovery/fonts.conf')
+            else:
+                prepare_session()
+            try: startup_candidate = None if safe_mode else shell_recovery.candidate()
+            except (OSError,ValueError): startup_candidate = None
             print(f"hics startup: preparation {time.monotonic()-started:.3f}s", flush=True)
             # The native shell service owns clipboard capture and its privacy policy.
             from extension_recovery import begin as begin_extensions, finish as finish_extensions
@@ -144,25 +156,34 @@ def run_session():
                 selector.register(event, selectors.EVENT_READ)
                 selector.register(readfd, selectors.EVENT_READ)
                 done = False
-                next_theme_sync = time.monotonic() + 30
+                next_theme_sync = time.monotonic() + (86400 if safe_mode else 30)
                 capture_load_at = time.monotonic() + 3
-                capture_loaded = False
+                capture_loaded = safe_mode
+                health_at = time.monotonic() + 30 if startup_candidate is not None else None
                 while not done:
                     if shell.poll() is not None:
                         result = shell.returncode
                         break
+                    if health_at is not None and time.monotonic() >= health_at:
+                        health_at = None
+                        data = Path(os.environ.get('HICS_DATA_DIR', os.environ.get('HYPRSTACK_DATA_DIR','/usr/share/hics')))
+                        try:
+                            reply = subprocess.run([str(data/'qs/bin/hics-qs'),'ipc','-p',os.environ.get('HICS_SHELL_DIR',os.environ.get('HYPRSTACK_SHELL_DIR',str(data/'shell'))),'call','sessionHealth','ready'],capture_output=True,text=True,timeout=2)
+                            if reply.returncode == 0 and reply.stdout.strip() == 'true': shell_recovery.healthy(startup_candidate)
+                        except (OSError,ValueError,subprocess.SubprocessError) as error:
+                            print('Unable to record startup checkpoint:',error,file=sys.stderr)
                     if not capture_loaded and time.monotonic() >= capture_load_at:
                         load_capture_plugin()
                         load_capture_plugin("hics-motion")
                         capture_loaded = True
-                    if time.monotonic() >= next_theme_sync:
+                    if not safe_mode and time.monotonic() >= next_theme_sync:
                         from gtk_theme import sync_new_flatpaks
                         try:
                             sync_new_flatpaks()
                         except (OSError, ValueError, KeyError) as error:
                             print("Unable to sync new Flatpak themes:", error, file=sys.stderr)
                         next_theme_sync = time.monotonic() + 30
-                    for key, mask in selector.select(timeout=max(0, min(next_theme_sync, capture_load_at if not capture_loaded else next_theme_sync) - time.monotonic())):
+                    for key, mask in selector.select(timeout=max(0, min(next_theme_sync, capture_load_at if not capture_loaded else next_theme_sync, health_at if health_at is not None else next_theme_sync) - time.monotonic())):
                         if key.fileobj is event:
                             if not event.recv(65536):
                                 session_disconnected = True
@@ -176,6 +197,9 @@ def run_session():
             raise
         finally:
             stop_child_groups(children, session_disconnected)
+            if 'shell_recovery' in locals():
+                try: shell_recovery.finish(result)
+                except (OSError,ValueError) as error: print('Unable to record shell exit:',error,file=sys.stderr)
             if "finish_extensions" in locals():
                 finish_extensions(result)
             if session_disconnected and shutil.which("hics-workspace"):

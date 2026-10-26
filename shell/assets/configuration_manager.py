@@ -4,11 +4,11 @@ Credentials, clipboard contents and active monitor rules are excluded. Appearanc
 imports contain data only; their preview is rolled back by an independent worker.
 """
 from __future__ import annotations
-import argparse,copy,ctypes,fcntl,gzip,hashlib,json,os,re,selectors,signal,socket,struct,subprocess,sys,tempfile,time,uuid
+import argparse,copy,ctypes,fcntl,gzip,hashlib,json,math,os,re,selectors,signal,socket,struct,subprocess,sys,tempfile,time,uuid
 from pathlib import Path
 from feature_common import CONFIG,STATE,DATA,read_json,atomic_json,output
 from application_environment import application_environment
-FILES={'window-controls.json','shell.json','tokens.json','dock.json','layouts.json','effects.json','keyboard.lua','system.lua','system-controls.json','device-rules.json','application-rules.json','rules.lua','theme-automation.json','live-wallpapers.json','display-profiles.json','notification-rules.json','workspace.json'}
+FILES={'shell-tokens.json','window-controls.json','shell.json','tokens.json','dock.json','layouts.json','effects.json','keyboard.lua','system.lua','system-controls.json','device-rules.json','application-rules.json','rules.lua','theme-automation.json','live-wallpapers.json','display-profiles.json','notification-rules.json','workspace.json'}
 APPEARANCE={'window-controls.json','shell.json','tokens.json','dock.json','layouts.json','effects.json','theme-automation.json','live-wallpapers.json','panels.json','state/scheme.json','state/wallpaper/path.txt','appearance.json','taskbar.json','workspaces.json','tiling.json','theme-schedule.json','widgets.json'}
 HISTORY=STATE/'configuration-history';PROFILES=DATA/'appearance-profiles';PREFS=CONFIG/'configuration-history.json';JOURNAL=STATE/'configuration-preview.json'
 MAX_BYTES=8*1024*1024
@@ -16,7 +16,7 @@ ASSETS=Path(__file__).resolve().parent
 
 def allowed(name,appearance=False):
  if name in (APPEARANCE if appearance else FILES|APPEARANCE):return True
- return bool(re.fullmatch(r'monitors/[A-Za-z0-9_.-]{1,160}/(?:shell|tokens)\.json',name))
+ return bool(re.fullmatch(r'monitors/[A-Za-z0-9_.-]{1,160}/(?:shell|tokens|shell-tokens)\.json',name))
 def target(name):
  if not allowed(name):raise ValueError('Unsupported configuration section')
  return STATE/name.removeprefix('state/') if name.startswith('state/') else CONFIG/name
@@ -74,7 +74,10 @@ def load_snapshot(path):
  if path.stat().st_size>MAX_BYTES:raise ValueError('Snapshot is too large')
  with gzip.open(path,'rb') as f:raw=f.read(MAX_BYTES+1)
  if len(raw)>MAX_BYTES:raise ValueError('Snapshot is too large')
- d=json.loads(raw);validate_bundle(d,False);return d
+ d=json.loads(raw);validate_bundle(d,False)
+ if not isinstance(d.get('id'),str) or not re.fullmatch('[a-f0-9-]{36}',d['id']) or type(d.get('created')) not in (int,float) or not math.isfinite(d['created']) or d['created']<0:raise ValueError('Invalid history metadata')
+ if not isinstance(d.get('hash'),str) or not re.fullmatch('[a-f0-9]{64}',d['hash']):raise ValueError('Invalid history checksum')
+ return d
 
 def validate_bundle(d,appearance=True):
  if not isinstance(d,dict) or not isinstance(d.get('name',''),str) or len(d.get('name',''))>128 or d.get('version')!=1 or not isinstance(d.get('files'),dict) or len(d['files'])>256:raise ValueError('Unsupported configuration bundle')
@@ -273,8 +276,15 @@ def make_preset(key):
   files[name]=json.dumps(merge(current,json.loads(text)),ensure_ascii=False,indent=2)
  return dict(version=1,name=preset['name'],files=files)
 
+def startup_checkpoint():
+ try:
+  from shell_recovery import good
+  saved=good(STATE/'shell-startup-good.json')
+  return {'available':bool(saved),'created':saved.get('created',0),'sections':list(saved.get('files',{}))}
+ except (OSError,ValueError):return {'available':False,'error':'Startup checkpoint is damaged'}
+
 def state():
- return {'statePath':str(runtime()/'state.json'),'settings':preferences(),'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in read_json(JOURNAL).items() if k in ('token','deadline','name')},'directory':str(HISTORY),'recoveryWarning':read_json(STATE/'configuration-recovery-warning.json').get('warning','')}
+ return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':preferences(),'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in read_json(JOURNAL).items() if k in ('token','deadline','name')},'directory':str(HISTORY),'recoveryWarning':read_json(STATE/'configuration-recovery-warning.json').get('warning','')}
 
 def dispatch(op,p,shell_pid=None):
  if op=='status':return state()
@@ -283,6 +293,9 @@ def dispatch(op,p,shell_pid=None):
   previous=read_json(PREFS);old={**previous,**p};atomic_json(PREFS,old,private=True)
   try:preferences()
   except Exception:atomic_json(PREFS,previous,private=True);raise
+ elif op=='mark-startup':
+  from shell_recovery import candidate,healthy
+  if not healthy(candidate()):raise ValueError('Configuration changed while recording checkpoint')
  elif op=='snapshot':snapshot(p.get('name','Checkpoint'),False)
  elif op=='delete-history':(HISTORY/(identifier(p['id'])+'.json.gz')).unlink()
  elif op=='save-profile':
@@ -291,8 +304,16 @@ def dispatch(op,p,shell_pid=None):
   files=gather(True);d=dict(version=1,id=str(uuid.uuid4()),name=name,created=time.time(),sections=sorted(files),files=files)
   if len(profiles())>=64:raise ValueError('At most 64 appearance profiles are supported')
   atomic_json(PROFILES/(d['id']+'.json'),d,private=True)
- elif op in ('inspect-profile','preview-profile','inspect-history','restore-history','preset','inspect-import','import-profile'):
-  if op=='preset':d=make_preset(p['id'])
+ elif op in ('inspect-profile','preview-profile','inspect-history','restore-history','restore-startup','preset','inspect-import','import-profile'):
+  if op=='restore-startup':
+   from shell_recovery import good
+   d=good(STATE/'shell-startup-good.json')
+   if not d:raise ValueError('No working startup checkpoint is available')
+   d={**d,'name':'Working startup configuration'}
+   # The preview must survive the intentional transition from the recovery UI
+   # to the normal shell. The independent 30-second deadline still applies.
+   shell_pid=None
+  elif op=='preset':d=make_preset(p['id'])
   elif 'import' in op:
    path=Path(p['path']).expanduser()
    if not path.is_file() or path.stat().st_size>MAX_BYTES:raise ValueError('Choose a supported local configuration bundle')
@@ -342,15 +363,21 @@ def repair_invalid_json():
   path=target(name)
   if not path.is_file() or path.is_symlink():continue
   try:
-   parsed=json.loads(path.read_text())
+   if path.stat().st_size>1048576:raise ValueError('Configuration section is too large')
+   parsed=json.loads(path.read_text(),parse_constant=lambda value: (_ for _ in ()).throw(ValueError('Non-finite configuration value')))
    if not isinstance(parsed,dict):raise ValueError('Expected configuration object')
   except (ValueError,UnicodeError):
    if latest is None:
     entries=history();latest=load_snapshot(HISTORY/(entries[0]['id']+'.json.gz'))['files'] if entries else {}
+    from shell_recovery import good
+    try:latest.update(good(STATE/'shell-startup-good.json').get('files',{}))
+    except (OSError,ValueError):pass
    folder=STATE/'configuration-recovery';folder.mkdir(parents=True,exist_ok=True,mode=0o700)
-   saved=folder/(str(int(time.time()))+'-'+name.replace('/','_')+'.invalid')
-   write_text(saved,path.read_text(errors='replace'))
-   write_text(path,latest.get(name,'{}'))
+   saved=folder/(str(time.time_ns())+'-'+name.replace('/','_')+'.invalid')
+   os.replace(path,saved)
+   try:write_text(path,latest.get(name,'{}'))
+   except BaseException:
+    os.replace(saved,path);raise
    atomic_json(STATE/'configuration-recovery-warning.json',{'warning':'Invalid configuration restored: '+name,'original':str(saved)},private=True)
 
 def process_start(pid):
@@ -399,7 +426,8 @@ def watch():
      if pending and (pending['deadlineMonotonic']<=time.monotonic() or pending.get('shellPid') and process_start(pending['shellPid'])!=pending.get('shellStart')):rollback();publish()
      if changed and time.monotonic()>=changed:
       changed=0;repair_invalid_json();current=digest(gather())
-      if current!=last_hash and preferences()['enabled'] and not JOURNAL.exists():snapshot();last_hash=current;publish()
+      if current!=last_hash and preferences()['enabled'] and not JOURNAL.exists():snapshot();last_hash=current
+      publish()
      for key,_ in select.select(.5 if pending or changed else 1):
       if events and key.fileobj is events:
        if not events.recv(65536):rollback(False);os.close(fd);events.close();return
