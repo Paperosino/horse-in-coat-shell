@@ -110,6 +110,13 @@ def prepare_session():
     os.environ["QT_QUICK_CONTROLS_CONF"] = str(Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config"))/"hics/qtquickcontrols2.conf")
 
 
+def session_wait_timeout(safe_mode, theme_at, capture_at, health_at, now):
+    # Recovery mode has no background theme/capture/health jobs. Wake only on
+    # compositor events, termination or SIGCHLD, even after days of uptime.
+    if safe_mode: return None
+    return max(0, min(theme_at, capture_at, health_at if health_at is not None else theme_at) - now)
+
+
 def run_session():
     started = time.monotonic()
     lockpath, eventpath = paths()
@@ -183,7 +190,7 @@ def run_session():
                         except (OSError, ValueError, KeyError) as error:
                             print("Unable to sync new Flatpak themes:", error, file=sys.stderr)
                         next_theme_sync = time.monotonic() + 30
-                    for key, mask in selector.select(timeout=max(0, min(next_theme_sync, capture_load_at if not capture_loaded else next_theme_sync, health_at if health_at is not None else next_theme_sync) - time.monotonic())):
+                    for key, mask in selector.select(timeout=session_wait_timeout(safe_mode, next_theme_sync, capture_load_at if not capture_loaded else next_theme_sync, health_at, time.monotonic())):
                         if key.fileobj is event:
                             if not event.recv(65536):
                                 session_disconnected = True

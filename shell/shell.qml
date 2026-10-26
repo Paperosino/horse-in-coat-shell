@@ -19,15 +19,14 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Hyprstack
+import Hyprstack.Services
 import qs.services
 
 ShellRoot {
     id: root
 
     settings.watchFiles: false
-    property bool startupFrameSeen: false
-    FrameAnimation { running: !root.startupFrameSeen; onTriggered: root.startupFrameSeen = true }
-    IpcHandler { target: "sessionHealth"; function ready(): bool { return root.startupFrameSeen; } }
+    IpcHandler { target: "sessionHealth"; function ready(): bool { return StartupPerformance.firstFrame; } }
 
     Component.onCompleted: AnimationClock.activate()
 

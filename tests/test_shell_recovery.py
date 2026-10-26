@@ -105,3 +105,11 @@ class RecoveryTests(unittest.TestCase):
   r=self.r;r.begin(10);r.finish(1,11);self.assertFalse(r.begin(12))
   r.healthy(r.candidate());r.finish(1,50)
   self.assertTrue(r.begin(51))
+ def test_safe_runner_sleeps_on_events_even_after_days(self):
+  import session_runner as runner
+  self.assertIsNone(runner.session_wait_timeout(True,30,3,None,1e9))
+  self.assertEqual(runner.session_wait_timeout(False,60,40,30,10),20)
+ def test_unconfirmed_preview_is_never_promoted_to_working_checkpoint(self):
+  r=self.r;r.STATE.mkdir(parents=True,exist_ok=True)
+  (r.STATE/'configuration-preview.json').write_text('{}')
+  self.assertFalse(r.healthy(r.candidate()));self.assertFalse(r.GOOD.exists())
