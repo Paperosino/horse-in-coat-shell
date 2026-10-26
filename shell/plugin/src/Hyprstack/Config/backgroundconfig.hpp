@@ -46,11 +46,22 @@ class BackgroundVisualiser : public settings::ObjectNode {
     CONFIG_PROPERTY(qreal, spacing, 1)
 };
 
+class DesktopIcons : public settings::ObjectNode {
+    CONFIG_NODE(DesktopIcons, settings::ObjectNode)
+    CONFIG_PROPERTY(bool, enabled, false)
+    CONFIG_PROPERTY(bool, showHidden, false)
+    CONFIG_PROPERTY(bool, singleClick, false)
+    CONFIG_PROPERTY(int, iconSize, 48)
+    CONFIG_PROPERTY(QString, sortBy, u"name"_s)
+    CONFIG_PROPERTY(QString, output, QString())
+};
+
 class BackgroundConfig : public settings::ObjectNode {
     CONFIG_NODE(BackgroundConfig, settings::ObjectNode)
 
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(bool, wallpaperEnabled, true)
+    CONFIG_SUBOBJECT(DesktopIcons, desktopIcons)
     CONFIG_SUBOBJECT(DesktopClock, desktopClock)
     CONFIG_SUBOBJECT(BackgroundVisualiser, visualiser)
 };

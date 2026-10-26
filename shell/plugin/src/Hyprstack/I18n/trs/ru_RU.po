@@ -12691,3 +12691,173 @@ msgstr "Подходящих открытых окон"
 
 msgid "Initial window title (optional)"
 msgstr "Начальный заголовок окна (необязательно)"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Desktop icons"
+msgstr "Значки рабочего стола"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Show desktop icons"
+msgstr "Показывать значки рабочего стола"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Files from your desktop folder, shared with Nautilus, Dolphin and other file managers. File associations remain system-wide."
+msgstr "Файлы из общей папки рабочего стола для Nautilus, Dolphin и других файловых менеджеров. Используются системные ассоциации файлов."
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Open desktop items with a single click"
+msgstr "Открывать файлы рабочего стола одним нажатием"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Show hidden desktop files"
+msgstr "Показывать скрытые файлы рабочего стола"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Desktop icon size"
+msgstr "Размер значков рабочего стола"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Sort desktop icons"
+msgstr "Сортировка значков"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Recently modified"
+msgstr "По дате изменения"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Desktop icons display"
+msgstr "Экран для значков рабочего стола"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "First connected display"
+msgstr "Первый подключённый экран"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Open desktop folder"
+msgstr "Открыть папку рабочего стола"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Arrange desktop icons"
+msgstr "Упорядочить значки"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Type"
+msgstr "Тип"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Paste"
+msgstr "Вставить"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Cut"
+msgstr "Вырезать"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Rename"
+msgstr "Переименовать"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Properties"
+msgstr "Свойства"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "New folder"
+msgstr "Новая папка"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Move to trash"
+msgstr "Переместить в корзину"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Show in file manager"
+msgstr "Показать в файловом менеджере"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Move selected items to trash?"
+msgstr "Переместить выбранные файлы в корзину?"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Confirm"
+msgstr "Подтвердить"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "The XDG desktop folder is disabled. Choose a separate desktop folder with xdg-user-dirs."
+msgstr "Папка рабочего стола отключена в XDG. Выберите отдельную папку через xdg-user-dirs."
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "The desktop folder cannot be read."
+msgstr "Не удалось прочитать папку рабочего стола."
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Only the first 2000 desktop items are shown. Open the folder in your file manager to see everything."
+msgstr "Показаны первые 2000 объектов. Откройте папку в файловом менеджере, чтобы увидеть всё."
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "This launcher is not trusted. Review it and enable launching in your file manager."
+msgstr "Запуск этого ярлыка не разрешён. Проверьте его и разрешите запуск в файловом менеджере."
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "The application could not be started."
+msgstr "Не удалось запустить приложение."
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Choose between one and 128 items"
+msgstr "Выберите от 1 до 128 объектов"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "The XDG desktop folder is disabled"
+msgstr "Папка рабочего стола отключена в XDG"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Cannot create desktop folder"
+msgstr "Не удалось создать папку рабочего стола"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Choose a valid folder name"
+msgstr "Введите допустимое имя папки"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Choose a desktop item and a valid name"
+msgstr "Выберите файл рабочего стола и введите допустимое имя"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "Choose existing local files"
+msgstr "Выберите существующие локальные файлы"
+
+
+#: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
+msgid "The destination is the source or is inside it"
+msgstr "Папка назначения совпадает с исходной или находится внутри неё"

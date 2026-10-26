@@ -135,4 +135,4 @@ install(FILES "${CMAKE_BINARY_DIR}/hics-desktop.service" DESTINATION lib/systemd
 configure_file(distribution/dbus/org.hics.Desktop1.service.in org.hics.Desktop1.service @ONLY)
 install(FILES "${CMAKE_BINARY_DIR}/org.hics.Desktop1.service" DESTINATION share/dbus-1/services)
 
-install(FILES docs/DE_PLATFORM.md DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/hics")
+install(FILES docs/DE_PLATFORM.md docs/DESKTOP_ICONS.md DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/hics")

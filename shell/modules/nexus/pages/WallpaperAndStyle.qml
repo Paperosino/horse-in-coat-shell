@@ -1,6 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Hyprstack.Services
+import qs.components.controls
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
@@ -39,6 +42,30 @@ PageBase {
                 icon: "movie"
                 onClicked: root.nState.openSubPage(5)
             }
+        }
+        SettingsCard {
+            title:Tr.tr("Desktop icons")
+            icon:"desktop_windows"
+            description:Tr.tr("Files from your desktop folder, shared with Nautilus, Dolphin and other file managers. File associations remain system-wide.")
+            ToggleRow {text:Tr.tr("Show desktop icons");checked:GlobalConfig.background.desktopIcons.enabled;onToggled:GlobalConfig.background.desktopIcons.enabled=checked}
+            ToggleRow {visible:GlobalConfig.background.desktopIcons.enabled;text:Tr.tr("Open desktop items with a single click");checked:GlobalConfig.background.desktopIcons.singleClick;onToggled:GlobalConfig.background.desktopIcons.singleClick=checked}
+            ToggleRow {visible:GlobalConfig.background.desktopIcons.enabled;text:Tr.tr("Show hidden desktop files");checked:GlobalConfig.background.desktopIcons.showHidden;onToggled:GlobalConfig.background.desktopIcons.showHidden=checked}
+            StepperRow {visible:GlobalConfig.background.desktopIcons.enabled;label:Tr.tr("Desktop icon size");from:32;to:96;stepSize:8;value:GlobalConfig.background.desktopIcons.iconSize;onMoved:value=>GlobalConfig.background.desktopIcons.iconSize=value}
+            SelectRow {
+                visible:GlobalConfig.background.desktopIcons.enabled
+                label:Tr.tr("Sort desktop icons")
+                active:menuItems.find(item=>item.value===GlobalConfig.background.desktopIcons.sortBy)??menuItems[0]
+                menuItems:[MenuItem {text:Tr.tr("Name");value:"name"},MenuItem {text:Tr.tr("Type");value:"type"},MenuItem {text:Tr.tr("Recently modified");value:"modified"}]
+                onSelected:item=>{GlobalConfig.background.desktopIcons.sortBy=item.value;DesktopFiles.tidy();}
+            }
+            GenericSettingRow {
+                visible:GlobalConfig.background.desktopIcons.enabled
+                spec:({label:"Desktop icons display",type:"choice",choices:[{label:"First connected display",value:""}].concat(Quickshell.screens.map(screen=>({label:screen.name,value:screen.name})))})
+                value:GlobalConfig.background.desktopIcons.output
+                onEdited:value=>GlobalConfig.background.desktopIcons.output=value
+            }
+            RowButton {visible:GlobalConfig.background.desktopIcons.enabled;text:Tr.tr("Open desktop folder");subtext:DesktopFiles.directory;icon:"folder_open";onClicked:DesktopIcons.openFolder()}
+            RowButton {visible:GlobalConfig.background.desktopIcons.enabled;text:Tr.tr("Arrange desktop icons");icon:"grid_view";onClicked:DesktopFiles.tidy()}
         }
         SettingsCard {
             title: Tr.tr("Colours & themes")

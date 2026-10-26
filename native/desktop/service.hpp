@@ -89,6 +89,7 @@ private:
   void application(const QSharedPointer<Job> &, const QString &, const QStringList &);
   void colour(const QSharedPointer<Job> &);
   void platform(const QSharedPointer<Job> &);
+  void desktopFiles(const QSharedPointer<Job> &);
   void integration(const QSharedPointer<Job> &);
   void applications(const QSharedPointer<Job> &);
   void keyring(const QSharedPointer<Job> &);

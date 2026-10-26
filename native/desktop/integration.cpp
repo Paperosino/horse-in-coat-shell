@@ -57,6 +57,10 @@ QString current(const char *mime) {
 void Service::integration(const QSharedPointer<Job> &job) {
   const auto args = job->arguments;
   const auto op = job->operation;
+  if (op == "integration.desktop") {
+    desktopFiles(job);
+    return;
+  }
   if (op == "integration.reveal") {
     const auto path = QFileInfo(args["path"].toString()).canonicalFilePath();
     if (path.isEmpty()) {

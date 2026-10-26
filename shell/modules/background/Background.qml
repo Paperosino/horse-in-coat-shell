@@ -22,6 +22,7 @@ Variants {
         name: "background"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
+        WlrLayershell.keyboardFocus: DesktopIcons.onScreen(win.screen) && !Presentation.privateOn(win.screen) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: contentItem.Config.background.wallpaperEnabled && LiveWallpapers.forScreen(outputName).kind !== "engine" ? "black" : "transparent"
         // Static/video wallpapers have an opaque black base over the full output.
         surfaceFormat.opaque: color.a === 1
@@ -59,14 +60,24 @@ Variants {
                 visible: Config.background.wallpaperEnabled
             }
 
-            PluginDesktop { anchors.fill: parent; screen: win.screen }
-
             Visualiser {
                 anchors.fill: parent
                 screen: win.modelData
                 wallpaper: wallpaper
             }
         }
+
+        Loader {
+            anchors.fill:parent
+            anchors.topMargin:48*Tokens.scale
+            anchors.leftMargin:(DockConf.enabled&&DockConf.position==="left"?DockConf.iconSize+40:20)*Tokens.scale
+            anchors.rightMargin:(DockConf.enabled&&DockConf.position==="right"?DockConf.iconSize+40:20)*Tokens.scale
+            anchors.bottomMargin:(DockConf.enabled&&DockConf.position==="bottom"?DockConf.iconSize+48:20)*Tokens.scale
+            active:DesktopIcons.onScreen(win.screen)
+            sourceComponent:DesktopFileView {screen:win.screen}
+        }
+
+        PluginDesktop { anchors.fill: parent; screen: win.screen }
 
         Loader {
             id: clockLoader

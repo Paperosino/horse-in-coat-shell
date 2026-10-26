@@ -227,6 +227,7 @@ class CScrollOverview : public IOverview {
     bool         manageCanvasWindow(PHLWINDOW window, bool placeNew);
     void         ensureCanvasKeyboardFocus(PHLWINDOW window = {});
     void         seedCanvasWindows();
+    bool         forwardDesktopPointerMotion(uint32_t timeMs);
     void         forwardCanvasPointerMotion(uint32_t timeMs = 0);
     bool         forwardCanvasPointerButton(const IPointer::SButtonEvent& event);
     bool         forwardCanvasPointerAxis(const IPointer::SAxisEvent& event);

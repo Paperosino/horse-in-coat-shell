@@ -394,6 +394,13 @@ static bool scrollKeybindIsThrottled() {
     return HicsPinned::field(g_pKeybindManager, HicsPinned::ScrollTimer{}).getMillis() < ScrollOverview::Config::getValue<int>("binds:scroll_event_delay");
 }
 
+// Optional desktop files are screen-fixed background surfaces, not canvas windows.
+static bool interactiveDesktopSurface(const SP<CWLSurfaceResource>& surface) {
+    const auto wl = Desktop::View::CWLSurface::fromResource(surface);
+    const auto layer = wl ? Desktop::View::CLayerSurface::fromView(wl->view()) : nullptr;
+    return layer && Desktop::View::validMapped(layer) && (layer->m_namespace == "hics-desktop" || layer->m_namespace == "hyprstack-background") && layer->m_interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+}
+
 static bool isTopLayerFocused(PHLMONITOR monitor) {
     const auto FOCUSEDSURFACE = g_pSeatManager->m_state.keyboardFocus.lock();
 
@@ -1699,8 +1706,11 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_, PHLMONITO
         if (scrollingPanPointerDown)
             updateScrollingPan();
 
-        if (navigatorOwnsPointer() && canvasForwardedPointerButtons.empty())
+        if (navigatorOwnsPointer() && canvasForwardedPointerButtons.empty()) {
             updateNavigatorHover();
+            if (!navigatorHoverWindow && !spacePanHeld && !dragPendingPrimary && !resizePointerDown && !scrollingPanPointerDown && !dragActiveWindow && !resizeActiveWindow)
+                forwardDesktopPointerMotion(0);
+        }
         else if (isCanvasDesktop() && !dragPendingPrimary && !resizePointerDown && !scrollingPanPointerDown && !dragActiveWindow && !resizeActiveWindow)
             forwardCanvasPointerMotion();
 
@@ -1872,7 +1882,7 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_, PHLMONITO
             }
 
             if (canvasForwardedPointerButtons.contains(event.button) ||
-                (!WINDOWGESTURE && (!navigatorOwnsPointer() || event.button == BTN_MIDDLE) && event.state == WL_POINTER_BUTTON_STATE_PRESSED)) {
+                (!WINDOWGESTURE && (!navigatorOwnsPointer() || event.button == BTN_MIDDLE || interactiveDesktopSurface(g_pSeatManager->m_state.pointerFocus.lock())) && event.state == WL_POINTER_BUTTON_STATE_PRESSED)) {
                 info.cancelled = forwardCanvasPointerButton(event);
                 if (info.cancelled)
                     return;
@@ -2126,6 +2136,10 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_, PHLMONITO
         if (isPointerOnTopLayer(pMonitor.lock()))
             return;
         markCanvasCameraActive(pMonitor.lock());
+        if(isCanvasDesktop() && !(g_pInputManager->getModsFromAllKBs() & (HL_MODIFIER_CTRL|HL_MODIFIER_META|HL_MODIFIER_ALT)) && interactiveDesktopSurface(g_pSeatManager->m_state.pointerFocus.lock())) {
+            info.cancelled=forwardCanvasPointerAxis(e);
+            return;
+        }
 
         if (isCanvasDesktop()) {
             info.cancelled = true;
@@ -2343,7 +2357,7 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_, PHLMONITO
         if (closing || activeScrollOverview().get() != this)
             return;
 
-        if (isTopLayerFocused(pMonitor.lock()))
+        if (isTopLayerFocused(pMonitor.lock()) || interactiveDesktopSurface(g_pSeatManager->m_state.keyboardFocus.lock()))
             return;
 
         // A panel can disappear while the seat still references its now-
@@ -5032,12 +5046,42 @@ std::optional<Vector2D> CScrollOverview::canvasDndPosition(SP<CWLSurfaceResource
     return Desktop::viewState()->hitTest().surfaceLocalAt(world, window, surface);
 }
 
+bool CScrollOverview::forwardDesktopPointerMotion(uint32_t timeMs) {
+    const auto monitor=pMonitor.lock();
+    if(!monitor || spacePanHeld || scrollingPanPointerDown || dragActiveWindow || resizeActiveWindow)return false;
+    const auto point=g_pInputManager->getMouseCoordsInternal();
+    for(const auto level:{ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM,ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND})
+        for(const auto &weak:monitor->m_layerSurfaceLayers[level]) {
+            const auto layer=weak.lock();
+            if(!Desktop::View::validMapped(layer) || (layer->m_namespace!="hics-desktop" && layer->m_namespace!="hyprstack-background") || layer->m_interactivity==ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE || !layer->wlSurface())continue;
+            const auto resource=layer->wlSurface()->resource();if(!resource)continue;
+            const auto [surface,local]=resource->at(point-layer->m_geometry.pos(),true);
+            if(!surface)continue;
+            canvasForwardedPointerWindow.reset();
+            canvasForwardedPointerSurface=surface;
+            canvasForwardedPointerLocal=local;
+            if(PROTO::data && PROTO::data->dndActive()){
+                if(g_pSeatManager->m_state.dndPointerFocus!=surface){
+                    g_pSeatManager->m_state.dndPointerFocus=surface;
+                    g_pSeatManager->m_events.dndPointerFocusChange.emit();
+                }
+            }else{
+                g_pSeatManager->setPointerFocus(surface,local);
+                g_pSeatManager->sendPointerMotion(timeMs,local);
+                g_pSeatManager->sendPointerFrame();
+            }
+            return true;
+        }
+    return false;
+}
+
 void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
     if (!isCanvasDesktop() || !ScrollOverview::Config::getCanvasDirectInput() || spacePanHeld || scrollingPanPointerDown || dragActiveWindow || resizeActiveWindow)
         return;
 
     const bool dnd = PROTO::data && PROTO::data->dndActive();
     const bool implicitGrab = !canvasForwardedPointerButtons.empty() && !dnd;
+    if(implicitGrab && !canvasForwardedPointerWindow && interactiveDesktopSurface(canvasForwardedPointerSurface.lock()) && forwardDesktopPointerMotion(timeMs))return;
     CBox       BOX;
     Vector2D   WINDOWLOCAL;
     Vector2D   SURFACELOCAL;
@@ -5106,6 +5150,7 @@ void CScrollOverview::forwardCanvasPointerMotion(uint32_t timeMs) {
     }
 
     if (!WINDOW || !SURFACE) {
+        if(!implicitGrab && !WINDOW && forwardDesktopPointerMotion(timeMs))return;
         if (!implicitGrab) {
             canvasForwardedPointerWindow.reset();
             canvasForwardedPointerSurface.reset();
@@ -5165,6 +5210,17 @@ bool CScrollOverview::forwardCanvasPointerButton(const IPointer::SButtonEvent& e
         forwardCanvasPointerMotion(event.timeMs);
 
     const auto WINDOW = canvasForwardedPointerWindow.lock();
+    if(!WINDOW && interactiveDesktopSurface(canvasForwardedPointerSurface.lock())) {
+        if(event.button!=BTN_LEFT && event.button!=BTN_RIGHT)return false; // middle drag still pans the canvas
+        if(event.state==WL_POINTER_BUTTON_STATE_PRESSED){
+            canvasForwardedPointerButtons.emplace(event.button);
+            Desktop::focusState()->fullWindowFocus(nullptr,Desktop::FOCUS_REASON_CLICK);
+            Desktop::focusState()->rawSurfaceFocus(canvasForwardedPointerSurface.lock());
+        }else canvasForwardedPointerButtons.erase(event.button);
+        g_pSeatManager->sendPointerButton(event.timeMs,event.button,event.state);
+        g_pSeatManager->sendPointerFrame();
+        return true;
+    }
     if (!WINDOW || !WINDOW->wlSurface() || !WINDOW->wlSurface()->resource())
         return false;
 
@@ -5196,7 +5252,7 @@ bool CScrollOverview::forwardCanvasPointerAxis(const IPointer::SAxisEvent& event
         return false;
 
     forwardCanvasPointerMotion(event.timeMs);
-    if (!canvasForwardedPointerWindow || !canvasForwardedPointerSurface)
+    if (!canvasForwardedPointerSurface || (!canvasForwardedPointerWindow && !interactiveDesktopSurface(canvasForwardedPointerSurface.lock())))
         return false;
 
     // Libinput already reports the wheel in v120 units (120 = one notch).
