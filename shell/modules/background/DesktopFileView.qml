@@ -10,6 +10,7 @@ import Hyprstack.I18n
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.modules.nexus
 import qs.utils
 
 FocusScope {
@@ -162,6 +163,9 @@ FocusScope {
             Action {text:Tr.tr("Open desktop folder");icon:"folder_open";onTriggered:DesktopIcons.openFolder()}
             Action {text:Tr.tr("Open trash");icon:"delete";onTriggered:DesktopFiles.open("trash:///")}
             Action {text:Tr.tr("Arrange desktop icons");icon:"grid_view";onTriggered:DesktopFiles.tidy()}
+            Action {text:Tr.tr("Desktop settings");icon:"wallpaper";onTriggered:WindowFactory.openPage("appearance")}
+            Action {text:Tr.tr("Display settings");icon:"monitor";onTriggered:WindowFactory.openPage("display")}
+            Action {text:Tr.tr("Panel settings");icon:"view_week";onTriggered:WindowFactory.openPage("statusbar-layout")}
             Action {text:Tr.tr("Refresh");icon:"refresh";onTriggered:DesktopFiles.refresh()}
         }
     }

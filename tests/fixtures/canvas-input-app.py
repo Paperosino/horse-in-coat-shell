@@ -8,6 +8,27 @@ def activate(app):
  # Force client decorations/shadow margins: these exercise the bars motion
  # hook that must preserve the canvas's surface-local coordinates.
  window.set_titlebar(Gtk.HeaderBar())
+ if os.environ.get('HICS_TEST_CSD_CONTROLS'):
+  import signal,json
+  Gtk.Settings.get_default().set_property('gtk-decoration-layout',':minimize,maximize,close')
+  def controls():
+   result={}
+   def walk(widget):
+    for name in ('minimize','maximize','close'):
+     if name in widget.get_css_classes() and isinstance(widget,Gtk.Button):result[name]=widget
+    child=widget.get_first_child()
+    while child:walk(child);child=child.get_next_sibling()
+   walk(window);return result
+  def report():
+   from pathlib import Path
+   Path(os.environ['HICS_TEST_CSD_CONTROLS']).write_text(json.dumps({key:value.get_visible() for key,value in controls().items()}));return False
+  GLib.timeout_add(1000,report)
+  def click(name):
+   button=controls().get(name)
+   if button:button.emit('clicked')
+   return True
+  GLib.unix_signal_add(GLib.PRIORITY_DEFAULT,signal.SIGUSR1,lambda:click('minimize'))
+  GLib.unix_signal_add(GLib.PRIORITY_DEFAULT,signal.SIGUSR2,lambda:click('maximize'))
  if os.environ.get('HYPRSTACK_TEST_WINDOW_BEHAVIOUR'):
   import signal
   def utility(modal):

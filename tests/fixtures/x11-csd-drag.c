@@ -17,6 +17,13 @@ static void request(xcb_connection_t *c,xcb_screen_t *s,xcb_window_t w,int direc
 int main(int argc,char **argv) {
     xcb_connection_t *c=xcb_connect(NULL,NULL);if(xcb_connection_has_error(c))return 1;
     xcb_screen_t *s=xcb_setup_roots_iterator(xcb_get_setup(c)).data;
+    if(argc==4 && strcmp(argv[1],"state")==0){
+        xcb_client_message_event_t e={.response_type=XCB_CLIENT_MESSAGE,.format=32,.window=strtoul(argv[2],NULL,0)};
+        if(strcmp(argv[3],"minimize")==0){e.type=atom(c,"WM_CHANGE_STATE");e.data.data32[0]=3;}
+        else {e.type=atom(c,"_NET_WM_STATE");e.data.data32[0]=2;e.data.data32[1]=atom(c,"_NET_WM_STATE_MAXIMIZED_HORZ");e.data.data32[2]=atom(c,"_NET_WM_STATE_MAXIMIZED_VERT");e.data.data32[3]=1;}
+        xcb_send_event(c,0,s->root,XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT|XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,(char*)&e);
+        xcb_flush(c);free(xcb_get_input_focus_reply(c,xcb_get_input_focus(c),NULL));xcb_disconnect(c);return 0;
+    }
     if(argc==3){request(c,s,strtoul(argv[1],NULL,0),atoi(argv[2]),0,0);free(xcb_get_input_focus_reply(c,xcb_get_input_focus(c),NULL));xcb_disconnect(c);return 0;}
     xcb_window_t w=xcb_generate_id(c);
     uint32_t values[]={0x334455,XCB_EVENT_MASK_BUTTON_PRESS|XCB_EVENT_MASK_EXPOSURE};

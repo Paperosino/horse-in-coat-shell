@@ -31,7 +31,7 @@ ShellRoot {
  property int phase:0
  property bool narrow:false
  property bool controlledExpanded:false
- property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power","accounts","firmware","tablets","colour-profiles"]
+ property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","statusbar-layout","panel-options","panel-status-icons","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power","accounts","firmware","tablets","colour-profiles"]
  FloatingWindow {
   id:win;visible:true;implicitWidth:1180;implicitHeight:820;color:Colours.palette.m3surface
   Nexus {id:settings;width:root.narrow?560:parent.width;height:parent.height;visible:!fixture.visible}
@@ -93,7 +93,7 @@ ShellRoot {
       const characters=root.named(settings,"desktopCharacterPicker"),methods=root.named(settings,"desktopInputMethods");
       if(!root.check(characters?.items.length>0&&methods?.state.running&&methods.state.methods.length===2,"character picker or input method group controls did not load"))return;
      }
-     root.narrow=root.shots[index]==="keyboard";
+     root.narrow=["keyboard","statusbar-layout"].includes(root.shots[index]);
      if(root.shots[index]==="app-info") {
       settings.nState.openPage("apps");
       settings.nState.selectedApp={id:"org.hics.Fixture",name:"Application permissions",icon:"application-x-executable",filePath:"/usr/share/applications/org.hics.Fixture.desktop",command:[],comment:"",genericName:""};
@@ -107,6 +107,19 @@ ShellRoot {
       characters.expanded=true;characters.query="HEART";characters.category="symbols";characters.refresh();methods.expanded=true;methods.refresh();
      }
      if(root.shots[index]==="app-info" && !root.check(!!root.named(settings,"desktopApplicationPermissions"),"application permissions page did not load"))return;
+     if(root.shots[index]==="statusbar-layout"){
+      function panelPage(item){if(item.widgetZone!==undefined && item.allCatalogWidgets!==undefined)return item;for(const child of item.children??[]){const found=panelPage(child);if(found)return found;}return null;}
+      const page=panelPage(settings);
+      if(!root.check(!!page,"panel widget editor did not load"))return;
+      page.addWidget(0,"clock");page.addWidget(2,"clock");
+      if(!root.check([...page.leftWidgets,...page.centerWidgets,...page.rightWidgets].filter(id=>id==="clock").length===1 && page.widgetZone("clock")===2,"moving a widget duplicated it"))return;
+      page.addWidget(-1,"notifications");page.reloadZones();
+      if(!root.check(page.widgetZone("notifications")===-1 && page.editedBar.entries.values.some(entry=>entry.id==="notifications"&&!entry.enabled),"removed notification widget was resurrected"))return;
+      page.saveZones([],[],[]);page.reloadZones();
+      if(!root.check(!page.leftWidgets.length&&!page.centerWidgets.length&&!page.rightWidgets.length,"empty panel restored unwanted default widgets"))return;
+      page.saveZones(["logo","workspaces"],["clock"],["tray","statusIcons","power"]);
+      page.flickable.contentY=Math.max(0,page.flickable.contentHeight-page.flickable.height);
+     }
      if(root.shots[index]==="presentation"){
       const dnd=Notifs.dnd,idle=IdleInhibitor.enabled;
       Presentation.begin(Quickshell.screens[0].name);
@@ -232,6 +245,8 @@ ShellRoot {
     # Timer searchRetry is intentionally private to PageBase; call the public
     # reveal routine repeatedly once the new page has settled instead.
     p=base/'shell/shell.qml';p.write_text(p.read_text().replace('fixture.searchAttempts=0;fixture.searchRetry.restart();','fixture.revealSearchTarget();'))
+    if os.environ.get('HICS_TEST_PANEL_CONTROLS'):
+        (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/panel-controls.qml').read_text())
     (base/'compositor.lua').write_text('hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})\n')
     env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'))
     env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)

@@ -63,7 +63,7 @@ PageBase {
                 acceptLabel: Tr.trCtx("Add", "button")
 
                 model: {
-                    const builtins = Object.keys(root.builtinIcons).map(k => ({
+                    const builtins = Object.keys(root.builtinIcons).filter(id => !Config.bar.statusIcons.values.some(entry => entry.id === id)).map(k => ({
                                 id: k,
                                 label: root.builtinIcons[k]
                             }));
@@ -71,7 +71,7 @@ PageBase {
                 }
 
                 onAccepted: {
-                    if (!selectedItem) // Should never happen but just in case
+                    if (!selectedItem || Config.bar.statusIcons.values.some(entry => entry.id === selectedItem))
                         return;
 
                     GlobalConfig.bar.statusIcons.insert({

@@ -12861,3 +12861,33 @@ msgstr "Выберите существующие локальные файлы"
 #: modules/background/DesktopFileView.qml modules/nexus/pages/WallpaperAndStyle.qml
 msgid "The destination is the source or is inside it"
 msgstr "Папка назначения совпадает с исходной или находится внутри неё"
+
+msgid "Panel scale (%)"
+msgstr "Масштаб панели (%)"
+
+msgid "Resize panel icons, text and spacing without changing other interface elements"
+msgstr "Размер значков, текста и отступов панели независимо от остального интерфейса"
+
+msgid "Panel appearance"
+msgstr "Внешний вид панели"
+
+msgid "Widgets and their order"
+msgstr "Виджеты и их порядок"
+
+msgid "One place to add, remove and arrange panel widgets"
+msgstr "Добавление, удаление и расположение виджетов панели"
+
+msgid "Not on panel"
+msgstr "Не показывать"
+
+msgid "Widget settings"
+msgstr "Настройки виджета"
+
+msgid "Desktop settings"
+msgstr "Настройки рабочего стола"
+
+msgid "Display settings"
+msgstr "Настройки экрана"
+
+msgid "Main panel monitor"
+msgstr "Экран основной панели"

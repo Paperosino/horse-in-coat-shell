@@ -15,6 +15,7 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/protocols/XDGShell.hpp>
+#include <hyprland/src/xwayland/XSurface.hpp>
 #include <hyprland/src/config/shared/animation/AnimationTree.hpp>
 #include <hyprland/src/config/shared/parserUtils/ParserUtils.hpp>
 #include <hyprland/src/config/supplementary/executor/Executor.hpp>
@@ -91,32 +92,6 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     PMONITOR->m_scheduledRecalc = true;
 
     syncNativePolicy();
-
-    // Native CSD minimize buttons use xdg_toplevel.set_minimized. Hyprland
-    // leaves that request to the shell; forward it with the owning stable ID.
-    if (pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel) {
-        m_pMinimizeCallback = pWindow->m_xdgSurface->m_toplevel->m_events.stateChanged.listen([this] {
-            auto window = m_pWindow.lock();
-            if (!window || !window->m_xdgSurface || !window->m_xdgSurface->m_toplevel) return;
-            // HYPRSTACK_NATIVE_MAXIMIZE: client-only unmaximize does not emit
-            // a compositor fullscreen event after the window became an ordinary float.
-            auto& maximize = window->m_xdgSurface->m_toplevel->m_state.requestsMaximize;
-            if (maximize.has_value() && g_pGlobalState->config.enabled->value()) {
-                const auto operation = *maximize ? "maximize-set" : "maximize-unset";
-                if (runDecorationAction(window, operation)) maximize.reset();
-            }
-            auto& request = window->m_xdgSurface->m_toplevel->m_state.requestsMinimize;
-            if (!request.has_value()) return;
-            const bool minimize = *request;
-            request.reset();
-            const auto command = g_pGlobalState->config.onMinimize->value();
-            if (!minimize || !g_pGlobalState->config.enabled->value() || command.empty()) return;
-            if (runDecorationAction(window, "minimize")) return;
-            Config::Supplementary::executor()->spawn("env HYPRSTACK_WINDOW_ADDRESS=" +
-                std::format("0x{:x}", reinterpret_cast<uintptr_t>(window.get())) +
-                " HYPRSTACK_WINDOW_ID=" + std::format("{:x}", window->m_stableID) + " " + command);
-        });
-    }
 
     // button events
 
@@ -762,6 +737,25 @@ void CHyprBar::syncNativePolicy() {
     // maximized to hide tiled CSD. A normal stacking window must explicitly
     // clear that flag even when fullscreen_state(0, 0) is a controller no-op.
     const bool stacking = g_pGlobalState->config.enabled->value();
+    // GTK4 hides its minimize button unless xdg-shell advertises it. Use
+    // public Wayland resource iteration instead of reaching into private
+    // Hyprland protocol fields. Capabilities precede the next configure.
+    if (window->m_xdgSurface && window->m_xdgSurface->m_toplevel && m_nativeMinimizeCapability != stacking) {
+        auto* toplevel = window->m_xdgSurface->m_toplevel.get();
+        struct Capabilities { CXDGToplevelResource* target; bool minimize; } data{toplevel, stacking};
+        wl_client_for_each_resource(window->resource()->client(), [](wl_resource* resource, void* raw) {
+            auto* data = static_cast<Capabilities*>(raw);
+            if (std::string_view(wl_resource_get_class(resource)) != "xdg_toplevel" ||
+                wl_resource_get_version(resource) < 5 || CXDGToplevelResource::fromResource(resource).get() != data->target)
+                return WL_ITERATOR_CONTINUE;
+            uint32_t values[]{XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN, XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE,
+                XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE};
+            wl_array array{sizeof(uint32_t) * (data->minimize ? 3U : 2U), sizeof(values), values};
+            static_cast<CXdgToplevel*>(wl_resource_get_user_data(resource))->sendWmCapabilities(&array);
+            return WL_ITERATOR_STOP;
+        }, &data);
+        m_nativeMinimizeCapability = stacking;
+    }
     // HYPRSTACK_SCROLLING_MAXIMIZE_POLICY: clients such as Kitty remember
     // the synthetic tiled maximize flag and request it on their next map.
     // Column width owns maximize in tiling; native requests belong to floats.
@@ -774,10 +768,16 @@ void CHyprBar::syncNativePolicy() {
     }
     // Reassert the synthetic flag only for tiles. Normal floating Qt windows
     // must clear it too, so fullscreen exit restores their windowed geometry.
-    if (window->m_xdgSurface && window->m_xdgSurface->m_toplevel) {
-        const auto client = Fullscreen::controller()->getFullscreenModes(window).client;
-        window->m_xdgSurface->m_toplevel->setMaximized(client == Fullscreen::FSMODE_MAXIMIZED ||
-            (!stacking && !window->m_isFloating));
+    const auto client = Fullscreen::controller()->getFullscreenModes(window).client;
+    const bool maximized = client == Fullscreen::FSMODE_MAXIMIZED || (!stacking && !window->m_isFloating);
+    if (window->m_xdgSurface && window->m_xdgSurface->m_toplevel)
+        window->m_xdgSurface->m_toplevel->setMaximized(maximized);
+    else if (window->m_xwaylandSurface && window->m_xwaylandSurface->m_maximized != maximized) {
+        // Hyprland's client-only fullscreen_state does not update EWMH's
+        // maximize bit. Keep toggle requests and the client's restore glyph
+        // in sync; setMinimized republishes state without changing its value.
+        window->m_xwaylandSurface->m_maximized = maximized;
+        window->m_xwaylandSurface->setMinimized(window->m_xwaylandSurface->m_minimized);
     }
 }
 

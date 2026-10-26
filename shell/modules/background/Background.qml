@@ -22,7 +22,7 @@ Variants {
         name: "background"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
-        WlrLayershell.keyboardFocus: DesktopIcons.onScreen(win.screen) && !Presentation.privateOn(win.screen) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: !Presentation.privateOn(win.screen) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: contentItem.Config.background.wallpaperEnabled && LiveWallpapers.forScreen(outputName).kind !== "engine" ? "black" : "transparent"
         // Static/video wallpapers have an opaque black base over the full output.
         surfaceFormat.opaque: color.a === 1
@@ -68,13 +68,28 @@ Variants {
         }
 
         Loader {
+            objectName: "desktopIconGrid"
             anchors.fill:parent
-            anchors.topMargin:48*Tokens.scale
+            readonly property var bar: ShellState.componentsFor(win.screen)?.bar
+            readonly property real edgeGap: 16 * Tokens.scale
+            anchors.topMargin: edgeGap + (bar && !bar.atBottom ? bar.contentWidth : 0) + ExtraPanels.inset(win.outputName,"top") + (DockConf.enabled && DockConf.position === "top" ? (DockConf.iconSize+32)*Tokens.scale : 0)
             anchors.leftMargin:(DockConf.enabled&&DockConf.position==="left"?DockConf.iconSize+40:20)*Tokens.scale
             anchors.rightMargin:(DockConf.enabled&&DockConf.position==="right"?DockConf.iconSize+40:20)*Tokens.scale
-            anchors.bottomMargin:(DockConf.enabled&&DockConf.position==="bottom"?DockConf.iconSize+48:20)*Tokens.scale
+            anchors.bottomMargin:edgeGap + (bar?.atBottom ? bar.contentWidth : 0) + ExtraPanels.inset(win.outputName,"bottom") + (DockConf.enabled&&DockConf.position==="bottom" ? (DockConf.iconSize+32)*Tokens.scale : 0)
             active:DesktopIcons.onScreen(win.screen)
             sourceComponent:DesktopFileView {screen:win.screen}
+        }
+
+        SettingsContextMenu {
+            id: desktopMenu
+            actions: [{label:"Desktop settings",icon:"wallpaper",page:"appearance"},
+                {label:"Display settings",icon:"monitor",page:"display"},
+                {label:"Panel settings",icon:"view_week",page:"statusbar-layout"}]
+        }
+        TapHandler {
+            enabled: !DesktopIcons.onScreen(win.screen) && !Presentation.privateOn(win.screen)
+            acceptedButtons: Qt.RightButton
+            onTapped: point => desktopMenu.openAt(win.contentItem, point.position.x, point.position.y, false)
         }
 
         PluginDesktop { anchors.fill: parent; screen: win.screen }

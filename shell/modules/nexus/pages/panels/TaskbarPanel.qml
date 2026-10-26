@@ -15,76 +15,6 @@ PageBase {
     title: Tr.tr("Taskbar")
     isSubPage: true
 
-    property string selectedScreen: ""
-    property int screenRevision: 0
-    readonly property var targetConfig: selectedScreen ? GlobalConfig.forScreen(selectedScreen) : GlobalConfig
-    readonly property list<MenuItem> screenChoices: {
-        screenRevision;
-        const result = [allScreens];
-        for (let i = 0; i < screenItems.count; ++i) {
-            const choice = screenItems.objectAt(i);
-            if (choice)
-                result.push(choice);
-        }
-        return result;
-    }
-    readonly property var componentChoices: [
-        {
-            id: "logo",
-            label: Tr.tr("Logo")
-        },
-        {
-            id: "workspaces",
-            label: Tr.tr("Workspaces")
-        },
-        {
-            id: "activeWindow",
-            label: Tr.tr("Active window")
-        },
-        {
-            id: "tray",
-            label: Tr.tr("Tray")
-        },
-        {
-            id: "clock",
-            label: Tr.tr("Clock")
-        },
-        {
-            id: "layoutSwitcher",
-            label: Tr.tr("Window layout")
-        },
-        {
-            id: "statusIcons",
-            label: Tr.tr("Status icons")
-        },
-        {
-            id: "power",
-            label: Tr.tr("Power button")
-        }
-    ]
-
-    readonly property MenuItem allScreens: MenuItem {
-        text: Tr.tr("All screens")
-        icon: "desktop_windows"
-        value: ""
-    }
-    readonly property QtObject screenModel: Instantiator {
-        id: screenItems
-        model: Quickshell.screens
-        delegate: MenuItem {
-            required property var modelData
-            text: modelData.name
-            icon: "monitor"
-            value: modelData.name
-        }
-        onObjectAdded: root.screenRevision++
-        onObjectRemoved: (index, object) => {
-            root.screenRevision++;
-            if (root.selectedScreen === object.value)
-                root.selectedScreen = "";
-        }
-    }
-
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
@@ -125,53 +55,15 @@ PageBase {
             // Components
         }
         SettingsCard {
-            title: Tr.tr("Element visibility")
-            icon: "tune"
-
-            SelectRow {
+            title: Tr.tr("Panel appearance")
+            icon: "view_quilt"
+            NavRow {
                 first: true
-                objectName: "taskbarScreenSelector"
-                label: Tr.tr("Screen")
-                subtext: Tr.tr("Choose a screen to hide individual panel elements")
-                menuItems: root.screenChoices
-                active: root.screenChoices.find(item => item.value === root.selectedScreen) ?? allScreens
-                onSelected: item => root.selectedScreen = item.value
-            }
-
-            Repeater {
-                model: root.componentChoices
-                delegate: ToggleRow {
-                    required property var modelData
-                    objectName: "taskbarElement_" + modelData.id
-                    text: modelData.label
-                    checked: root.targetConfig.bar.entries.values.find(entry => entry.id === modelData.id)?.enabled ?? (modelData.id === "layoutSwitcher")
-                    onToggled: {
-                        const entries = root.targetConfig.bar.entries;
-                        const entry = entries.values.find(entry => entry.id === modelData.id);
-                        if (entry)
-                            entry.enabled = checked;
-                        else
-                            entries.insert({
-                                id: modelData.id,
-                                enabled: checked
-                            });
-                    }
-                }
-            }
-
-            ToggleRow {
-                objectName: "taskbarElement_notifications"
-                text: Tr.tr("Notification centre")
-                checked: root.targetConfig.bar.showNotifications
-                onToggled: root.targetConfig.bar.showNotifications = checked
-            }
-
-            ToggleRow {
                 last: true
-                objectName: "taskbarElement_tasks"
-                text: Tr.tr("Applications in stacking mode")
-                checked: root.targetConfig.bar.showTasks
-                onToggled: root.targetConfig.bar.showTasks = checked
+                icon: "widgets"
+                text: Tr.tr("Widgets and their order")
+                subtext: Tr.tr("One place to add, remove and arrange panel widgets")
+                onClicked: root.nState.openSubPage(12)
             }
         }
         SettingsCard {

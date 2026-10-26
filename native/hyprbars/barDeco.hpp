@@ -44,6 +44,7 @@ class CHyprBar : public IHyprWindowDecoration {
     virtual uint64_t                   getDecorationFlags();
 
     bool                               m_bButtonsDirty = true;
+    std::optional<bool>                m_nativeMinimizeCapability;
     bool                               m_ownsMaximizePolicy = false;
 
     virtual std::string                getDisplayName();
@@ -102,7 +103,6 @@ class CHyprBar : public IHyprWindowDecoration {
 
     CBox assignedBoxGlobal();
 
-    CHyprSignalListener m_pMinimizeCallback;
 
     CHyprSignalListener m_pTouchDownCallback;
     CHyprSignalListener m_pTouchUpCallback;

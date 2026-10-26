@@ -52,12 +52,22 @@ Item {
 
     function entryAt(x: real): Item {
         for (const item of entryItems) {
-            if (item.entryId === "spacer" || item.entryId === "activeWindow") continue;
+            if (item.entryId === "spacer") continue;
             const position = item.mapToItem(root, 0, 0);
             if (x >= position.x && x < position.x + item.width)
                 return item;
         }
         return null;
+    }
+
+    function contextIdAt(x: real): string {
+        const entry = entryAt(x);
+        if (entry?.entryId === "statusIcons") {
+            const items = entry.item?.items;
+            const icon = items?.childAt(mapToItem(items, x, height / 2).x, items.height / 2);
+            return icon?.name ?? "statusIcons";
+        }
+        return entry?.entryId ?? "";
     }
 
     function closeTray(): void {
@@ -92,7 +102,7 @@ Item {
             const icon = items.childAt(mapToItem(items, x, height / 2).x, items.height / 2);
             if (icon) {
                 popouts.currentName = icon.name;
-                popouts.currentCenter = Qt.binding(() => icon.mapToItem(root, icon.width / 2, 0).x);
+                popouts.currentCenter = Qt.binding(() => icon.mapToItem(root.parent, icon.width / 2, 0).x);
                 popouts.hasCurrent = true;
             } else {
                 popouts.hasCurrent = false;
@@ -111,7 +121,7 @@ Item {
                 const trayItem = tray.items.itemAt(index);
                 if (trayItem) {
                     popouts.currentName = `traymenu${index}`;
-                    popouts.currentCenter = Qt.binding(() => trayItem.mapToItem(root, trayItem.width / 2, 0).x);
+                    popouts.currentCenter = Qt.binding(() => trayItem.mapToItem(root.parent, trayItem.width / 2, 0).x);
                     popouts.hasCurrent = true;
                 } else {
                     popouts.hasCurrent = false;
@@ -122,11 +132,11 @@ Item {
             }
         } else if (id === "layoutSwitcher") {
             popouts.currentName = "layouts";
-            popouts.currentCenter = Qt.binding(() => ch.mapToItem(root, ch.width / 2, 0).x);
+            popouts.currentCenter = Qt.binding(() => ch.mapToItem(root.parent, ch.width / 2, 0).x);
             popouts.hasCurrent = true;
         } else if (id === "activeWindow" && Config.bar.popouts.activeWindow && Config.bar.activeWindow.showOnHover) {
             popouts.currentName = id.toLowerCase();
-            popouts.currentCenter = (ch.item as Item).mapToItem(root, (ch.item as Item).width / 2, 0).x ?? 0;
+            popouts.currentCenter = (ch.item as Item).mapToItem(root.parent, (ch.item as Item).width / 2, 0).x ?? 0;
             popouts.hasCurrent = true;
         } else {
             popouts.hasCurrent = false;
@@ -158,11 +168,11 @@ Item {
                 values: {
                     const raw = root.Config.bar.entries.values || [];
                     const entries = raw.filter(e => e.enabled);
-                    if (!entries.some(e => e.id === "plugins") && Plugins.enabled.some(p => !!p.entryPoints.barWidget)) {
+                    if (!raw.some(e => e.id === "plugins") && Plugins.enabled.some(p => !!p.entryPoints.barWidget)) {
                         const tray = entries.findIndex(e => e.id === "tray");
                         entries.splice(tray < 0 ? entries.length : tray, 0, {id: "plugins", enabled: true});
                     }
-                    if (!entries.some(e => e.id === "notifications") && root.Config.sidebar.enabled && root.Config.bar.showNotifications) {
+                    if (!raw.some(e => e.id === "notifications") && root.Config.sidebar.enabled && root.Config.bar.showNotifications) {
                         const power = entries.findIndex(e => e.id === "power");
                         entries.splice(power < 0 ? entries.length : power, 0, {id: "notifications", enabled: true});
                     }
@@ -292,6 +302,7 @@ Item {
 
     Tasks {
         id: tasks
+        coordinateRoot: root.parent
         objectName: "taskbarTasks"
         anchors.centerIn: parent
         screen: root.screen

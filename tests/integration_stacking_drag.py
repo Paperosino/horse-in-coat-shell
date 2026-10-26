@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Real-pointer maximized titlebar drag with PiP; isolated nested compositor."""
-import json,os,re,shlex,shutil,subprocess,tempfile,time
+import json,os,re,shlex,shutil,subprocess,tempfile,time,signal
 from pathlib import Path
 from integration_support import require_wayland_session
 require_wayland_session()
@@ -59,6 +59,7 @@ with tempfile.TemporaryDirectory(prefix='hics-stacking-drag-') as directory:
    assert display,children
    env['DISPLAY']=display.group(1)
   gtk=bool(os.environ.get('HICS_TEST_DRAG_GTK'))
+  if gtk:env['HICS_TEST_CSD_CONTROLS']=str(base/'gtk-controls.json')
   csd=x11 or gtk or bool(os.environ.get('HICS_TEST_DRAG_CSD'))
   if csd and not x11 and not gtk:ctl('eval','hl.bind("mouse:272",hl.dsp.window.drag(),{mouse=true})')
   main=subprocess.Popen([str(base/'x11-csd')] if x11 else ['python3',str(fixtures/'canvas-input-app.py')] if gtk else ['kitty','--class','code' if csd else 'org.hics.DragFixture','--title','Drag fixture','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.PIPE if x11 else subprocess.DEVNULL,stderr=subprocess.DEVNULL,text=True);apps.append(main)
@@ -123,6 +124,24 @@ with tempfile.TemporaryDirectory(prefix='hics-stacking-drag-') as directory:
    stopped=window(main.pid)['at'];send(f'move {x+90} {y+90}');send('button 272 0')
    assert window(main.pid)['at']==stopped,('Cancelled X11 drag kept moving',stopped,window(main.pid))
    print('PASS: native X11 CSD resize grip and cancel request',flush=True)
+  if x11 or gtk:
+   def native_action(operation):
+    if x11:subprocess.run([str(base/'x11-csd'),'state',xid,operation],env=env,check=True)
+    else:main.send_signal(signal.SIGUSR1 if operation=='minimize' else signal.SIGUSR2)
+    time.sleep(.65)
+   if gtk:
+    buttons=json.loads((base/'gtk-controls.json').read_text())
+    assert buttons.get('minimize') and buttons.get('maximize'),buttons
+    print('PASS: GTK4 exposes native minimize and maximize buttons',flush=True)
+   native_action('maximize')
+   assert window(main.pid)['fullscreenClient']==1,window(main.pid)
+   native_action('maximize')
+   assert window(main.pid)['fullscreenClient']==0,window(main.pid)
+   native_action('minimize')
+   assert 'minimized' in window(main.pid)['workspace']['name'],window(main.pid)
+   ctl('eval','hyprstack_layouts.action("restore",'+json.dumps(address)+')');time.sleep(.65)
+   assert 'minimized' not in window(main.pid)['workspace']['name'],window(main.pid)
+   print('PASS: native CSD maximize toggle, minimize and restore', 'X11 EWMH' if x11 else 'GTK4 xdg-shell',flush=True)
   assert not ctl('configerrors'),ctl('configerrors')
  except Exception:
   for path in (Path(os.environ['XDG_RUNTIME_DIR'])/'hypr'/instance['instance']).glob('*.log'):

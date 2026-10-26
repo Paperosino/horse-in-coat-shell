@@ -20,7 +20,7 @@ Singleton {
     function restore(id:string):void {backend.call(["restore",id],null,accept);}
     function publishHeight(id:string,value:real):void {if(Math.abs((liveHeights[id]??0)-value)<0.25)return;liveHeights=Object.assign({},liveHeights,{[id]:value});}
     function forgetHeight(id:string):void {const next=Object.assign({},liveHeights);delete next[id];liveHeights=next;}
-    function depth(panel:var):real {return panel.autoHide?(liveHeights[panel.id]??0):panel.thickness*Tokens.scale;}
+    function depth(panel:var):real {return liveHeights[panel.id] ?? (panel.autoHide ? 0 : panel.thickness*Tokens.scale*Math.max(0.65,Math.min(1.5,GlobalConfig.forScreen("panel-"+panel.id).bar.scale)));}
     function inset(screen:string,edge:string):real {return panels.filter(p=>p.screen===screen&&p.edge===edge).reduce((sum,p)=>sum+depth(p),0);}
     function before(id:string):real {const panel=panels.find(p=>p.id===id);if(!panel)return 0;let value=0;for(const item of onScreen(panel.screen)){if(item.id===id)break;if(item.edge===panel.edge)value+=depth(item);}return value;}
     function onScreen(name:string):var {return panels.filter(p=>p.screen===name).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));}

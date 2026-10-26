@@ -51,6 +51,7 @@ StyledWindow {
     }
     BarWrapper {
         id:bar
+        panelId:root.spec.id
         screen:root.screen;screenState:state;popouts:popup.content;fullscreen:root.fullscreen
         atBottom:root.atBottom
         desktopFrame:false

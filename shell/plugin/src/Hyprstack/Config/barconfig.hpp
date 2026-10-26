@@ -106,6 +106,7 @@ class BarClock : public settings::ObjectNode {
 class BarConfig : public settings::ObjectNode {
     CONFIG_NODE(BarConfig, settings::ObjectNode)
 
+    CONFIG_PROPERTY(qreal, scale, 1.0)
     CONFIG_PROPERTY(bool, layoutSwitcherConfigured, false)
     CONFIG_PROPERTY(bool, persistent, true)
     CONFIG_PROPERTY(bool, showOnHover, true)

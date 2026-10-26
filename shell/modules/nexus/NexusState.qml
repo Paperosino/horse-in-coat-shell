@@ -12,6 +12,7 @@ QtObject {
     property bool returning: false
     property int navigationDirection: 1
     property bool showingSection: true
+    property string requestedPanelId: ""
     property string sectionId: "home"
     readonly property bool canGoBack: subPageIdxStack.length > 0 || pageHistory.length > 0 || !showingSection
     function snapshot(page): var {

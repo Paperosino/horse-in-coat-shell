@@ -12,6 +12,7 @@ Singleton {
     id: root
 
     function openPage(id: string): void { create(null, {pageId: id}); }
+    function openPanelSettings(id: string): void { create(null, {pageId: "statusbar-layout", panelId: id}); }
 
     function create(parent: Item, props: var): void {
         nexusComp.createObject(parent ?? dummy, props);
@@ -28,6 +29,7 @@ Singleton {
             id: win
 
             property string pageId: ""
+            property string panelId: ""
 
             color: Colours.tPalette.m3surface
             surfaceFormat.opaque: false
@@ -55,6 +57,7 @@ Singleton {
                 nState.screen: win.screen
                 nState.isWindow: true
                 Component.onCompleted: if (win.pageId) {
+                    nState.requestedPanelId = win.panelId;
                     nState.openPage(win.pageId);
                 }
                 onClose: win.destroy()

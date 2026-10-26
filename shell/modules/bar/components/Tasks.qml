@@ -22,6 +22,7 @@ StyledClippingRect {
     required property BarPopouts.Wrapper popouts
     readonly property alias buttons: taskRepeater
     readonly property var appEntries: ApplicationCatalogue.applications.values
+    property Item coordinateRoot: parent
     property Item popupTask: null
     property string draggedKey: ""
     property string dropKey: ""
@@ -251,7 +252,7 @@ StyledClippingRect {
                             menuMode = false;
                             root.popouts.taskButton = task;
                             root.popouts.currentName = "tasks";
-                            root.popouts.currentCenter = Qt.binding(() => task.mapToItem(root.parent, task.width / 2, 0).x);
+                            root.popouts.currentCenter = Qt.binding(() => task.mapToItem(root.coordinateRoot, task.width / 2, 0).x);
                             root.popouts.hasCurrent = true;
                             return;
                         }

@@ -16,11 +16,12 @@ PageBase {
 
     title: Tr.tr("Statusbar layout")
 
-    property string panelId: ""
+    property string panelId: nState.requestedPanelId
+    property string editedScreen: ""
     property string selectedScreen: Screens.screens[0]?.name ?? ""
     readonly property var selectedPanel: ExtraPanels.panels.find(p=>p.id===panelId)??null
     readonly property QtObject panelLayer: QtObject { Config.screen:root.panelId?"panel-"+root.panelId:(Screens.screens[0]?.name??"default");readonly property var bar:Config.bar }
-    readonly property var editedBar: panelId ? panelLayer.bar : GlobalConfig.bar
+    readonly property var editedBar: panelId ? panelLayer.bar : editedScreen ? GlobalConfig.forScreen(editedScreen).bar : GlobalConfig.bar
     onEditedBarChanged: Qt.callLater(reloadZones)
     readonly property Connections panelChanges: Connections {target:ExtraPanels;function onPanelsChanged():void {if(root.panelId&&!root.selectedPanel)root.panelId="";}}
     property var leftWidgets: []
@@ -48,12 +49,6 @@ PageBase {
                 center.push(item.id);
             else
                 right.push(item.id);
-        }
-        // Fallback to reasonable defaults if unconfigured
-        if (left.length === 0 && center.length === 0 && right.length === 0) {
-            left.push("logo", "workspaces");
-            center.push("activeWindow");
-            right.push("plugins", "tray", "clock", "statusIcons", "notifications", "power");
         }
         leftWidgets = left;
         centerWidgets = center;
@@ -86,6 +81,12 @@ PageBase {
                 id: id,
                 enabled: true
             });
+        // Explicit disabled entries prevent automatic compatibility insertion
+        // from resurrecting a widget the user deliberately removed.
+        const active = new Set([...l, ...c, ...r]);
+        for (const widget of allCatalogWidgets)
+            if (!active.has(widget.id)) list.insert({id: widget.id, enabled: false});
+        root.editedBar.showNotifications = active.has("notifications");
         reloadZones();
     }
 
@@ -172,16 +173,20 @@ PageBase {
     }
 
     function addWidget(zoneIndex: int, id: string): void {
-        const l = [...leftWidgets];
-        const c = [...centerWidgets];
-        const r = [...rightWidgets];
+        const l = leftWidgets.filter(value => value !== id);
+        const c = centerWidgets.filter(value => value !== id);
+        const r = rightWidgets.filter(value => value !== id);
         if (zoneIndex === 0)
             l.push(id);
         else if (zoneIndex === 1)
             c.push(id);
-        else
+        else if (zoneIndex === 2)
             r.push(id);
         saveZones(l, c, r);
+    }
+
+    function widgetZone(id: string): int {
+        return leftWidgets.includes(id) ? 0 : centerWidgets.includes(id) ? 1 : rightWidgets.includes(id) ? 2 : -1;
     }
 
     readonly property var allCatalogWidgets: [
@@ -269,7 +274,7 @@ PageBase {
         };
     }
 
-    Component.onCompleted: reloadZones()
+    Component.onCompleted: { if (panelId && !selectedPanel) panelId = ""; reloadZones(); }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -284,6 +289,12 @@ PageBase {
             FeatureError {error:ExtraPanels.error}
             GenericSettingRow {spec:({type:"choice",label:"Monitor for a new panel",choices:Screens.screens.map(s=>s.name),value:root.selectedScreen});onEdited:value=>root.selectedScreen=value}
             RowButton {text:Tr.tr("Add panel");icon:"add";disabled:ExtraPanels.busy||!root.selectedScreen;onClicked:ExtraPanels.add(root.selectedScreen)}
+            GenericSettingRow {
+                visible: !root.panelId
+                spec: ({type:"choice",label:"Main panel monitor",value:root.editedScreen,
+                    choices:[{value:"",label:"All screens"}].concat(Screens.screens.map(screen=>({value:screen.name,label:screen.name})))})
+                onEdited: value => root.editedScreen = value
+            }
             RowButton {text:Tr.tr("Main panel");icon:"view_week";trailingIcon:root.panelId?"chevron_right":"check";onClicked:root.panelId=""}
             Repeater {
                 model:ExtraPanels.panels
@@ -323,9 +334,11 @@ PageBase {
                 text: Tr.tr("Configure widgets across Left, Center, and Right zones. Move items between zones or reorder them.")
             }
 
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
-                spacing: Tokens.spacing.small
+                columns: width < 760 * Tokens.scale ? 1 : 3
+                columnSpacing: Tokens.spacing.small
+                rowSpacing: Tokens.spacing.small
 
                 // 1. LEFT COLUMN
                 ZoneColumn {
@@ -376,6 +389,14 @@ PageBase {
                 }
             }
 
+            StepperRow {
+                label: Tr.tr("Panel scale (%)")
+                subtext: Tr.tr("Resize panel icons, text and spacing without changing other interface elements")
+                from: 65; to: 150; stepSize: 5
+                value: Math.round(root.editedBar.scale * 100)
+                onMoved: value => root.editedBar.scale = value / 100
+            }
+
             // Widget Catalog Section
         }
         SettingsCard {
@@ -400,52 +421,47 @@ PageBase {
                     radius: Tokens.rounding.medium
                     color: Colours.palette.m3surfaceContainer
 
-                    RowLayout {
+                    GridLayout {
                         id: catContent
+                        columns: width < 560 * Tokens.scale ? 1 : 2
+                        columnSpacing: Tokens.spacing.medium
+                        rowSpacing: Tokens.spacing.small
                         anchors.fill: parent
                         anchors.margins: Tokens.padding.medium
-                        spacing: Tokens.spacing.medium
-
-                        MaterialIcon {
-                            text: catalogRow.modelData.icon
-                            fontStyle: Tokens.font.icon.medium
-                            color: Colours.palette.m3primary
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-
-                            StyledText {
-                                text: catalogRow.modelData.name
-                                font: Tokens.font.body.medium
-                                color: Colours.palette.m3onSurface
-                            }
-
-                            StyledText {
-                                text: catalogRow.modelData.desc
-                                font: Tokens.font.label.small
-                                color: Colours.palette.m3onSurfaceVariant
-                            }
-                        }
 
                         RowLayout {
-                            spacing: Tokens.spacing.extraSmall
-
-                            TextButton {
-                                text: "+ " + Tr.tr("Left")
-                                onClicked: root.addWidget(0, catalogRow.modelData.id)
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            MaterialIcon {
+                                text: catalogRow.modelData.icon
+                                fontStyle: Tokens.font.icon.medium
+                                color: Colours.palette.m3primary
                             }
-
-                            TextButton {
-                                text: "+ " + Tr.tr("Center")
-                                onClicked: root.addWidget(1, catalogRow.modelData.id)
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: catalogRow.modelData.name
+                                    font: Tokens.font.body.medium
+                                    wrapMode: Text.Wrap
+                                }
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: catalogRow.modelData.desc
+                                    font: Tokens.font.label.small
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    wrapMode: Text.Wrap
+                                }
                             }
-
-                            TextButton {
-                                text: "+ " + Tr.tr("Right")
-                                onClicked: root.addWidget(2, catalogRow.modelData.id)
-                            }
+                        }
+                        GenericSettingRow {
+                            Layout.preferredWidth: 190 * Tokens.scale
+                            Layout.maximumWidth: 220 * Tokens.scale
+                            spec: ({type:"choice", label:"Position", value:root.widgetZone(catalogRow.modelData.id), choices:[
+                                {value:-1,label:"Not on panel"}, {value:0,label:"Left"},
+                                {value:1,label:"Center"}, {value:2,label:"Right"}]})
+                            onEdited: value => root.addWidget(Number(value), catalogRow.modelData.id)
                         }
                     }
                 }

@@ -24,6 +24,7 @@
 #include <hyprland/src/desktop/state/ViewState.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
 #include "globals.hpp"
+#include "titlebar-actions.hpp"
 #include <algorithm>
 #include <array>
 #include <stdexcept>
@@ -144,6 +145,20 @@ static CBox clientTextureBox(CSurfacePassElement* element) {
 using ClientStateFunction = void (*)(Desktop::View::CWindow*);
 static void tiledClientState(Desktop::View::CWindow* window) {
     bool rejected = false;
+    // Route both xdg-shell and EWMH requests through the same stacking
+    // controller, including clients whose shell decoration is hidden.
+    if (window && g_pGlobalState && g_pGlobalState->config.enabled->value() && window->m_isMapped) {
+        const auto consume = [&](auto& state) {
+            if (state.requestsMaximize.has_value() && runDecorationAction(window->m_self.lock(),
+                    *state.requestsMaximize ? "maximize-set" : "maximize-unset"))
+                state.requestsMaximize.reset();
+            if (state.requestsMinimize.value_or(false) && runDecorationAction(window->m_self.lock(), "minimize"))
+                state.requestsMinimize.reset();
+        };
+        if (window->m_xdgSurface && window->m_xdgSurface->m_toplevel)
+            consume(window->m_xdgSurface->m_toplevel->m_state);
+        else if (window->m_xwaylandSurface) consume(window->m_xwaylandSurface->m_state);
+    }
     if (window && !window->m_isFloating && !g_pGlobalState->config.enabled->value()) {
         // CSD requests belong to stacking. This applies to undecorated clients
         // too: they never get a Hyprbar that could suppress native maximize.
