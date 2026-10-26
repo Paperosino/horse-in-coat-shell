@@ -10,6 +10,17 @@ from gtk_theme import apply_palette
 
 
 class GtkPaletteTests(unittest.TestCase):
+    def test_font_rendering_preferences_cover_all_modes(self):
+        import gtk_theme
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for antialias in (False, True):
+                for hinting, number in (("none",0),("slight",1),("medium",2),("full",3)):
+                    with patch.object(gtk_theme,"_font_override",(antialias,hinting)):
+                        gtk_theme.apply_font_rendering(root)
+                    result=subprocess.check_output(["fc-match","-f","%{antialias} %{hinting} %{hintstyle} %{rgba}","sans"],env=dict(os.environ,XDG_CONFIG_HOME=str(root)),text=True)
+                    self.assertEqual(result,f"{antialias} {hinting != 'none'} {number} 5")
+
     def test_font_rendering_is_shared_and_idempotent(self):
         from gtk_theme import apply_font_rendering
         with tempfile.TemporaryDirectory() as directory:
@@ -55,6 +66,7 @@ class GtkPaletteTests(unittest.TestCase):
                 self.assertEqual(ini["Settings"]["gtk-decoration-layout"],"close,minimize:")
                 self.assertEqual(ini["Settings"]["gtk-xft-antialias"],"1")
             css=(root/"gtk-4.0/hics.css").read_text()
+            self.assertIn("gtk-font-rendering=manual",(root/"gtk-4.0/settings.ini").read_text())
             self.assertIn("--headerbar-border-color: #505060",css)
             self.assertIn("--headerbar-shade-color: transparent",css)
         for value in ({"side":"bottom"},{"order":["close","close"]},{"order":["exec"]},{"order":[[]]},{"other":True}):

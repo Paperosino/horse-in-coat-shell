@@ -170,7 +170,7 @@ PageBase {
                         border.width: 1
                         border.color: "#" + (card.variant?.colours.outlineVariant ?? "808080")
 
-                        Text {
+                        StyledText {
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.margins: 8 * Tokens.scale

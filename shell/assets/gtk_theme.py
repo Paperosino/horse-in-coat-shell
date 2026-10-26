@@ -89,14 +89,34 @@ def sync_window_controls(config_root):
                 update_settings(folder/"settings.ini", "Settings", {"gtk-decoration-layout": layout})
 
 
+_font_override = None
+
+
+def font_rendering():
+    if _font_override is not None:
+        return _font_override
+    path = Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config"))/"hics/shell.json"
+    try:
+        if path.stat().st_size > 2*1024*1024:
+            raise ValueError("Font configuration is too large")
+        settings = json.loads(path.read_text()).get("appearance", {}).get("font", {})
+        antialias, hinting = settings.get("antialias", True), settings.get("hinting", "slight")
+        if not isinstance(antialias, bool) or hinting not in ("none", "slight", "medium", "full"):
+            raise ValueError("Invalid font rendering settings")
+        return antialias, hinting
+    except FileNotFoundError:
+        return True, "slight"
+
+
 def apply_font_rendering(config_root):
-    """Shared grayscale AA; never change font selection, size or display DPI."""
+    """Shared glyph rendering policy; preserve font selection, size and DPI."""
+    antialias, hinting = font_rendering()
     atomic_text(Path(config_root) / "fontconfig/conf.d/99-hics-rendering.conf", '\n'.join([
         '<?xml version="1.0"?>', '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">',
         '<fontconfig><match target="font">',
-        '<edit name="antialias" mode="assign"><bool>true</bool></edit>',
-        '<edit name="hinting" mode="assign"><bool>true</bool></edit>',
-        '<edit name="hintstyle" mode="assign"><const>hintslight</const></edit>',
+        f'<edit name="antialias" mode="assign"><bool>{str(antialias).lower()}</bool></edit>',
+        f'<edit name="hinting" mode="assign"><bool>{str(hinting != "none").lower()}</bool></edit>',
+        f'<edit name="hintstyle" mode="assign"><const>hint{hinting}</const></edit>',
         '<edit name="rgba" mode="assign"><const>none</const></edit>',
         '</match></fontconfig>', '']))
 
@@ -168,8 +188,9 @@ def apply_palette(colours, config_root, mode=None):
     ]
     css = "/* Generated from the hics palette. */\n" + "\n".join(definitions + rules) + "\n"
     apply_font_rendering(config_root)
+    antialias, hinting = font_rendering()
     # GTK2 has no CSS support; it needs a real RC palette, not GTK3 theme names.
-    rc = ["# Generated from the hics palette.", 'gtk-xft-antialias = 1', 'gtk-xft-hinting = 1', 'gtk-xft-hintstyle = "hintslight"', 'gtk-xft-rgba = "none"', 'style "hics-palette" {', '  xthickness = 2', '  ythickness = 2']
+    rc = ["# Generated from the hics palette.", f'gtk-xft-antialias = {int(antialias)}', f'gtk-xft-hinting = {int(hinting != "none")}', f'gtk-xft-hintstyle = "hint{hinting}"', 'gtk-xft-rgba = "none"', 'style "hics-palette" {', '  xthickness = 2', '  ythickness = 2']
     for state, bg, fg in (("NORMAL",surface,ink),("PRELIGHT",hover,ink),("ACTIVE",pressed,ink),("SELECTED",accent,on_accent),("INSENSITIVE",container,muted)):
         rc += [f'  bg[{state}] = "{bg}"', f'  base[{state}] = "{surface if state == "NORMAL" else bg}"', f'  fg[{state}] = "{fg}"', f'  text[{state}] = "{fg}"']
     rc += ['}', 'class "*" style "hics-palette"', 'widget_class "*" style "hics-palette"', '']
@@ -208,9 +229,14 @@ def apply_palette(colours, config_root, mode=None):
             "gtk-theme-name": "Adwaita-dark" if dark else "Adwaita",
             "gtk-application-prefer-dark-theme": int(dark),
             "gtk-decoration-layout": decoration_layout(config_root),
-            "gtk-xft-antialias": 1, "gtk-xft-hinting": 1,
-            "gtk-xft-hintstyle": "hintslight", "gtk-xft-rgba": "none",
+            "gtk-xft-antialias": int(antialias), "gtk-xft-hinting": int(hinting != "none"),
+            "gtk-xft-hintstyle": "hint" + hinting, "gtk-xft-rgba": "none",
         })
+        if version == "4.0":
+            # GTK >= 4.16 otherwise chooses its own font rendering policy.
+            update_settings(directory / "settings.ini", "Settings", {
+                "gtk-font-rendering": "manual", "gtk-hint-font-metrics": int(hinting != "none"),
+            })
     # QPalette colour-role order, used by both qt5ct and qt6ct. Preserve
     # icon/font preferences while replacing the palette and widget style.
     roles = ("onSurface", "surfaceContainer", "surfaceContainer", "surfaceContainer",
@@ -316,22 +342,25 @@ def write_kde_scheme(config_root, target):
 
 def sync_session_preference(colours, config_root, mode=None):
     """Publish mode alongside colours for portal/Adwaita and Qt Quick clients."""
+    antialias, hinting = font_rendering()
     dark = mode == "dark" if mode else sum(int(colours["surface"][i:i+2],16)*w for i,w in ((0,.2126),(2,.7152),(4,.0722))) < 128
     def run(argv):
         try:
-            return subprocess.run(argv, capture_output=True, text=True, timeout=5, check=False)
+            result = subprocess.run(argv, capture_output=True, text=True, timeout=5, check=False)
+            if result.returncode:
+                print("Unable to publish desktop appearance:", Path(argv[0]).name, result.stderr[:2048].strip(), file=sys.stderr)
+            return result
         except (OSError, subprocess.SubprocessError) as error:
             print("Unable to publish desktop appearance:", error, file=sys.stderr)
     if shutil.which("gsettings"):
         # The GTK portal forwards these changes to sandboxed GTK/Qt clients.
         for key, value in (("color-scheme", "prefer-dark" if dark else "prefer-light"),
                            ("gtk-theme", "Adwaita-dark" if dark else "Adwaita"),
-                           ("font-antialiasing", "grayscale"), ("font-hinting", "slight"),
-                           ("font-rgba-order", "none")):
+                           ("font-antialiasing", "grayscale" if antialias else "none"), ("font-hinting", hinting)):
             run(["gsettings", "set", "org.gnome.desktop.interface", key, value])
         run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", decoration_layout(config_root)])
     resources = Path(config_root) / "hics/fonts.Xresources"
-    atomic_text(resources, "Xft.antialias: 1\nXft.hinting: 1\nXft.hintstyle: hintslight\nXft.rgba: none\n")
+    atomic_text(resources, f"Xft.antialias: {int(antialias)}\nXft.hinting: {int(hinting != 'none')}\nXft.hintstyle: hint{hinting}\nXft.rgba: none\n")
     if os.environ.get("DISPLAY") and shutil.which("xrdb"):
         run(["xrdb", "-merge", str(resources)])
     target = Path(os.environ.get("XDG_DATA_HOME", Path.home()/".local/share")) / "color-schemes/hics.colors"
@@ -383,4 +412,8 @@ def restore():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        if len(sys.argv) != 4 or sys.argv[1] != "fonts" or sys.argv[2] not in ("true", "false") or sys.argv[3] not in ("none", "slight", "medium", "full"):
+            raise SystemExit("Invalid font rendering arguments")
+        _font_override = (sys.argv[2] == "true", sys.argv[3])
     restore()

@@ -260,7 +260,13 @@ ShellRoot {
     p=base/'shell/shell.qml';p.write_text(p.read_text().replace('fixture.searchAttempts=0;fixture.searchRetry.restart();','fixture.revealSearchTarget();'))
     if os.environ.get('HICS_TEST_PANEL_CONTROLS'):
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/panel-controls.qml').read_text())
+    if os.environ.get('HICS_TEST_FONT_RENDERING'):
+        fixture=(ROOT/'tests/fixtures/font-rendering.qml').read_text()
+        if os.environ['HICS_TEST_FONT_RENDERING']=='narrow':fixture=fixture.replace('implicitWidth: 1000','implicitWidth: 560')
+        fixture=fixture.replace('/tmp/hics-icon-policy-',str(base/'icon-policy-'))
+        (base/'shell/shell.qml').write_text(fixture)
     if os.environ.get('HICS_TEST_SCALING'):
+        (base/'config/hics/shell.json').write_text('{"appearance":{"reducedMotion":true,"font":{"hinting":"none"}}}')
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/scaling-quality.qml').read_text())
     (base/'compositor.lua').write_text('hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})\n')
     env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'))
@@ -294,6 +300,10 @@ ShellRoot {
         output=result.stdout+result.stderr
         (Path('/tmp/hics-settings-design-render.log')).write_text(output)
         assert result.returncode==0 and 'SETTINGS_DESIGN_OK' in output,output[-7000:]
+        if os.environ.get('HICS_TEST_FONT_RENDERING'):
+            from PIL import Image
+            images=[Image.open(base/f'icon-policy-{index}.png').convert('RGBA') for index in range(8)]
+            assert all(image.size==images[0].size and image.tobytes()==images[0].tobytes() for image in images), 'Text rendering preferences changed the icon raster'
         # Qt destroys global menu contexts after Qt.quit; only reject live UI warnings.
         live=output.split('SETTINGS_DESIGN_OK')[0]
         assert not any(s in live for s in ('TypeError:','ReferenceError:','Binding loop','Cannot assign','Unable to assign')),live[-7000:]

@@ -231,6 +231,9 @@ class FontStyleIcon : public settings::ObjectNode {
 class AppearanceFont : public settings::ObjectNode {
     CONFIG_NODE(AppearanceFont, settings::ObjectNode)
 
+    CONFIG_PROPERTY(bool, antialias, true)
+    CONFIG_PROPERTY(QString, hinting, u"slight"_s)
+
     CONFIG_PROPERTY(qreal, scale, 1)
     CONFIG_SUBOBJECT(FontStyleHeadline, headline)
     CONFIG_SUBOBJECT(FontStyleTitle, title)

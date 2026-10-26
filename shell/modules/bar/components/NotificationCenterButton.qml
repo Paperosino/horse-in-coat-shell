@@ -46,13 +46,12 @@ Item {
         radius: 7 * Tokens.scale
         color: Colours.palette.m3primary
 
-        Text {
+        StyledText {
             id: badge
             anchors.centerIn: parent
             text: Notifs.unreadCount > 99 ? "99+" : Notifs.unreadCount
             color: Colours.palette.m3onPrimary
-            font.pixelSize: 9
-            font.bold: true
+            font: Tokens.font.label.builders.small.size(6.75 * Tokens.scale).weight(Font.Bold).build()
         }
     }
 }

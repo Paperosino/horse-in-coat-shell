@@ -9,11 +9,14 @@ class FontBuilderTests(unittest.TestCase):
    (base/'test.cpp').write_text('''#include "fontbuilder.hpp"
 #include <QCoreApplication>
 #include <cmath>
-int main(int argc,char**argv){QCoreApplication app(argc,argv);QFont font;font.setPointSizeF(12.5);
+int main(int argc,char**argv){QCoreApplication app(argc,argv);QFont font;font.setPointSizeF(12.5);font.setStyleStrategy(QFont::PreferAntialias);
  auto scaled=hyprstack::config::FontBuilder(font).scale(.75).build();
  if(std::abs(scaled.pointSizeF()-9.375)>.001 || !(scaled.styleStrategy()&QFont::PreferAntialias))return 1;
  auto fractional=hyprstack::config::FontBuilder(font).size(10.25).build();
  if(std::abs(fractional.pointSizeF()-10.25)>.001)return 2;
+ font.setStyleStrategy(QFont::NoAntialias);font.setHintingPreference(QFont::PreferFullHinting);
+ auto plain=hyprstack::config::FontBuilder(font).scale(1.25).build();
+ if(plain.styleStrategy()!=QFont::NoAntialias || plain.hintingPreference()!=QFont::PreferFullHinting)return 4;
  auto guarded=hyprstack::config::FontBuilder(font).size(NAN).build();return guarded.pointSizeF()==1?0:3;}
 ''')
    subprocess.run(['/usr/lib/qt6/moc',str(source/'fontbuilder.hpp'),'-o',str(base/'moc.cpp')],check=True,capture_output=True)

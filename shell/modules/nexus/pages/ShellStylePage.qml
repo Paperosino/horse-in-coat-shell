@@ -23,6 +23,46 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
+        SettingsCard {
+            title: Tr.tr("Font rendering")
+            icon: "text_fields"
+            description: Tr.tr("One preference for the shell, GTK, Qt, X11 and Flatpak applications")
+            ToggleRow {
+                objectName: "fontAntialias"
+                text: Tr.tr("Smooth font edges")
+                subtext: Tr.tr("Grayscale antialiasing works with rotated screens and fractional scaling")
+                checked: GlobalConfig.appearance.font.antialias
+                onToggled: GlobalConfig.appearance.font.antialias = checked
+            }
+            SelectRow {
+                objectName: "fontHinting"
+                label: Tr.tr("Hinting")
+                subtext: Tr.tr("Align glyphs to pixels. No hinting keeps transformed text smooth; stronger hinting makes small text sharper.")
+                active: menuItems.find(item => item.value === GlobalConfig.appearance.font.hinting) ?? menuItems[1]
+                onSelected: item => GlobalConfig.appearance.font.hinting = item.value
+                menuItems: [
+                    MenuItem { text: Tr.tr("None"); value: "none" },
+                    MenuItem { text: Tr.tr("Slight"); value: "slight" },
+                    MenuItem { text: Tr.tr("Medium"); value: "medium" },
+                    MenuItem { text: Tr.tr("Full"); value: "full" }
+                ]
+            }
+            StyledText {
+                Layout.fillWidth: true
+                text: "Aa · Абв · 0123456789"
+                font: Tokens.font.title.builders.large.size(24).build()
+                horizontalAlignment: Text.AlignHCenter
+            }
+            FeatureError { error: FontRendering.error }
+            StyledText {
+                Layout.fillWidth: true
+                visible: FontRendering.notice.length > 0
+                text: FontRendering.notice
+                wrapMode: Text.WordWrap
+                color: Colours.palette.m3onSurfaceVariant
+            }
+        }
+
         ToggleRow {
             first: true
             text: Tr.tr("Display wallpaper")

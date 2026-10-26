@@ -85,7 +85,6 @@ Item {
         width: image.width - Tokens.padding.medium * 2
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
-        renderType: Text.QtRendering
         text: root.modelData.relativePath
         font: Tokens.font.label.medium
     }

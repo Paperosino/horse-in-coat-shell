@@ -16,7 +16,7 @@ TextField {
     selectedTextColor: color
 
     font: Tokens.font.body.small
-    renderType: TextField.QtRendering
+    renderType: FontRendering.nativeRendering ? TextField.NativeRendering : TextField.QtRendering
     cursorVisible: !readOnly
     verticalAlignment: TextInput.AlignVCenter
 

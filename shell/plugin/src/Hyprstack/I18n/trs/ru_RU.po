@@ -13032,3 +13032,33 @@ msgstr "Высота панели и виджеты"
 
 msgid "Height, scale, and one place to arrange panel widgets"
 msgstr "Высота, масштаб и единое управление виджетами панели"
+
+msgid "Font rendering"
+msgstr "Отрисовка шрифтов"
+
+msgid "One preference for the shell, GTK, Qt, X11 and Flatpak applications"
+msgstr "Общие настройки для оболочки, GTK, Qt, X11 и Flatpak"
+
+msgid "Smooth font edges"
+msgstr "Сглаживание шрифтов"
+
+msgid "Grayscale antialiasing works with rotated screens and fractional scaling"
+msgstr "Сглаживание в оттенках серого подходит для повёрнутых экранов и дробного масштаба"
+
+msgid "Hinting"
+msgstr "Хинтинг"
+
+msgid "Align glyphs to pixels. No hinting keeps transformed text smooth; stronger hinting makes small text sharper."
+msgstr "Выравнивание символов по пикселям. Без хинтинга текст плавнее при масштабировании; сильный хинтинг делает мелкий текст чётче."
+
+msgid "Slight"
+msgstr "Лёгкий"
+
+msgid "Medium"
+msgstr "Средний"
+
+msgid "Unable to apply font rendering"
+msgstr "Не удалось применить настройки шрифтов"
+
+msgid "Applied. Reopen applications that cache font settings. Applications with their own text renderer may ignore system preferences."
+msgstr "Применено. Перезапустите приложения, которые кэшируют настройки шрифтов. Приложения с собственной отрисовкой текста могут игнорировать системные параметры."

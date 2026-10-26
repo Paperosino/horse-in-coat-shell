@@ -9,8 +9,8 @@ Text {
 
     property bool animate: false
 
-    renderType: Text.QtRendering
-    antialiasing: true
+    renderType: FontRendering.nativeRendering ? Text.NativeRendering : Text.QtRendering
+    antialiasing: FontRendering.antialias
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
     font: Tokens.font.body.small

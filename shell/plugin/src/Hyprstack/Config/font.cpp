@@ -40,7 +40,8 @@ QFont FontStyleBase::buildFont(const settings::ObjectNode* cfg, const QString& f
     font.setFamily(family.isEmpty() ? fallbackFamily : family);
     const qreal cappedSize = std::max(qreal(1), size * scale);
     font.setPointSizeF(cappedSize);
-    font.setStyleStrategy(QFont::PreferAntialias);
+    font.setStyleStrategy(m_antialias ? QFont::PreferAntialias : QFont::NoAntialias);
+    font.setHintingPreference(m_hinting);
     font.setVariableAxis("opsz", static_cast<float>(cappedSize));
     font.setWeight(weight);
     font.setVariableAxis("wght", weight);
@@ -90,6 +91,13 @@ void FontStyleBase::rebuild() {
         m_small = QFont();
     }
     emit fontsChanged();
+}
+
+void FontStyleBase::setRendering(bool antialias, QFont::HintingPreference hinting) {
+    if (m_antialias == antialias && m_hinting == hinting) return;
+    m_antialias = antialias;
+    m_hinting = hinting;
+    rebuild();
 }
 
 void FontStyleBase::setScale(qreal scale) {
@@ -243,6 +251,8 @@ void FontTokens::bindFont(AppearanceFont* font) {
 
         m_fontConnections = {
             connect(font, &AppearanceFont::clockChanged, this, &FontTokens::rebuildClock),
+            connect(font, &AppearanceFont::antialiasChanged, this, &FontTokens::rebuildRendering),
+            connect(font, &AppearanceFont::hintingChanged, this, &FontTokens::rebuildRendering),
             connect(font, &AppearanceFont::scaleChanged, this, &FontTokens::rebuildScale),
             connect(font, &AppearanceFont::workspacesChanged, this, &FontTokens::workspacesChanged),
         };
@@ -256,7 +266,7 @@ void FontTokens::bindFont(AppearanceFont* font) {
         m_icon->bind(nullptr);
     }
 
-    rebuildClock();
+    rebuildRendering();
     emit workspacesChanged();
 }
 
@@ -276,10 +286,23 @@ void FontTokens::setUiScale(qreal scale) {
     rebuildScale();
 }
 
+void FontTokens::rebuildRendering() {
+    const auto hint = m_font ? m_font->hinting() : QString();
+    const auto preference = hint == u"none" ? QFont::PreferNoHinting : hint == u"full" ? QFont::PreferFullHinting
+        : hint == u"medium" ? QFont::PreferDefaultHinting : QFont::PreferVerticalHinting;
+    for (FontStyleBase* style : std::array<FontStyleBase*, 5>{m_headline, m_title, m_body, m_label, m_mono})
+        style->setRendering(!m_font || m_font->antialias(), preference);
+    m_icon->setRendering(true, QFont::PreferNoHinting);
+    rebuildClock();
+}
+
 void FontTokens::rebuildClock() {
     QFont f;
     if (m_font)
         f.setFamily(m_font->clock());
+    f.setStyleStrategy(!m_font || m_font->antialias() ? QFont::PreferAntialias : QFont::NoAntialias);
+    const auto hint = m_font ? m_font->hinting() : QString();
+    f.setHintingPreference(hint == u"none" ? QFont::PreferNoHinting : hint == u"full" ? QFont::PreferFullHinting : hint == u"medium" ? QFont::PreferDefaultHinting : QFont::PreferVerticalHinting);
     m_clock = std::move(f);
     emit clockChanged();
 }

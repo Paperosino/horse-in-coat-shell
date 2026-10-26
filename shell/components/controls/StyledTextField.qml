@@ -98,7 +98,6 @@ TextFieldBase {
             anchors.topMargin: Tokens.padding.extraSmall
             width: Math.max(0, (contentWrapper.width - root.leftPadding - root.rightPadding) / scale)
             elide: Text.ElideRight
-            renderType: Text.QtRendering
 
             text: root.placeholderText
             color: root.isError ? Colours.palette.m3error : (root.activeFocus ? Colours.palette.m3primary : root.text ? Colours.palette.m3outline : root.placeholderTextColor)

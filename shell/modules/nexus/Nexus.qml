@@ -96,7 +96,6 @@ Item {
         }
 
         label.scale: pressed ? 0.8 : 1
-        label.renderType: Text.QtRendering
 
         Behavior on label.scale {
             Anim {}

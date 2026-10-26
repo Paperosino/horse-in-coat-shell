@@ -14,7 +14,7 @@ namespace hyprstack::config {
 using Qt::StringLiterals::operator""_s;
 
 FontBuilder::FontBuilder(const QFont& font)
-    : m_font(font) { m_font.setStyleStrategy(QFont::PreferAntialias); }
+    : m_font(font) {}
 
 FontBuilder FontBuilder::family(const QString& family) {
     m_font.setFamily(family);

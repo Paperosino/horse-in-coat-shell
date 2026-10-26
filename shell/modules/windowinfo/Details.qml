@@ -14,7 +14,7 @@ ColumnLayout {
     anchors.fill: parent
     spacing: Tokens.spacing.small
 
-    Label {
+    StyledText {
         Layout.topMargin: Tokens.padding.extraLargeIncreased
 
         text: root.client?.title ?? Tr.tr("No active client")
@@ -23,7 +23,7 @@ ColumnLayout {
         font: Tokens.font.body.builders.large.weight(Font.Medium).build()
     }
 
-    Label {
+    StyledText {
         text: root.client?.lastIpcObject.class ?? Tr.tr("No active client")
         color: Colours.palette.m3tertiary
 

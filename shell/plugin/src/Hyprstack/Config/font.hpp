@@ -60,6 +60,7 @@ public:
 
     virtual void bind(settings::ObjectNode* cfg);
     void setScale(qreal scale);
+    void setRendering(bool antialias, QFont::HintingPreference hinting);
 
     [[nodiscard]] QFont large() const;
     [[nodiscard]] QFont medium() const;
@@ -71,7 +72,9 @@ signals:
 protected:
     virtual void rebuild();
 
-    static QFont buildFont(const settings::ObjectNode* cfg, const QString& fallbackFamily, qreal scale);
+    QFont buildFont(const settings::ObjectNode* cfg, const QString& fallbackFamily, qreal scale);
+    bool m_antialias = true;
+    QFont::HintingPreference m_hinting = QFont::PreferVerticalHinting;
 
     settings::ObjectNode* m_cfg = nullptr;
     std::array<QMetaObject::Connection, 4> m_configConnections;
@@ -156,10 +159,11 @@ signals:
 
 private:
     void rebuildClock();
+    void rebuildRendering();
     void rebuildScale();
 
     AppearanceFont* m_font = nullptr;
-    std::array<QMetaObject::Connection, 3> m_fontConnections;
+    std::array<QMetaObject::Connection, 5> m_fontConnections;
     qreal m_uiScale = 1;
     FontStyle* m_headline;
     FontStyle* m_title;
