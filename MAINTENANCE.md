@@ -664,3 +664,22 @@ visible dock resizing, rapid fullscreen transitions and restore of the original
 normal rectangle. The same cases pass with output scale 1.25. It uses private config and snapshots native binaries; the
 host compositor's plugins are never reloaded by the test. Both stacking drag
 regressions (five server-titlebar and five headerless drags with PiP) also pass.
+
+## Время запуска оболочки
+
+Подготовка сеанса запускает независимые проверки доступности, восстановления
+конфигурации и экранов параллельно с восстановлением палитры. Все проверки
+завершаются до запуска QML; защита отката не переносится на поздний таймер.
+Повторный запуск уже работающего runner сначала проверяет блокировку и не
+переприменяет тему. Неизменившиеся файлы палитры сохраняют inode и время изменения.
+
+В журнале `hic-session.service` строка `hics startup: preparation …s` показывает
+время подготовки. Следующая `Configuration Loaded` относится к загрузке QML,
+а не гарантирует момент первого показанного кадра. `systemd-analyze --user blame`
+для службы Type=simple не измеряет время до появления панели.
+
+`python3 tests/benchmark_startup.py` сравнивает три запуска полного QML-интерфейса
+в отдельном вложенном композиторе: первый с новым каталогом кэша, затем два
+повторных. `--check-ui` дополнительно проверяет первое открытие отложенно
+загружаемых настроек и тура. Обе D-Bus шины теста изолированы от оборудования;
+результат не заменяет измерение настоящего входа в систему на холодном диске.

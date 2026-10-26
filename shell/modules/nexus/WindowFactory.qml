@@ -1,71 +1,37 @@
 pragma Singleton
-
 import QtQuick
 import Quickshell
-import Hyprstack.Config
-import Hyprstack.I18n
-import qs.components
-import qs.services
-import qs.modules.nexus
 
 Singleton {
     id: root
+    property var windowComponent: null
+    property var pending: []
 
     function openPage(id: string): void { create(null, {pageId: id}); }
     function openPanelSettings(id: string): void { create(null, {pageId: "statusbar-layout", panelId: id}); }
 
-    function create(parent: Item, props: var): void {
-        nexusComp.createObject(parent ?? dummy, props);
-    }
-
-    QtObject {
-        id: dummy
-    }
-
-    Component {
-        id: nexusComp
-
-        FloatingWindow {
-            id: win
-
-            property string pageId: ""
-            property string panelId: ""
-
-            color: Colours.tPalette.m3surface
-            surfaceFormat.opaque: false
-
-            onVisibleChanged: {
-                if (!visible)
-                    destroy();
-            }
-
-            implicitWidth: nexus.implicitWidth
-            implicitHeight: nexus.implicitHeight
-
-            minimumSize.width: Math.min(contentItem.Tokens.sizes.nexus.minWidth, nexus.availableWidth)
-            minimumSize.height: Math.min(contentItem.Tokens.sizes.nexus.minHeight, nexus.availableHeight)
-
-            contentItem.Config.screen: screen.name
-            contentItem.Tokens.screen: screen.name
-
-            title: Tr.tr("Nexus — %1").arg((nexus.nState.showingSection ? PageRegistry.section(nexus.nState.sectionId).label : PageRegistry.pages[nexus.nState.currentPageIdx].label))
-
-            Nexus {
-                id: nexus
-
-                anchors.fill: parent
-                nState.screen: win.screen
-                nState.isWindow: true
-                Component.onCompleted: if (win.pageId) {
-                    nState.requestedPanelId = win.panelId;
-                    nState.openPage(win.pageId);
-                }
-                onClose: win.destroy()
-            }
-
-            Behavior on color {
-                CAnim {}
-            }
+    function finishLoading(): void {
+        if (windowComponent.status === Component.Loading) return;
+        const requests = pending;
+        pending = [];
+        if (windowComponent.status === Component.Error) {
+            console.error("Cannot load settings:", windowComponent.errorString());
+            windowComponent = null; // Allow retry after a transient read failure.
+            return;
         }
+        for (const request of requests)
+            windowComponent.createObject(request.parent ?? root, request.props);
+    }
+
+    function create(parent: Item, props: var): void {
+        pending = pending.concat([{parent: parent, props: props ?? {}}]);
+        if (!windowComponent) {
+            // A URL boundary keeps the complete settings component tree off
+            // the desktop's startup compilation path. Compile on first use.
+            windowComponent = Qt.createComponent(Qt.resolvedUrl("SettingsWindow.qml"), Component.Asynchronous);
+            if (windowComponent.status === Component.Loading)
+                windowComponent.statusChanged.connect(root.finishLoading);
+        }
+        finishLoading();
     }
 }

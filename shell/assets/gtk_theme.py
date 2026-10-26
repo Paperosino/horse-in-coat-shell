@@ -12,6 +12,13 @@ import sys
 
 
 def atomic_text(path, text):
+    # Session startup republishes the current palette. Keep unchanged files
+    # (and their inodes/watchers) instead of fsyncing them on every login.
+    try:
+        if path.read_text() == text:
+            return
+    except (OSError, UnicodeError):
+        pass
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".hyprstack-")
     try:

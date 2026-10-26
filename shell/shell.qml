@@ -39,7 +39,10 @@ ShellRoot {
     PluginHost {}
     Displays.Confirmation {}
     Configuration.Confirmation {}
-    OnboardingModule.Wizard {}
+    Loader {
+        active: Onboarding.running
+        source: active ? Qt.resolvedUrl("modules/onboarding/Wizard.qml") : ""
+    }
     PolkitModule.Polkit { id: authentication }
 
     Background {}

@@ -66,31 +66,53 @@ def load_capture_plugin(name="hics-capture"):
         print("Unable to load " + name + ":", error, file=sys.stderr)
 
 
-def run_session():
-    lockpath, eventpath = paths()
-    subprocess.run([sys.executable,str(Path(__file__).with_name("accessibility_manager.py")),"startup"],stdout=subprocess.DEVNULL,timeout=20,check=False)
-    try:
-        subprocess.run([sys.executable,str(Path(__file__).with_name("display_profiles.py")),"status"],stdout=subprocess.DEVNULL,timeout=20,check=False)
-    except (OSError,subprocess.SubprocessError) as error:
-        print("Unable to initialize display protection:",error,file=sys.stderr)
-    try:
-        subprocess.run([sys.executable,str(Path(__file__).with_name("configuration_manager.py")),"status"],stdout=subprocess.DEVNULL,timeout=20,check=False)
-    except (OSError,subprocess.SubprocessError) as error:
-        print("Unable to initialize configuration recovery:",error,file=sys.stderr)
-    from gtk_theme import restore as restore_gtk_theme
-    try:
-        restore_gtk_theme()
-    except (OSError, ValueError, KeyError) as error:
-        print("Unable to restore GTK dialog colours:", error, file=sys.stderr)
-    # Appearance is a user-session preference. Preserve it across sign-ins
-    # for shell-launched GTK/Qt clients as well as compositor-launched clients.
+def prepare_session():
+    """Independent recovery/accessibility jobs overlap palette preparation.
+
+    All jobs finish before QML starts; rollback protection is never deferred.
+    Each child has its own deadline and cannot survive a failed preflight.
+    """
     from appearance_themes import STATE, session_environment
+    jobs = [("accessibility", "accessibility_manager.py", "startup", 20),
+            ("display protection", "display_profiles.py", "status", 20),
+            ("configuration recovery", "configuration_manager.py", "status", 20)]
     if STATE.is_file():
         os.environ.update(session_environment())
-        subprocess.run([sys.executable, str(Path(__file__).with_name('appearance_themes.py')), 'restore'],
-                       stdout=subprocess.DEVNULL, timeout=35, check=False)
+        jobs.append(("appearance", "appearance_themes.py", "restore", 35))
+    pending = []
+    try:
+        for label, script, operation, timeout in jobs:
+            try:
+                child = subprocess.Popen([sys.executable, str(Path(__file__).with_name(script)), operation],
+                                         stdout=subprocess.DEVNULL, start_new_session=True)
+                pending.append((label, child, time.monotonic() + timeout))
+            except OSError as error:
+                print("Unable to initialize " + label + ":", error, file=sys.stderr)
+        from gtk_theme import restore as restore_gtk_theme
+        try:
+            restore_gtk_theme()
+        except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+            print("Unable to restore GTK dialog colours:", error, file=sys.stderr)
+        for label, child, deadline in pending:
+            try:
+                result = child.wait(timeout=max(.01, deadline - time.monotonic()))
+                if result:
+                    print("Unable to initialize " + label + ": exit", result, file=sys.stderr)
+            except subprocess.TimeoutExpired:
+                print("Unable to initialize " + label + ": timed out", file=sys.stderr)
+    finally:
+        for _, child, _ in pending:
+            if child.poll() is None:
+                try: os.killpg(child.pid, signal.SIGKILL)
+                except ProcessLookupError: pass
+            child.wait()
     os.environ["QT_QPA_PLATFORMTHEME"] = "hics"
     os.environ["QT_QUICK_CONTROLS_CONF"] = str(Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config"))/"hics/qtquickcontrols2.conf")
+
+
+def run_session():
+    started = time.monotonic()
+    lockpath, eventpath = paths()
     children = []
     event = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     event.connect(str(eventpath))
@@ -111,6 +133,8 @@ def run_session():
         result = 0
         session_disconnected = False
         try:
+            prepare_session()
+            print(f"hics startup: preparation {time.monotonic()-started:.3f}s", flush=True)
             # The native shell service owns clipboard capture and its privacy policy.
             from extension_recovery import begin as begin_extensions, finish as finish_extensions
             begin_extensions()
