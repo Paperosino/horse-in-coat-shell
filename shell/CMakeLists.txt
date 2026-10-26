@@ -81,7 +81,7 @@ if("shell" IN_LIST ENABLE_MODULES)
         PATTERN "README.md" EXCLUDE)
     file(GLOB shell_asset_scripts CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/*.py")
     install(FILES ${shell_asset_scripts} DESTINATION "${INSTALL_QSCONFDIR}/assets")
-    install(FILES assets/logo.svg assets/bongocat.gif assets/kurukuru.gif assets/dino.png
+    install(FILES assets/logo.svg assets/hics-mascot.png assets/bongocat.gif assets/kurukuru.gif assets/dino.png
         DESTINATION "${INSTALL_QSCONFDIR}/assets")
     install(PROGRAMS assets/wrap_term_launch.sh DESTINATION "${INSTALL_QSCONFDIR}/assets")
 

@@ -31,7 +31,7 @@ ShellRoot {
  property int phase:0
  property bool narrow:false
  property bool controlledExpanded:false
- property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","statusbar-layout","panel-options","panel-status-icons","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power","accounts","firmware","tablets","colour-profiles","configuration-history"]
+ property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","statusbar-layout","panel-options","panel-status-icons","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power","accounts","firmware","tablets","colour-profiles","configuration-history","about"]
  FloatingWindow {
   id:win;visible:true;implicitWidth:1180;implicitHeight:820;color:Colours.palette.m3surface
   Nexus {id:settings;width:root.narrow?560:parent.width;height:parent.height;visible:!fixture.visible}

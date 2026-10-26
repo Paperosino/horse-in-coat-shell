@@ -1,6 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title">
-  <title id="title">Hyprstack</title>
-  <path fill="#cdd6e0" d="M12 20H68V28H20V60H12Z M24 32H80V40H32V72H24Z"/>
-  <path fill="#62d6b2" fill-rule="evenodd" d="M36 44H92V84H36Z M44 52V76H84V52Z"/>
-  <path fill="#62d6b2" d="M52 56H58V61H70V56H76V72H70V67H58V72H52Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">HICS</title>
+  <desc id="desc">Horse in a coat, with sunglasses</desc>
+  <rect width="96" height="96" rx="26" fill="#1c1b22"/>
+  <path d="M18 87 25 62 37 53 59 52 74 64 82 87Z" fill="#b8a58a"/>
+  <path d="m28 65 13-10 9 14-10 18H23Zm29-11 14 12 8 21H50Z" fill="#363238"/>
+  <path d="m41 57 8 11-5 17 13-18-2-13Z" fill="#e2d4bc"/>
+  <path d="m29 55 3-16 6-8 1-15 8 8 8-13 4 17 11 8 12 7 3 9-7 9-17-2-9-8-4 12Z" fill="#e2d4bc"/>
+  <path d="m29 58-3-9 5-9-5 2 6-12-3 1 8-14 3 12 7-9-2 13-8 12-1 12Z" fill="#0f1014"/>
+  <path d="m52 21 3-3 1 10-5-2Z" fill="#766959"/>
+  <path d="m40 37 30 3-1 4-8-1-3 7-10-2-3-7-6-1Z" fill="#101116"/>
+  <path d="m59 41 5 1" stroke="#101116" stroke-width="3"/>
+  <ellipse cx="77" cy="50" rx="2" ry="2.5" fill="#101116"/>
+  <path d="m68 58 10 1" stroke="#101116" stroke-width="2" stroke-linecap="round"/>
+  <path d="m38 57 9 11-9 6 4 12m19-31-8 12 7 7-8 12" fill="none" stroke="#e2d4bc" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="46" cy="78" r="2" fill="#e2d4bc"/>
 </svg>
