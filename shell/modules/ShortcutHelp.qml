@@ -7,8 +7,6 @@ import qs.components
 import qs.components.containers
 import qs.components.controls
 import qs.components.misc
-import qs.modules.nexus
-import qs.modules.nexus.pages
 import qs.services
 import Hyprstack.Config
 import Hyprstack.I18n
@@ -60,10 +58,13 @@ Scope {
                 color: Colours.palette.m3surface
                 focus: true
                 Keys.onEscapePressed: root.opened = false
-                KeybindsPage {
+                Loader {
                     anchors.fill: parent
                     anchors.margins: Tokens.padding.large
-                    nState: NexusState { screen: panel.screen; isWindow: false }
+                    property ShellScreen targetScreen: panel.screen
+                    source: Qt.resolvedUrl("nexus/ShortcutHelpPage.qml")
+                    onLoaded: item.targetScreen = targetScreen
+                    onTargetScreenChanged: if (item) item.targetScreen = targetScreen
                 }
                 IconButton {
                     anchors.top: parent.top

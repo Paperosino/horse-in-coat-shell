@@ -12,6 +12,12 @@ import qs.modules.nexus
 PopupWindow {
     id: root
     property var actions: []
+    property real entrance: 1
+    onVisibleChanged: {
+        entranceAnimation.stop();
+        if (visible) { entrance = 0; entranceAnimation.restart(); }
+    }
+    Anim { id: entranceAnimation; target: root; property: "entrance"; to: 1; type: Anim.FastSpatial }
     property string panelId: ""
     color: "transparent"
     grabFocus: true
@@ -31,6 +37,8 @@ PopupWindow {
     }
 
     Rectangle {
+        opacity: root.entrance
+        scale: 0.94 + root.entrance * 0.06
         anchors.fill: parent
         radius: Tokens.rounding.large
         color: Colours.palette.m3surfaceContainer

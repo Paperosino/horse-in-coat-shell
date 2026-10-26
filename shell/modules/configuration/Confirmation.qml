@@ -54,7 +54,7 @@ Variants {
                     }
                     Rectangle {
                         Layout.fillWidth:true;implicitHeight:4*Tokens.scale;radius:height/2;color:Colours.palette.m3surfaceContainerHighest;clip:true
-                        Rectangle {width:parent.width*Math.min(1,DesktopConfiguration.secondsLeft/30);height:parent.height;radius:height/2;color:Colours.palette.m3primary;Behavior on width {NumberAnimation {duration:200}}}
+                        Rectangle {width:parent.width*Math.min(1,DesktopConfiguration.secondsLeft/30);height:parent.height;radius:height/2;color:Colours.palette.m3primary;Behavior on width {Anim {type:Anim.FastEffects}}}
                     }
                     StyledText {Layout.fillWidth:true;visible:!!DesktopConfiguration.error;text:Tr.tr(DesktopConfiguration.error);textFormat:Text.PlainText;wrapMode:Text.WordWrap;color:Colours.palette.m3error}
                     GridLayout {

@@ -11,12 +11,23 @@ PageBase {
     id: root
     pageIcon: "screen_share"
     title: Tr.tr("Screen capture & sharing")
-    Component.onCompleted: Recorder.refCount++
+    property var portalInfo: ({})
+    property DesktopBackend portalBackend: DesktopBackend {}
+    function refreshPortals(): void { portalBackend.call("apps.portal-status", {}, value => portalInfo = value); }
+    Component.onCompleted: { Recorder.refCount++; refreshPortals(); }
     Component.onDestruction: Recorder.refCount--
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         width: root.cappedWidth
         spacing: Tokens.spacing.large
+        SettingsCard {
+            title: Tr.tr("Desktop portals"); icon: "hub"; collapsible: true; expanded: true
+            description: Tr.tr("Shared system dialogs and permissions for files, links, capture, printing, secrets and background applications. Availability below means the interface is exported; a specific request can still depend on its backend and hardware.")
+            RowButton {text: Tr.tr("Refresh portal capabilities"); icon: "refresh"; disabled: portalBackend.busy; onClicked: root.refreshPortals()}
+            FeatureError {error: portalBackend.error || root.portalInfo.detail || ""}
+            Repeater {model: root.portalInfo.capabilities ?? []; InfoRow {required property var modelData; label: modelData.id; value: modelData.available ? Tr.tr("Available") : Tr.tr("Unavailable")}}
+            RowButton {text: Tr.tr("Manage application permissions"); icon: "apps"; onClicked: root.nState.openPage("apps")}
+        }
         SettingsCard {
             title:Tr.tr("Microphone & camera privacy")
             icon:"shield"

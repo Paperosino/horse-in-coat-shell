@@ -2,6 +2,7 @@ import Hyprstack.Config
 import Hyprstack.I18n
 import QtQuick
 import QtQuick.Layouts
+import qs.components
 import qs.components.controls
 import qs.modules.nexus.common
 import qs.services
@@ -51,6 +52,12 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
+        SettingsCard {
+            title: Tr.tr("Notification badges"); icon: "notifications"
+            description: Tr.tr("Applications can publish their unread count. Otherwise, the dock can show unread notifications kept by the shell. Counts are hidden on presentation screens.")
+            ToggleRow {text: Tr.tr("Show badges on application icons"); checked: DockConf.notificationBadges; onToggled: DockConf.setBadges(checked, DockConf.badgeSource)}
+            GenericSettingRow {spec: ({label: "Badge source", type: "choice", choices: [{value:"both",label:"Application count, with notification fallback"},{value:"applications",label:"Application integrations only"},{value:"notifications",label:"Unread shell notifications only"}],value:DockConf.badgeSource}); onEdited:value=>DockConf.setBadges(DockConf.notificationBadges,value)}
+        }
         SettingsCard {
             title: Tr.tr("Behaviour")
             icon: "tune"

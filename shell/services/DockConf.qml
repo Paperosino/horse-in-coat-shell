@@ -18,6 +18,8 @@ Singleton {
     }
     readonly property bool atBottom: position === "bottom"
     readonly property bool vertical: position === "left" || position === "right"
+    property bool notificationBadges: true
+    property string badgeSource: "both"
     property bool animations: true
     property bool windowAnimations: true
     property real lift: 28
@@ -39,6 +41,12 @@ Singleton {
         else if (option === "spread") spread = Math.max(36, Math.min(120, Number(value)));
         else if (option === "damping") damping = Math.max(0.55, Math.min(1, Number(value)));
         else if (option === "animationDuration") animationDuration = Math.max(240, Math.min(700, Number(value)));
+        persist();
+    }
+
+    function setBadges(enabled: bool, source: string): void {
+        notificationBadges = enabled;
+        badgeSource = ["both", "applications", "notifications"].includes(source) ? source : "both";
         persist();
     }
 
@@ -67,7 +75,7 @@ Singleton {
 
     function persist(): void {
         if (loaded)
-            storage.setText(JSON.stringify({ enabled: enabled, position: position, iconSize: iconSize, menuButtonPosition: menuButtonPosition, animations: animations, windowAnimations: windowAnimations, lift: lift, magnification: magnification, spread: spread, damping: damping, animationDuration: animationDuration }));
+            storage.setText(JSON.stringify({ notificationBadges: notificationBadges, badgeSource: badgeSource, enabled: enabled, position: position, iconSize: iconSize, menuButtonPosition: menuButtonPosition, animations: animations, windowAnimations: windowAnimations, lift: lift, magnification: magnification, spread: spread, damping: damping, animationDuration: animationDuration }));
     }
 
     FileView {
@@ -80,6 +88,8 @@ Singleton {
         onLoaded: {
             try {
                 const data = JSON.parse(text());
+                root.notificationBadges = data.notificationBadges !== false;
+                root.badgeSource = ["both", "applications", "notifications"].includes(data.badgeSource) ? data.badgeSource : "both";
                 root.enabled = data.enabled === true;
                 root.position = root.sanitizePosition(data.position);
                 root.menuButtonPosition = data.menuButtonPosition === "start" ? "start" : "end";

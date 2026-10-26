@@ -13,6 +13,8 @@ qml_module(hyprstack-services
         desktopconveniences.cpp
         platformresources.cpp
         networkservice.cpp
+        startupperformance.cpp
+        applicationbadges.cpp
         notificationimages.cpp
         runtimeperformance.cpp
         applicationcatalogue.cpp

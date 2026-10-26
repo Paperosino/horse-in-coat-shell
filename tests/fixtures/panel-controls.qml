@@ -63,7 +63,17 @@ ShellRoot {
                 menu.contentItem.grabToImage(result=>result.saveToFile("/tmp/hics-panel-context.png"));
                 bar.atBottom=true;
             }
-            if(step===4){
+            if(step===4){GlobalConfig.bar.height=32;}
+            if(step===5){
+                if(!root.check(Math.abs(bar.contentWidth-32*bar.Tokens.scale)<1,"manual panel height ignored"))return;
+                if(!root.check(Math.abs(bar.content.y)<1,"manual height clips scaled icons"))return;
+                GlobalConfig.bar.height=24;
+            }
+            if(step===6){
+                if(!root.check(Math.abs(bar.contentWidth-24*bar.Tokens.scale)<1,"minimum manual panel height ignored"))return;
+                GlobalConfig.bar.height=0;
+            }
+            if(step===7){
                 bar.settingsMenu.visible=false;
                 const contents=ShellState.componentsFor(win.screen)?.background?.contentItem;
                 function grid(item){if(item.objectName==="desktopIconGrid")return item;for(const child of item.children??[]){const result=grid(child);if(result)return result;}return null;}

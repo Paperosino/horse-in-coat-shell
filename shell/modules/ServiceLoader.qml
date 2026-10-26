@@ -6,16 +6,26 @@ import qs.services
 
 Scope {
     VpnAuthentication {}
-    Timer {interval:60000;running:GlobalConfig.general.maintenance.automaticThumbnailCleanup;triggeredOnStart:true;repeat:true;onTriggered:DesktopConveniences.automaticCleanup(GlobalConfig.general.maintenance.thumbnailRetentionDays)}
+    property bool backgroundStarted: false
+    function startBackgroundServices(): void {
+        if (backgroundStarted) return;
+        backgroundStarted = true;
+        Comfort; HungApplications; CaptivePortal; DesktopIntegrationMonitor;
+        DefaultApps; Weather.reload();
+    }
+    Connections {
+        target: StartupPerformance
+        function onFirstFrameChanged(): void { if (StartupPerformance.firstFrame) Qt.callLater(startBackgroundServices); }
+    }
+    Timer {interval:60000;running:StartupPerformance.firstFrame && GlobalConfig.general.maintenance.automaticThumbnailCleanup;triggeredOnStart:true;repeat:true;onTriggered:DesktopConveniences.automaticCleanup(GlobalConfig.general.maintenance.thumbnailRetentionDays)}
 
     Component.onCompleted: {
         // Force certain singletons to load on shell init instead of lazily
 
+        StartupPerformance;
+        if (StartupPerformance.firstFrame) Qt.callLater(startBackgroundServices);
         DesktopJobs;
-        Comfort;
         ApplicationLayouts;
-        HungApplications;
-        CaptivePortal;
         DesktopConfiguration;
         DisplayProfiles;
         LayoutModes;
@@ -26,12 +36,9 @@ Scope {
         PerformancePolicy;
         GameMode;
         Notifs;
-        DesktopIntegrationMonitor;
         Players;
         WindowSwitcher;
         Brightness;
-        DefaultApps;
-        Weather.reload();
 
         if (GlobalConfig.utilities.vpn.enabled)
             VPN;

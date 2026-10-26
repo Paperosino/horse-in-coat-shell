@@ -22,6 +22,17 @@ Singleton {
     readonly property list<NotifData> notClosed: list.filter(n => !n.closed && !n.isTransient)
     readonly property list<NotifData> popups: list.filter(n => n.popup && !n.closed)
     readonly property int unreadCount: notClosed.filter(n => !n.read).length
+    readonly property var unreadByApplication: {
+        const counts = {};
+        for (const notif of notClosed) {
+            if (notif.read) continue;
+            const entry = ApplicationCatalogue.byId(notif.desktopEntry)
+                ?? ApplicationCatalogue.heuristicLookup(notif.desktopEntry || notif.appName);
+            const id = ApplicationBadges.canonicalId(entry?.id || notif.desktopEntry);
+            if (id) counts[id] = (counts[id] ?? 0) + 1;
+        }
+        return counts;
+    }
     readonly property string imageHelper: Paths.toLocalFile(Qt.resolvedUrl("../assets/notification_tools.py"))
     property string lastError
     property alias dnd: props.dnd

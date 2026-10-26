@@ -296,7 +296,7 @@ StyledClippingRect {
                         visible: !!task.iconSource && status !== Image.Error
                         source: task.iconSource
                         opacity: task.allMinimized ? 0.55 : 1
-                        Behavior on opacity { NumberAnimation { duration: 180 } }
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
                     }
 
                     MaterialIcon {

@@ -61,8 +61,8 @@ PageBase {
                 first: true
                 last: true
                 icon: "widgets"
-                text: Tr.tr("Widgets and their order")
-                subtext: Tr.tr("One place to add, remove and arrange panel widgets")
+                text: Tr.tr("Panel height and widgets")
+                subtext: Tr.tr("Height, scale, and one place to arrange panel widgets")
                 onClicked: root.nState.openSubPage(12)
             }
         }

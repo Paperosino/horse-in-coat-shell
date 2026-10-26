@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Hyprstack.I18n
+import Hyprstack.Config
 import Hyprstack.Services
 import qs.components.misc
 import qs.utils
@@ -52,7 +53,7 @@ Singleton {
     signal configReloaded
 
     Behavior on stackingProgress {
-        NumberAnimation { duration: 420; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: GlobalConfig.appearance.reducedMotion ? 0 : 420; easing.type: Easing.OutCubic }
     }
 
     function windowState(toplevel: HyprlandToplevel): var {

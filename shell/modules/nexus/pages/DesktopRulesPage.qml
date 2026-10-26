@@ -35,7 +35,11 @@ PageBase {
   if(!Object.keys(form).length)return;
   root.selectedWindow=null;root.matchScope="application";
   const next=Object.assign({},form,{name:form.name||application,application,title:"",initialTitle:"",regex:false,enabled:form.enabled!==false,mode:form.mode||LayoutModes.mode||"all"});
-  delete next.matchModal;delete next.matchXwayland;form=next;
+  delete next.matchModal;
+  const windows=(DesktopRules.data.windows??[]).filter(w=>w.application===application);
+  if(windows.length&&windows.every(w=>w.xwayland===windows[0].xwayland))next.matchXwayland=!!windows[0].xwayland;
+  else delete next.matchXwayland;
+  form=next;
  }
  function setScope(scope):void {
   root.matchScope=scope;
@@ -50,7 +54,7 @@ PageBase {
   const pip=/^picture[- ]in[- ]picture$/i.test(title)||title==="Картинка в картинке";
   root.matchScope=pip?"title":"application";
   const next=Object.assign({},form,{name:form.name||window.application,application:window.application,title:pip?title:"",initialTitle:"",regex:false,enabled:form.enabled!==false,mode:form.mode||LayoutModes.mode||"all"});
-  delete next.matchModal;delete next.matchXwayland;form=next;
+  delete next.matchModal;next.matchXwayland=!!window.xwayland;form=next;
  }
  property var controls: DesktopRules.data.controls ?? ({side:"right",order:["minimize","maximize","close"]})
  function control(key,value):void { controls=Object.assign({},controls,{[key]:value}); }
@@ -153,16 +157,17 @@ PageBase {
     onToggled:root.setScope(checked?"title":"application")
    }
    InfoRow {visible:!root.devicesOnly&&!!root.selectedWindow;label:Tr.tr("Selected window");value:root.selectedWindow?.title??""}
+   InfoRow {visible:!root.devicesOnly;label:Tr.tr("Detected application protocol");value:root.form.matchXwayland===undefined?Tr.tr("Any protocol"):root.form.matchXwayland?"X11 / XWayland":"Wayland"}
 
    }
    GenericSettingRow {spec:({label:"Apply in window mode",type:"choice",choices:[{value:"all",label:"All window modes"},{value:"stacking",label:"Stacking"},{value:"scrolling",label:"Scrolling"},{value:"tiling",label:"Tiling"},{value:"canvas",label:"Canvas"}],value:root.form.mode??"all"});onEdited:v=>root.change("mode",v)}
    TextFieldRow {label:Tr.tr("Rule name");value:root.form.name??"";onValueEdited:v=>root.change("name",v)}
-   TextFieldRow {label:Tr.tr("Application class");value:root.form.application??"";onValueEdited:v=>root.change("application",v)}
-   TextFieldRow {label:Tr.tr("Window title (optional)");value:root.form.title??"";onValueEdited:v=>root.change("title",v)}
    ToggleRow {text:Tr.tr("Rule enabled");checked:root.form.enabled!==false;onToggled:root.change("enabled",checked)}
-   ToggleRow {text:Tr.tr("Match using regular expressions");checked:root.form.regex??false;onToggled:root.change("regex",checked)}
    SettingsCard {
     title:Tr.tr("Advanced matching");icon:"filter_alt";collapsible:true;expanded:false
+    TextFieldRow {label:Tr.tr("Application class");value:root.form.application??"";onValueEdited:v=>root.change("application",v)}
+    TextFieldRow {label:Tr.tr("Window title (optional)");value:root.form.title??"";onValueEdited:v=>root.change("title",v)}
+    ToggleRow {text:Tr.tr("Match using regular expressions");checked:root.form.regex??false;onToggled:root.change("regex",checked)}
     TextFieldRow {label:Tr.tr("Initial window title (optional)");value:root.form.initialTitle??"";onValueEdited:value=>root.change("initialTitle",value)}
     Repeater {model:[{key:"matchXwayland",label:"XWayland window"},{key:"matchModal",label:"Modal window"}];GenericSettingRow {required property var modelData;spec:({label:modelData.label,type:"choice",choices:[{value:"any",label:"Any"},{value:"yes",label:"Yes"},{value:"no",label:"No"}],value:root.form[modelData.key]===undefined?"any":root.form[modelData.key]?"yes":"no"});onEdited:v=>root.optional(modelData.key,v==="any"?null:v==="yes")}}
    }

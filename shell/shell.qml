@@ -4,7 +4,6 @@
 //@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 //@ pragma IconTheme Adwaita
 
-import "modules/onboarding" as OnboardingModule
 import "modules/configuration" as Configuration
 import "modules/displays" as Displays
 import "modules/extensions"
@@ -41,7 +40,7 @@ ShellRoot {
     Configuration.Confirmation {}
     Loader {
         active: Onboarding.running
-        source: active ? Qt.resolvedUrl("modules/onboarding/Wizard.qml") : ""
+        source: active ? Qt.resolvedUrl("modules/TourContent.qml") : ""
     }
     PolkitModule.Polkit { id: authentication }
 

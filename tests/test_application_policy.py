@@ -45,4 +45,16 @@ os.execv(probe,[probe,operation])
  def test_invalid_policy_and_stale_hash_preserve_previous_file(self):
   result=self.request('profile-save',{'profile':self.profile.name,'content':'profile { broken','sha256':hashlib.sha256(self.original.encode()).hexdigest()});self.assertIn('error',result);self.assertEqual(self.profile.read_text(),self.original)
   result=self.request('profile-save',{'profile':self.profile.name,'content':self.original,'sha256':'0'*64});self.assertEqual(result['code'],'changed');self.assertEqual(self.profile.read_text(),self.original)
+ def test_visual_controls_preserve_local_policy_and_check_hashes(self):
+  original=self.original.replace('}\n','#include <local/usr.bin.fixture>\n}\n');self.profile.write_text(original)
+  local=self.profiles/'local';local.mkdir();(self.profiles/'tunables').mkdir();(self.profiles/'tunables/global').write_text('@{HOME}=/home/*/\n')
+  policy=local/self.profile.name;policy.write_text('deny /tmp/keep rw,\n');before=policy.read_bytes()
+  options={'profile':self.profile.name,'sha256':hashlib.sha256(original.encode()).hexdigest(),'localSha256':hashlib.sha256(before).hexdigest(),'restrictions':{'network':True,'camera':True,'home':False,'audio':False,'removable':False}}
+  value=self.request('profile-controls',options);self.assertTrue(value.get('ok'),value)
+  after=policy.read_text();self.assertIn('deny /tmp/keep rw,',after);self.assertIn('deny network inet,',after);self.assertIn('deny /dev/video[0-9]* rw,',after)
+  self.assertNotIn('deny @{HOME}',after);self.assertEqual(self.profile.read_text(),original)
+  value=self.request('profile-controls',options);self.assertEqual(value.get('code'),'changed');self.assertEqual(policy.read_text(),after)
+ def test_visual_controls_reject_profiles_without_local_include(self):
+  value=self.request('profile-controls',{'profile':self.profile.name,'sha256':hashlib.sha256(self.original.encode()).hexdigest(),'localSha256':hashlib.sha256(b'').hexdigest(),'restrictions':{'network':True}})
+  self.assertEqual(value.get('code'),'unsupported');self.assertEqual(self.profile.read_text(),self.original)
 if __name__=='__main__':unittest.main()

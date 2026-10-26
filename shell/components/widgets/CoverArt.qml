@@ -47,7 +47,7 @@ Item {
 
             Anim on rotation {
                 running: true
-                paused: !root.visible || !Players.active?.isPlaying
+                paused: GlobalConfig.appearance.reducedMotion || !root.visible || !Players.active?.isPlaying
                 from: 360
                 to: 0
                 duration: 23500

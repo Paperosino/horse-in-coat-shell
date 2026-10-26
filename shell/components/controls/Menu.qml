@@ -92,7 +92,7 @@ MouseArea {
             origin.y: root.thisSideY === Menu.Bottom ? menu.height : 0
 
             Behavior on yScale {
-                NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
+                Anim { type: Anim.FastSpatial }
             }
         }
 

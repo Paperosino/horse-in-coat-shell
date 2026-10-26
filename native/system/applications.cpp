@@ -1,4 +1,5 @@
 #include "backend.hpp"
+#include "apparmorcontrols.hpp"
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
@@ -186,6 +187,13 @@ void validateApplications(const QString &op, const QJsonObject &o) {
       throw Failure("invalid", "Invalid AppArmor service request");
     return;
   }
+  if (op == "profile-controls") {
+    if(o.size()!=4 || !o["restrictions"].isObject() ||
+       !QRegularExpression("^[a-f0-9]{64}$").match(o["sha256"].toString()).hasMatch() ||
+       !QRegularExpression("^[a-f0-9]{64}$").match(o["localSha256"].toString()).hasMatch())
+      throw Failure("invalid","Invalid AppArmor controls");
+    profileFile(o);HicsArmor::rules(o["restrictions"].toObject());return;
+  }
   if (op == "profile-save") {
     if (o.size() != 3 || !o["content"].isString() ||
         o["content"].toString().toUtf8().size() > 65536 ||
@@ -222,6 +230,46 @@ void applyApplications(const QString &op, const QJsonObject &o) {
              {o["enabled"].toBool() ? "enable" : "disable", "--now",
               "apparmor.service"},
              "Configure AppArmor startup");
+    return;
+  }
+  if (op == "profile-controls") {
+    const auto path=profileFile(o),name=QFileInfo(path).fileName();
+    QFile main(path);if(!main.open(QIODevice::ReadOnly)||main.size()>65536)throw Failure("invalid","Profile unavailable");
+    const auto bytes=main.readAll();
+    if(!HicsArmor::supported(bytes,name))throw Failure("unsupported","This profile has no standard local include; use advanced policy editing");
+    const auto digest=[](const QByteArray &data){return QString::fromLatin1(QCryptographicHash::hash(data,QCryptographicHash::Sha256).toHex());};
+    const auto directory=QString("/etc/apparmor.d/local");
+    QFileInfo dir(directory);
+    if(!dir.exists()&&!dir.isSymLink()) {
+      if(!QDir().mkpath(directory)||!QFile::setPermissions(directory,QFileDevice::ReadOwner|QFileDevice::WriteOwner|QFileDevice::ExeOwner|QFileDevice::ReadGroup|QFileDevice::ExeGroup|QFileDevice::ReadOther|QFileDevice::ExeOther))throw Failure("failed","Cannot create AppArmor local policy directory");
+      dir.refresh();
+    }
+    if(!dir.isDir()||dir.isSymLink()||dir.ownerId()!=0||dir.canonicalFilePath()!=directory ||
+       (dir.permissions()&(QFileDevice::WriteGroup|QFileDevice::WriteOther)))throw Failure("invalid","Unsafe AppArmor local policy directory");
+    const auto target=directory+"/"+name;
+    QFile local(target);QByteArray before;
+    if(local.exists()) {
+      QFileInfo info(target);
+      if(info.isSymLink()||info.ownerId()!=0||(info.permissions()&(QFileDevice::WriteGroup|QFileDevice::WriteOther))||!local.open(QIODevice::ReadOnly)||local.size()>65536)
+        throw Failure("invalid","Unsafe local policy file");
+      before=local.readAll();local.close();
+    }
+    if(digest(bytes)!=o["sha256"].toString()||digest(before)!=o["localSha256"].toString())throw Failure("changed","Policy changed; select the profile again");
+    const auto settings=o["restrictions"].toObject();
+    const auto after=HicsArmor::merge(before,settings);
+    if(after.size()>65536)throw Failure("invalid","Local policy is too large");
+    QTemporaryFile validation;
+    const auto fragment=QByteArray("#include <tunables/global>\nprofile hics-controls-validation {\n")+HicsArmor::rules(settings)+"}\n";
+    if(!validation.open()||validation.write(fragment)!=fragment.size()||!validation.flush())throw Failure("failed","Cannot validate controls");
+    run(HYPRSTACK_APPARMOR_PARSER,{"--skip-kernel-load","--skip-cache","--jobs=1","--max-jobs=1","--base","/etc/apparmor.d",validation.fileName()},30000);
+    if(!before.isEmpty()) {
+      const auto backupDir=QString("/var/lib/hics/apparmor-backups");QDir().mkpath(backupDir);
+      QFile::setPermissions(backupDir,QFileDevice::ReadOwner|QFileDevice::WriteOwner|QFileDevice::ExeOwner);
+      QFile backup(backupDir+"/local."+name+"."+QString::number(QDateTime::currentMSecsSinceEpoch()));
+      if(!backup.open(QIODevice::WriteOnly|QIODevice::NewOnly)||!backup.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner)||backup.write(before)!=before.size())throw Failure("failed","Cannot back up local policy");
+    }
+    QSaveFile output(target);
+    if(!output.open(QIODevice::WriteOnly)||!output.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner|QFileDevice::ReadGroup|QFileDevice::ReadOther)||output.write(after)!=after.size()||!output.commit())throw Failure("failed","Cannot save local policy");
     return;
   }
   if (op == "profile-save") {

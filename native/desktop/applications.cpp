@@ -1,10 +1,13 @@
 #include "desktopentry.hpp"
+#include "../system/apparmorcontrols.hpp"
 #include "service.hpp"
 #include <QCryptographicHash>
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
+#include <QDBusReply>
+#include <QXmlStreamReader>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -56,6 +59,10 @@ void Service::applications(const QSharedPointer<Job> &job) {
   if (operation == "apps.apparmor-service") {
     root(job, "applications", "service-enable",
          {{"enabled", job->arguments["enabled"]}});
+    return;
+  }
+  if (operation == "apps.apparmor-controls") {
+    root(job, "applications", "profile-controls", job->arguments);
     return;
   }
   if (operation == "apps.apparmor-save") {
@@ -116,18 +123,59 @@ void Service::applications(const QSharedPointer<Job> &job) {
         return QJsonObject{
             {"error", "Cannot read this profile or it exceeds 64 KiB"}};
       const auto bytes = file.readAll();
+      QFile local("/etc/apparmor.d/local/"+profile);
+      QByteArray localBytes;
+      if(local.exists()) {
+        if(QFileInfo(local).isSymLink()||!local.open(QIODevice::ReadOnly)||local.size()>65536)
+          return QJsonObject{{"error","Local AppArmor policy is unavailable"}};
+        localBytes=local.readAll();
+      }
       return QJsonObject{
-          {"profile", profile},
-          {"content", QString::fromUtf8(bytes)},
-          {"sha256", QString::fromLatin1(QCryptographicHash::hash(
-                                             bytes, QCryptographicHash::Sha256)
-                                             .toHex())}};
+          {"profile", profile}, {"content", QString::fromUtf8(bytes)},
+          {"sha256", QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex())},
+          {"localSha256", QString::fromLatin1(QCryptographicHash::hash(localBytes,QCryptographicHash::Sha256).toHex())},
+          {"guiSupported",HicsArmor::supported(bytes,profile)},
+          {"restrictions",HicsArmor::settings(localBytes)}};
     });
     return;
   }
-  if (operation == "apps.portal-camera") {
+  if (operation == "apps.portal-status") {
+    const auto args=job->arguments;
+    worker(job,[args] {
+      QJsonObject result;QJsonArray capabilities;
+      auto introspect=QDBusMessage::createMethodCall("org.freedesktop.portal.Desktop","/org/freedesktop/portal/desktop","org.freedesktop.DBus.Introspectable","Introspect");
+      QDBusReply<QString> xml=QDBusConnection::sessionBus().call(introspect,QDBus::Block,3000);
+      result["available"]=!xml.isValid()?false:true;
+      if(xml.isValid()) {
+        QSet<QString> interfaces;QXmlStreamReader reader(xml.value());
+        while(!reader.atEnd()) {reader.readNext();if(reader.isStartElement()&&reader.name()==u"interface")interfaces.insert(reader.attributes().value("name").toString());}
+        for(const auto &name:QStringList{"FileChooser","OpenURI","ScreenCast","RemoteDesktop","Screenshot","Settings","Camera","Background","Notification","Secret","Print","GlobalShortcuts","DynamicLauncher","Inhibit"})
+          capabilities.append(QJsonObject{{"id",name},{"available",interfaces.contains("org.freedesktop.portal."+name)}});
+      } else result["detail"]=xml.error().message();
+      result["capabilities"]=capabilities;
+      if(args.contains("id")) {
+        const auto id=appId(args);QJsonObject permissions;
+        for(const auto &kind:QStringList{"camera","background","notifications"}) {
+          const auto table=kind=="camera"?QString("devices"):kind;
+          const auto resource=kind=="notifications"?QString("notification"):kind;
+          auto call=QDBusMessage::createMethodCall("org.freedesktop.impl.portal.PermissionStore","/org/freedesktop/impl/portal/PermissionStore","org.freedesktop.impl.portal.PermissionStore","GetPermission");
+          call.setArguments({table,resource,id});
+          QDBusReply<QStringList> reply=QDBusConnection::sessionBus().call(call,QDBus::Block,2000);
+          QJsonObject value{{"policy",reply.isValid()&&!reply.value().isEmpty()?reply.value().first():"default"}};
+          if(!reply.isValid()&&!reply.error().name().contains("NotFound"))value["error"]=reply.error().message();
+          permissions[kind]=value;
+        }
+        result["permissions"]=permissions;
+      }
+      return result;
+    });return;
+  }
+  if (operation == "apps.portal-camera" || operation == "apps.portal-permission") {
     const auto id = appId(job->arguments);
-    const auto policy = job->arguments["policy"].toString();
+    auto policy = job->arguments["policy"].toString();
+    const auto kind=operation=="apps.portal-camera"?QString("camera"):job->arguments["kind"].toString();
+    if(!QStringList{"camera","background","notifications"}.contains(kind)) {finish(job,{},"Unknown portal permission");return;}
+    if(policy=="default")policy="ask";
     if (!QStringList{"yes", "no", "ask"}.contains(policy)) {
       finish(job, {}, "Choose a valid camera policy");
       return;
@@ -137,10 +185,12 @@ void Service::applications(const QSharedPointer<Job> &job) {
         "/org/freedesktop/impl/portal/PermissionStore",
         "org.freedesktop.impl.portal.PermissionStore",
         policy == "ask" ? "DeletePermission" : "SetPermission");
+    const auto table=kind=="camera"?QString("devices"):kind;
+    const auto resource=kind=="notifications"?QString("notification"):kind;
     call.setArguments(
         policy == "ask"
-            ? QVariantList{QString("devices"), QString("camera"), id}
-            : QVariantList{QString("devices"), true, QString("camera"), id,
+            ? QVariantList{table, resource, id}
+            : QVariantList{table, true, resource, id,
                            QStringList{policy}});
     auto *watcher = new QDBusPendingCallWatcher(
         QDBusConnection::sessionBus().asyncCall(call, 5000), this);
@@ -149,7 +199,7 @@ void Service::applications(const QSharedPointer<Job> &job) {
               QDBusPendingReply<> reply = *watcher;
               watcher->deleteLater();
               finish(job, {},
-                     reply.isError() ? reply.error().message() : QString());
+                     reply.isError() && !reply.error().name().contains("NotFound") ? reply.error().message() : QString());
             });
     return;
   }

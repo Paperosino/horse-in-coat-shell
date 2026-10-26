@@ -33,6 +33,8 @@ with tempfile.TemporaryDirectory(prefix='hics-dock-pointer-') as directory:
     (entries/'fixture-dock.desktop').write_text('[Desktop Entry]\nType=Application\nName=Fixture dock application\nExec=kitty\nIcon=utilities-terminal\nStartupWMClass=org.hics.DockPointerFixture\n')
     state = base/'pointer-state.json'
     control = base/'control.txt';control.write_text('')
+    badge_flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','Qt6Core','Qt6DBus'],text=True))
+    subprocess.run(['c++','-std=c++20','-fPIC',str(ROOT/'tests/fixtures/badge-emitter.cpp'),*badge_flags,'-o',str(base/'badge-emitter')],check=True)
     (shell/'shell.qml').write_text('''import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -50,11 +52,16 @@ ShellRoot {
  function box(item) {const p=item.mapToItem(win.contentItem,0,0);return {x:p.x,y:p.y,w:item.width,h:item.height,text:item.text??""};}
  FileView {id:status;path:STATE;printErrors:false}
  FileView {path:CONTROL;watchChanges:true;printErrors:false;onFileChanged:reload();onLoaded:{
+  if(text()==="badges")badgeEmitter.running=true;
+  if(text()==="badge-history")badgeNotification.running=true;
+  if(text()==="badge-read")Notifs.markAllRead();
   if(text().startsWith("clipboard"))win.screenState.clipboard=true;
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(dock && text()==="cold")dock.testDropHover=true;
   if(dock && text()==="warm")dock.testDropHover=false;
  }}
+ Process {id:badgeEmitter;command:[BADGE_EMITTER]}
+ Process {id:badgeNotification;command:["notify-send","-a","Fixture dock application","-h","string:desktop-entry:fixture-dock","Badge integration fixture"]}
  Timer {interval:16;running:true;repeat:true;onTriggered:{
   const dock=ShellState.componentsFor(win.screen)?.panels?.dock;
   if(!dock)return;
@@ -62,9 +69,9 @@ ShellRoot {
   status.setText(JSON.stringify({screenSize:{w:win.width,h:win.height},key:dock.testKey,clicks:dock.testClicks,presses:dock.testPresses,cancels:dock.testCancels,dockWidth:dock.width,wavePosition:dock.wavePosition,hoverAmount:dock.hoverAmount,dockBox:root.box(dock),membraneShapes:dock.membraneShapes,membraneBounds:dock.membraneBounds,clipboard:win.screenState.clipboard,clipboardBox:root.box(ShellState.componentsFor(win.screen).panels.clipboard),listOpen:dock.listOpen,open:dock.menuOpen,warm:dock.previewWarm,hover:!!dock.hoveredWindow,preview:dock.previewSurface.visible,
    captureGeometry:captures[0]?root.box(captures[0]):null,hasContent:captures[0]?.hasContent??false,sourceSize:captures[0]?.sourceSize??null,source:!!dock.previewWindow?.wayland,previewTitle:dock.previewWindow?.title??"",clocks:clocks.map(c=>root.box(c)),previewBox:root.box(dock.previewSurface),menu:root.box(dock.menuSurface),
    appsButtons:appsButtons.map(b=>Object.assign(root.box(b),{wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),
-   buttons:buttons.map(b=>Object.assign(root.box(b),{key:b.modelData,identity:b.testIdentity,windowCount:b.windows.length,wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
+   buttons:buttons.map(b=>Object.assign(root.box(b),{badgeCount:b.badgeCount,key:b.modelData,identity:b.testIdentity,windowCount:b.windows.length,wave:b.wave,scale:b.visualScale,center:b.visual.mapToItem(win.contentItem,b.width/2,b.height/2),visual:root.box(b.visual)})),titles:titles.map(t=>root.box(t))}));
  }}
-}'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))))
+}'''.replace('STATE',json.dumps(str(state))).replace('CONTROL',json.dumps(str(control))).replace('BADGE_EMITTER',json.dumps(str(base/'badge-emitter'))))
     fixtures = ROOT/'tests/fixtures'
     for flag,name in [('client-header','virtual-pointer.h'),('private-code','virtual-pointer-protocol.c')]:
         subprocess.run(['wayland-scanner',flag,str(fixtures/'wlr-virtual-pointer-unstable-v1.xml'),str(base/name)],check=True)
@@ -117,6 +124,17 @@ ShellRoot {
             assert next(b for b in reopened['buttons'] if b['key']=='fixture-dock')['identity']==pinned['identity'],'Reopening an app replaced its pinned dock delegate'
             print('PASS: pinned app keeps one dock delegate through close and reopen',flush=True)
         wait_for(lambda s:len(s.get('buttons',[]))==1)
+        control.write_text('badge-history')
+        wait_for(lambda s:any(b.get('badgeCount')==1 for b in s.get('buttons',[])))
+        control.write_text('badges')
+        wait_for(lambda s:any(b.get('badgeCount')==12 for b in s.get('buttons',[])))
+        wait_for(lambda s:any(b.get('badgeCount')==120 for b in s.get('buttons',[])))
+        subprocess.run(['grim',str(Path('/tmp/hics-dock-badges.png'))],env=env,check=True,capture_output=True)
+        wait_for(lambda s:any(b.get('badgeCount')==0 for b in s.get('buttons',[])))
+        wait_for(lambda s:any(b.get('badgeCount')==1 for b in s.get('buttons',[])))
+        control.write_text('badge-read')
+        wait_for(lambda s:all(b.get('badgeCount')==0 for b in s.get('buttons',[])))
+        print('PASS: application counts override history, hide explicitly, and clear on sender exit; reading history clears fallback',flush=True)
         if os.environ.get('HICS_DOCK_LIFECYCLE_ONLY'):
             pinned_lifecycle();raise SystemExit(0)
         time.sleep(1.5)

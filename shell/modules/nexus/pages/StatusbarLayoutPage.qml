@@ -14,7 +14,7 @@ PageBase {
     id: root
     pageIcon: "view_week"
 
-    title: Tr.tr("Statusbar layout")
+    title: Tr.tr("Panel height and widgets")
 
     property string panelId: nState.requestedPanelId
     property string editedScreen: ""
@@ -283,6 +283,36 @@ PageBase {
         spacing: Tokens.spacing.medium
 
         SettingsCard {
+            title: Tr.tr("Panel height")
+            description: root.selectedPanel ? root.selectedPanel.name + " · " + root.selectedPanel.screen : Tr.tr("Main panel")
+            icon: "height"
+            ToggleRow {
+                text: Tr.tr("Automatic panel height")
+                subtext: Tr.tr("Turn off to choose a height in logical pixels. Icons, text and spacing follow the panel height.")
+                checked: root.editedBar.height === 0
+                onToggled: root.editedBar.height = checked ? 0 : 48
+            }
+            StepperRow {
+                objectName: "panelHeightControl"
+                visible: root.editedBar.height > 0
+                label: Tr.tr("Panel height")
+                subtext: Tr.tr("Logical pixels, before the screen scale")
+                from: 24; to: 112; stepSize: 2
+                value: root.editedBar.height || 48
+                onMoved: value => root.editedBar.height = value
+            }
+            StepperRow {
+                visible: root.editedBar.height === 0
+                label: Tr.tr("Panel scale (%)")
+                subtext: Tr.tr("Resize panel icons, text and spacing without changing other interface elements")
+                from: 65; to: 150; stepSize: 5
+                value: Math.round(root.editedBar.scale * 100)
+                onMoved: value => root.editedBar.scale = value / 100
+            }
+
+        }
+
+        SettingsCard {
             title:Tr.tr("Panels and monitors")
             description:Tr.tr("Each additional panel has its own widgets, position, size and visibility. The main panel remains available.")
             icon:"view_quilt"
@@ -311,7 +341,6 @@ PageBase {
                 TextFieldRow {label:Tr.tr("Panel name");value:root.selectedPanel?.name??"";onEditingFinished:value=>ExtraPanels.update(root.panelId,{name:value})}
                 GenericSettingRow {spec:({type:"choice",label:"Panel position",choices:[{value:"top",label:"Top"},{value:"bottom",label:"Bottom"}],value:root.selectedPanel?.edge??"bottom"});onEdited:value=>ExtraPanels.update(root.panelId,{edge:value})}
                 GenericSettingRow {spec:({type:"choice",label:"Panel monitor",choices:Screens.screens.map(s=>s.name),value:root.selectedPanel?.screen??root.selectedScreen});onEdited:value=>ExtraPanels.update(root.panelId,{screen:value})}
-                StepperRow {label:Tr.tr("Panel thickness");from:28;to:96;value:root.selectedPanel?.thickness??48;onMoved:value=>ExtraPanels.update(root.panelId,{thickness:value})}
                 ToggleRow {text:Tr.tr("Auto-hide panel");checked:root.selectedPanel?.autoHide??false;onToggled:ExtraPanels.update(root.panelId,{autoHide:checked})}
                 StepperRow {label:Tr.tr("Hide delay (milliseconds)");from:100;to:3000;stepSize:100;value:root.selectedPanel?.hideDelay??500;onMoved:value=>ExtraPanels.update(root.panelId,{hideDelay:value})}
                 RowButton {text:Tr.tr("Remove panel");icon:"delete";onClicked:ExtraPanels.remove(root.panelId)}
@@ -387,14 +416,6 @@ PageBase {
                     onReorder: (zi, ii, d) => root.reorder(zi, ii, d)
                     onRemoveWidget: (zi, ii) => root.removeWidget(zi, ii)
                 }
-            }
-
-            StepperRow {
-                label: Tr.tr("Panel scale (%)")
-                subtext: Tr.tr("Resize panel icons, text and spacing without changing other interface elements")
-                from: 65; to: 150; stepSize: 5
-                value: Math.round(root.editedBar.scale * 100)
-                onMoved: value => root.editedBar.scale = value / 100
             }
 
             // Widget Catalog Section

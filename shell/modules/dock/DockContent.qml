@@ -437,6 +437,14 @@ Item {
                         readonly property bool pinned: Taskbar.pinned.includes(group.key)
                         readonly property var entry: group?.entry
                         readonly property string iconSource: entry?.icon ? Quickshell.iconPath(entry.icon, true) : ""
+                        readonly property string badgeId: ApplicationBadges.canonicalId(entry?.id || group?.key || "")
+                        readonly property var appBadge: ApplicationBadges.entries[badgeId]
+                        readonly property int notificationCount: Notifs.unreadByApplication[badgeId] ?? 0
+                        readonly property int badgeCount: !DockConf.notificationBadges || Presentation.privateOn(root.screen) ? 0
+                            : DockConf.badgeSource !== "notifications" && appBadge !== undefined
+                                ? (appBadge.visible ? appBadge.count : 0)
+                                : DockConf.badgeSource !== "applications" ? notificationCount : 0
+                        Accessible.description: badgeCount > 0 ? Tr.tr("Unread notifications: %1").arg(badgeCount) : ""
                         readonly property bool hovered: taskMouse.containsMouse || popupOpen
                         readonly property bool popupOpen: root.menuOpen && root.menuTask === task
 
@@ -541,6 +549,28 @@ Item {
                             opacity:GlobalConfig.appearance.reducedMotion ? 0 : task.accentPulse*0.22+task.wave*0.06
                         }
 
+                        Rectangle {
+                            objectName: "dockNotificationBadge"
+                            z: 20
+                            anchors.right: parent.right; anchors.top: parent.top
+                            anchors.rightMargin: 0; anchors.topMargin: 0
+                            readonly property bool showing: task.badgeCount > 0
+                            width: Math.max(18 * Tokens.scale, badgeLabel.implicitWidth + 8 * Tokens.scale)
+                            height: 18 * Tokens.scale; radius: height / 2
+                            color: Colours.palette.m3error
+                            border.width: 1.5 * Tokens.scale; border.color: Colours.palette.m3surfaceContainer
+                            opacity: showing ? 1 : 0
+                            scale: showing ? 1 : 0.65
+                            visible: opacity > 0
+                            Behavior on opacity { enabled: !GlobalConfig.appearance.reducedMotion; Anim { type: Anim.FastEffects } }
+                            Behavior on scale { enabled: !GlobalConfig.appearance.reducedMotion; Anim { type: Anim.FastSpatial } }
+                            StyledText {
+                                id: badgeLabel; anchors.centerIn: parent
+                                text: task.badgeCount > 99 ? "99+" : String(task.badgeCount)
+                                color: Colours.palette.m3onError; font: Tokens.font.label.small
+                            }
+                        }
+
                         IconImage {
                             id: appIcon
 
@@ -551,9 +581,7 @@ Item {
                             opacity: task.allMinimized ? 0.55 : 1
 
                             Behavior on opacity {
-                                NumberAnimation {
-                                    duration: 180
-                                }
+                                Anim { type: Anim.FastEffects }
                             }
                         }
 

@@ -1,4 +1,5 @@
 import QtQuick
+import Hyprstack.Config
 import Quickshell
 import M3Shapes
 import qs.components
@@ -19,6 +20,7 @@ MaterialShape {
     property bool containsIcon
 
     property bool animated: true
+    readonly property bool motionAllowed: animated && !GlobalConfig.appearance.reducedMotion
     property int morphAnimRotation: 60
     property real morphScale: 0.14
     property alias rotateAnimDuration: rotateAnim.duration
@@ -62,7 +64,7 @@ MaterialShape {
     }
 
     FrameAnimation {
-        running: root.visible && root.animated && !root.springSettled
+        running: root.visible && root.motionAllowed && !root.springSettled
         onTriggered: {
             const t = timer.elapsed();
 
@@ -81,7 +83,7 @@ MaterialShape {
         interval: 650
         repeat: true
         triggeredOnStart: true
-        running: root.visible && root.animated
+        running: root.visible && root.motionAllowed
         onTriggered: {
             root.beginBatchUpdate();
             root.fromShape = root.toShape;
@@ -103,7 +105,7 @@ MaterialShape {
     RotationAnimation on cRotation {
         id: rotateAnim
 
-        running: root.visible && root.animated
+        running: root.visible && root.motionAllowed
         from: 0
         to: 360
         easing.type: Easing.Linear

@@ -10,7 +10,7 @@ Logo {
     ParallelAnimation {
         running: !root.skipIntroAnimation
         onFinished: root.animationCompleted()
-        NumberAnimation { target: root; property: "opacity"; to: 1; duration: 240 }
-        NumberAnimation { target: root; property: "scale"; to: 1; duration: 320; easing.type: Easing.OutCubic }
+        Anim { target: root; property: "opacity"; to: 1; type: Anim.DefaultEffects }
+        Anim { target: root; property: "scale"; to: 1; type: Anim.DefaultSpatial }
     }
 }

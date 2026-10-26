@@ -285,7 +285,7 @@ QString Service::enqueue(const QString &operation, const QString &raw) {
                                                     "search.config",
                                                     "backup.config",
                                                     "apps.info",
-                                                    "apps.apparmor-status",
+                                                    "apps.apparmor-status", "apps.portal-status",
                                                     "keyring.status",
                                                     "input.status"}
                                             .contains(operation);

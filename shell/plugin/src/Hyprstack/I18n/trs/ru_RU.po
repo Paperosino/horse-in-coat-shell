@@ -12891,3 +12891,144 @@ msgstr "Настройки экрана"
 
 msgid "Main panel monitor"
 msgstr "Экран основной панели"
+
+msgid "Notification badges"
+msgstr "Счётчики уведомлений"
+
+msgid "Show badges on application icons"
+msgstr "Показывать счётчики на значках приложений"
+
+msgid "Badge source"
+msgstr "Источник счётчика"
+
+msgid "Application count, with notification fallback"
+msgstr "Счётчик приложения, иначе уведомления оболочки"
+
+msgid "Application integrations only"
+msgstr "Только интеграции приложений"
+
+msgid "Unread shell notifications only"
+msgstr "Только непрочитанные уведомления оболочки"
+
+msgid "Applications can publish their unread count. Otherwise, the dock can show unread notifications kept by the shell. Counts are hidden on presentation screens."
+msgstr "Приложения могут передавать число непрочитанных сообщений. Если интеграции нет, док может показывать число непрочитанных уведомлений оболочки. На экране презентации счётчики скрываются."
+
+msgid "Automatic panel height"
+msgstr "Автоматическая высота панели"
+
+msgid "Panel height"
+msgstr "Высота панели"
+
+msgid "Logical pixels, before the screen scale"
+msgstr "Логические пиксели до применения масштаба экрана"
+
+msgid "Turn off to choose a height in logical pixels. Icons, text and spacing follow the panel height."
+msgstr "Отключите для выбора высоты в логических пикселях. Значки, текст и отступы масштабируются вместе с панелью."
+
+msgid "Panel height, scale, widgets and their order"
+msgstr "Высота, масштаб, виджеты панели и их порядок"
+
+msgid "Detected application protocol"
+msgstr "Определённый протокол приложения"
+
+msgid "Any protocol"
+msgstr "Любой протокол"
+
+msgid "Installed profile"
+msgstr "Установленный профиль"
+
+msgid "Choose a profile"
+msgstr "Выберите профиль"
+
+msgid "Refresh system profiles"
+msgstr "Обновить список профилей"
+
+msgid "Loaded profile modes"
+msgstr "Количество загруженных профилей"
+
+msgid "Additional restrictions"
+msgstr "Дополнительные ограничения"
+
+msgid "Block IPv4 and IPv6 networking"
+msgstr "Запретить сеть IPv4 и IPv6"
+
+msgid "Block direct camera device access"
+msgstr "Запретить прямой доступ к устройствам камеры"
+
+msgid "Block direct sound device access"
+msgstr "Запретить прямой доступ к звуковым устройствам"
+
+msgid "Block home folder file access"
+msgstr "Запретить доступ к файлам домашней папки"
+
+msgid "Block removable and mounted folders"
+msgstr "Запретить доступ к подключаемым и смонтированным папкам"
+
+msgid "Save restrictions"
+msgstr "Сохранить ограничения"
+
+msgid "Policy changes"
+msgstr "Изменения политики"
+
+msgid "Restrictions saved. Choose Enforce restrictions to load the saved policy."
+msgstr "Ограничения сохранены. Нажмите «Применять ограничения», чтобы загрузить сохранённую политику."
+
+msgid "Visual restrictions"
+msgstr "Визуальная настройка ограничений"
+
+msgid "Advanced policy editor"
+msgstr "Расширенный редактор политики"
+
+msgid "Choose an installed profile and adjust its mode or additional restrictions. Enabling a resource here never grants access beyond the original policy."
+msgstr "Выберите установленный профиль, настройте его режим и дополнительные запреты. Снятие запрета здесь не даёт разрешений сверх исходной политики."
+
+msgid "Stored in the profile's standard local include. These are direct device and file restrictions; camera or audio access through portals and PipeWire is controlled separately. Saving does not change the running mode; use Enforce to load the policy."
+msgstr "Сохраняются в стандартном локальном дополнении профиля. Запреты относятся к прямому доступу к устройствам и файлам; доступ через порталы и PipeWire управляется отдельно. Сохранение не меняет текущий режим: для загрузки политики нажмите «Применять ограничения»."
+
+msgid "This profile has no standard local include. Its mode can still be changed; arbitrary policy syntax remains in the advanced editor."
+msgstr "У профиля нет стандартного локального дополнения. Можно изменить его режим или воспользоваться расширенным редактором."
+
+msgid "For policy syntax that cannot be represented by the visual controls. A backup and syntax validation are required before replacement."
+msgstr "Для правил, недоступных в визуальном редакторе. Перед заменой создаётся резервная копия и проверяется синтаксис."
+
+msgid "Desktop portal permissions"
+msgstr "Разрешения системных порталов"
+
+msgid "Run in the background"
+msgstr "Работа в фоновом режиме"
+
+msgid "Notifications through the portal"
+msgstr "Уведомления через портал"
+
+msgid "Portal default"
+msgstr "По умолчанию для портала"
+
+msgid "Refresh portal permissions"
+msgstr "Обновить разрешения порталов"
+
+msgid "Allow"
+msgstr "Разрешить"
+
+msgid "Deny"
+msgstr "Запретить"
+
+msgid "These permissions apply only when an application uses the desktop portal. They do not revoke direct hardware access or stop an existing capture session. Default restores the portal's own policy; notification portals normally allow notifications by default."
+msgstr "Разрешения действуют только при использовании системного портала. Они не отменяют прямой доступ к оборудованию и не останавливают уже начатый захват. Сброс возвращает политику портала; уведомления обычно разрешены по умолчанию."
+
+msgid "Desktop portals"
+msgstr "Системные порталы"
+
+msgid "Refresh portal capabilities"
+msgstr "Обновить возможности порталов"
+
+msgid "Manage application permissions"
+msgstr "Разрешения приложений"
+
+msgid "Shared system dialogs and permissions for files, links, capture, printing, secrets and background applications. Availability below means the interface is exported; a specific request can still depend on its backend and hardware."
+msgstr "Общие диалоги и разрешения для файлов, ссылок, захвата экрана, печати, секретов и фоновых приложений. Доступность означает наличие интерфейса; выполнение запроса также зависит от бэкенда и оборудования."
+
+msgid "Panel height and widgets"
+msgstr "Высота панели и виджеты"
+
+msgid "Height, scale, and one place to arrange panel widgets"
+msgstr "Высота, масштаб и единое управление виджетами панели"

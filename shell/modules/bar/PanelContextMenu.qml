@@ -17,7 +17,7 @@ SettingsContextMenu {
     actions: {
         const result = [];
         if (routes[widgetId]) result.push({label:"Widget settings",icon:"tune",page:routes[widgetId]});
-        result.push({label:"Widgets and their order",icon:"widgets",page:"statusbar-layout"});
+        result.push({label:"Panel height and widgets",icon:"widgets",page:"statusbar-layout"});
         result.push({label:"Panel settings",icon:"view_week",page:"panel-options"});
         return result;
     }

@@ -86,7 +86,7 @@ Item {
             id: waveProgAnim
 
             running: true
-            paused: !root.visible || root.wavePaused || wave.amplitudeMultiplier === 0
+            paused: GlobalConfig.appearance.reducedMotion || !root.visible || root.wavePaused || wave.amplitudeMultiplier === 0
             from: 0
             to: 1
             duration: 2000

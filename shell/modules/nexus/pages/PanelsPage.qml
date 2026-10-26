@@ -26,8 +26,8 @@ PageBase {
             NavRow {
                 first: true
                 last: true
-                text: Tr.tr("Statusbar layout")
-                subtext: Tr.tr("Widgets and their order: left, centre and right")
+                text: Tr.tr("Panel height and widgets")
+                subtext: Tr.tr("Panel height, scale, widgets and their order")
                 icon: "view_quilt"
                 onClicked: root.nState.openSubPage(12)
             }

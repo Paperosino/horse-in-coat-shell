@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Hyprstack.Config
 import Quickshell
 import qs.components
 import qs.modules.bar.popouts // Need to import this module so the Wrapper type is the same as others
@@ -33,13 +34,13 @@ Item {
     y: content.isDetached ? (parent.height - height) / 2 : atBottom ? parent.height - height : 0
 
     Behavior on offsetScale {
-        NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+        Anim { type: Anim.DefaultSpatial }
     }
 
     Behavior on x {
         enabled: root.offsetScale === 0 && !content.isDetached
         Anim {
-            duration: content.animLength
+            duration: GlobalConfig.appearance.reducedMotion ? 0 : content.animLength
             easing: content.animCurve
         }
     }

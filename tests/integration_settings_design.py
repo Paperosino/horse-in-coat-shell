@@ -120,6 +120,19 @@ ShellRoot {
       page.saveZones(["logo","workspaces"],["clock"],["tray","statusIcons","power"]);
       page.flickable.contentY=Math.max(0,page.flickable.contentHeight-page.flickable.height);
      }
+     if(root.shots[index]==="app-info"){
+      const permissions=root.named(settings,"desktopApplicationPermissions");
+      if(permissions){
+       const armor=root.named(permissions,"appArmorSettings");
+       if(armor)armor.expanded=true;
+       permissions.armor={apparmorActive:true,apparmorServiceEnabled:true,profileFiles:["usr.bin.fixture"],profiles:["fixture (enforce)"]};
+       permissions.selectedProfile="usr.bin.fixture";
+       permissions.policy={profile:"usr.bin.fixture",sha256:"fixture",localSha256:"fixture",guiSupported:true};
+       permissions.restrictions={network:true,camera:false,audio:false,home:false,removable:false};
+       const controls=root.named(permissions,"appArmorVisualRestrictions");
+       if(!root.check(!!controls&&controls.visible,"visual AppArmor controls missing"))return;
+      }
+     }
      if(root.shots[index]==="presentation"){
       const dnd=Notifs.dnd,idle=IdleInhibitor.enabled;
       Presentation.begin(Quickshell.screens[0].name);
@@ -136,11 +149,11 @@ ShellRoot {
       if(!root.check(Object.keys(page.form).length===0,"picker created a rule outside the editor"))return;
       page.editRule({id:"existing-chatgpt",name:"ChatGPT",application:"AI",mode:"stacking",titlebar:"hide",enabled:false,rounding:12});
       if(!root.check(!!root.named(settings,"ruleWindowMatcher"),"window picker is not inside the editor"))return;
-      page.pickWindow({address:"0xfixture",application:"org.example.Code",title:"Editor"});
+      page.pickWindow({address:"0xfixture",application:"org.example.Code",title:"Editor",xwayland:true});
       if(!root.check(page.form.id==="existing-chatgpt"&&page.form.name==="ChatGPT"&&page.form.mode==="stacking"&&page.form.titlebar==="hide"&&page.form.enabled===false&&page.form.rounding===12,"window selection changed existing rule properties"))return;
-      if(!root.check(page.form.application==="org.example.Code" && page.form.title==="" && !page.form.regex,"open-window application picker failed"))return;
-      page.pickWindow({address:"0xpip",application:"helium",title:"Picture-in-Picture"});
-      if(!root.check(page.form.application==="helium" && page.form.title==="Picture-in-Picture","PiP window title selection failed"))return;
+      if(!root.check(page.form.application==="org.example.Code" && page.form.title==="" && !page.form.regex && page.form.matchXwayland===true,"open-window application picker failed"))return;
+      page.pickWindow({address:"0xpip",application:"helium",title:"Picture-in-Picture",xwayland:false});
+      if(!root.check(page.form.application==="helium" && page.form.title==="Picture-in-Picture" && page.form.matchXwayland===false,"PiP window title selection failed"))return;
       page.pickWindow({address:"0xdialog",application:"helium",title:"Document",initialTitle:"Open File"});
       page.setScope("initial");
       if(!root.check(page.form.initialTitle==="Open File"&&page.form.title==="","initial-title window type selection failed"))return;

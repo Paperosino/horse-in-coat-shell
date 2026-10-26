@@ -192,3 +192,6 @@
 !/install.sh
 
 !/docs/WINDOW_DECORATIONS.md
+
+!/distribution/audit_motion.py
+!/docs/UX_INTEGRATION_AUDIT.md

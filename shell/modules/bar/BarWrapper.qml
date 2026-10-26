@@ -30,8 +30,11 @@ Item {
     readonly property real topInset: implicitHeight
     readonly property real bottomInset: fullscreen ? 0 : frameThickness
     readonly property int padding: Math.max(Tokens.padding.small, (Config.border.thickness * Tokens.scale))
-    readonly property real panelScale: Math.max(0.65, Math.min(1.5, Config.bar.scale))
-    readonly property int contentWidth: Math.round((thicknessOverride > 0 ? thicknessOverride : Tokens.sizes.bar.innerWidth + padding * 2) * panelScale)
+    readonly property real naturalHeight: thicknessOverride > 0 ? thicknessOverride : Tokens.sizes.bar.innerWidth + padding * 2
+    readonly property real panelScale: Config.bar.height > 0
+        ? Math.max(24, Math.min(112, Config.bar.height)) * Tokens.scale / Math.max(1, naturalHeight)
+        : Math.max(0.65, Math.min(1.5, Config.bar.scale))
+    readonly property int contentWidth: Math.round(naturalHeight * panelScale)
     readonly property int exclusiveZone: !disabled && (Config.bar.persistent || screenState.bar) ? contentWidth : frameThickness
     readonly property bool shouldBeVisible: !fullscreen && !disabled && (Config.bar.persistent || screenState.bar || isHovered)
     property bool isHovered
