@@ -69,9 +69,6 @@ with tempfile.TemporaryDirectory(prefix='hics-stacking-drag-') as directory:
    if window(main.pid):break
    time.sleep(.1)
   address=window(main.pid)['address']
-  if x11 or gtk:
-   klass='org.hics.X11CsdFixture' if x11 else 'org.hics.CanvasInputTest'
-   ctl('eval','hl.window_rule({name="fixture-no-bar",match={class=' + json.dumps(klass) + '},["hyprbars:no_bar"]=true})')
   # A second floating video exercises activation/z-order reentrancy during dragBegin.
   pip=subprocess.Popen(['kitty','--class','helium','--title','Picture-in-Picture','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);apps.append(pip)
   for _ in range(60):

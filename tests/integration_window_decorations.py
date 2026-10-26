@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render stacking titlebars for server- and client-decorated app classes."""
+"""Verify protocol-based titlebars are independent of application IDs."""
 import json, os, shutil, subprocess, tempfile, time, sys
 from pathlib import Path
 from integration_support import require_wayland_session, resize_nested_compositor
@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory(prefix='hics-decoration-integration-') as temp:
   ctl('plugin','load',str(base/'native/libspatialoverview.so'));time.sleep(1)
   assert not ctl('configerrors'),ctl('configerrors')
   from PIL import Image
-  for klass,expected in [('org.hics.WindowFixture',True),('org.telegram.desktop',True),('com.ayugram.desktop',True),('ai.storyteller.photocraft',False),('org.gnome.Nautilus',False),('Code',False),('code-oss',True),('helium',True),('org.hics.Scoped',False),('org.hics.NoDecoration',False)]:
+  for klass,expected in [('org.hics.WindowFixture',True),('org.telegram.desktop',True),('com.ayugram.desktop',True),('ai.storyteller.photocraft',True),('org.gnome.Nautilus',True),('Code',True),('code-oss',True),('helium',True),('org.hics.Scoped',False),('org.hics.NoDecoration',False)]:
    terminal=subprocess.Popen(['kitty','--class',klass,'--title','Decoration fixture','-o','confirm_os_window_close=0','sleep','60'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);fixtures.append(terminal)
    for _ in range(50):
     clients=json.loads(ctl('-j','clients'))
@@ -57,7 +57,7 @@ with tempfile.TemporaryDirectory(prefix='hics-decoration-integration-') as temp:
    ctl('eval','local w=hl.get_window("address:'+address+'");hl.dispatch(hl.dsp.window.resize({window=w,x=600,y=400,relative=false}));hl.dispatch(hl.dsp.window.move({window=w,x=220,y=200,relative=false}))')
    time.sleep(.8)
    window=next(w for w in json.loads(ctl('-j','clients')) if w['pid']==terminal.pid)
-   image=base/'frame.png';subprocess.run(['grim',str(image)],env=env,check=True,capture_output=True)
+   image=base/'frame.png';subprocess.run(['grim',str(image)],env=env,check=True,capture_output=True,timeout=6)
    image=Image.open(image).convert('RGB');x,y=window['at'];width,height=window['size']
    strip=image.crop((x+30,y-24,x+width-30,y-8))
    # A server titlebar has a solid themed surface across the width. The
@@ -70,7 +70,7 @@ with tempfile.TemporaryDirectory(prefix='hics-decoration-integration-') as temp:
    assert (measured>0)==expected,(klass,expected,measured)
    if y>=60:assert has_bar==expected,(klass,expected,colour,count,window['at'])
    has_bar=measured>0
-   print('PASS:',klass,'server titlebar' if has_bar else 'client-owned header',flush=True)
+   print('PASS:',klass,'server titlebar' if has_bar else 'explicitly hidden header',flush=True)
    if klass=='org.hics.Scoped':
     def bar_height():return json.loads(ctl('repl','local w=hl.get_window("address:'+address+'");return hl.plugin.hyprbars.animate_window(w.address,string.format("%x",w.stable_id),"titlebar-height")'))
     ctl('eval','hics_test_gate=hyprstack_layouts.application_rule("tiling",{name="hics-test-mode-gate",match={class="org.hics.Scoped"},no_shadow=true})')

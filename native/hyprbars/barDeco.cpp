@@ -1,4 +1,5 @@
 #include "barDeco.hpp"
+#include "decoration-policy.hpp"
 #include <hyprland/src/desktop/state/ViewState.hpp>
 #include <hyprland/src/managers/SessionLockManager.hpp>
 
@@ -91,6 +92,7 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     const auto PMONITOR         = pWindow->m_monitor.lock();
     PMONITOR->m_scheduledRecalc = true;
 
+    m_hidden = !hics::decoration::evaluate(pWindow).titlebar;
     syncNativePolicy();
 
     // button events
@@ -733,9 +735,8 @@ void CHyprBar::updateWindow(PHLWINDOW pWindow) {
 void CHyprBar::syncNativePolicy() {
     const auto window = m_pWindow.lock();
     if (!window) return;
-    // HYPRSTACK_CSD_STATE: xdg-shell initially marks every mapped window
-    // maximized to hide tiled CSD. A normal stacking window must explicitly
-    // clear that flag even when fullscreen_state(0, 0) is a controller no-op.
+    // Native capabilities and maximize state do not depend on decoration
+    // ownership. A CSD client stays movable/resizable when our header is off.
     const bool stacking = g_pGlobalState->config.enabled->value();
     // GTK4 hides its minimize button unless xdg-shell advertises it. Use
     // public Wayland resource iteration instead of reaching into private
@@ -766,10 +767,10 @@ void CHyprBar::syncNativePolicy() {
         window->m_suppressedEvents &= ~Desktop::View::SUPPRESS_MAXIMIZE;
         m_ownsMaximizePolicy = false;
     }
-    // Reassert the synthetic flag only for tiles. Normal floating Qt windows
-    // must clear it too, so fullscreen exit restores their windowed geometry.
+    // Never claim a tile is maximized merely to suppress its CSD. Native
+    // maximize state follows the real client state, independently of headers.
     const auto client = Fullscreen::controller()->getFullscreenModes(window).client;
-    const bool maximized = client == Fullscreen::FSMODE_MAXIMIZED || (!stacking && !window->m_isFloating);
+    const bool maximized = client == Fullscreen::FSMODE_MAXIMIZED;
     if (window->m_xdgSurface && window->m_xdgSurface->m_toplevel)
         window->m_xdgSurface->m_toplevel->setMaximized(maximized);
     else if (window->m_xwaylandSurface && window->m_xwaylandSurface->m_maximized != maximized) {
@@ -834,18 +835,18 @@ void CHyprBar::updateRules() {
 
     m_bForcedBarColor   = std::nullopt;
     m_bForcedTitleColor = std::nullopt;
-    m_hidden            = false;
+    m_hidden            = !hics::decoration::evaluate(PWINDOW).titlebar;
 
-    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->nobarRuleIdx))
-        m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect);
-    if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault()) m_hidden = true;
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->barColorRuleIdx))
         m_bForcedBarColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->barColorRuleIdx)->effect).value_or(0));
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->titleColorRuleIdx))
         m_bForcedTitleColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->titleColorRuleIdx)->effect).value_or(0));
 
-    if (prevHidden != m_hidden)
+    if (prevHidden != m_hidden) {
         g_pDecorationPositioner->repositionDeco(this);
+        if (const auto monitor = PWINDOW->m_monitor.lock()) monitor->m_scheduledRecalc = true;
+        damageEntire();
+    }
     if (prevForcedTitleColor != m_bForcedTitleColor)
         m_bTitleColorChanged = true;
 }

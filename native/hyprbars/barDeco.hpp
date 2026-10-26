@@ -12,6 +12,7 @@
 #include <hyprland/src/helpers/time/Time.hpp>
 #include <hyprland/src/helpers/signal/Signal.hpp>
 #include "globals.hpp"
+#include "decoration-policy.hpp"
 #include <map>
 
 #include <hyprland/src/managers/input/InputManager.hpp>
@@ -50,7 +51,7 @@ class CHyprBar : public IHyprWindowDecoration {
     virtual std::string                getDisplayName();
 
     PHLWINDOW                          getOwner();
-    double visibleHeight() const { return m_hidden || !g_pGlobalState->config.enabled->value() ? 0.0 : g_pGlobalState->config.barHeight->value(); }
+    double visibleHeight() const { return hics::decoration::evaluate(m_pWindow.lock()).height; }
 
     void                               updateRules();
     void                               onConfigReloaded();

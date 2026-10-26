@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include "barDeco.hpp"
+#include "decoration-policy.hpp"
 #include "globals.hpp"
 #include "task-animation.hpp"
 #include "scrolling-opening.hpp"
@@ -54,7 +55,8 @@ static bool superHeld() { return superPressedKeys.contains(125) || superPressedK
 static int soloSuperLua(lua_State* L) { lua_pushboolean(L, !superUsed); return 1; }
 
 static void onNewWindow(PHLWINDOW window) {
-    if (!window->m_X11DoesntWantBorders) {
+    hics::decoration::observe(window);
+    if (!window->isX11OverrideRedirect()) {
         if (std::ranges::any_of(window->m_windowDecorations, [](const auto& d) { return d->getDisplayName() == "Hyprbar"; }))
             return;
 
@@ -175,11 +177,14 @@ int animateLuaWindow(lua_State* L) {
         } else lua_pushboolean(L, false);
         return 1;
     }
+    if (operation == "decoration-policy") {
+        const auto policy = hics::decoration::evaluate(window);
+        const auto json = nlohmann::json{{"mode", hics::decoration::name(policy.mode)},
+            {"source", policy.source}, {"titlebar", policy.titlebar}, {"height", policy.height}}.dump();
+        lua_pushlstring(L, json.data(), json.size()); return 1;
+    }
     if (operation == "titlebar-height") {
-        for (auto& bar : g_pGlobalState->bars) {
-            if (bar && bar->getOwner() == window) { lua_pushnumber(L, bar->visibleHeight()); return 1; }
-        }
-        lua_pushnumber(L, 0); return 1;
+        lua_pushnumber(L, hics::decoration::evaluate(window).height); return 1;
     }
     if (operation == "center") {
         lua_pushboolean(L, centerFloatingWindow(window, lua_toboolean(L, 4)));
@@ -337,6 +342,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         throw std::runtime_error("[hb] Version mismatch");
     }
 
+    struct PolicyStartupGuard {
+        HANDLE handle;
+        bool committed = false;
+        ~PolicyStartupGuard() { if (!committed) hics::decoration::remove(handle); }
+    } policyGuard{PHANDLE};
+    hics::decoration::install(PHANDLE);
     installClientSurfacePolicy(PHANDLE);
     HyprstackOverview::install(PHANDLE);
     HyprstackShaders::install();
@@ -408,6 +419,16 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "titlebar_height", [](lua_State* L) -> int {
             lua_settop(L, 2); lua_pushliteral(L, "titlebar-height"); return animateLuaWindow(L);
         });
+        HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "decoration_stats", [](lua_State* L) -> int {
+            const auto stats = hics::decoration::diagnostics();
+            const auto json = nlohmann::json{{"xdgSurfaces", stats.xdgSurfaces}, {"kdeSurfaces", stats.kdeSurfaces},
+                {"xdgBindings", stats.xdgBindings}, {"kdeBindings", stats.kdeBindings},
+                {"x11Surfaces", stats.x11Surfaces}, {"pendingX11", stats.pendingX11}}.dump();
+            lua_pushlstring(L, json.data(), json.size()); return 1;
+        });
+        HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "decoration_policy", [](lua_State* L) -> int {
+            lua_settop(L, 2); lua_pushliteral(L, "decoration-policy"); return animateLuaWindow(L);
+        });
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "clear_buttons", ::clearLuaButtons);
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "animate_window", ::animateLuaWindow);
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "solo_super", ::soloSuperLua);
@@ -445,6 +466,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::reloadConfig();
 
+    policyGuard.committed = true;
     return {"hyprstack-hyprbars", "Hyprstack window decorations and navigation.", "hyprwm / Hyprstack", "1.1.1"};
 }
 
@@ -454,6 +476,7 @@ APICALL EXPORT void PLUGIN_EXIT() {
     HyprstackAutoscroll::remove();
     HyprstackOverview::remove(PHANDLE);
     removeClientSurfacePolicy(PHANDLE);
+    hics::decoration::remove(PHANDLE);
     HyprstackSnap::remove();
     stackingInput.reset();
     for (const auto& window : Desktop::windowState()->windows()) CTaskAnimation::clear(window);

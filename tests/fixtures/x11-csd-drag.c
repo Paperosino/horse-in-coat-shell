@@ -17,6 +17,13 @@ static void request(xcb_connection_t *c,xcb_screen_t *s,xcb_window_t w,int direc
 int main(int argc,char **argv) {
     xcb_connection_t *c=xcb_connect(NULL,NULL);if(xcb_connection_has_error(c))return 1;
     xcb_screen_t *s=xcb_setup_roots_iterator(xcb_get_setup(c)).data;
+    if(argc==4 && strcmp(argv[1],"motif")==0){
+        xcb_window_t id=strtoul(argv[2],NULL,0);xcb_atom_t prop=atom(c,"_MOTIF_WM_HINTS");
+        if(!strcmp(argv[3],"delete"))xcb_delete_property(c,id,prop);
+        else if(!strcmp(argv[3],"invalid")){const char bad[]="x";xcb_change_property(c,XCB_PROP_MODE_REPLACE,id,prop,XCB_ATOM_STRING,8,1,bad);}
+        else {uint32_t hints[]={!strcmp(argv[3],"functions")?1:2,0,strtoul(argv[3],NULL,0),0,0};xcb_change_property(c,XCB_PROP_MODE_REPLACE,id,prop,prop,32,5,hints);}
+        xcb_flush(c);free(xcb_get_input_focus_reply(c,xcb_get_input_focus(c),NULL));xcb_disconnect(c);return 0;
+    }
     if(argc==4 && strcmp(argv[1],"state")==0){
         xcb_client_message_event_t e={.response_type=XCB_CLIENT_MESSAGE,.format=32,.window=strtoul(argv[2],NULL,0)};
         if(strcmp(argv[3],"minimize")==0){e.type=atom(c,"WM_CHANGE_STATE");e.data.data32[0]=3;}
@@ -33,8 +40,10 @@ int main(int argc,char **argv) {
     const char title[]="X11 CSD drag fixture";
     xcb_change_property(c,XCB_PROP_MODE_REPLACE,w,XCB_ATOM_WM_NAME,XCB_ATOM_STRING,8,sizeof(title)-1,title);
     uint32_t pid=getpid();xcb_change_property(c,XCB_PROP_MODE_REPLACE,w,atom(c,"_NET_WM_PID"),XCB_ATOM_CARDINAL,32,1,&pid);
-    uint32_t hints[]={2,0,0,0,0};xcb_change_property(c,XCB_PROP_MODE_REPLACE,w,atom(c,"_MOTIF_WM_HINTS"),atom(c,"_MOTIF_WM_HINTS"),32,5,hints);
-    xcb_map_window(c,w);xcb_flush(c);printf("%u\n",w);fflush(stdout);
+    const char *initial=getenv("HICS_TEST_MOTIF");
+    uint32_t hints[]={2,0,initial?strtoul(initial,NULL,0):0,0,0};
+    if(!initial || strcmp(initial,"none"))xcb_change_property(c,XCB_PROP_MODE_REPLACE,w,atom(c,"_MOTIF_WM_HINTS"),atom(c,"_MOTIF_WM_HINTS"),32,5,hints);
+    if(!getenv("HICS_TEST_NO_MAP"))xcb_map_window(c,w);xcb_flush(c);printf("%u\n",w);fflush(stdout);
     xcb_generic_event_t *event;
     while((event=xcb_wait_for_event(c))) {
         if((event->response_type&127)==XCB_BUTTON_PRESS){

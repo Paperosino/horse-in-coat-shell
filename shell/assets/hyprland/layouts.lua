@@ -361,15 +361,14 @@ function layouts.monitor_directions()
     end
 end
 
-local function client_decorated(window)
+local function header_height(window)
     local plugin = hl.plugin.hyprbars
     if plugin and plugin.titlebar_height then
         local height = plugin.titlebar_height(window.address, string.format("%x", window.stable_id))
-        if type(height) == "number" then return height == 0 end
+        if type(height) == "number" then return height end
     end
-    local class = window.class:lower()
-    return browser(window) or class == "discord" or class:match("^org%.gnome%.")
-        or class == "ai.storyteller.photocraft" or class == "photocraft"
+    -- No titlebar plugin means no server header; never guess from app IDs.
+    return 0
 end
 
 local function scroll_position(window)
@@ -441,9 +440,8 @@ local function fit_geometry(window, value, index)
     width = width - reserved.left - reserved.right
     height = height - top - bottom
     local x, y = monitor.x + reserved.left, monitor.y + top
-    if layouts.mode() == "stacking" and not client_decorated(window) then
-        y, height = y + titlebar_height, height - titlebar_height
-    end
+    local header = header_height(window)
+    y, height = y + header, height - header
     -- Hidden scrolling windows can briefly report an uninitialised size after
     -- output or workspace changes; never replay that as floating geometry.
     if value and (not value.width or not value.height or value.width <= 0 or value.height <= 0) then
@@ -541,7 +539,7 @@ local function maximized_geometry(window)
     local reserved = monitor.reserved
     local top = changing and 40 or reserved.top
     local bottom = changing and 0 or reserved.bottom
-    local bar = client_decorated(window) and 0 or titlebar_height
+    local bar = header_height(window)
     return { x = monitor.x + reserved.left, y = monitor.y + top + bar,
         width = width - reserved.left - reserved.right,
         height = height - top - bottom - bar }
@@ -705,8 +703,8 @@ local function tile(workspace, prepared)
         hl.dispatch(hl.dsp.window.fullscreen_state({ window = entry.window,
             internal = entry.internal, client = entry.client, action = "set" }))
         -- The first decoration refresh runs while these windows are floating.
-        -- Reapply tiled CSD state and its final configure after the column has
-        -- reclaimed the complete height, keeping stacking geometry independent.
+        -- Refresh native state after the column has reclaimed its height;
+        -- decoration ownership is decided exclusively by the native policy.
         visual_animation(entry.window, "client-state")
     end
 end
@@ -893,9 +891,6 @@ function layouts.theme(palette)
     hl.window_rule({ name = "hyprstack-active-title", match = { focus = true },
         ["hyprbars:bar_color"] = color("surfaceContainerHigh", "363646"),
         ["hyprbars:title_color"] = color("primary", "7e9cd8") })
-    hl.window_rule({ name = "hyprstack-client-decorations", match = {
-        class = "(?i)^(thorium(-browser)?|chromium(-browser)?|google-chrome.*|firefox|librewolf|zen(-browser)?|discord|code|code-oss|Code|Code - OSS|VSCodium|codium|com\\.visualstudio\\.code|com\\.vscodium\\.codium|org\\.gnome\\..*|ai\\.storyteller\\.photocraft|photocraft)$"
-    }, ["hyprbars:no_bar"] = true })
     hl.plugin.hyprbars.clear_buttons()
     local controls = { close = "e46876", maximize = "98bb6c", minimize = "e6c384" }
     local button_preferences = read(config_dir .. "/window-controls.json")
@@ -1218,7 +1213,7 @@ function layouts.snap(address, stable_id, zone, monitor_name)
     else
         record.snapped={geometry=fit_geometry(window,normal,0),zone=zone}
         local bounds = maximized_geometry(window)
-        local bar = client_decorated(window) and 0 or titlebar_height
+        local bar = header_height(window)
         local height = bounds.height + bar
         local x1,x2=math.floor(bounds.width*fraction[1]+0.5),math.floor(bounds.width*fraction[3]+0.5)
         local y1,y2=math.floor(height*fraction[2]+0.5),math.floor(height*fraction[4]+0.5)
