@@ -24,6 +24,8 @@ def main():
     os.umask(0o077)
     os.nice(5)
     out=args.out.resolve();out.mkdir(parents=True,exist_ok=True)
+    if args.timeout <= 0:raise SystemExit('Timeout must be positive')
+    if (out/'manifest.json').exists():raise SystemExit('Output already contains a run; choose a new directory')
     modules=sorted((ROOT/'tests').glob(args.pattern))
     if not modules:raise SystemExit('No test modules selected')
     results=[]
@@ -58,7 +60,10 @@ def main():
                                        cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
                 try:code=child.wait(timeout=args.timeout)
                 except subprocess.TimeoutExpired:
-                    timed_out=True;os.killpg(child.pid,signal.SIGKILL);code=child.wait()
+                    timed_out=True
+                    try:os.killpg(child.pid,signal.SIGKILL)
+                    except ProcessLookupError:pass
+                    code=child.wait()
                 finally:
                     try:os.killpg(child.pid,signal.SIGTERM)
                     except ProcessLookupError:pass
