@@ -691,3 +691,9 @@ regressions (five server-titlebar and five headerless drags with PiP) also pass.
 перезагрузки. Событие `hics startup: first visible frame submitted` отделяет
 передачу первого видимого кадра от `Configuration Loaded` и запуска фоновых
 интеграций. Подробная методика — в `docs/UX_INTEGRATION_AUDIT.md`.
+
+## Длительная кампания устойчивости
+
+Матрица проверок, реальные находки, пропущенные gates и воспроизведение
+изолированной лаборатории CachyOS: [RELIABILITY_CAMPAIGN.md](docs/RELIABILITY_CAMPAIGN.md).
+Зелёный unit-прогон не заменяет проверку установки, Wayland-сессии и оборудования.

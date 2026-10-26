@@ -112,6 +112,7 @@
 !/shell/assets/clipboard_helper.py
 !/shell/assets/wrap_term_launch.sh
 !/shell/assets/logo.svg
+!/shell/assets/hics-mascot.png
 !/shell/assets/bongocat.gif
 !/shell/assets/kurukuru.gif
 !/shell/assets/dino.png
@@ -123,6 +124,7 @@
 !/docs/
 /docs/*
 !/docs/STABILITY_AUDIT.md
+!/docs/RELIABILITY_CAMPAIGN.md
 !/docs/media/
 /docs/media/*
 !/docs/media/README.md
