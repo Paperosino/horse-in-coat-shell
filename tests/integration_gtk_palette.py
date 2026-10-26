@@ -1,5 +1,5 @@
 """Check real GTK 2/3 styles and rendered GTK4 pixels with private config."""
-import os,subprocess,tempfile,shlex,sys,time
+import os,subprocess,tempfile,shlex,sys,time,shutil
 from pathlib import Path
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[1]
@@ -47,6 +47,34 @@ with tempfile.TemporaryDirectory(prefix='hics-gtk-palette-') as directory:
     rgb=tuple(bytes.fromhex(colour));count=pixels.count(rgb)
     assert count>100,(colour,count,run.stderr)
     print(binary+' rendered:',colour,count,'pixels')
+  # A search bar's child container has its own stock GTK background. Force
+  # the light base theme to catch a missing palette rule even in a dark DE.
+  binary=base/'searchbar';flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','gtk+-3.0'],text=True))
+  subprocess.run(['cc',str(ROOT/'tests/fixtures/gtk-header-probe.c'),'-DSEARCHBAR_PROBE',*flags,'-o',str(binary)],check=True,capture_output=True)
+  search_env=dict(env,XDG_RUNTIME_DIR=str(runtime),WAYLAND_DISPLAY=str(sockets[0]),GDK_BACKEND='wayland',GTK_THEME='Adwaita:light',GTK_PROBE_IMAGE=str(base/'searchbar.png'))
+  run=subprocess.run([str(binary)],env=search_env,capture_output=True,text=True,timeout=15);assert run.returncode==0,run.stderr
+  image=Image.open(base/'searchbar.png').convert('RGB');image.save('/tmp/hics-gtk-searchbar.png')
+  for y in range(5,min(90,image.height)):
+   line=[image.getpixel((x,y)) for x in range(20,image.width-20)]
+   assert sum(min(pixel)>190 for pixel in line)<len(line)*.5,('Search bar retained a bright stripe',y)
+  print('PASS: GTK3 search bar follows the shell palette even over a light base theme')
+  if shutil.which('remmina'):
+   # Load the installed application's real GtkBuilder UI, without starting
+   # networking, reading saved connections, or reusing the user's process.
+   remmina=Path(shutil.which('remmina'))
+   resources=subprocess.check_output(['gresource','list',str(remmina)],text=True).splitlines()
+   resource=next(path for path in resources if path.endswith('/remmina_main.glade'))
+   (base/'remmina.glade').write_bytes(subprocess.check_output(['gresource','extract',str(remmina),resource]))
+   binary=base/'remmina-ui';subprocess.run(['cc',str(ROOT/'tests/fixtures/gtk-header-probe.c'),'-DREMMINA_PROBE',*flags,'-o',str(binary)],check=True,capture_output=True)
+   run=subprocess.run([str(binary)],env=dict(search_env,REMMINA_PROBE_UI=str(base/'remmina.glade'),GTK_PROBE_IMAGE=str(base/'remmina.png')),capture_output=True,text=True,timeout=15);assert run.returncode==0,run.stderr
+   image=Image.open(base/'remmina.png').convert('RGB');image.save('/tmp/hics-remmina-palette.png')
+   # A one-pixel separator is legitimate; a light container is a band.
+   bright_rows=[]
+   for y in range(8,min(95,image.height)):
+    line=[image.getpixel((x,y)) for x in range(20,image.width-20)]
+    if sum(min(pixel)>190 for pixel in line)>=len(line)*.6:bright_rows.append(y)
+   assert not any(b-a==1 for a,b in zip(bright_rows,bright_rows[1:])),('Remmina retained a bright band',bright_rows)
+   print('PASS: installed Remmina UI has no bright quick-connect band')
   # Exercise actual file chooser and libadwaita header nodes, not just buttons.
   (config/'hics').mkdir(exist_ok=True)
   (config/'hics/window-controls.json').write_text('{"side":"left","order":["close","minimize"]}')

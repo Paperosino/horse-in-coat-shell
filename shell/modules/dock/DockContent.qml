@@ -33,10 +33,10 @@ Item {
     readonly property alias menuSurface: taskMenu
     readonly property alias previewSurface: windowPreview
     readonly property bool motionEnabled: DockConf.animations && !GlobalConfig.appearance.reducedMotion && !GameMode.reduceDockMotion
-    readonly property real motionPadding: motionEnabled ? (DockConf.lift + root.iconSize * 0.3 + 12 * Tokens.scale) : 0
+    readonly property real motionPadding: motionEnabled ? (DockConf.lift * Tokens.scale + root.iconSize * 0.3 + 12 * Tokens.scale) : 0
     property real wavePosition: vertical ? height / 2 : width / 2
     readonly property real hoverAmount: hoverSpring.value
-    MotionSpring {id:hoverSpring;target:root.motionEnabled && pointerField.hovered && !root.menuOpen && !root.listOpen && !root.draggedKey ? 1 : 0;enabled:root.motionEnabled;damping:DockConf.damping}
+    MotionSpring {id:hoverSpring;target:root.motionEnabled && (pointerField.hovered || raisedInput.containsMouse) && !root.menuOpen && !root.listOpen && !root.draggedKey ? 1 : 0;enabled:root.motionEnabled;damping:DockConf.damping}
     readonly property var motionButtons: {
         const buttons = [];
         if (startAppsButton.item) buttons.push(startAppsButton.item);
@@ -126,26 +126,33 @@ Item {
         }
     }
     property var raisedPressTask: null
+    property var pointerTask: null
+    readonly property rect inputBounds: raisedInput.inputBounds
+    readonly property rect restingInputBounds: {
+        const bounds = membraneBounds;
+        const x = Math.min(0, bounds.x), y = Math.min(0, bounds.y);
+        return Qt.rect(x, y, Math.max(width, bounds.x+bounds.width)-x,
+            Math.max(height, bounds.y+bounds.height)-y);
+    }
     function raisedTaskAt(point: point): var {
-        // Original slots stay with the scroll view. Raised pixels need a hit
-        // layer outside its scene subtree (which also includes hidden drawers).
-        if (point.x>=0 && point.x<=width && point.y>=0 && point.y<=height) return null;
-        let selected=null, nearest=Infinity;
-        for(let i=0;i<motionButtons.length;++i) {
-            const task=motionButtons[i];
-            if(!task || task.wave<0.015)continue;
-            const p=task.mapToItem(root,task.width/2,task.height/2);
-            if(vertical ? p.y<0 || p.y>height : p.x<0 || p.x>width)continue;
-            const scale=(1+(DockConf.magnification-1)*task.wave)*Math.max(1,task.impulseScale);
-            const lift=DockConf.lift*Tokens.scale*task.wave*scale;
-            const cx=p.x+(vertical?(DockConf.position==="left"?1:-1)*lift:0);
-            const cy=p.y+(vertical?0:(atBottom?-1:1)*lift);
-            const dx=point.x-cx,dy=point.y-cy;
-            if(Math.abs(dx)<=task.width*scale/2+2 && Math.abs(dy)<=task.height*scale/2+2 && dx*dx+dy*dy<nearest) {
-                selected=task; nearest=dx*dx+dy*dy;
-            }
+        // One router owns both the original slots and transformed visuals.
+        // Delegate MouseAreas must not overlap and steal each other's quarters.
+        let selected=null, nearest=Infinity, slot=null;
+        for (const task of motionButtons) {
+            if (!task || !task.visible) continue;
+            const center=task.mapToItem(root,task.width/2,task.height/2);
+            if (vertical ? center.y<0 || center.y>height : center.x<0 || center.x>width) continue;
+            const base=task.mapFromItem(root,point.x,point.y);
+            if(base.x>=0 && base.y>=0 && base.x<task.width && base.y<task.height)slot=task;
+            const local=task.visual.mapFromItem(root,point.x,point.y);
+            const padX=vertical ? task.width*.04*task.wave : 0;
+            const padY=vertical ? 0 : task.height*.04*task.wave;
+            if(local.x < -padX || local.x > task.width+padX || local.y < -padY || local.y > task.height+padY)continue;
+            const visualCenter=task.visual.mapToItem(root,task.width/2,task.height/2);
+            const distance=Math.hypot(point.x-visualCenter.x,point.y-visualCenter.y);
+            if(distance<nearest){nearest=distance;selected=task;}
         }
-        return selected;
+        return selected ?? slot;
     }
     MouseArea {
         id:raisedInput
@@ -153,10 +160,10 @@ Item {
         // independently of the scroll view and other drawer contents.
         parent:root.QsWindow.window?.contentItem ?? root
         z:9000
-        enabled:root.visible && root.motionEnabled && !root.menuOpen && !root.listOpen
+        enabled:root.visible && !root.menuOpen && !root.listOpen
         property rect pressBounds:Qt.rect(0,0,0,0)
         property bool holdingBounds:false
-        readonly property rect inputBounds:holdingBounds ? pressBounds : root.membraneBounds
+        readonly property rect inputBounds:holdingBounds ? pressBounds : root.restingInputBounds
         readonly property point origin:root.mapToItem(parent,inputBounds.x,inputBounds.y)
         x:origin.x;y:origin.y
         width:inputBounds.width;height:inputBounds.height
@@ -165,19 +172,29 @@ Item {
                 return raisedInput.pressed || root.raisedTaskAt(raisedInput.mapToItem(root,point.x,point.y))!==null;
             }
         }
+        hoverEnabled:true
+        onEntered:{
+            const point=mapToItem(root,mouseX,mouseY);
+            root.pointerTask=root.raisedTaskAt(point);
+            root.wavePosition=root.vertical ? point.y : point.x;
+        }
+        onExited:if(!pressed)root.pointerTask=null
         acceptedButtons:Qt.LeftButton|Qt.RightButton|Qt.MiddleButton
         cursorShape:Qt.PointingHandCursor
         preventStealing:true
         property point pressPoint
         property bool dragged:false
         onPressed:event=>{
-            pressBounds=root.membraneBounds;holdingBounds=true;
+            pressBounds=root.restingInputBounds;holdingBounds=true;
             pressPoint=mapToItem(root,event.x,event.y);
             root.raisedPressTask=root.raisedTaskAt(pressPoint);
             dragged=false;
             if(!root.raisedPressTask)event.accepted=false;
         }
         onPositionChanged:event=>{
+            const point=mapToItem(root,event.x,event.y);
+            root.pointerTask=root.raisedTaskAt(point);
+            if(!pressed)root.wavePosition=root.vertical ? point.y : point.x;
             const task=root.raisedPressTask;
             if(!task || !task.group || !(pressedButtons & Qt.LeftButton))return;
             const p=mapToItem(root,event.x,event.y);
@@ -194,7 +211,7 @@ Item {
         }
         onWheel:event=>{
             const task=root.raisedTaskAt(mapToItem(root,event.x,event.y));
-            if(!task || !task.windows.length){event.accepted=false;return;}
+            if(!task || !task.windows?.length){event.accepted=false;return;}
             const current=task.windows.findIndex(w=>w===Hypr.activeToplevel);
             const next=(current+(event.angleDelta.y>0?1:-1)+task.windows.length)%task.windows.length;
             task.act("dock-activate",task.windows[next]);event.accepted=true;
@@ -618,53 +635,11 @@ Item {
                                     }
                                 }
                             }
-                        MouseArea {
+                        QtObject {
                             id: taskMouse
-                            // Union the stable slot with the displayed icon. Qt
-                            // scales its translation too; the old unscaled lift
-                            // left the upper part of the raised icon unclickable.
-                            // Keep the press-shrink inside a stable hitbox so a
-                            // press near the edge cannot cancel its own click.
-                            readonly property real hitScale: (1+(DockConf.magnification-1)*task.wave)*Math.max(1,task.impulseScale)
-                            readonly property real lift: DockConf.lift*Tokens.scale*task.wave*hitScale
-                            readonly property real dx:root.vertical ? (DockConf.position==="left"?1:-1)*lift : 0
-                            readonly property real dy:root.vertical ? 0 : (root.atBottom?-1:1)*lift
-                            readonly property real extraX:task.width*(hitScale-1)/2
-                            readonly property real extraY:task.height*(hitScale-1)/2
-                            x:Math.min(0,dx-extraX)
-                            y:Math.min(0,dy-extraY)
-                            width:Math.max(task.width,dx+task.width+extraX)-x
-                            height:Math.max(task.height,dy+task.height+extraY)-y
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                            preventStealing: true
-                            property point pressPoint
-                            property bool dragged: false
-                            onPressed: event => { pressPoint = taskMouse.mapToItem(root,event.x,event.y); dragged = false; }
-                            onPositionChanged: event => {
-                                if (!(pressedButtons & Qt.LeftButton)) return;
-                                const position=taskMouse.mapToItem(root,event.x,event.y);
-                                if (!dragged && Math.hypot(position.x - pressPoint.x, position.y - pressPoint.y) > 8 * Tokens.scale) {
-                                    dragged = true;
-                                    root.closePopups();
-                                    root.draggedKey = task.group.key;
-                                    root.dragIcon = task.iconSource;
-                                }
-                                if (dragged) root.updateDrag(position);
-                            }
-                            onReleased: if (dragged) root.finishDrag()
-                            onCanceled: root.cancelDrag()
-
-                            onClicked: event => { if (!dragged) task.activate(event.button); }
-                            onWheel: event => {
-                                if (task.windows.length === 0)
-                                    return;
-                                const current = task.windows.findIndex(w => w === Hypr.activeToplevel);
-                                const next = (current + (event.angleDelta.y > 0 ? 1 : -1) + task.windows.length) % task.windows.length;
-                                task.act("dock-activate", task.windows[next]);
-                                event.accepted = true;
-                            }
+                            readonly property bool containsMouse: root.pointerTask === task
+                            readonly property bool pressed: raisedInput.pressed && root.raisedPressTask === task
+                            readonly property bool dragged: raisedInput.dragged
                         }
 
 
@@ -929,21 +904,10 @@ Item {
                 fontStyle: Tokens.font.icon.medium
             }
         }
-        MouseArea {
+        QtObject {
             id: gridMouse
-            // Keep both the original slot and the raised visual clickable.
-            readonly property real lift: DockConf.lift * Tokens.scale * gridButton.wave * gridButton.hitScale
-            readonly property real dx: root.vertical ? (DockConf.position === "left" ? 1 : -1) * lift : 0
-            readonly property real dy: root.vertical ? 0 : (root.atBottom ? -1 : 1) * lift
-            readonly property real extra: gridButton.width * (gridButton.hitScale - 1) / 2
-            x: Math.min(0, dx - extra)
-            y: Math.min(0, dy - extra)
-            width: Math.max(gridButton.width, dx + gridButton.width + extra) - x
-            height: Math.max(gridButton.height, dy + gridButton.height + extra) - y
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.LeftButton
-            onClicked: gridButton.activate(Qt.LeftButton)
+            readonly property bool containsMouse: root.pointerTask === gridButton
+            readonly property bool pressed: raisedInput.pressed && root.raisedPressTask === gridButton
         }
     }
 

@@ -47,3 +47,9 @@ Lua API `hl.plugin.hyprbars.decoration_policy(address, stable_id)` возвра�
 - [xdg-shell](https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/main/stable/xdg-shell/xdg-shell.xml)
 - [KDE server-decoration](https://invent.kde.org/libraries/plasma-wayland-protocols/-/blob/master/src/protocols/server-decoration.xml)
 - [EWMH](https://specifications.freedesktop.org/wm/latest-single/)
+
+## Фокус X11 после интерфейса оболочки
+
+`keyboard-focus.hpp` синхронизирует фокус seat и активацию XWM при переходах между приложением и layer-shell интерфейсом. Освободившийся seat восстанавливается после завершения текущего перехода; запасная проверка перед нажатием клавиши исправляет рассинхронизацию с кэшированным desktop focus. Интерактивные слои, другие приложения, захваты и экран блокировки сохраняют владение клавиатурой. Холст использует `rawSurfaceFocus`, а не отдельную запись в seat.
+
+Регрессия запускается во вложенном композиторе: реальные X11 key events после скрытия слоя и отключения его keyboard interactivity, управляемая инъекция рассинхронизации seat, обычная и `WM_TAKE_FOCUS` модели клиента. Тестовый плагин инъекции не устанавливается в пакет.

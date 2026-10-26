@@ -37,6 +37,7 @@ extern "C" {
 #include <lauxlib.h>
 }
 
+#include "keyboard-focus.hpp"
 #include "stacking-input.hpp" // HYPRSTACK_STACKING_INPUT
 #include "overview-scene.hpp" // HYPRSTACK_OVERVIEW_SCENE
 #include "autoscroll.hpp"
@@ -345,7 +346,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     struct PolicyStartupGuard {
         HANDLE handle;
         bool committed = false;
-        ~PolicyStartupGuard() { if (!committed) hics::decoration::remove(handle); }
+        ~PolicyStartupGuard() { if (!committed) { HicsKeyboardFocus::remove(); hics::decoration::remove(handle); } }
     } policyGuard{PHANDLE};
     hics::decoration::install(PHANDLE);
     installClientSurfacePolicy(PHANDLE);
@@ -451,6 +452,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P4 = Event::bus()->m_events.config.preReload.listen([&] { onPreConfigReload(); });
     static auto P5 = Event::bus()->m_events.config.reloaded.listen([&] { onConfigReloaded(); });
 
+    HicsKeyboardFocus::install(PHANDLE);
     stackingInput = makeUnique<CStackingInput>();
     HyprstackSnap::install(PHANDLE); // HYPRSTACK_SNAP_ZONES
     HyprstackAutoscroll::install(PHANDLE);
@@ -471,6 +473,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
+    HicsKeyboardFocus::remove();
     HyprstackTilingHover::remove();
     HyprstackShaders::remove();
     HyprstackAutoscroll::remove();

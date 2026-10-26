@@ -114,7 +114,7 @@ def apply_palette(colours, config_root, mode=None):
     rules = [
         f"window, window.background, window.dialog, messagedialog, dialog, .dialog, .background {{ background-color: {surface}; background-image: none; color: {ink}; }}",
         f".view, viewport, treeview, iconview, textview, textview text, list, flowbox, gridview, columnview, .content-view, notebook > stack {{ background-color: {surface}; background-image: none; color: {ink}; }}",
-        f"headerbar, toolbar, actionbar, statusbar, .toolbar, .sidebar, .navigation-sidebar, notebook > header {{ background-color: {container}; background-image: none; color: {ink}; }}",
+        f"headerbar, toolbar, actionbar, statusbar, searchbar, searchbar > revealer > box, actionbar > revealer > box, .search-bar, .inline-toolbar, .toolbar, .sidebar, .navigation-sidebar, notebook > header {{ background-color: {container}; background-image: none; color: {ink}; }}",
         f"window headerbar, window .titlebar, window .top-bar, window .bottom-bar {{ background-image: none; border-color: {border}; box-shadow: none; }}",
         f".toolbar-view > .top-bar, .toolbar-view > .bottom-bar {{ background-color: {container}; color: {ink}; }}",
         f"popover > contents, menu, menuitem, .menu, tooltip > box, tooltip > decoration, .card, .boxed-list, .boxed-list > row {{ background-color: {container}; color: {ink}; }}",

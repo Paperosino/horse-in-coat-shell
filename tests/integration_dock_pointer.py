@@ -263,6 +263,26 @@ ShellRoot {
         click(target['center']['x'],target['center']['y'])
         delivered=read()
         assert delivered['clicks']==many['clicks']+1 and delivered['key']==target['key'],('Left click on the middle raised icon missed its application',many,delivered)
+        # Sample every quadrant of neighbouring icons. Dispatch must be to
+        # the icon under the pointer, not the last overlapping delegate.
+        for target_key in [b['key'] for b in many['buttons'][:4]]:
+            for fx,fy in ((.2,.2),(.8,.2),(.2,.8),(.8,.8),(.5,.5)):
+                target=next(b for b in read()['buttons'] if b['key']==target_key)
+                send('move',target['x']+target['w']/2,target['y']+target['h']/2);time.sleep(.25)
+                target=next(b for b in read()['buttons'] if b['key']==target_key)
+                x=target['center']['x']+(fx-.5)*target['w']*target['scale']
+                y=target['center']['y']+(fy-.5)*target['h']*target['scale']
+                prior=read();click(x,y);delivered=read()
+                assert delivered['clicks']==prior['clicks']+1 and delivered['key']==target_key,('An icon quadrant missed its task',target_key,fx,fy,prior,delivered)
+        target=read()['buttons'][2]
+        send('move',target['x']+target['w']/2,target['y']+target['h']/2);time.sleep(.4)
+        target=read()['buttons'][2];x=target['center']['x'];y=target['center']['y']-target['w']*target['scale']*.3
+        send('move',x,y);before=read()['clicks'];send('button',272,1)
+        control.write_text('cold');wait_for(lambda s:s.get('hoverAmount',1)<.01,3)
+        send('button',272,0)
+        assert read()['clicks']==before+1,'An animation changed the hitbox while a task was pressed'
+        control.write_text('warm');time.sleep(.3)
+        print('PASS: neighbouring icon quadrants and held clicks survive animation changes',flush=True)
         target=buttons[3]
         send('move',target['x']+target['w']/2,target['y']+target['h']/2)
         assert_membrane(read())

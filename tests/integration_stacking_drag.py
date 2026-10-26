@@ -62,6 +62,7 @@ with tempfile.TemporaryDirectory(prefix='hics-stacking-drag-') as directory:
   if gtk:env['HICS_TEST_CSD_CONTROLS']=str(base/'gtk-controls.json')
   csd=x11 or gtk or bool(os.environ.get('HICS_TEST_DRAG_CSD'))
   if csd and not x11 and not gtk:ctl('eval','hl.bind("mouse:272",hl.dsp.window.drag(),{mouse=true})')
+  if os.environ.get('HICS_TEST_KEYBOARD_RETURN'):env['HICS_TEST_KEY_LOG']=str(base/'keys.txt')
   main=subprocess.Popen([str(base/'x11-csd')] if x11 else ['python3',str(fixtures/'canvas-input-app.py')] if gtk else ['kitty','--class','code' if csd else 'org.hics.DragFixture','--title','Drag fixture','-o','confirm_os_window_close=0','sleep','120'],env=env,stdout=subprocess.PIPE if x11 else subprocess.DEVNULL,stderr=subprocess.DEVNULL,text=True);apps.append(main)
   xid=main.stdout.readline().strip() if x11 else None
   def window(pid):return next((w for w in json.loads(ctl('-j','clients')) if w['pid']==pid),None)
@@ -83,6 +84,57 @@ with tempfile.TemporaryDirectory(prefix='hics-stacking-drag-') as directory:
   def send(command):
    pointer.stdin.write(command+'\n');pointer.stdin.flush()
    reply=pointer.stdout.readline().strip();assert reply=='ok',(reply,compositor.poll(),(base/'compositor.log').read_text()[-4500:]);time.sleep(.06)
+  if os.environ.get('HICS_TEST_KEYBOARD_RETURN'):
+   for flag,suffix in [('client-header','.h'),('private-code','.c')]:
+    subprocess.run(['wayland-scanner',flag,str(fixtures/'virtual-keyboard.xml'),str(base/('virtual-keyboard'+suffix))],check=True)
+   flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','wayland-client','xkbcommon'],text=True))
+   subprocess.run(['cc',str(fixtures/'virtual-keyboard-stream.c'),str(base/'virtual-keyboard.c'),'-I',str(base),*flags,'-o',str(base/'keyboard')],check=True)
+   keyboard=subprocess.Popen([str(base/'keyboard')],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True,bufsize=1);apps.append(keyboard)
+   assert keyboard.stdout.readline().strip()=='ready'
+   def key(code):
+    for state in (1,0):
+     keyboard.stdin.write(f'key {code} {state}\n');keyboard.stdin.flush();assert keyboard.stdout.readline().strip()=='ok'
+    time.sleep(.15)
+   control=base/'layer-control';control.write_text('show')
+   ui=base/'focus-shell';ui.mkdir()
+   (ui/'shell.qml').write_text('''import QtQuick
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+ShellRoot {
+ PanelWindow {
+  id:layer;visible:true;anchors {top:true;bottom:true;left:true;right:true}
+  WlrLayershell.namespace:"hics-keyboard-test";WlrLayershell.layer:WlrLayer.Top
+  WlrLayershell.keyboardFocus:WlrKeyboardFocus.OnDemand
+  color:"transparent";mask:Region {x:0;y:0;width:150;height:100}
+  Rectangle {width:150;height:100;color:"#344455";focus:true;MouseArea {anchors.fill:parent;onClicked:parent.forceActiveFocus()}}
+ }
+ FileView {path:CONTROL;watchChanges:true;printErrors:false;onFileChanged:reload();onLoaded:{layer.visible=text()!=="hide";layer.WlrLayershell.keyboardFocus=text()==="none"?WlrKeyboardFocus.None:WlrKeyboardFocus.OnDemand;}}
+}'''.replace('CONTROL',json.dumps(str(control))))
+   layerlog=(base/'focus-shell.log').open('w');layer=subprocess.Popen(['/usr/share/hics/qs/bin/hics-qs','-p',str(ui)],env=env,stdout=layerlog,stderr=subprocess.STDOUT);apps.append(layer)
+   time.sleep(.6)
+   def count():return len((base/'keys.txt').read_text().splitlines()) if (base/'keys.txt').exists() else 0
+   for iteration in range(8):
+    control.write_text('show');time.sleep(.2);send('move 40 40');send('button 272 1');send('button 272 0');time.sleep(.1)
+    if iteration==0:
+     before=count();key(30);assert count()==before,'A shell text field lost keyboard ownership to the application'
+    if iteration%2:ctl('eval','hyprstack_layouts.action("dock-activate",'+json.dumps(address)+')')
+    control.write_text('hide' if iteration%3 else 'none');time.sleep(.25)
+    if not iteration%2:ctl('eval','hyprstack_layouts.action("dock-activate",'+json.dumps(address)+')')
+    before=count();key(30)
+    assert count()==before+1,('X11 first normal key lost after layer dismissal',iteration,window(main.pid),(base/'focus-shell.log').read_text()[-2000:])
+   print('PASS: X11 accepts the first plain key after layer unmap and keyboard-focus relinquish',flush=True)
+   # Reproduce the split focus state that a direct setKeyboardFocus call or
+   # a late layer commit can leave behind, without touching the user's session.
+   flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','hyprland'],text=True))
+   subprocess.run(['c++','-std=c++23','-shared','-fPIC','-fno-gnu-unique',str(fixtures/'keyboard-focus-fault.cpp'),*flags,'-o',str(base/'focus-fault.so')],check=True)
+   ctl('plugin','load',str(base/'focus-fault.so'))
+   ctl('eval','hyprstack_layouts.action("dock-activate",'+json.dumps(address)+')')
+   for _ in range(4):
+    before=count();ctl('eval','hl.plugin.hics_input_test.drop_seat()');key(30)
+    assert count()==before+1,'The first X11 key was lost with stale cached desktop focus'
+   print('PASS: first X11 key repairs a dropped seat without paste, retries or a synthetic click',flush=True)
+   keyboard.terminate();keyboard.wait();layer.terminate();layer.wait()
   if x11:
    time.sleep(.3)
    original=window(main.pid)

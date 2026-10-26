@@ -56,7 +56,7 @@ Region {
 
     Region {
         readonly property var dock:root.panels.dock
-        readonly property rect bounds:dock.membraneBounds
+        readonly property rect bounds:dock.inputBounds
         x:root.panels.x+dock.x+bounds.x
         y:root.panels.y+dock.y+bounds.y
         width:dock.visible ? bounds.width : 0

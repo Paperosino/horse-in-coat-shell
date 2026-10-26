@@ -33,7 +33,22 @@ int main(int argc, char **argv) {
 #else
     gtk_init(&argc,&argv);
 #endif
-#ifdef ADWAITA_PROBE
+#if defined(REMMINA_PROBE)
+    GtkBuilder *builder=gtk_builder_new_from_file(g_getenv("REMMINA_PROBE_UI"));
+    GtkWidget *window=GTK_WIDGET(gtk_builder_get_object(builder,"RemminaMain"));
+    if(!window)return 3;
+#elif defined(SEARCHBAR_PROBE)
+    GtkWidget *window=gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    GtkWidget *box=gtk_box_new(GTK_ORIENTATION_VERTICAL,0),*bar=gtk_search_bar_new(),*row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);
+    gtk_window_set_titlebar(GTK_WINDOW(window),gtk_header_bar_new());
+    gtk_container_add(GTK_CONTAINER(window),box);
+    gtk_box_pack_start(GTK_BOX(box),bar,FALSE,TRUE,0);
+    gtk_container_add(GTK_CONTAINER(bar),row);
+    gtk_box_pack_start(GTK_BOX(row),gtk_label_new("SSH"),FALSE,TRUE,0);
+    gtk_box_pack_start(GTK_BOX(row),gtk_entry_new(),TRUE,TRUE,0);
+    gtk_box_pack_start(GTK_BOX(box),gtk_label_new("Connections"),TRUE,TRUE,0);
+    gtk_search_bar_set_search_mode(GTK_SEARCH_BAR(bar),TRUE);
+#elif defined(ADWAITA_PROBE)
     adw_init();
     GtkWidget *window = adw_window_new();
     GtkWidget *view = adw_toolbar_view_new();

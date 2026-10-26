@@ -4606,7 +4606,9 @@ void CScrollOverview::ensureCanvasKeyboardFocus(PHLWINDOW window) {
 
     const auto SURFACE = window->wlSurface()->resource();
     if (g_pSeatManager->m_state.keyboardFocus.lock() != SURFACE)
-        g_pSeatManager->setKeyboardFocus(SURFACE);
+        // Updating only the seat bypasses desktop/XWayland activation and
+        // leaves X11 clients without a fresh WM_TAKE_FOCUS after a shell UI.
+        Desktop::focusState()->rawSurfaceFocus(SURFACE, window);
 }
 
 bool CScrollOverview::followCanvasWindow(PHLWINDOW window, bool syncFocus, bool animate) {
