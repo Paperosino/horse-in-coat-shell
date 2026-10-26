@@ -121,5 +121,5 @@ else:print('ok')
   directory=self.dir/'config/gnome-session/saved-session';result=self.probe('export',snapshot['id'],directory,'portable');self.assertEqual(result['error'],'')
   imported=self.probe('import-desktop','gnome');self.assertEqual(imported['error'],'');self.assertEqual(imported['preview']['windows'][0]['command'],expected)
  def test_export_does_not_change_existing_directory_permissions(self):
-  snapshot=self.probe('capture','Permissions')['preview'];directory=self.dir/'export';directory.mkdir(mode=0o750)
+  snapshot=self.probe('capture','Permissions')['preview'];directory=self.dir/'export';directory.mkdir(mode=0o750);directory.chmod(0o750)
   self.assertEqual(self.probe('export',snapshot['id'],directory/'session.json')['error'],'');self.assertEqual(directory.stat().st_mode&0o777,0o750)

@@ -60,14 +60,27 @@ elif name=='hyprctl':
             process.stdout.close()
         cls.temp.cleanup()
 
-    def probe(self, operation, **options):
+    def probe(self, operation, environment=None, **options):
         run = subprocess.run([str(self.binary)], input=json.dumps(dict(operation=operation, **options)),
-            env=self.env, capture_output=True, text=True, check=True, timeout=10)
+            env=environment or self.env, capture_output=True, text=True, check=True, timeout=10)
         return json.loads(run.stdout)
+
+    def test_disconnected_session_bus_does_not_strand_busy_state(self):
+        data=self.probe('refresh',environment=dict(self.env,DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent/hics-session-test'))
+        self.assertFalse(data['busy'],data)
+        self.assertEqual(data['pendingCalls'],0)
+
+    def test_both_buses_disconnected_complete_without_stale_devices(self):
+        env=dict(self.env,DBUS_SYSTEM_BUS_ADDRESS='unix:path=/nonexistent/hics-system-test',DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent/hics-session-test')
+        data=self.probe('refresh',environment=env)
+        self.assertFalse(data['busy'],data)
+        self.assertEqual(data['wifi'],[])
+        self.assertEqual(data['drives'],[])
+        self.assertEqual(data['pendingCalls'],0)
 
     def test_status_keeps_cameras_distinct_and_filters_unavailable_profiles(self):
         data = self.probe('refresh')
-        self.assertFalse(data['busy'])
+        self.assertFalse(data['busy'],data)
         self.assertEqual([p['name'] for p in data['cards'][0]['profiles']], ['stereo'])
         self.assertEqual([c['screen'] for c in data['captures']], [True, False])
         self.assertTrue(data['wifi'][0]['hotspot'])
@@ -77,7 +90,7 @@ elif name=='hyprctl':
 
     def test_background_monitor_does_not_enumerate_audio_windows_or_wifi(self):
         data = self.probe('monitor')
-        self.assertFalse(data['busy'])
+        self.assertFalse(data['busy'],data)
         self.assertEqual(data['cards'], [])
         self.assertEqual(data['wifi'], [])
         self.assertEqual(data['sources'], [])

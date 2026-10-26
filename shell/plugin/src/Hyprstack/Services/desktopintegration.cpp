@@ -32,17 +32,30 @@ namespace {
 const auto NM = u"org.freedesktop.NetworkManager"_s;
 const auto NP = u"/org/freedesktop/NetworkManager"_s;
 const auto UD = u"org.freedesktop.UDisks2"_s;
+void watchReply(QObject *owner, const QDBusPendingCall &call,
+                std::function<void(const QDBusMessage &)> done) {
+    auto *watcher = new QDBusPendingCallWatcher(call, owner);
+    const QPointer<QDBusPendingCallWatcher> guard(watcher);
+    auto consumed = std::make_shared<bool>(false);
+    auto finish = [guard, consumed, done] {
+        if (*consumed || !guard) return;
+        *consumed = true;
+        const auto reply = guard->reply();
+        guard->deleteLater();
+        done(reply);
+    };
+    QObject::connect(watcher, &QDBusPendingCallWatcher::finished, owner, finish);
+    // A disconnected bus / immediately rejected request can already be done
+    // when the watcher is constructed. Its signal must not strand busy state.
+    if (watcher->isFinished()) QTimer::singleShot(0, owner, finish);
+}
 void asyncCall(QObject *owner, const QString &service, const QString &path,
                const QString &iface, const QString &method, const QVariantList &args,
                std::function<void(const QDBusMessage &)> done, int timeout = 90000) {
     auto message = QDBusMessage::createMethodCall(service, path, iface, method);
     message.setArguments(args);
     message.setInteractiveAuthorizationAllowed(true);
-    auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(message, timeout), owner);
-    QObject::connect(watcher, &QDBusPendingCallWatcher::finished, owner, [watcher, done] {
-        done(watcher->reply());
-        watcher->deleteLater();
-    });
+    watchReply(owner, QDBusConnection::systemBus().asyncCall(message, timeout), std::move(done));
 }
 bool validDisk(const QString &path, const QString &kind) {
     return path.startsWith(u"/org/freedesktop/UDisks2/"_s + kind + u"/"_s) &&
@@ -100,12 +113,11 @@ void DesktopIntegration::refresh() {
         u"/org/freedesktop/portal/desktop"_s, u"org.freedesktop.DBus.Properties"_s, u"Get"_s);
     message.setArguments({u"org.freedesktop.portal.ScreenCast"_s, u"AvailableSourceTypes"_s});
     ++m_pending;
-    auto *portal = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(message, 3000), this);
-    connect(portal, &QDBusPendingCallWatcher::finished, this, [this, portal] {
+    watchReply(this, QDBusConnection::sessionBus().asyncCall(message, 3000), [this](const QDBusMessage &reply) {
         --m_pending;
-        QDBusPendingReply<QDBusVariant> reply = *portal;
-        m_portalSourceTypes = reply.isError() ? 0 : reply.value().variant().toInt();
-        emit changed(); portal->deleteLater();
+        m_portalSourceTypes = reply.type() == QDBusMessage::ErrorMessage ? 0
+            : qdbus_cast<QDBusVariant>(reply.arguments().value(0)).variant().toInt();
+        emit changed();
     });
     refreshDisks(); refreshWifi();
     m_recordingSources.clear();

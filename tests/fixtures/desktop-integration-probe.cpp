@@ -8,6 +8,8 @@
 #include <QJsonObject>
 #include <QTextStream>
 #include <QTimer>
+#include <QProcess>
+#include <QDBusPendingCallWatcher>
 using namespace hyprstack::services;
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
@@ -45,7 +47,13 @@ int main(int argc, char **argv) {
         poll.start(10);
         QTimer::singleShot(5000, &loop, &QEventLoop::quit);
         loop.exec();
-        result = {{"error", desktop.error()}, {"busy", desktop.busy()}, {"succeeded", succeeded},
+        QJsonArray pendingProcesses;
+        for (auto* process : desktop.findChildren<QProcess*>())
+            if (process->state() != QProcess::NotRunning) pendingProcesses.append(process->program());
+        int pendingCalls = 0;
+        for (auto* call : desktop.findChildren<QDBusPendingCallWatcher*>())
+            if (!call->isFinished()) ++pendingCalls;
+        result = {{"pendingProcesses", pendingProcesses}, {"pendingCalls", pendingCalls}, {"error", desktop.error()}, {"busy", desktop.busy()}, {"succeeded", succeeded},
             {"cards", QJsonArray::fromVariantList(desktop.cards())}, {"wifi", QJsonArray::fromVariantList(desktop.wifiDevices())},
             {"encrypted", QJsonArray::fromVariantList(desktop.encryptedVolumes())}, {"drives", QJsonArray::fromVariantList(desktop.removableDrives())},
             {"captures", QJsonArray::fromVariantList(desktop.captureStreams())}, {"captureAvailable", desktop.captureMonitorAvailable()},
