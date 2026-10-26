@@ -13,7 +13,7 @@ NP = '/org/freedesktop/NetworkManager'
 UD = 'org.freedesktop.UDisks2'
 DP = '/org/freedesktop/UDisks2/block_devices/luks'
 DRIVE = '/org/freedesktop/UDisks2/drives/usb'
-names = [dbus.service.BusName(NM, bus), dbus.service.BusName(UD, bus)]
+names = [dbus.service.BusName(NM, bus), dbus.service.BusName(UD, bus), dbus.service.BusName("org.freedesktop.portal.Desktop", bus)]
 
 def log(method, data):
     with open(os.environ['DESKTOP_BUS_LOG'], 'a') as file:
@@ -73,6 +73,14 @@ class Drive(dbus.service.Object):
     def PowerOff(self, options):
         log('power-off', True)
 
+class Portal(dbus.service.Object):
+    @dbus.service.method('org.freedesktop.DBus.Properties', in_signature='ss', out_signature='v')
+    def Get(self, interface, property):
+        if interface != 'org.freedesktop.portal.ScreenCast' or property != 'AvailableSourceTypes':
+            raise dbus.exceptions.DBusException('Unknown portal property', name='org.freedesktop.DBus.Error.InvalidArgs')
+        return dbus.UInt32(3, variant_level=1)
+
+portal = Portal(bus, '/org/freedesktop/portal/desktop')
 active = Active(bus, NP + '/ActiveConnection/1')
 objects = [active, Network(bus, NP), Wifi(bus, NP + '/Devices/1'), Disks(bus, '/org/freedesktop/UDisks2'),
     Encrypted(bus, DP), Drive(bus, DRIVE)]

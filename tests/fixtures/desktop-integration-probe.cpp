@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
         int pendingCalls = 0;
         for (auto* call : desktop.findChildren<QDBusPendingCallWatcher*>())
             if (!call->isFinished()) ++pendingCalls;
-        result = {{"pendingProcesses", pendingProcesses}, {"pendingCalls", pendingCalls}, {"error", desktop.error()}, {"busy", desktop.busy()}, {"succeeded", succeeded},
+        result = {{"pendingProcesses", pendingProcesses}, {"pendingCalls", pendingCalls}, {"portalSourceTypes", desktop.portalSourceTypes()}, {"error", desktop.error()}, {"busy", desktop.busy()}, {"succeeded", succeeded},
             {"cards", QJsonArray::fromVariantList(desktop.cards())}, {"wifi", QJsonArray::fromVariantList(desktop.wifiDevices())},
             {"encrypted", QJsonArray::fromVariantList(desktop.encryptedVolumes())}, {"drives", QJsonArray::fromVariantList(desktop.removableDrives())},
             {"captures", QJsonArray::fromVariantList(desktop.captureStreams())}, {"captureAvailable", desktop.captureMonitorAvailable()},

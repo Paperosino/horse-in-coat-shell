@@ -65,6 +65,12 @@ elif name=='hyprctl':
             env=environment or self.env, capture_output=True, text=True, check=True, timeout=10)
         return json.loads(run.stdout)
 
+    def test_normal_portal_reply_preserves_screen_and_window_capabilities(self):
+        env=dict(self.env,DBUS_SESSION_BUS_ADDRESS=self.env['DBUS_SYSTEM_BUS_ADDRESS'])
+        data=self.probe('refresh',environment=env)
+        self.assertFalse(data['busy'],data)
+        self.assertEqual(data['portalSourceTypes'],3)
+
     def test_disconnected_session_bus_does_not_strand_busy_state(self):
         data=self.probe('refresh',environment=dict(self.env,DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent/hics-session-test'))
         self.assertFalse(data['busy'],data)
