@@ -187,3 +187,8 @@ class RecoveryTests(unittest.TestCase):
   self.assertEqual(r.strict_object('{"a":null,"b":[null,{"c":1}]}'),{'a':None,'b':[None,{'c':1}]})
   with self.assertRaisesRegex(ValueError,'nesting limit'):
    r.strict_object('{"a":null,"deep":'+'['*200+'0'+']'*200+'}')
+
+ def test_broken_preview_symlink_never_promotes_working_checkpoint(self):
+  r=self.r;r.STATE.mkdir(parents=True,exist_ok=True)
+  (r.STATE/'configuration-preview.json').symlink_to(self.base/'missing-journal')
+  self.assertFalse(r.healthy(r.candidate()));self.assertFalse(r.GOOD.exists())

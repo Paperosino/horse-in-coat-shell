@@ -14,6 +14,7 @@ FILES={'shell-tokens.json','window-controls.json','shell.json','tokens.json','do
 APPEARANCE={'window-controls.json','shell.json','tokens.json','dock.json','layouts.json','effects.json','theme-automation.json','live-wallpapers.json','panels.json','state/scheme.json','state/wallpaper/path.txt','appearance.json','taskbar.json','workspaces.json','tiling.json','theme-schedule.json','widgets.json'}
 HISTORY=STATE/'configuration-history';PROFILES=DATA/'appearance-profiles';PREFS=CONFIG/'configuration-history.json';JOURNAL=STATE/'configuration-preview.json'
 MAX_BYTES=8*1024*1024
+MAX_PREVIEW_BYTES=32*1024*1024
 ASSETS=Path(__file__).resolve().parent
 
 def allowed(name,appearance=False):
@@ -251,8 +252,44 @@ def merge_revert(before,applied,current):
    else:result.pop(key,None)
  return result
 
+PREVIEW_WARNING='Invalid configuration-preview.json. Original journal preserved; automatic rollback is paused.'
+
+def read_preview():
+ try:d=strict_object(bounded_text(JOURNAL,MAX_PREVIEW_BYTES))
+ except FileNotFoundError:return {}
+ if not isinstance(d.get('token'),str) or not 1<=len(d['token'])<=128 or not isinstance(d.get('name'),str) or len(d['name'])>128:raise ValueError(PREVIEW_WARNING)
+ for key in ('deadline','deadlineMonotonic'):
+  value=d.get(key)
+  if type(value) not in (int,float) or not 0<=value<=1e12:raise ValueError(PREVIEW_WARNING)
+ before=d.get('before');applied=d.get('applied')
+ if not isinstance(before,dict) or not isinstance(applied,dict) or not applied or len(applied)>256 or set(before)!=set(applied):raise ValueError(PREVIEW_WARNING)
+ total=0
+ for name,text in applied.items():
+  if not allowed(name) or not isinstance(text,str):raise ValueError(PREVIEW_WARNING)
+  for value in (text,before[name]):
+   if value is None:continue
+   if not isinstance(value,str):raise ValueError(PREVIEW_WARNING)
+   size=len(value.encode());total+=size
+   if size>1048576 or total>2*MAX_BYTES:raise ValueError(PREVIEW_WARNING)
+   if name.endswith('.json'):strict_object(value)
+ absent=d.get('absent',[])
+ if not isinstance(absent,list) or any(not isinstance(name,str) or name not in applied for name in absent):raise ValueError(PREVIEW_WARNING)
+ pid=d.get('shellPid');start=d.get('shellStart')
+ if pid is not None and (type(pid) is not int or not 0<pid<2**31):raise ValueError(PREVIEW_WARNING)
+ if start is not None and (not isinstance(start,str) or not start.isascii() or not start.isdigit() or len(start)>32):raise ValueError(PREVIEW_WARNING)
+ return d
+
+def preview_present():return JOURNAL.exists() or JOURNAL.is_symlink()
+
+def warn_preview():
+ path=STATE/'configuration-recovery-warning.json'
+ try:previous=bounded_object(path)
+ except (OSError,ValueError):previous={}
+ if previous.get('warning')!=PREVIEW_WARNING:atomic_json(path,{'warning':PREVIEW_WARNING},private=True)
+
+
 def rollback(runtime_apply=True):
- d=read_json(JOURNAL)
+ d=read_preview()
  if not d:return
  from shell_recovery import read_text as bounded_text, strict_object
  restored={};remove_defaults=set();warnings=[]
@@ -317,6 +354,8 @@ def startup_checkpoint():
  except (OSError,ValueError):return {'available':False,'error':'Startup checkpoint is damaged'}
 
 def state():
+ try:pending=read_preview();pending_valid=True;preview_warning=''
+ except (OSError,ValueError):pending={};pending_valid=False;preview_warning=PREVIEW_WARNING
  try:settings=preferences();valid=True;policy_warning=''
  except (OSError,ValueError):
   settings={**DEFAULT_POLICY,'enabled':False};valid=False
@@ -325,7 +364,7 @@ def state():
   warning=bounded_object(STATE/'configuration-recovery-warning.json').get('warning','')
   if not isinstance(warning,str):raise ValueError('Invalid warning')
  except (OSError,ValueError):warning='Configuration recovery warning could not be read safely.'
- return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':settings,'settingsValid':valid,'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in read_json(JOURNAL).items() if k in ('token','deadline','name')},'directory':str(HISTORY),'recoveryWarning':'; '.join(filter(None,[policy_warning,warning]))}
+ return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':settings,'settingsValid':valid,'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in pending.items() if k in ('token','deadline','name')},'pendingValid':pending_valid,'directory':str(HISTORY),'recoveryWarning':'; '.join(filter(None,[policy_warning,preview_warning,warning]))}
 
 def dispatch(op,p,shell_pid=None):
  if op=='status':return state()
@@ -366,7 +405,7 @@ def dispatch(op,p,shell_pid=None):
    d.update(id=str(uuid.uuid4()),created=time.time(),sections=sorted(d['files']));atomic_json(PROFILES/(d['id']+'.json'),d,private=True)
    return {**state(),'importedId':d['id']}
   else:
-   if JOURNAL.exists():raise ValueError('Confirm or revert the current appearance preview first')
+   if preview_present():raise ValueError('Confirm or revert the current appearance preview first')
    from display_profiles import paths as display_paths
    try:display_folder,_=display_paths()
    except ValueError:display_folder=None
@@ -374,11 +413,13 @@ def dispatch(op,p,shell_pid=None):
    files=d['files'];selected=p.get('sections',list(files))
    if not isinstance(selected,list) or not selected or set(selected)-set(files):raise ValueError('Select configuration sections to restore')
    files={name:files[name] for name in selected};before=gather();snapshot('Before '+d.get('name','restore'),False)
-   atomic_json(JOURNAL,dict(token=str(uuid.uuid4()),name=d.get('name','Profile'),deadline=time.time()+30,deadlineMonotonic=time.monotonic()+30,shellPid=shell_pid,shellStart=process_start(shell_pid),before={k:before.get(k) for k in files},absent=[k for k in files if k!='widgets.json' and not (target(k).exists() or target(k).is_symlink())],applied=files),private=True)
+   journal=dict(token=str(uuid.uuid4()),name=d.get('name','Profile'),deadline=time.time()+30,deadlineMonotonic=time.monotonic()+30,shellPid=shell_pid,shellStart=process_start(shell_pid),before={k:before.get(k) for k in files},absent=[k for k in files if k!='widgets.json' and not (target(k).exists() or target(k).is_symlink())],applied=files)
+   if len(json.dumps(journal,ensure_ascii=False,indent=2).encode())>MAX_PREVIEW_BYTES:raise ValueError('Configuration preview journal exceeds 32 MiB')
+   atomic_json(JOURNAL,journal,private=True)
    try:apply_files(files)
    except Exception:rollback();raise
  elif op in ('confirm','revert'):
-  pending=read_json(JOURNAL)
+  pending=read_preview()
   if not pending or pending['token']!=p.get('token'):raise ValueError('The configuration preview has expired')
   if op=='revert' or pending['deadlineMonotonic']<=time.monotonic():rollback()
   else:JOURNAL.unlink();snapshot('Confirmed '+pending['name'],False)
@@ -437,7 +478,9 @@ def watch():
  with (root/'watch.lock').open('a+') as lock:
   try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
   except BlockingIOError:return
-  rollback()
+  preview_broken=False
+  try:rollback()
+  except (OSError,ValueError):warn_preview();preview_broken=True
   endpoint=root/'control.sock';endpoint.unlink(missing_ok=True)
   with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as server:
    server.bind(str(endpoint));os.chmod(endpoint,0o600);server.listen(8)
@@ -455,7 +498,7 @@ def watch():
     nonlocal last_hash,paused_warning
     try:
      repair_invalid_json();current=digest(gather());policy=preferences()
-     if policy['enabled'] and not JOURNAL.exists() and (policy['captureOnLogin'] if startup else current!=last_hash):snapshot()
+     if policy['enabled'] and not preview_present() and (policy['captureOnLogin'] if startup else current!=last_hash):snapshot()
      last_hash=current
      if paused_warning:
       warning=STATE/'configuration-recovery-warning.json'
@@ -480,13 +523,27 @@ def watch():
     if events:select.register(events,selectors.EVENT_READ)
     select.register(server,selectors.EVENT_READ);select.register(fd,selectors.EVENT_READ)
     while not stopping:
-     pending=read_json(JOURNAL)
+     try:
+      pending=read_preview()
+      if preview_broken:
+       path=STATE/'configuration-recovery-warning.json'
+       try:warning=bounded_object(path)
+       except (OSError,ValueError):warning={}
+       if warning.get('warning')==PREVIEW_WARNING:path.unlink(missing_ok=True)
+       preview_broken=False
+     except (OSError,ValueError):
+      pending={}
+      if not preview_broken:warn_preview()
+      preview_broken=True
      if pending and (pending['deadlineMonotonic']<=time.monotonic() or pending.get('shellPid') and process_start(pending['shellPid'])!=pending.get('shellStart')):rollback();publish()
      if changed and time.monotonic()>=changed:
       changed=0;observe();publish()
      for key,_ in select.select(.5 if pending or changed else 1):
       if events and key.fileobj is events:
-       if not events.recv(65536):rollback(False);os.close(fd);events.close();return
+       if not events.recv(65536):
+        try:rollback(False)
+        except (OSError,ValueError):warn_preview()
+        os.close(fd);events.close();return
       elif key.fileobj==fd:
        os.read(fd,262144);arm();changed=time.monotonic()+.7
       else:
@@ -506,7 +563,9 @@ def watch():
         except Exception as e:result={'error':str(e)}
         try:client.sendall((json.dumps(result,ensure_ascii=False)+'\n').encode())
         except OSError:pass
-   rollback();os.close(fd)
+   try:rollback()
+   except (OSError,ValueError):warn_preview()
+   os.close(fd)
    if events:events.close()
 
 def request(op,p):

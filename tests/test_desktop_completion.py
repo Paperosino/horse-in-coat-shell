@@ -11,6 +11,9 @@ class DesktopCompletion(unittest.TestCase):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name);self.cfg=self.root/'config';self.state=self.root/'state';self.cfg.mkdir();self.state.mkdir()
   for module,name,value in [(config,'CONFIG',self.cfg),(config,'STATE',self.state),(config,'HISTORY',self.state/'history'),(config,'PROFILES',self.root/'profiles'),(config,'PREFS',self.cfg/'history.json'),(config,'JOURNAL',self.state/'pending.json'),(rules,'CONFIG',self.cfg),(rules,'APP',self.cfg/'application-rules.json'),(rules,'DEVICE',self.cfg/'device-rules.json'),(rules,'GENERATED',self.cfg/'rules.lua'),(onboarding,'PREFS',self.cfg/'onboarding.json')]:
    p=patch.object(module,name,value);p.start();self.addCleanup(p.stop)
+ def write_preview(self,payload):
+  journal={'token':'fixture','name':'Fixture','deadline':time.time()+30,'deadlineMonotonic':time.monotonic()+30,'shellPid':None,'shellStart':None,**payload}
+  config.atomic_json(config.JOURNAL,journal)
  def test_history_excludes_credentials_and_clipboard_and_deduplicates(self):
   (self.cfg/'shell.json').write_text('{"appearance":{"scale":1}}');(self.cfg/'assistant-key.json').write_text('{"apiKey":"secret"}');(self.state/'clipboard').mkdir();(self.state/'clipboard/payload').write_text('private')
   first=config.snapshot();self.assertEqual(config.snapshot(),first);data=config.load_snapshot(config.HISTORY/(first+'.json.gz'));self.assertIn('shell.json',data['files']);self.assertFalse(any('assistant' in k or 'clipboard' in k for k in data['files']));self.assertEqual((config.HISTORY/(first+'.json.gz')).stat().st_mode&0o777,0o600)
@@ -33,7 +36,7 @@ class DesktopCompletion(unittest.TestCase):
  def test_rollback_removes_files_absent_before_trial_and_keeps_user_edits(self):
   for edited in (False,True):
    path=self.cfg/'dock.json';path.unlink(missing_ok=True)
-   config.atomic_json(config.JOURNAL,{'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
+   self.write_preview({'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
    path.write_text('{"enabled":false,"userEdit":true}' if edited else '{"enabled":false}')
    config.rollback(False)
    if edited:self.assertTrue(json.loads(path.read_text())['userEdit'])
@@ -47,7 +50,7 @@ class DesktopCompletion(unittest.TestCase):
   self.assertFalse((self.cfg/'dock.json').exists());self.assertFalse((self.cfg/'shell.json').exists())
  def test_rollback_does_not_write_defaults_twice_over_late_edit(self):
   path=self.cfg/'dock.json';path.write_text('{"enabled":false}')
-  config.atomic_json(config.JOURNAL,{'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
+  self.write_preview({'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
   original=config.apply_files
   def apply_then_edit(files,runtime_apply=True,*args):
    original(files,runtime_apply,*args)
@@ -56,7 +59,7 @@ class DesktopCompletion(unittest.TestCase):
   self.assertEqual(json.loads(path.read_text()),{'userEdit':True})
  def test_failed_runtime_rollback_still_restores_absence_and_reports_error(self):
   path=self.cfg/'dock.json';path.write_text('{"enabled":false}')
-  config.atomic_json(config.JOURNAL,{'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
+  self.write_preview({'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
   original=config.apply_files
   def fail_runtime(files,runtime_apply=True,*args):
    if runtime_apply:raise ValueError('Fixture compositor unavailable')
@@ -76,7 +79,7 @@ class DesktopCompletion(unittest.TestCase):
      with bad.open('wb') as stream:stream.truncate(2*1024*1024)
     else:bad.write_text('[]' if kind=='array' else '{invalid')
     inode=bad.lstat().st_ino
-    config.atomic_json(config.JOURNAL,{'before':{'dock.json':'{"enabled":true}','shell.json':'{"original":true}'},'applied':{'dock.json':'{}','shell.json':'{"trial":true}'}})
+    self.write_preview({'before':{'dock.json':'{"enabled":true}','shell.json':'{"original":true}'},'applied':{'dock.json':'{}','shell.json':'{"trial":true}'}})
     config.rollback(False)
     self.assertEqual(bad.lstat().st_ino,inode);self.assertEqual(external.read_text(),'{}')
     self.assertEqual(json.loads(good.read_text()),{'original':True});self.assertFalse(config.JOURNAL.exists())
@@ -96,6 +99,25 @@ class DesktopCompletion(unittest.TestCase):
   with patch.object(config,'runtime',return_value=self.root/'run'):
    state=config.state();self.assertFalse(state['settingsValid']);self.assertIsInstance(state['recoveryWarning'],str)
   self.assertTrue(__import__('stat').S_ISFIFO(config.PREFS.lstat().st_mode))
+ def test_malformed_preview_metadata_and_sections_are_preserved(self):
+  cases=[{'deadlineMonotonic':'bad'},{'deadline':True},{'deadline':10**400},{'shellPid':True},{'shellStart':[]},{'before':{}},{'absent':['other.json']},{'applied':{'../escape.json':'{}'},'before':{'../escape.json':None}},{'before':{'dock.json':'[]'}}]
+  for changes in cases:
+   with self.subTest(changes=changes):
+    self.write_preview({'before':{'dock.json':None},'applied':{'dock.json':'{}'},**changes})
+    raw=config.JOURNAL.read_bytes()
+    with self.assertRaises(ValueError):config.rollback(False)
+    self.assertEqual(config.JOURNAL.read_bytes(),raw)
+    with patch.object(config,'runtime',return_value=self.root/'run'):self.assertFalse(config.state()['pendingValid'])
+ def test_preview_fifo_is_bounded_and_not_overwritten(self):
+  import os,stat
+  os.mkfifo(config.JOURNAL)
+  with self.assertRaises(ValueError):config.rollback(False)
+  with patch.object(config,'runtime',return_value=self.root/'run'):self.assertFalse(config.state()['pendingValid'])
+  self.assertTrue(stat.S_ISFIFO(config.JOURNAL.lstat().st_mode))
+ def test_oversize_preview_is_rejected_before_configuration_changes(self):
+  with patch.object(config,'MAX_PREVIEW_BYTES',1):
+   with self.assertRaisesRegex(ValueError,'journal exceeds'):config.dispatch('preset',{'id':'classic'})
+  self.assertFalse(config.JOURNAL.exists());self.assertFalse((self.cfg/'dock.json').exists());self.assertFalse((self.cfg/'shell.json').exists())
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)

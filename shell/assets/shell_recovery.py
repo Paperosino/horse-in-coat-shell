@@ -95,7 +95,7 @@ def healthy(files):
     # A checkpoint belongs to the configuration that actually started, not to
     # edits made while waiting for the startup acknowledgement.
     preview=STATE/'configuration-preview.json'
-    if preview.exists() or files != candidate() or preview.exists(): return False
+    if preview.exists() or preview.is_symlink() or files != candidate() or preview.exists() or preview.is_symlink(): return False
     atomic_json(GOOD, dict(version=1, created=time.time(), files=files), private=True)
     return True
 

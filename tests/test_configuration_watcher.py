@@ -8,6 +8,7 @@ class Watcher(unittest.TestCase):
    root=Path(directory);config=root/'config/hics';config.mkdir(parents=True);runtime=root/'run';runtime.mkdir(mode=0o700)
    (config/'dock.json').write_text('[]')
    policy=config/'configuration-history.json';policy.write_text('{"keep":0}')
+   initial_journal=root/'state/hics/configuration-preview.json';initial_journal.parent.mkdir(parents=True);initial_journal.write_text('{"deadlineMonotonic":false}')
    env=dict(os.environ,XDG_CONFIG_HOME=str(root/'config'),XDG_STATE_HOME=str(root/'state'),XDG_DATA_HOME=str(root/'data'),XDG_CACHE_HOME=str(root/'cache'),XDG_RUNTIME_DIR=str(runtime),HICS_CONFIG_NO_SYSTEMD='1')
    env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
    with (root/'daemon.log').open('w+') as log:
@@ -29,7 +30,8 @@ class Watcher(unittest.TestCase):
         except (ConnectionRefusedError,FileNotFoundError):pass
        time.sleep(.05)
       self.fail('Configuration IPC did not become ready')
-     initial=status();self.assertNotIn('error',initial);self.assertFalse(initial['settingsValid'])
+     initial=status();self.assertNotIn('error',initial);self.assertFalse(initial['settingsValid']);self.assertFalse(initial['pendingValid'])
+     self.assertEqual(initial_journal.read_text(),'{"deadlineMonotonic":false}');initial_journal.unlink()
      self.assertIn('configuration-history.json',initial['recoveryWarning'])
      result=subprocess.run([sys.executable,str(ROOT/'shell/assets/configuration_manager.py'),'configure'],env=env,input='{"keep":-1}',capture_output=True,text=True,timeout=5)
      self.assertEqual(result.returncode,1);self.assertEqual(policy.read_text(),'{"keep":0}')
@@ -57,6 +59,10 @@ class Watcher(unittest.TestCase):
      result=subprocess.run([sys.executable,str(ROOT/'shell/assets/configuration_manager.py'),'configure'],env=env,input='{"keep":20}',capture_output=True,text=True,timeout=5)
      self.assertEqual(result.returncode,1);self.assertTrue(__import__('stat').S_ISFIFO(policy.lstat().st_mode))
      policy.unlink();policy.write_text('{}');time.sleep(1.2);self.assertTrue(status()['settingsValid'])
+     journal=root/'state/hics/configuration-preview.json';raw='{"deadlineMonotonic":"broken"}';journal.write_text(raw);inode=journal.stat().st_ino;time.sleep(1.2)
+     result=status();self.assertFalse(result['pendingValid']);self.assertIn('configuration-preview.json',result['recoveryWarning'])
+     self.assertEqual(journal.read_text(),raw);self.assertEqual(journal.stat().st_ino,inode)
+     journal.unlink();time.sleep(1.2);self.assertTrue(status()['pendingValid'])
     finally:
      process.terminate()
      try:process.wait(timeout=5)

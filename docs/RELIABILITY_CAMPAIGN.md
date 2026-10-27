@@ -927,3 +927,34 @@ fixture расширен: неверный keep на старте, отверг�
 Это не обещание автоматического ремонта произвольного повреждённого policy:
 невалидный JSON сохраняется для восстановления пользователем. Preview journal
 и отказ записи на заполненном диске остаются следующими отдельными gates.
+
+### CONFIG-WATCH-003: повреждённый preview journal
+
+Живой daemon с поздним journal={"deadlineMonotonic":"broken"} воспроизводимо
+завершился TypeError при сравнении с monotonic. Добавлен единый read_preview:
+bounded nofollow/nonblock JSON object (32MiB), metadata token/name/deadlines,
+тип shellPid/shellStart, допустимые секции, одинаковые ключи before/applied,
+лимиты строк/общего payload и корректный absent. Огромные integers проверяются
+сравнением до преобразования в float. Invalid journal не удаляется и не
+интерпретируется как отсутствие rollback evidence.
+
+State возвращает pendingValid=false и явную причину, guard остаётся доступным,
+automatic rollback приостанавливается. Warning пишется при переходе в ошибку,
+не на каждом idle tick; после исправления снимается только это warning.
+Startup/shutdown и отключение compositor socket не обрывают cleanup из-за
+невалидного журнала. Broken symlink считается присутствующим журналом, блокирует
+новую пробу/automatic capture и продвижение startup checkpoint. Сериализованный
+новый journal проверяется на тот же предел до записи и применения изменений.
+
+26 test_desktop_completion проходят: 9 вариантов некорректной metadata/sections,
+FIFO, сохранение оригинальных bytes и отказ oversized preview до изменения
+config. Fixture journals обновлены до настоящего production schema. 25 recovery
+tests включают broken preview symlink. Живой watch fixture проверяет повреждение
+на старте и после readiness, сохранение bytes/inode и восстановление статуса
+после удаления тестового повреждения без рестарта. Настоящий recovery QML/
+helper/guarded rollback проходит с валидным production journal. Пока без установки.
+
+Это не попытка угадать утраченное before-содержимое: повреждённый JSON сохраняется,
+для автоматического отката требуются проверяемые данные. Отказ записи/полный диск,
+согласование boot identity и все варианты повреждения history archives остаются
+отдельными незавершёнными gates.
