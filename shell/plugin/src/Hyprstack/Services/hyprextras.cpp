@@ -1,5 +1,6 @@
 #include "hyprextras.hpp"
 
+#include <QCoreApplication>
 #include <qdir.h>
 #include <qjsonarray.h>
 #include <qjsondocument.h>
@@ -10,6 +11,7 @@
 #include <qtimer.h>
 
 #include <memory>
+#include <utility>
 
 #include "hyprdevices.hpp"
 
@@ -51,6 +53,13 @@ HyprExtras::HyprExtras(QObject* parent)
     refreshDevices();
 
     m_socket = new QLocalSocket(this);
+    m_socket->setReadBufferSize(64 * 1024);
+    m_reconnect = new QTimer(this);
+    m_reconnect->setSingleShot(true);
+    QObject::connect(m_reconnect, &QTimer::timeout, this, [this] {
+        if (m_socket->state() == QLocalSocket::UnconnectedState)
+            m_socket->connectToServer(m_eventSocket, QLocalSocket::ReadOnly);
+    });
 
     QObject::connect(m_socket, &QLocalSocket::errorOccurred, this, &HyprExtras::socketError);
     QObject::connect(m_socket, &QLocalSocket::stateChanged, this, &HyprExtras::socketStateChanged);
@@ -82,9 +91,9 @@ void HyprExtras::message(const QString& message) {
         return;
     }
 
-    makeRequest(message, [](bool success, const QByteArray& res) {
+    makeRequest(message, [](bool success, const QByteArray&) {
         if (!success) {
-            qCWarning(lcHypr) << "message: request error:" << QString::fromUtf8(res);
+            qCWarning(lcHypr) << "message: Hyprland request failed or exceeded its response limit";
         }
     });
 }
@@ -94,9 +103,9 @@ void HyprExtras::batchMessage(const QStringList& messages) {
         return;
     }
 
-    makeRequest(u"[[BATCH]]"_s + messages.join(u";"_s), [](bool success, const QByteArray& res) {
+    makeRequest(u"[[BATCH]]"_s + messages.join(u";"_s), [](bool success, const QByteArray&) {
         if (!success) {
-            qCWarning(lcHypr) << "batchMessage: request error:" << QString::fromUtf8(res);
+            qCWarning(lcHypr) << "batchMessage: Hyprland request failed or exceeded its response limit";
         }
     });
 }
@@ -131,11 +140,11 @@ void HyprExtras::applyOptions(const QVariantHash& options) {
         }
     }
 
-    makeRequest(request, [this](bool success, const QByteArray& res) {
+    makeRequest(request, [this](bool success, const QByteArray&) {
         if (success) {
             refreshOptions();
         } else {
-            qCWarning(lcHypr) << "applyOptions: request error" << QString::fromUtf8(res);
+            qCWarning(lcHypr) << "applyOptions: Hyprland request failed or exceeded its response limit";
         }
     });
 }
@@ -190,7 +199,9 @@ void HyprExtras::refreshOptions(bool afterReload) {
             m_configOptionsPending = false;
             if (m_options != next) {
                 m_options = next;
+                const QPointer<HyprExtras> guard(this);
                 emit optionsChanged();
+                if (!guard) return;
             }
             if (reloaded) emit configOptionsReloaded();
         });
@@ -226,22 +237,67 @@ void HyprExtras::socketStateChanged(QLocalSocket::LocalSocketState state) {
     }
 
     m_socketValid = state == QLocalSocket::ConnectedState;
+    if (m_socketValid) {
+        m_reconnect->stop();
+        m_reconnectDelay = 1000;
+        m_eventLine.clear();
+        m_discardingEvent = false;
+        m_badEventWarned = m_longEventWarned = false;
+        const bool refresh = std::exchange(m_everConnected, true);
+        if (refresh) {
+            refreshOptions();
+            refreshDevices();
+        }
+    } else if (state == QLocalSocket::UnconnectedState && !m_reconnect->isActive()) {
+        m_eventLine.clear();
+        m_discardingEvent = false;
+        m_reconnect->start(m_reconnectDelay);
+        m_reconnectDelay = qMin(m_reconnectDelay * 2, 30000);
+    }
 }
 
 void HyprExtras::readEvent() {
-    while (m_socket->canReadLine()) {
-        auto rawEvent = m_socket->readLine();
-        if (rawEvent.isEmpty()) {
-            break;
+    // Hyprland 0.56.2 caps event data to 1024 bytes. Allow header/custom-event
+    // room, and discard an oversized line through its newline without logging
+    // window titles or losing the following valid event.
+    bool optionsNeeded = false, devicesNeeded = false;
+    while (m_socket->bytesAvailable() > 0) {
+        const auto chunk = m_socket->read(qMin<qint64>(m_socket->bytesAvailable(), 16384));
+        if (chunk.isEmpty()) break;
+        qsizetype offset = 0;
+        while (offset < chunk.size()) {
+            const auto newline = chunk.indexOf('\n', offset);
+            const auto end = newline < 0 ? chunk.size() : newline;
+            if (!m_discardingEvent) {
+                if (end - offset > 4096 - m_eventLine.size()) {
+                    m_eventLine.clear();
+                    m_discardingEvent = true;
+                    if (!std::exchange(m_longEventWarned, true))
+                        qCWarning(lcHypr) << "readEvent: oversized event discarded";
+                } else m_eventLine.append(chunk.constData() + offset, end - offset);
+            }
+            if (newline < 0) break;
+            QByteArray event;
+            if (!m_discardingEvent) {
+                const auto separator = m_eventLine.indexOf(">>");
+                if (separator > 0 && separator <= 256)
+                    event = m_eventLine.left(separator);
+                else if (!std::exchange(m_badEventWarned, true))
+                    qCWarning(lcHypr) << "readEvent: malformed event discarded";
+            }
+            m_eventLine.clear();
+            m_discardingEvent = false;
+            offset = newline + 1;
+            optionsNeeded |= event == "configreloaded";
+            devicesNeeded |= event == "activelayout";
         }
-        rawEvent.truncate(rawEvent.length() - 1); // Remove trailing \n
-        const auto sep = rawEvent.indexOf(">>");
-        if (sep < 0) {
-            qCWarning(lcHypr) << "readEvent: malformed event (no >> separator):" << rawEvent;
-            continue;
-        }
-        handleEvent(QString::fromUtf8(QByteArrayView(rawEvent.data(), sep)));
     }
+    // Both handlers request complete snapshots; a burst needs one refresh of
+    // each, not one connect/abort cycle per event in the same read.
+    const QPointer<HyprExtras> guard(this);
+    if (optionsNeeded) handleEvent(u"configreloaded"_s);
+    if (!guard) return;
+    if (devicesNeeded) handleEvent(u"activelayout"_s);
 }
 
 void HyprExtras::handleEvent(const QString& event) {
@@ -268,6 +324,8 @@ HyprExtras::SocketPtr HyprExtras::makeRequest(
     }
 
     auto* const socket = new QLocalSocket(this);
+    socket->setReadBufferSize(64 * 1024);
+    const SocketPtr guardedSocket(socket);
     auto* const timer = new QTimer(socket);
     timer->setSingleShot(true);
     struct Response {
@@ -275,12 +333,21 @@ HyprExtras::SocketPtr HyprExtras::makeRequest(
         bool finished = false;
     };
     const auto response = std::make_shared<Response>();
-    const auto finish = [socket, timer, response, callback](bool success) {
+    const auto finish = [this, socket, timer, response, callback](bool success) {
         if (response->finished)
             return;
         response->finished = true;
         timer->stop();
-        response->bytes += socket->readAll();
+        const auto available = socket->bytesAvailable();
+        if (available > 16 * 1024 * 1024 - response->bytes.size()) success = false;
+        if (success && available > 0) response->bytes += socket->read(available);
+        if (!success) response->bytes.clear();
+        socket->disconnect(this);
+        // A callback may delete HyprExtras while connectToServer/readyRead
+        // is still executing inside this socket. Defer its destruction with
+        // an application shutdown owner, not the disappearing request owner.
+        socket->setParent(QCoreApplication::instance());
+        socket->abort();
         socket->deleteLater();
         callback(success, std::move(response->bytes));
     };
@@ -289,9 +356,13 @@ HyprExtras::SocketPtr HyprExtras::makeRequest(
         socket->flush();
     });
     QObject::connect(socket, &QLocalSocket::readyRead, this, [socket, response, finish] {
-        response->bytes += socket->readAll();
-        if (response->bytes.size() > 16 * 1024 * 1024)
+        if (response->finished) return;
+        const auto available = socket->bytesAvailable();
+        if (available > 16 * 1024 * 1024 - response->bytes.size()) {
             finish(false);
+            return;
+        }
+        if (available > 0) response->bytes += socket->read(available);
     });
     QObject::connect(socket, &QLocalSocket::disconnected, this, [finish] { finish(true); });
     QObject::connect(socket, &QLocalSocket::errorOccurred, this, [finish](QLocalSocket::LocalSocketError error) {
@@ -302,7 +373,7 @@ HyprExtras::SocketPtr HyprExtras::makeRequest(
     QObject::connect(timer, &QTimer::timeout, this, [finish] { finish(false); });
     timer->start(5000);
     socket->connectToServer(m_requestSocket);
-    return SocketPtr(socket);
+    return guardedSocket;
 }
 
 } // namespace hyprstack::services::hypr

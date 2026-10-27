@@ -351,3 +351,11 @@
   с copied current plugins/shared dependencies и проверять maps; wrapper и его
   path/migration behavior проверять отдельно. Private bus без servicedir не
   должен активировать настоящие пользовательские службы даже на отдельной шине.
+
+- Завершение QLocalSocket запроса может вызвать callback ещё внутри
+  connectToServer/readyRead. Если callback удаляет владельца, socket не должен
+  уничтожаться на внутреннем стеке Qt: передать shutdown owner и deleteLater,
+  guard создать до connectToServer. Проверять реальным ASan/LSan стендом.
+- В QJSEngine fixture стековый QObject явно имеет CppOwnership; иначе падение
+  тестовой обвязки нельзя выдавать за дефект продукта. Разделять исправления
+  самого стенда и ошибки, подтверждённые повтором на прежнем production source.

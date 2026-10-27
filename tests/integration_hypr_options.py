@@ -7,6 +7,7 @@ import socket
 import subprocess
 import tempfile
 import threading
+from integration_support import snapshot_qml_runtime, run_snapshot_qml
 
 ROOT = Path(__file__).resolve().parents[1]
 for legacy in (False, True):
@@ -63,10 +64,16 @@ ShellRoot {
  Timer {interval:4000;running:true;onTriggered:Qt.exit(1)}
 }''')
         env=dict(os.environ,QT_QPA_PLATFORM='offscreen',XDG_RUNTIME_DIR=str(runtime),
-            HYPRLAND_INSTANCE_SIGNATURE='fixture',QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'))
+            HYPRLAND_INSTANCE_SIGNATURE='fixture',HOME=str(base/'home'),
+            XDG_CONFIG_HOME=str(base/'config'),XDG_DATA_HOME=str(base/'data'),
+            XDG_STATE_HOME=str(base/'state'),XDG_CACHE_HOME=str(base/'cache'),
+            DBUS_SESSION_BUS_ADDRESS='unix:path='+str(base/'absent-session'),
+            DBUS_SYSTEM_BUS_ADDRESS='unix:path='+str(base/'absent-system'),
+            PIPEWIRE_REMOTE='hics-options-absent',PULSE_SERVER='unix:'+str(base/'absent-audio'))
+        env.update(snapshot_qml_runtime(ROOT,base))
         env.pop('WAYLAND_DISPLAY',None)
         try:
-            result=subprocess.run(['/usr/share/hics/qs/bin/hics-qs','-p',str(qml)],env=env,capture_output=True,text=True,timeout=6)
+            result=run_snapshot_qml(['/usr/share/hics/qs/bin/hics-qs','-p',str(qml)],env,ROOT/'build',6)
             output=result.stdout+result.stderr
             assert result.returncode==0 and 'OPTIONS_OK' in output,output
             batch=next(r for r in requests if r.startswith('[[BATCH]]eval'))

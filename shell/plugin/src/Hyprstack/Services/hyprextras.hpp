@@ -5,7 +5,9 @@
 #include <qqmlintegration.h>
 #include <qpointer.h>
 #include <QJSValue>
+#include <QTimer>
 #include <qvariant.h>
+#include <functional>
 
 namespace hyprstack::services::hypr {
 
@@ -47,6 +49,12 @@ private:
     QLocalSocket* m_socket;
     bool m_socketValid;
     bool m_usingLua = false;
+    QByteArray m_eventLine;
+    bool m_discardingEvent = false;
+    bool m_badEventWarned = false, m_longEventWarned = false;
+    bool m_everConnected = false;
+    QTimer* m_reconnect = nullptr;
+    int m_reconnectDelay = 1000;
 
     QVariantHash m_options;
     HyprDevices* const m_devices;
