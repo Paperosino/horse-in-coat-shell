@@ -2556,3 +2556,20 @@ installed module или запуска пользовательских portals/
 Сборка и пакет108 успешны, используется прежний проверенный частный Qt/QS,
 не свежая пересборка зависимостей. SHA256 пакета
 c44ba759bf8b887dbf91e3b250b4242d332c3c0c556829397f693aed372a0fcd.
+
+### Установленный DESKTOP108
+
+`cachyos/locked-upgrade108.json`: runner478/UI520/Kitty2446,207bindings и
+locked=true сохранены при upgrade, configerrors пуст, autoreload восстановлен.
+Затем обычная PAM-разблокировка и один намеренный reboot через transient timer.
+Первый SSH probe попал в недоступность сервиса при reboot; повтор наблюдал ту
+же запрошенную загрузку, дополнительного restart/reboot не выполнялось.
+
+`cachyos/desktop-boot108.json`: новый boot99812e80-3f7d-4d7f-bd44-80f7ab2928fc,
+compositor380/runner453/UI495, health=true, safe=false, NRestarts=0,
+207bindings, configerrors и failed units отсутствуют. SHA/inode bars/config/
+services совпадают с установленным пакетом; services
+6c2671324e835ecc4d8e2aa195768646993b6b0cacf18f1d1c0da57bfacad800.
+`notification-wrapper108.json` отдельно сверяет исходный и установленный QML.
+Хост78 и fresh-ВМ99 не обновлялись. Полный fresh install108 и аппаратная приёмка
+этим не подтверждены; кампания остаётся открытой.

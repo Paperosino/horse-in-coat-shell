@@ -6,9 +6,9 @@
 
 ## Что установлено
 
-- Основная тестовая CachyOS ВМ: `hic-shell 1.1.1-107`; отдельная fresh-ВМ пока99.
+- Основная тестовая CachyOS ВМ: `hic-shell 1.1.1-108`; отдельная fresh-ВМ пока99.
 - Рабочий хост: `hic-shell 1.1.1-78`; пакет на хосте в этой серии не обновлялся.
-- Пакет107 собран с пересобранными модулями проекта и ранее проверенным частным Qt/Quickshell runtime.
+- Пакет108 собран с пересобранными модулями проекта и ранее проверенным частным Qt/Quickshell runtime.
   Полная свежая сборка всех зависимостей и повторная чистая установка именно
   этого кандидата не подтверждены данной пакетной проверкой.
 
@@ -432,3 +432,16 @@ lock сохранила процессы; после PAM unlock пройдены
 health=true, NRestarts=0, 207bindings и отсутствию failed units/configerrors.
 Хост остаётся78. Порталы Qt, retained RAM, fresh install итогового кандидата,
 полный визуальный/аппаратный аудит и остальные перечисленные gates открыты.
+
+Кандидат108: устранены три подтверждённых sanitizer сценария падения
+DesktopIntegration при удалении из changed/operationSucceeded/microphoneChanged.
+Уведомления состояния объединены через event loop, активные helper-процессы
+убираются асинхронно; новых постоянных таймеров нет. 28 native тестов с
+ASan/UBSan/LSan и полный current-source QML fixture прошли. Последний выявил
+и помог исправить выход animated notification viewport за доступную область;
+проверка теперь покадровая. Multimedia HW probing отдельно выявил driver/DBus
+allocations при завершении: этот аппаратный leak gate открыт, для lifecycle
+fixture аппаратные codec backends отключены, production настройки не менялись.
+Установка108 под lock сохранила UI/runner/app/207bindings; новый boot проверен
+по loaded SHA/inode, ready=true, NRestarts=0 и отсутствию failed units/configerrors.
+Известные Qt portal registration/text-input warnings остаются открытыми.
