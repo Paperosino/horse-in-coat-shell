@@ -6,9 +6,9 @@
 
 ## Что установлено
 
-- Тестовая CachyOS ВМ: `hic-shell 1.1.1-98`.
+- Основная тестовая CachyOS ВМ: `hic-shell 1.1.1-102`; отдельная fresh-ВМ пока99.
 - Рабочий хост: `hic-shell 1.1.1-78`; пакет на хосте в этой серии не обновлялся.
-- Пакет 98 собран с ранее проверенным частным Qt/Quickshell runtime.
+- Пакет102 собран с пересобранными модулями проекта и ранее проверенным частным Qt/Quickshell runtime.
   Полная свежая сборка всех зависимостей и повторная чистая установка именно
   этого кандидата не подтверждены данной пакетной проверкой.
 
@@ -293,3 +293,32 @@ FD/thread counts стабильны. Это lifecycle с dwell0.3s, не при�
 Никакая периодическая очистка/allocator policy не внедрена. Требуется A/B
 allocation-policy и профилирование; portal registration/textinput warnings
 также остаются открыты. Evidence cold-session101, settings-soak-*, malloc-trim-*.
+
+
+Обновление102: объекты шрифтов и анимаций Tokens создаются только при первом
+использовании. Geometry-only элементы их больше не выделяют. Сохраняются
+screen-specific настройки, реакция на scale и QObject lifetime; реальный QML
+тест падает до исправления и проходит после. Пройдены сборка зависимых модулей,
+font builder/window tokens, settings design/workarea и font raster matrix.
+Повторно прошли31recovery unit и независимая QML/helper/guard integration.
+Новый boot102 подтвердил загруженный inode bars/config, normal mode, ready,
+207bindings и отсутствие рестартов/failed units/configerrors.
+
+Эксперименты glibc выполнены только в ВМ и затем удалены; стандартная политика
+восстановлена. arena2 снижает RSS в отдельном software-rendering прогоне, но
+слегка увеличивает измеренное CPU time; это недостаточное основание вводить
+параметр всем пользователям. Ни allocator override, ни periodic trim не добавлены
+в продукт. Детальные результаты и границы сравнения — в журнале кампании.
+
+Текущий повтор configuration integration также прошёл: автоматический checkpoint,
+preview и SIGKILL guard с восстановлением durable journal, подтверждение,
+возврат по таймеру, slow/trickling IPC, quarantine malformed JSON, завершение
+shell-child и реальные per-device/window Lua rules. Прошли3watcher unit tests.
+Это приватные профили/nested compositor, рабочие настройки хоста не менялись.
+
+Полный120-cycle lifecycle102 прошёл без падений/JS binding errors; allocator
+по умолчанию. CPU процесса81.88s против86.17s в предыдущем default101,
+open-map median326ms против386ms. Это один software-VM прогон, не общий
+benchmark и не controls-ready latency. Конечный RSS1430552 против1433172KiB:
+заметного выигрыша по удерживаемой памяти нет; эта проблема остаётся открытой.
+Evidence settings-soak-lazy-tokens102.json/lazy-tokens-comparison102.json.

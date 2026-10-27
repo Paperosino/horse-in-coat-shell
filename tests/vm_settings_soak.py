@@ -22,6 +22,8 @@ uis=[int(p) for p in children if Path('/proc/'+p+'/comm').read_text().strip()=='
 pid=uis[0]
 def process_stat(pid):return Path(f'/proc/{pid}/stat').read_text().rsplit(')',1)[1].split()
 identity=process_stat(pid)[19]
+allocatorKeys={'MALLOC_MMAP_THRESHOLD_','MALLOC_TRIM_THRESHOLD_','MALLOC_ARENA_MAX','GLIBC_TUNABLES'}
+allocatorEnvironment={entry.split('=',1)[0]:entry.split('=',1)[1] for entry in Path(f'/proc/{pid}/environ').read_bytes().decode().split('\0') if '=' in entry and entry.split('=',1)[0] in allocatorKeys}
 records=subprocess.check_output(['journalctl','-b','-n','1','-o','json','--no-pager'],text=True,timeout=10)
 cursor=json.loads(records.strip().splitlines()[-1])['__CURSOR']
 
@@ -47,14 +49,16 @@ started=time.monotonic();samples=[sample(0)];pages=['network','audio','storage',
 for index in range(int(sys.argv[1])):
  page=pages[index%len(pages)]
  if index%6==0:assert unlocked(),'Guest locked during the interactive soak; do not count hidden windows as rendered UI'
+ opened_at=time.monotonic()
  subprocess.run(user+['/usr/share/hics/qs/bin/hics-qs','ipc','-p','/usr/share/hics/shell','call','nexus','page',page],capture_output=True,text=True,check=True,timeout=10)
- windows=wait(own);assert len(windows)==1,windows
+ windows=wait(own);open_seconds=time.monotonic()-opened_at;assert len(windows)==1,windows
  window=windows[0];assert window['class']=='org.hics.Shell'
  time.sleep(.3)
+ closed_at=time.monotonic()
  ctl('eval','hl.dispatch(hl.dsp.window.close({window=hl.get_window('+json.dumps('address:'+window['address'])+')}))')
- wait(lambda:not own())
+ wait(lambda:not own());close_seconds=time.monotonic()-closed_at
  if (index+1)%len(pages)==0:time.sleep(.7)
- samples.append(sample(index+1))
+ value=sample(index+1);value.update(page=page,openSeconds=open_seconds,closeSeconds=close_seconds);samples.append(value)
  if (index+1)%6==0:print('Completed '+str(index+1)+' UI cycles',file=sys.stderr,flush=True)
 time.sleep(2);samples.append(sample(int(sys.argv[1])))
 assert not ctl('configerrors').strip()
@@ -75,7 +79,7 @@ categories={}
 for line in qslines:
  match=re.match(r'\s*(WARN|ERROR) ([^:]+):',line)
  if match:categories[match[2]]=categories.get(match[2],0)+1
-print(json.dumps({'pid':pid,'runner':runner,'journalEntriesChecked':len(entries),'journalBindingErrors':failures,'quickshellLogLines':len(qslines),'quickshellBindingErrors':qsfailures,'warningCategories':categories,'pageDwellSeconds':0.3,'pages':pages,'cycles':int(sys.argv[1]),'keepActiveInput':'QMP Shift every 15 seconds; no text','logindInhibitor':True,'samples':samples,'package':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'kernel':os.uname().release,'gpuDrivers':sorted({p.resolve().name for p in Path('/sys/class/drm').glob('card[0-9]/device/driver')}),'scope':'QEMU software rendering; read-only page lifecycle, not all functions or proof of no leaks'},indent=2))
+print(json.dumps({'pid':pid,'runner':runner,'allocatorEnvironment':allocatorEnvironment,'clockTicksPerSecond':os.sysconf('SC_CLK_TCK'),'journalEntriesChecked':len(entries),'journalBindingErrors':failures,'quickshellLogLines':len(qslines),'quickshellBindingErrors':qsfailures,'warningCategories':categories,'pageDwellSeconds':0.3,'pages':pages,'cycles':int(sys.argv[1]),'keepActiveInput':'QMP Shift every 15 seconds; no text','logindInhibitor':True,'samples':samples,'package':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'kernel':os.uname().release,'gpuDrivers':sorted({p.resolve().name for p in Path('/sys/class/drm').glob('card[0-9]/device/driver')}),'scope':'QEMU software rendering; read-only page lifecycle, not all functions or proof of no leaks'},indent=2))
 '''
 def main():
  parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--lab',type=Path,required=True);parser.add_argument('--disposable-cachyos-vm',action='store_true',required=True);parser.add_argument('--cycles',type=int,default=60);parser.add_argument('--out',type=Path,required=True);args=parser.parse_args()

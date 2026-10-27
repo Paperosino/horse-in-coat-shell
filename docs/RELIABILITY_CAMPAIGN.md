@@ -2024,3 +2024,75 @@ https://sourceware.org/glibc/manual/latest/html_node/Malloc-Tunable-Parameters.h
 The portal duplicate-app-ID warning and textinput warnings need separate protocol
 investigation. Hardware GPU, all settings actions, full leak profiling and all
 remaining branding/media gates stay open. Host78/fresh guest99 are untouched.
+
+
+### 2026-10-27: allocator trials and lazy attached resources (candidate102)
+
+Four sequential 120-cycle tests in the same 2-vCPU/4GiB VGA/bochs software VM,
+each after a full boot, compared startup-only glibc policies. The allowlisted
+process environment is recorded in each report. RSS/PSS are KiB, CPU is the
+main UI process's own user+system time, not whole-system utilization:
+
+| Policy | End RSS | End PSS | UI CPU seconds | Wall seconds |
+|---|---:|---:|---:|---:|
+| mmap threshold131072 |1366196|1247596|86.26|119.770|
+| arena max2 |927068|803154|86.80|118.991|
+| arena max4 |1105640|983882|86.03|118.888|
+| restored default |1433172|1311177|86.17|118.952|
+
+Evidence: external cachyos/allocator-comparison101.json and linked
+settings-soak-*-101.json reports. All completed without binding/JS errors;
+FD/thread counts remained stable. These are single runs, not a proven universal
+performance improvement. No production allocator override is shipped. The
+experimental root-owned drop-in and ownership marker were removed before the
+restored-default boot051d8ed9-fd2d-4635-a862-1e6f077c0241. The reversible lab
+helper refuses unowned/modified files and never restarts the lock owner.
+Open timings measure mapping, not fully populated controls; the close latency
+metric was corrected to exclude the separate settling pause before the restored
+baseline, so older close percentiles must not be compared with the corrected one.
+
+A separate malloc_info diagnostic in the mmap trial found797888364bytes of free
+blocks across8arenas (external malloc-info-mmap131072-101.json). This supports
+allocator retention as a major contributor, not absence of a live leak.
+
+Source inspection found that every Tokens attached object eagerly allocated
+FontTokens and AnimTokens, even for geometry-only consumers. They are now
+created on first access, remain QObject-owned and reused, and bind the current
+screen configuration. No cache, periodic trim, timer or visual policy was added.
+The real Qt/QML regression test fails on old code with eagerly allocated1/1
+trees and passes on new code; it checks late screen/scale updates and destruction.
+Full dependent build, font builder, window tokens, settings design/workarea and
+font raster-policy matrix passed. The raster fixture now loads production fonts
+and propagates screen to its actual window/content, avoiding reliance on host
+fonts and the unrelated ToolTip missing-screen warning.
+
+The31recovery unit tests and independent real recovery QML/helper/guard
+integration passed again: checkpoint, guarded preview, helper error and explicit
+revert. This reiterates the supported scope: shell appearance/panel checkpoints,
+not arbitrary system or display rollback.
+
+Candidate102 was packaged using the existing private runtime and rebuilt
+project modules, not a clean rebuild of all third-party dependencies. Its config
+library text section matches the built module; installation changes RPATH.
+Installed only in the original disposable guest, then fully rebooted.
+Main probe confirms normal mode, healthtrue,207bindings,0restarts, no failed
+units/configerrors and loaded inode matches for bars and config libraries.
+External evidence: lazy-tokens-boot102.json; host78/fresh guest99 untouched.
+Equivalent120-cycle main-session soak102 completed with default allocator env{}:
+RSS569428→1430552KiB, PSS at end1310341KiB, CPU81.88s (warm cycle24→120:
+65.72s), wall115.451s, FD97→96, threads27→25. No JS/binding errors in journal
+or decoded Quickshell log. Restored-default101: RSS600360→1433172KiB,
+PSS1311177KiB, CPU86.17s (warm68.99s), wall118.952s. Warm open mapping median
+385.63→326.43ms, nearest-rank-as-implemented p95483.68→429.89ms; these are
+mapping times with50ms sampling, not controls-ready timing. The earlier
+allocator-comparison uses another p95 convention; use raw samples consistently.
+Evidence settings-soak-lazy-tokens102.json and lazy-tokens-comparison102.json.
+This single sequential pair suggests lower creation work but no meaningful
+end-RSS improvement. The high retained-memory finding remains open and the
+results do not establish a universal speedup or absence of live leaks.
+
+Текущий повтор configuration integration также прошёл: автоматический checkpoint,
+preview и SIGKILL guard с восстановлением durable journal, подтверждение,
+возврат по таймеру, slow/trickling IPC, quarantine malformed JSON, завершение
+shell-child и реальные per-device/window Lua rules. Прошли3watcher unit tests.
+Это приватные профили/nested compositor, рабочие настройки хоста не менялись.

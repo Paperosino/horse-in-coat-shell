@@ -19,10 +19,7 @@ const AppearanceConfig* resolveAppearance(const ConfigRoot* config, bool complet
 } // namespace
 
 Tokens::Tokens(QObject* parent)
-    : QQuickAttachedPropertyPropagator(parent)
-    , m_font(new FontTokens(this))
-    , m_anim(new AnimTokens(this)) {
-    bindAnim();
+    : QQuickAttachedPropertyPropagator(parent) {
     bindFont();
     initialize();
 }
@@ -73,17 +70,14 @@ void Tokens::attachedParentChange(
         inheritScreen(tokens->screen());
 }
 
-void Tokens::bindAnim() {
-    m_anim->bindDurations(ConfigSingleton::instance()->appearance()->anim()->durations());
-    m_anim->bindCurves(TokensSingleton::instance()->appearance()->curves());
-}
-
 void Tokens::bindFont() {
     auto* appearance = m_config ? m_config->appearance() : ConfigSingleton::instance()->appearance();
-    m_font->bindFont(appearance->font());
+    if (m_font)
+        m_font->bindFont(appearance->font());
     QObject::disconnect(m_scaleConnection);
     const auto updateScale = [this, appearance] {
-        m_font->setUiScale(appearance->effectiveScale());
+        if (m_font)
+            m_font->setUiScale(appearance->effectiveScale());
         emit scaleChanged();
     };
     m_scaleConnection = connect(appearance, &AppearanceConfig::scaleChanged, this, updateScale);
@@ -122,10 +116,23 @@ const ScaledSizeTokens* Tokens::sizes() const {
 }
 
 const FontTokens* Tokens::font() const {
+    if (!m_font) {
+        // Most attached consumers only need geometry. Build font styles after
+        // screen inheritance, and only for an item which actually uses fonts.
+        auto* appearance = m_config ? m_config->appearance() : ConfigSingleton::instance()->appearance();
+        m_font = new FontTokens(const_cast<Tokens*>(this));
+        m_font->bindFont(appearance->font());
+        m_font->setUiScale(appearance->effectiveScale());
+    }
     return m_font;
 }
 
 const AnimTokens* Tokens::anim() const {
+    if (!m_anim) {
+        m_anim = new AnimTokens(const_cast<Tokens*>(this));
+        m_anim->bindDurations(ConfigSingleton::instance()->appearance()->anim()->durations());
+        m_anim->bindCurves(TokensSingleton::instance()->appearance()->curves());
+    }
     return m_anim;
 }
 

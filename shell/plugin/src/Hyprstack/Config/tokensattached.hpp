@@ -60,15 +60,14 @@ protected:
 
 private:
     void propagateScreen();
-    void bindAnim();
     void bindFont();
 
     bool m_complete = false;
     QString m_screen;
     ConfigRoot* m_config = nullptr;
     TokensRoot* m_tokens = nullptr;
-    FontTokens* m_font = nullptr;
-    AnimTokens* m_anim = nullptr;
+    mutable FontTokens* m_font = nullptr;
+    mutable AnimTokens* m_anim = nullptr;
     QMetaObject::Connection m_scaleConnection;
 };
 

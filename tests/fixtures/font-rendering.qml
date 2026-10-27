@@ -6,13 +6,19 @@ import qs.components
 import qs.components.controls
 import qs.modules.nexus
 import qs.modules.nexus.pages
+import qs.modules
 import qs.services
 ShellRoot {
  id: root
+ GSFLoader {}
  property int phase: 0
  property var modes: ["none", "slight", "medium", "full"]
  FloatingWindow {
   visible: true; implicitWidth: 1000; implicitHeight: 850; color: Colours.palette.m3surface
+  Config.screen: screen?.name ?? ""
+  Tokens.screen: screen?.name ?? ""
+  contentItem.Config.screen: screen?.name ?? ""
+  contentItem.Tokens.screen: screen?.name ?? ""
   Nexus { id: settings; visible:false }
   ShellStylePage { id: page; anchors.fill: parent; nState: settings.nState }
   MaterialIcon { id: glyph; text:"mic"; x:10; y:10; fontStyle:Tokens.font.icon.large }
