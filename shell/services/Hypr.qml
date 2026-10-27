@@ -18,6 +18,7 @@ Singleton {
     readonly property var toplevels: Hyprland.toplevels
     readonly property var workspaces: Hyprland.workspaces
     readonly property var monitors: Hyprland.monitors
+    function refreshMonitors(): void { Hyprland.refreshMonitors(); }
     readonly property bool usingLua: Hyprland.usingLua
 
     readonly property HyprlandToplevel activeToplevel: {

@@ -42,9 +42,15 @@ with tempfile.TemporaryDirectory(prefix='hics-display-integration-') as director
   copy=base/'shell';shutil.copytree(ROOT/'shell',copy,ignore=shutil.ignore_patterns('plugin','extras','__pycache__'))
   (copy/'shell.qml').write_text('''import QtQuick
 import Quickshell
+import Quickshell.Io
+import Quickshell.Hyprland as H
 import qs.services
 import qs.modules.displays
-ShellRoot {Confirmation {} Timer {interval:100;running:true;repeat:true;onTriggered:if(DisplayProfiles.pending){console.log("DISPLAY_CONFIRMATION_VISIBLE");stop();}}}''')
+ShellRoot {
+ IpcHandler {target:"displayTest";function scale():real{return Monitors.arranged[0]?.scale??-1;}function seedSnapshot():void{H.Hyprland.refreshMonitors();}}
+ Confirmation {}
+ Timer {interval:100;running:true;repeat:true;onTriggered:if(DisplayProfiles.pending){console.log("DISPLAY_CONFIRMATION_VISIBLE");stop();}}
+}''')
   with (base/'shell.log').open('w') as log:shell=subprocess.Popen(['dbus-run-session','--','quickshell','-p',str(copy)],env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
   wait_for(lambda:'DISPLAY_CONFIRMATION_VISIBLE' in (base/'shell.log').read_text())
   fixtures=ROOT/'tests/fixtures'
@@ -55,6 +61,18 @@ ShellRoot {Confirmation {} Timer {interval:100;running:true;repeat:true;onTrigge
   time.sleep(.4);subprocess.run([str(base/'keyboard'),'1'],env=env,check=True)
   wait_for(lambda:not call('status')['pending']);assert monitors()[0]['x']==initial['x']
   print('PASS: Escape dismisses the real confirmation and reverts display changes',flush=True)
+  def ui_scale():
+   return float(subprocess.check_output(['quickshell','ipc','-p',str(copy),'call','displayTest','scale'],env=env,text=True,timeout=5).strip())
+  call('preview',{'patches':{primary:{'scale':.5}}})
+  wait_for(lambda:monitors()[0]['scale']==.5)
+  # Seed the same stale client snapshot seen after a real mode change. The
+  # completion edge must refresh it even without a configreloaded event.
+  subprocess.run(['quickshell','ipc','-p',str(copy),'call','displayTest','seedSnapshot'],env=env,check=True,capture_output=True,timeout=5)
+  wait_for(lambda:ui_scale()==.5)
+  call('revert',{'token':call('status')['pending']['token']})
+  wait_for(lambda:monitors()[0]['scale']==initial['scale'])
+  wait_for(lambda:ui_scale()==initial['scale'])
+  print('PASS: monitor settings model agrees with compositor after preview rollback',flush=True)
   preview=call('preview',{'patches':{primary:{'x':initial['x']+64}}});time.sleep(.4)
   if os.environ.get('HICS_DISPLAY_PREVIEW'):subprocess.run(['grim',os.environ['HICS_DISPLAY_PREVIEW']],env=env,check=True)
   os.killpg(shell.pid,signal.SIGTERM);shell.wait(timeout=5)

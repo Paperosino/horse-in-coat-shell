@@ -1584,3 +1584,33 @@ index0→1(Russian)→0(EnglishUS), first-tour-keyboard98.json. Не тольк�
 имеет gettext entry без context). В Wizard label заменён на уже переведённый
 Disabled; остальные настройки/контекстные None не меняются.32 desktop tests
 прошли. Эта label-правка пока не в установленном98.
+
+### TOUR-DISPLAY98: настоящий таймер отката, устаревшая UI модель
+
+В чистом госте22281 tour step4 открыт обычной кнопкой Next. Wheel прокрутил
+DisplayPage до scale controls. Через меню выбран125%, затем Apply; параметры
+отслеживались hyprctl monitors, без подтверждения. tour-display-rollback98.json:
+scale1→1.25→1, исходные1280×800 сохранены, rollback через15.40s. Это не проверка
+физических165Hz/HDR/VRR или нескольких настоящих выходов.
+
+scale-after.png выявил реальный дефект: после возврата compositor к scale1
+поле UI осталось125%, хотя staged actions уже исчезли. Monitors использовал
+Quickshell lastIpcObject, который обновлялся не на всякий независимый rollback.
+Добавлен Hypr.refreshMonitors wrapper и refresh на pending→null в Monitors.
+Нет нового timer/polling, запрос только на завершение display preview.
+
+integration_display_profiles расширен real QML IPC чтением Monitors.arranged
+и контролируемым снимком модели в trial scale0.5. После revert проверяет
+одновременно compositor и UI scale. Без новой ветки (только во временной копии
+теста, рабочий source не менялся) сценарий падает по UI timeout при compositor
+scale1. С исправлением прошли все6 интеграционных сценариев: Escape, UI model,
+independent timeout после смерти shell, watchdog restart, confirmed persist,
+Laptop/Dock hotplug.13 display unit tests также прошли. Первый counterfactual
+harness не импортировал integration_support; исправлен sys.path, это не product
+bug. Лог failure сохранён в закрытом display-model-before-fix.log.
+
+scale-trial.png снят сразу после compositor scale change: содержимое ещё
+обрезано, confirmation ещё не появился. Это переходный кадр, не доказательство
+устойчивого layout defect. Нужна отдельная съёмка стабилизированного состояния
+до истечения таймера. Остальные этапы тура ещё открыты. Installed98 остаётся
+со старой UI моделью; source fix нужно включить/проверить в следующем пакете.

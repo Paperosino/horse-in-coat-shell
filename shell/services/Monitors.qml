@@ -271,7 +271,10 @@ Singleton {
 
     Connections {
         target: DisplayProfiles
-        function onPendingChanged(): void { if(DisplayProfiles.pending) root.staged=({}); }
+        function onPendingChanged(): void {
+            if(DisplayProfiles.pending) root.staged=({});
+            else Hypr.refreshMonitors();
+        }
     }
 
     Process {
