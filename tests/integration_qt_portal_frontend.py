@@ -19,7 +19,15 @@ def main():
     p.add_argument('--runtime', type=Path, required=True)
     p.add_argument('--probe-binary', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--hyprland-backend', action='store_true', help='Also start a private Hyprland backend; requires parent Wayland/Hyprland environment')
+    p.add_argument('--gtk-backend', action='store_true', help='Also exercise Settings.ReadAll through an isolated real GTK backend')
     a = p.parse_args()
+    if a.hyprland_backend:
+        a.gtk_backend = True
+        if not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):
+            p.error('Pass the disposable parent compositor signature explicitly')
+    if a.gtk_backend and (not os.environ.get('WAYLAND_DISPLAY') or not os.environ.get('XDG_RUNTIME_DIR')):
+        p.error('GTK backend needs the disposable parent Wayland environment')
     if a.output.exists():
         p.error('Use a fresh evidence path')
     with tempfile.TemporaryDirectory(prefix='hics-real-portal-') as directory:
@@ -36,7 +44,7 @@ def main():
                          '<allow receive_sender="*"/><allow own="*"/></policy></busconfig>')
         bus = subprocess.Popen(['dbus-daemon', '--nofork', '--print-address=1',
                                 '--config-file=' + str(config)], stdout=subprocess.PIPE, text=True)
-        frontend = None
+        frontend = backend = hyprland_backend = None
         try:
             address = bus.stdout.readline().strip()
             assert address
@@ -48,7 +56,20 @@ def main():
                        QT_PLUGIN_PATH=str(a.runtime / 'lib/qt6/plugins'), QT_QPA_PLATFORM='offscreen',
                        QT_LOGGING_RULES='qt.qpa.services.debug=true', QT_FORCE_STDERR_LOGGING='1',
                        HICS_QT_REQUIRED_PREFIX=str(a.runtime))
+            if a.gtk_backend:
+                parent_display = os.environ.get('WAYLAND_DISPLAY', '')
+                if not parent_display.startswith('/'):
+                    parent_display = str(Path(os.environ['XDG_RUNTIME_DIR']) / parent_display)
+                env['WAYLAND_DISPLAY'] = parent_display
+                env['GSETTINGS_BACKEND'] = 'memory'
+                portal_config = root / 'config/xdg-desktop-portal'
+                portal_config.mkdir(parents=True)
+                (portal_config / 'portals.conf').write_text('[preferred]\ndefault=' + ('hyprland;gtk' if a.hyprland_backend else 'gtk') + '\n')
             with (root / 'portal.log').open('w') as log:
+                if a.gtk_backend:
+                    backend = subprocess.Popen(['/usr/lib/xdg-desktop-portal-gtk'], env=env, stdout=log, stderr=log)
+                if a.hyprland_backend:
+                    hyprland_backend = subprocess.Popen(['/usr/lib/xdg-desktop-portal-hyprland'], env=env, stdout=log, stderr=log)
                 frontend = subprocess.Popen(['/usr/lib/xdg-desktop-portal', '--verbose'],
                                             env=env, stdout=log, stderr=log)
                 deadline = time.monotonic() + 15
@@ -67,12 +88,24 @@ def main():
                 assert 'Successfully registered with host portal as' in result.stderr, result.stderr
                 assert 'Failed to register with host portal' not in result.stderr, result.stderr
                 assert result.stderr.count('Successfully registered with host portal as') == 1, result.stderr
+                if a.gtk_backend:
+                    settings = subprocess.run(['gdbus', 'call', '--session', '--dest', 'org.freedesktop.portal.Desktop',
+                        '--object-path', '/org/freedesktop/portal/desktop', '--method',
+                        'org.freedesktop.portal.Settings.ReadAll', '["org.freedesktop.appearance"]'],
+                        env=env, capture_output=True, text=True, timeout=5)
+                    assert settings.returncode == 0 and 'color-scheme' in settings.stdout, settings.stdout + settings.stderr
+                    assert backend.poll() is None, 'GTK backend exited'
+                if a.hyprland_backend:
+                    assert hyprland_backend.poll() is None, 'Hyprland backend exited'
+                    assert 'Providing portal org.freedesktop.portal.ScreenCast' in (root / 'portal.log').read_text()
             report = {'status': 'passed', 'scope': 'Real frontend Registry, private bus, three Qt services; no backend dialogs',
-                      'qt': result.stderr, 'portal': (root / 'portal.log').read_text()}
+                      'gtkBackend': a.gtk_backend, 'hyprlandBackend': a.hyprland_backend, 'qt': result.stderr, 'portal': (root / 'portal.log').read_text()}
             a.output.write_text(json.dumps(report, indent=2) + '\n')
             print(json.dumps(report, indent=2))
         finally:
             stop(frontend)
+            stop(backend)
+            stop(hyprland_backend)
             stop(bus)
 
 

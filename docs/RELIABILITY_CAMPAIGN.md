@@ -2648,3 +2648,71 @@ bash syntax, git diff check прошли. Новый частый polling не �
 после окончания приёмки; clean/fresh latest install, долгий retained-RAM,
 физические GPU/аппаратное декодирование и остальная кампания остаются открыты.
 Все71 прежних коммита отправлены в origin/main до этого этапа.
+
+### FRESH109 и расширенная проверка настоящих portal backend
+
+Создан третий независимый гость `cachyos-fresh109`, SSH22282,2GiB/2vCPU,
+отдельные UEFI vars и overlay поверх прежней неизменённой чистой базы
+SHA2564ca998660952557c856b2d33caa97c3856036acb2a86755d94c16d6b9b69621e.
+До установки отсутствовали hics, Hyprland, Python и noto-fonts-emoji. На новом
+госте SSH keys регенерированы: скопированный known_hosts прошлого fresh-гостя
+не подошёл. Новый ключ записан отдельно для выделенного loopback QEMU port;
+старое несовпадение сохранено, существующие записи других ВМ не заменялись.
+
+Первый штатный install.sh --package109 остановился на404 qt5-base/glycin:
+репозитории чистой базы устарели относительно файлов зеркал. Pacman сообщил,
+что пакеты не обновлены. Журнал `install-stale-repository109.log` сохранён.
+Только в этой ВМ выполнен полный pacman -Syu, затем тот же install.sh запущен
+повторно. Это не скрытый partial update и не обновление хостовой ОС. Preflight
+перед повтором снова подтвердил отсутствие hics/Hyprland/Python.
+
+`postinstall109.json`: штатные runtime dependencies установлены,
+hic-shell1.1.1-109, Hyprland0.56.2-4, Python3.14.8-1;3113files/0missing,
+manifest всех rebuilt Qt files проверен. hics-system/hics-memory enabled+active;
+четыре user units globally enabled, screen-reader disabled. Failed unit первого
+неудачного fixture install записан до отдельного reset-failed; после него
+failed units пусты. Это не объявлено успешной первой попыткой без ошибок.
+
+Обычный TTY/PAM login использовал отдельный синтетический пароль из private0600
+lab, затем hics-start. Первый запуск получил permission error: именно
+диагностический setup `install -d -o user` создал промежуточный ~/.config от
+root. Проверены/исправлены только эти созданные setup каталоги; продукт не
+менялся. Снимок ошибки сохранён. После этого первый настоящий запуск:
+`first-session109.json`, compositor6646/runner6720/UI6818, health=true,
+safe=false,NRestarts0,208bindings (включая первый тур), configerrors/failed units
+пусты; native/config/services SHA и inode совпадают с пакетом.
+`first-tour109.png` просмотрен: полноэкранный русский step1/10, демонстрация,
+доступный пропуск/Next, стиль сохранён. Остальные9 шагов тура109 этим не проверены.
+
+Дополнен `integration_qt_portal_frontend.py`: отдельные настоящие GTK и
+Hyprland backend на private bus, Settings.ReadAll действительно возвращает
+color-scheme, backend processes живы, frontend экспортирует ScreenCast.
+`portal-hyprland109-final.json` — успешный прогон. Это не выбор источника/
+передача кадров ScreenCast; backend capability не выдаётся за полный сценарий.
+
+В журнале основной ВМ после boot109 замечен GLib invalid type2/g_value_unset
+от настоящего xdg-desktop-portal1.22.1 с GLib2.90.1. Qt Register errors и
+text-input warning отсутствуют в просмотренном boot journal. Дополнительный
+GLib warning **не объявлен исправленным**: не повторился на private GTK,
+GTK+реальном system bus, GTK+Hyprland и трёх restart настоящего frontend.
+`portal-critical-restart109.json`: только в ВМ временно включён
+G_DEBUG=fatal-criticals,3/3active, coredumps отсутствуют; override удалён,
+normal service восстановлен, runner457 сохранён.
+
+В fresh109 эта же диагностика действовала с первого графического входа:
+portal6822 оставался active, fatal-criticals действительно был в Environment.
+`portal-cold109.json`: critical не повторился; test drop-in удалён и обычный
+portal перезапущен, runner6720 сохранён. Это дополнительная проверка холодной
+инициализации процессов, а не измерение старта с очищенным дисковым кэшем.
+
+Host install109 запрошен через штатный pkexec/polkit после этих проверок.
+До транзакции сохранены package78, runner1183724 и5живых приложений,
+locked=false/configerrors empty. Результат установки фиксируется отдельно;
+сам факт появления auth dialog не является успешной установкой. Полная
+кампания и аппаратная/длительная проверка остаются открыты.
+
+При финальном повторе backend fixture SSH попал в обычный suspend основной ВМ;
+SCP и SSH не выполнились, нового worker не было. Повтор после QMP wakeup,
+проверки SSH readiness и обычной PAM-разблокировки, под idle/sleep inhibitor,
+прошёл с финальными assertions. Не перезапускались compositor/lock owner и
+не перезаписывались результаты прежних прогонов.
