@@ -288,9 +288,22 @@ def warn_preview():
  if previous.get('warning')!=PREVIEW_WARNING:atomic_json(path,{'warning':PREVIEW_WARNING},private=True)
 
 
+ROLLBACK_FAILURE=''
+
+def report_rollback_failure(error):
+ global ROLLBACK_FAILURE
+ detail=error.strerror if isinstance(error,OSError) else str(error)[:256]
+ message='Automatic rollback failed: '+str(detail)+'. Original journal preserved for retry.'
+ if message!=ROLLBACK_FAILURE:print(message,file=sys.stderr,flush=True)
+ ROLLBACK_FAILURE=message
+
+
 def rollback(runtime_apply=True):
+ global ROLLBACK_FAILURE
  d=read_preview()
- if not d:return
+ if not d:
+  ROLLBACK_FAILURE=''
+  return
  from shell_recovery import read_text as bounded_text, strict_object
  restored={};remove_defaults=set();warnings=[]
  absent=d.get('absent',[])
@@ -305,6 +318,11 @@ def rollback(runtime_apply=True):
    if current is not None and name.endswith('.json'):strict_object(current)
   except (OSError,ValueError):
    warnings.append(name+': Changed section could not be read safely; left untouched')
+   continue
+  default=before if before is not None else '{}' if name.endswith('.json') else '-- Restored defaults by hics\n' if name.endswith('.lua') else ''
+  if name!='widgets.json' and (before is None or name in absent) and current==default:
+   # An earlier attempt may have persisted defaults before a later write failed.
+   restored[name]=default;remove_defaults.add(name)
    continue
   if current==applied:
    if name!='widgets.json' and (before is None or name in absent):remove_defaults.add(name)
@@ -327,6 +345,7 @@ def rollback(runtime_apply=True):
   except (OSError,ValueError):continue
   if current==restored[name]:path.unlink(missing_ok=True)
  JOURNAL.unlink(missing_ok=True)
+ ROLLBACK_FAILURE=''
 
 def presets():
  return [dict(id=k,name=n,description=desc,files={'layouts.json':json.dumps({'mode':mode}),'dock.json':json.dumps({'enabled':dock,'position':'bottom'}),'shell.json':json.dumps({'bar':{'persistent':bar},'appearance':{'reducedMotion':reduced}})}) for k,n,desc,mode,dock,bar,reduced in [
@@ -364,7 +383,7 @@ def state():
   warning=bounded_object(STATE/'configuration-recovery-warning.json').get('warning','')
   if not isinstance(warning,str):raise ValueError('Invalid warning')
  except (OSError,ValueError):warning='Configuration recovery warning could not be read safely.'
- return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':settings,'settingsValid':valid,'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in pending.items() if k in ('token','deadline','name')},'pendingValid':pending_valid,'directory':str(HISTORY),'recoveryWarning':'; '.join(filter(None,[policy_warning,preview_warning,warning]))}
+ return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':settings,'settingsValid':valid,'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in pending.items() if k in ('token','deadline','name')},'pendingValid':pending_valid,'directory':str(HISTORY),'recoveryWarning':'; '.join(filter(None,[policy_warning,preview_warning,ROLLBACK_FAILURE,warning]))}
 
 def dispatch(op,p,shell_pid=None):
  if op=='status':return state()
@@ -478,9 +497,13 @@ def watch():
  with (root/'watch.lock').open('a+') as lock:
   try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
   except BlockingIOError:return
-  preview_broken=False
-  try:rollback()
+  preview_broken=False;rollback_retry_at=0;rollback_failures=0
+  try:read_preview()
   except (OSError,ValueError):warn_preview();preview_broken=True
+  else:
+   try:rollback()
+   except (OSError,ValueError) as error:
+    report_rollback_failure(error);rollback_failures=1;rollback_retry_at=time.monotonic()+2
   endpoint=root/'control.sock';endpoint.unlink(missing_ok=True)
   with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as server:
    server.bind(str(endpoint));os.chmod(endpoint,0o600);server.listen(8)
@@ -535,14 +558,20 @@ def watch():
       pending={}
       if not preview_broken:warn_preview()
       preview_broken=True
-     if pending and (pending['deadlineMonotonic']<=time.monotonic() or pending.get('shellPid') and process_start(pending['shellPid'])!=pending.get('shellStart')):rollback();publish()
+     if pending and time.monotonic()>=rollback_retry_at and (pending['deadlineMonotonic']<=time.monotonic() or pending.get('shellPid') and process_start(pending['shellPid'])!=pending.get('shellStart')):
+      try:rollback()
+      except (OSError,ValueError) as error:
+       report_rollback_failure(error);rollback_failures+=1
+       rollback_retry_at=time.monotonic()+min(30,2**min(rollback_failures,5))
+      else:rollback_failures=0;rollback_retry_at=0
+      publish()
      if changed and time.monotonic()>=changed:
       changed=0;observe();publish()
      for key,_ in select.select(.5 if pending or changed else 1):
       if events and key.fileobj is events:
        if not events.recv(65536):
         try:rollback(False)
-        except (OSError,ValueError):warn_preview()
+        except (OSError,ValueError) as error:report_rollback_failure(error)
         os.close(fd);events.close();return
       elif key.fileobj==fd:
        os.read(fd,262144);arm();changed=time.monotonic()+.7
@@ -564,7 +593,7 @@ def watch():
         try:client.sendall((json.dumps(result,ensure_ascii=False)+'\n').encode())
         except OSError:pass
    try:rollback()
-   except (OSError,ValueError):warn_preview()
+   except (OSError,ValueError) as error:report_rollback_failure(error)
    os.close(fd)
    if events:events.close()
 

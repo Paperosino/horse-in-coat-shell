@@ -67,3 +67,35 @@ class Watcher(unittest.TestCase):
      process.terminate()
      try:process.wait(timeout=5)
      except subprocess.TimeoutExpired:process.kill();process.wait()
+ @unittest.skipIf(os.getuid()==0,'requires ordinary-user directory permissions')
+ def test_readonly_config_during_expired_trial_keeps_ipc_and_retry(self):
+  with tempfile.TemporaryDirectory(prefix='hics-rollback-write-') as directory:
+   root=Path(directory);config=root/'config/hics';config.mkdir(parents=True);runtime=root/'run';runtime.mkdir(mode=0o700)
+   dock=config/'dock.json';dock.write_text('{"trial":true}')
+   env=dict(os.environ,XDG_CONFIG_HOME=str(root/'config'),XDG_STATE_HOME=str(root/'state'),XDG_DATA_HOME=str(root/'data'),XDG_CACHE_HOME=str(root/'cache'),XDG_RUNTIME_DIR=str(runtime),HICS_CONFIG_NO_SYSTEMD='1');env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
+   with (root/'log').open('w') as log:
+    process=subprocess.Popen([sys.executable,str(ROOT/'shell/assets/configuration_manager.py'),'watch'],env=env,stdout=log,stderr=subprocess.STDOUT)
+    try:
+     def call(operation='status',value=None):
+      endpoints=[]
+      for _ in range(80):
+       self.assertIsNone(process.poll(),(root/'log').read_text());endpoints=list(runtime.glob('hics-configuration-*/control.sock'))
+       if endpoints:break
+       time.sleep(.05)
+      self.assertTrue(endpoints)
+      with socket.socket(socket.AF_UNIX) as client:
+       client.settimeout(3);client.connect(str(endpoints[0]));client.sendall((json.dumps({'operation':operation,'value':value or {}})+'\n').encode());raw=b''
+       while b'\n' not in raw:
+        part=client.recv(65536);self.assertTrue(part,'Service closed IPC');raw+=part
+       return json.loads(raw)
+     self.assertNotIn('error',call())
+     journal=root/'state/hics/configuration-preview.json'
+     payload={'token':'retry-fixture','name':'Retry','deadline':time.time()-1,'deadlineMonotonic':0,'shellPid':None,'shellStart':None,'before':{'dock.json':'{"original":true}'},'applied':{'dock.json':'{"trial":true}'}}
+     config.chmod(0o555);journal.write_text(json.dumps(payload));saved=journal.read_bytes();time.sleep(1.2)
+     result=call();self.assertIn('rollback',result['recoveryWarning'].lower());self.assertEqual(journal.read_bytes(),saved);self.assertEqual(dock.read_text(),'{"trial":true}')
+     config.chmod(0o755);result=call('revert',{'token':'retry-fixture'})
+     self.assertNotIn('error',result);self.assertNotIn('Automatic rollback failed',result['recoveryWarning']);self.assertFalse(journal.exists());self.assertEqual(json.loads(dock.read_text()),{'original':True});self.assertIsNone(process.poll())
+    finally:
+     config.chmod(0o755);process.terminate()
+     try:process.wait(timeout=5)
+     except subprocess.TimeoutExpired:process.kill();process.wait()

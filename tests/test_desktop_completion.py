@@ -118,6 +118,18 @@ class DesktopCompletion(unittest.TestCase):
   with patch.object(config,'MAX_PREVIEW_BYTES',1):
    with self.assertRaisesRegex(ValueError,'journal exceeds'):config.dispatch('preset',{'id':'classic'})
   self.assertFalse(config.JOURNAL.exists());self.assertFalse((self.cfg/'dock.json').exists());self.assertFalse((self.cfg/'shell.json').exists())
+ def test_partial_disk_write_failure_keeps_journal_and_retry_restores_absence(self):
+  dock=self.cfg/'dock.json';shell=self.cfg/'shell.json';dock.write_text('{"trial":true}');shell.write_text('{"trial":true}')
+  self.write_preview({'before':{'dock.json':None,'shell.json':'{"original":true}'},'applied':{'dock.json':'{"trial":true}','shell.json':'{"trial":true}'},'absent':['dock.json']})
+  saved=config.JOURNAL.read_bytes();original=config.write_text
+  def fail_second(path,text):
+   if path==shell:raise OSError(28,'No space left on device')
+   original(path,text)
+  with patch.object(config,'write_text',side_effect=fail_second):
+   with self.assertRaises(OSError):config.rollback(False)
+  self.assertEqual(config.JOURNAL.read_bytes(),saved);self.assertEqual(dock.read_text(),'{}')
+  config.rollback(False)
+  self.assertFalse(dock.exists());self.assertEqual(json.loads(shell.read_text()),{'original':True});self.assertFalse(config.JOURNAL.exists())
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)
