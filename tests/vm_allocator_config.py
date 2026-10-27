@@ -24,7 +24,7 @@ if previous is not None:
  assert record is not None,'Unowned drop-in; refuse to overwrite'
  owner=json.loads(record);accepted=owner.get('acceptedDropinSha256',[owner['dropinSha256']])
  assert hashlib.sha256(previous).hexdigest() in accepted,'Drop-in changed; preserve it for inspection'
-settings={'mmap128':'MALLOC_MMAP_THRESHOLD_=131072','arena2':'MALLOC_ARENA_MAX=2','arena4':'MALLOC_ARENA_MAX=4'}
+settings={'mmap128':'MALLOC_MMAP_THRESHOLD_=131072','arena2':'MALLOC_ARENA_MAX=2','arena4':'MALLOC_ARENA_MAX=4','jemalloc-eager':'MALLOC_CONF=dirty_decay_ms:0,muzzy_decay_ms:0','jemalloc-balanced':'MALLOC_CONF=dirty_decay_ms:1000,muzzy_decay_ms:0'}
 def write(path,content,mode):
  path.parent.mkdir(parents=True,exist_ok=True)
  fd,name=tempfile.mkstemp(prefix='.hics-allocator-',dir=path.parent)
@@ -46,7 +46,7 @@ else:
  write(marker,(json.dumps(report,indent=2)+'\n').encode(),0o600);write(path,text,0o644)
 print(json.dumps(report))
 '''
-p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--profile',choices=['mmap128','arena2','arena4','clear'],required=True);p.add_argument('--output',required=True,type=Path);p.add_argument('--disposable-cachyos-vm',required=True,action='store_true');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--profile',choices=['mmap128','arena2','arena4','jemalloc-eager','jemalloc-balanced','clear'],required=True);p.add_argument('--output',required=True,type=Path);p.add_argument('--disposable-cachyos-vm',required=True,action='store_true');a=p.parse_args()
 if a.output.exists():raise SystemExit('Use a fresh evidence path')
 key=['-i',str(a.lab/'guest_ed25519'),'-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(a.lab/'known_hosts-installed')]
 r=subprocess.run(['ssh',*key,'-p','22280','root@127.0.0.1','python3 -'],input='PROFILE='+repr(a.profile)+'\n'+REMOTE,capture_output=True,text=True,timeout=20)

@@ -6,7 +6,7 @@ class PackagePayload(unittest.TestCase):
  def setUp(self):
   tmp=tempfile.TemporaryDirectory(prefix='hics package payload ');self.addCleanup(tmp.cleanup);self.base=Path(tmp.name)
   self.source=self.base/'fixture';self.package=self.base/'pkg';self.start=self.base/'build';(self.start/'src/hics').mkdir(parents=True)
-  self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','qs/lib/libjemalloc.so.2','qs/licenses/jemalloc-BSD-2-Clause','qs/hics-qt-patches.json','qs/hics-quickshell-patches.json','shell/shell.qml','shell/recovery/shell.qml')
+  self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','qs/lib/libjemalloc.so.2','qs/licenses/jemalloc-BSD-2-Clause','qs/lib/qt6/plugins/sqldrivers/libqsqlibase.so','qs/lib/qt6/plugins/sqldrivers/libqsqlmysql.so','qs/lib/qt6/plugins/sqldrivers/libqsqlodbc.so','qs/lib/qt6/plugins/sqldrivers/libqsqlpsql.so','qs/lib/qt6/plugins/sqldrivers/libqsqlite.so','qs/licenses/libfbclient/LICENSE','qs/licenses/postgresql-libs/COPYRIGHT','qs/hics-qt-patches.json','qs/hics-quickshell-patches.json','shell/shell.qml','shell/recovery/shell.qml')
   for name in self.payload:
    p=self.source/'usr/share/hics'/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('fixture');p.chmod(0o755 if name.endswith('hics-qs') else 0o644)
   helper=self.start/'src/hics/distribution';helper.mkdir()

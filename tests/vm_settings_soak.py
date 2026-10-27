@@ -22,7 +22,7 @@ uis=[int(p) for p in children if Path('/proc/'+p+'/comm').read_text().strip()=='
 pid=uis[0]
 def process_stat(pid):return Path(f'/proc/{pid}/stat').read_text().rsplit(')',1)[1].split()
 identity=process_stat(pid)[19]
-allocatorKeys={'MALLOC_MMAP_THRESHOLD_','MALLOC_TRIM_THRESHOLD_','MALLOC_ARENA_MAX','GLIBC_TUNABLES'}
+allocatorKeys={'MALLOC_MMAP_THRESHOLD_','MALLOC_TRIM_THRESHOLD_','MALLOC_ARENA_MAX','GLIBC_TUNABLES','MALLOC_CONF'}
 allocatorEnvironment={entry.split('=',1)[0]:entry.split('=',1)[1] for entry in Path(f'/proc/{pid}/environ').read_bytes().decode().split('\0') if '=' in entry and entry.split('=',1)[0] in allocatorKeys}
 records=subprocess.check_output(['journalctl','-b','-n','1','-o','json','--no-pager'],text=True,timeout=10)
 cursor=json.loads(records.strip().splitlines()[-1])['__CURSOR']

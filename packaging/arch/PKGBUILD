@@ -2,7 +2,7 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=112
+pkgrel=113
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 # Preserve bundled runtime/plugin checksums generated during packaging.
@@ -20,7 +20,7 @@ depends=(gnome-keyring 'ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman
     'util-linux>=2.41' kmod btrfs-progs bubblewrap
     orca python-atspi at-spi2-core speech-dispatcher espeak-ng
     xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland)
-makedepends=(base-devel git rsync cmake ninja pkgconf python gettext nlohmann-json jemalloc
+makedepends=(base-devel git rsync cmake ninja pkgconf python gettext nlohmann-json jemalloc libfbclient mariadb-libs postgresql-libs unixodbc
     'qt6-base=6.12.0' qt6-declarative qt6-shadertools qt6-wayland qt6-svg
     qt6-imageformats qt6-multimedia spirv-tools wayland wayland-protocols mesa vulkan-headers
     libpipewire pam polkit glib2 cli11 hyprland lua hyprgraphics)
@@ -53,7 +53,7 @@ package() {
     DESTDIR="$pkgdir" cmake --install build
     # A cached/package-only build must not silently produce a shell without
     # its private runtime. Never depend on the developer's system Qt here.
-    for hics_payload in qs/bin/hics-qs qs/lib/libQt6Core.so.6 qs/lib/libQt6Concurrent.so.6 qs/lib/libjemalloc.so.2 qs/licenses/jemalloc-BSD-2-Clause qs/hics-qt-patches.json qs/hics-quickshell-patches.json shell/shell.qml shell/recovery/shell.qml; do
+    for hics_payload in qs/bin/hics-qs qs/lib/libQt6Core.so.6 qs/lib/libQt6Concurrent.so.6 qs/lib/libjemalloc.so.2 qs/licenses/jemalloc-BSD-2-Clause qs/lib/qt6/plugins/sqldrivers/libqsqlibase.so qs/lib/qt6/plugins/sqldrivers/libqsqlmysql.so qs/lib/qt6/plugins/sqldrivers/libqsqlodbc.so qs/lib/qt6/plugins/sqldrivers/libqsqlpsql.so qs/lib/qt6/plugins/sqldrivers/libqsqlite.so qs/licenses/libfbclient/LICENSE qs/licenses/postgresql-libs/COPYRIGHT qs/hics-qt-patches.json qs/hics-quickshell-patches.json shell/shell.qml shell/recovery/shell.qml; do
         [[ -s "$pkgdir/usr/share/hics/$hics_payload" ]] || { error "Missing packaged HICS runtime: $hics_payload"; return 1; }
     done
     [[ -x "$pkgdir/usr/share/hics/qs/bin/hics-qs" ]] || { error "Packaged HICS runtime is not executable"; return 1; }

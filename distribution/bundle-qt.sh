@@ -39,13 +39,6 @@ for module in Concurrent Sql; do
     copy_lib "$name" "$qt_libs/$name"
 done
 
-# Discard unsupported optional SQL server drivers from an older cached bundle
-# before its first closure check. The workers only instantiate QSQLITE.
-if [[ -d $lib_dir/qt6/plugins/sqldrivers ]]; then
-    find "$lib_dir/qt6/plugins/sqldrivers" -maxdepth 1 \( -type f -o -type l \) \
-        -name '*.so*' ! -name libqsqlite.so -delete
-fi
-
 # 1. Closure of the quickshell binary itself (Qt, wayland, icu, ...).
 fixpoint
 
@@ -63,7 +56,7 @@ done
 plugins_dest=$lib_dir/qt6/plugins
 for dir in platforms wayland-shell-integration wayland-decoration-client \
     wayland-graphics-integration-client imageformats iconengines \
-    tls multimedia; do
+    sqldrivers tls multimedia; do
     src=$qt_plugins/$dir
     if [[ ! -d $src ]]; then
         printf 'warn: Qt plugin directory missing: %s\n' "$src" >&2
@@ -73,17 +66,6 @@ for dir in platforms wayland-shell-integration wayland-decoration-client \
     find "$src" -maxdepth 1 \( -type f -o -type l \) \( -name '*.so' -o -name '*.so.*' \) \
         -exec cp -a -t "$plugins_dest/$dir" {} +
 done
-
-# Both private HICS databases use QSQLITE. Optional SQL server drivers may be
-# installed with Qt without their external client libraries (e.g. Firebird).
-# They have no caller in this runtime; external applications use their own Qt.
-sqlite_plugin=$qt_plugins/sqldrivers/libqsqlite.so
-if [[ ! -f $sqlite_plugin ]]; then
-    printf 'error: the private HICS databases require %s\n' "$sqlite_plugin" >&2
-    exit 1
-fi
-mkdir -p "$plugins_dest/sqldrivers"
-cp -a "$sqlite_plugin" "$plugins_dest/sqldrivers/"
 
 # Apply source-built Qt fixes before the final dependency closure. Keep QML,
 # graphics integrations and other unmodified plugins from the original bundle.
@@ -128,6 +110,17 @@ if [[ -e $lib_dir/libjemalloc.so.2 ]]; then
     fi
     cp "$jemalloc_license" "$root/licenses/jemalloc-BSD-2-Clause"
 fi
+# Preserve the SQL plugins and their client libraries without installing database
+# servers. Keep package-specific notices separate instead of overwriting LICENSE.
+for pkg in libfbclient postgresql-libs; do
+    src=/usr/share/licenses/$pkg
+    if [[ ! -d $src ]]; then
+        printf 'error: bundled SQL client license directory missing: %s\n' "$src" >&2
+        exit 1
+    fi
+    mkdir -p "$root/licenses/$pkg"
+    cp -a "$src"/. "$root/licenses/$pkg/"
+done
 
 # 6. Use the HICS runtime binary name (qt.conf lookup is app-dir based).
 if [[ -e $root/bin/quickshell || -L $root/bin/quickshell ]]; then

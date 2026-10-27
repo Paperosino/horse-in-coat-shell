@@ -262,7 +262,7 @@ def main():
                 else:
                     process.wait(timeout=timeout)
             text = (a.output / 'process.log').read_text()
-            allocator_keys = ('GLIBC_TUNABLES', 'MALLOC_MMAP_THRESHOLD_', 'MALLOC_TRIM_THRESHOLD_', 'MALLOC_ARENA_MAX')
+            allocator_keys = ('GLIBC_TUNABLES', 'MALLOC_MMAP_THRESHOLD_', 'MALLOC_TRIM_THRESHOLD_', 'MALLOC_ARENA_MAX', 'MALLOC_CONF')
             report = {'resourceSamples':resource_samples, 'clockTicksPerSecond':os.sysconf('SC_CLK_TCK'), 'allocatorEnvironment':{key:env[key] for key in allocator_keys if key in env},
                 'slowUnwinding':a.slow_unwind, 'loaderTracing':a.loader_trace, 'mapsSampling':a.trace_maps, 'elapsedSeconds':time.monotonic()-started_at, 'timeoutSeconds':a.timeout_seconds or 30+a.cycles*5, 'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
                 'quickEffectsImage': str(effects_image) if effects_image else None, 'quickEffectsSha256': a.expect_effects_sha256, 'quickEffectsMapped': effects_mapped,

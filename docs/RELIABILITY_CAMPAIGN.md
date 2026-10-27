@@ -3111,3 +3111,45 @@ FTS5 create/insert/MATCH probe passes against this real bundle. Earlier failed
 Firebird closure probes remain separate evidence.27 source/provenance/payload/
 closure/overlay unit tests pass. Canonical fresh QS112 source build (two jobs)
 and the project build complete; package/installed VM gates follow separately.
+
+
+### Follow-up113: preserve SQL plugins and reject an unbalanced allocator policy
+
+Candidate112 passed the seven installed-runtime VM gates (portal registry,
+real frontend, ASan audio enumeration, Fcitx text input, input without IME,
+video playback and sink recovery) in the fresh2GiB guest. Two120-cycle real
+settings soaks passed without restart, config errors or QML binding exceptions.
+However its full-session startup RSS was higher than the previous baseline;
+the private60-cycle allocation fixture was insufficient to promote it. Host111
+is deliberately retained while this regression is investigated.
+
+The SQLite-only workaround in112 is superseded:113 preserves all five original
+SQL plugins (SQLite, Firebird, MySQL, ODBC and PostgreSQL), bundles their client
+library closure and copies the non-common license notices. Client libraries
+are build dependencies, not running database servers. Their Arch archive
+packages and detached signatures were verified against trusted packager keys;
+no signature check was disabled. All five were installed without upgrading
+unrelated packages. The complete runtime was assembled twice; the second
+assembly changed no file hashes and all five plugins remain present. Package
+payload tests now reject any missing driver or required license notice.
+
+A disposable startup-only MALLOC_CONF experiment with zero dirty/muzzy decay
+completed120 visible settings cycles without QML errors or process replacement.
+It ended at826244KiB RSS (start774380, sampled peak918684), with92.13s process CPU
+and126.641s wall time. Candidate112's default decay comparison ended1112028KiB
+(start960704, peak1277448), with79.70s CPU and116.156s wall. The zero-decay run
+was delayed after boot by an incorrect test-only readiness check: the recovery
+file has no `ready` field. Consequently these starts are not a matched cold
+startup measurement. The memory/CPU tradeoff is not accepted as a release
+improvement; a less aggressive startup policy is being measured separately.
+The original assertion and complete successful soak evidence are retained.
+
+jemalloc5.4 documents initialized `malloc_conf` before main and zero/immediate
+versus positive decay times. Its startup background_thread option explicitly
+warns of possible initialization deadlocks/crashes; that option remains off:
+https://jemalloc.net/jemalloc.3.html
+No periodic heap trimming, late mallopt, preload, suppression or render change
+is introduced. The native CMake-hook test reads actual mallctl options and
+checks that user MALLOC_CONF overrides remain honored without setting an
+environment variable for launched applications. Production adoption still
+requires the matched installed-session and visual/lifetime gates.
