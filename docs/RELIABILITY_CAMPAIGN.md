@@ -3003,3 +3003,31 @@ build identifies FcParsePattern/FcPatternAppend as allocation sites. This
 isolates that finding from multimedia and QML page ownership; cleanup and
 relative-pointer reachability still require investigation. Debug dependency
 libraries remain private test overlays and are not installed in the package.
+
+
+### Fontconfig ownership control and host111 deployment
+
+The committed diagnostic `fontconfig-filter-lifetime.cpp` repeats100 parsings
+of the same two reject patterns. Against the installed private dependency:
+explicit per-iteration ownership/destruction exits0 without LSan; retaining
+the last global configuration reports587bytes/6allocations; finalizing the
+library after all consumers are gone exits0. The native Qt font-paint probe
+also changes from587 to0 with explicit post-application FcFini. Source stores
+pattern element pointers as relative offsets, relevant to conservative LSan
+reachability. This is evidence of global-configuration lifetime/reachability,
+not a growing QML/multimedia allocation. It is not permission to call FcFini
+while Qt/font consumers may still exist. No global-cleanup workaround or LSan
+suppression is added to production; the complete settings report still exits1
+with827bytes, including240Mesa bytes, and RSS retention remains open.
+
+Host deployment111 completed with runner1183724/NRestarts0 preserved and all
+5 pre-existing window identities retained. Configerrors is empty, package
+configuration guard restored autoreload, both system and all four user services
+are active, and private Qt/QS manifests verify. Running shell/compositor
+plugins are deliberately preserved: a normal logout/login loads the new image.
+The first pacman transaction aborted before changes because a CachyOS mirror
+returned404 for rtkit's detached signature. The fallback used the official
+Arch archive's compatible rtkit0.14-1 and its verified fully trusted packager
+signature, in the same transaction as HICS111. Signature verification was not
+disabled and no unrelated system upgrade was performed. Snapper pre/post
+snapshots499/500 were created by the system's existing pacman hooks.
