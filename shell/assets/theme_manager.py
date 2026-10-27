@@ -343,7 +343,7 @@ def save_current(scheme: dict) -> None:
     config_root = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
     from gtk_theme import apply_desktop_palette
     apply_desktop_palette(values, config_root, scheme["mode"])
-    path = config_root / "hypr/scheme/current.lua"
+    path = Path(os.environ.get("HICS_HYPR_CONFIG_DIR", str(config_root / "hypr"))) / "scheme/current.lua"
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as stream:
         temporary = Path(stream.name)

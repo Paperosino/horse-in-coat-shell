@@ -1,6 +1,6 @@
 """Bounded crash-loop protection; idle sessions do not poll or spawn helpers."""
 from __future__ import annotations
-import json, math, os, subprocess, sys, time
+import json, math, os, stat, subprocess, sys, time
 from pathlib import Path
 from feature_common import CONFIG, STATE, atomic_json
 
@@ -10,12 +10,24 @@ CORE = ('shell.json', 'shell-tokens.json', 'dock.json', 'panels.json', 'effects.
 LIMIT = 8 * 1024 * 1024
 
 
-def read(path, default=None):
-    if not path.exists(): return {} if default is None else default
-    if path.is_symlink() or path.stat().st_size > LIMIT: raise ValueError('Recovery record is not a bounded regular file')
-    value = json.loads(path.read_text())
-    if not isinstance(value, dict): raise ValueError('Invalid recovery record')
+def strict_object(text):
+    value=json.loads(text,parse_constant=lambda value: (_ for _ in ()).throw(ValueError('Non-finite recovery value')))
+    if not isinstance(value,dict):raise ValueError('Invalid recovery record')
     return value
+
+
+def read(path, default=None):
+    # Nonblocking open rejects FIFOs without waiting; no-follow also closes the
+    # symlink race between checking a record and opening it.
+    try:descriptor=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
+    except FileNotFoundError:return {} if default is None else default
+    with os.fdopen(descriptor,'rb') as stream:
+        info=os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_size>LIMIT:
+            raise ValueError('Recovery record is not a bounded regular file')
+        text=stream.read(LIMIT+1)
+        if len(text)>LIMIT:raise ValueError('Recovery record is too large')
+    return strict_object(text)
 
 
 def boot():
@@ -76,7 +88,7 @@ def good(path=None):
     files = saved.get('files')
     if saved.get('version') != 1 or not isinstance(files,dict) or set(files) != set(CORE): raise ValueError('Invalid startup checkpoint')
     for name,text in files.items():
-        if not isinstance(text,str) or len(text.encode()) > 1024*1024 or not isinstance(json.loads(text),dict): raise ValueError('Invalid checkpoint section: '+name)
+        if not isinstance(text,str) or len(text.encode()) > 1024*1024 or not isinstance(strict_object(text),dict): raise ValueError('Invalid checkpoint section: '+name)
     return saved
 
 

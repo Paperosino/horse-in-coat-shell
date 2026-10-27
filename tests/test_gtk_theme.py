@@ -10,6 +10,20 @@ from gtk_theme import apply_palette
 
 
 class GtkPaletteTests(unittest.TestCase):
+    def setUp(self):
+        policy=patch("gtk_theme._font_override",(True,"slight"))
+        policy.start();self.addCleanup(policy.stop)
+
+    def test_saved_host_policy_is_used_for_a_separate_sandbox(self):
+        import gtk_theme
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/"hics").mkdir()
+            (root/"hics/shell.json").write_text('{"appearance":{"font":{"antialias":false,"hinting":"full"}}}')
+            with patch.object(gtk_theme,"_font_override",None),patch.dict(os.environ,{"XDG_CONFIG_HOME":str(root)}):
+                gtk_theme.apply_font_rendering(root/"sandbox")
+            result=subprocess.check_output(["fc-match","-f","%{antialias} %{hintstyle}","sans"],env=dict(os.environ,XDG_CONFIG_HOME=str(root/"sandbox")),text=True)
+            self.assertEqual(result,"False 3")
+
     def test_font_rendering_preferences_cover_all_modes(self):
         import gtk_theme
         with tempfile.TemporaryDirectory() as directory:

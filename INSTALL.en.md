@@ -108,6 +108,16 @@ Use `--parallel 1` instead of `--parallel 2` if memory is limited.
 
 ### 3. Configuration
 
+After installing the package, select **HICS** in your display manager. On first
+launch it creates only missing settings in `$XDG_CONFIG_HOME/hics` (normally
+`~/.config/hics`). An unrelated Hyprland configuration is preserved. Recognized
+existing HICS configurations retain local settings, including monitor modes.
+Without a display manager, run `hics-start` from a TTY. Use `hics-start --prepare`
+to prepare settings without starting the compositor.
+
+The following is an **optional manual migration** for deliberately replacing an
+existing configuration. It is unnecessary for a normal package installation.
+
 Log out of the graphical session, open a TTY (**Ctrl+Alt+F3**) and return
 to the source directory. Commands assume Bash; XDG paths must match those
 in your graphical session.
@@ -153,7 +163,7 @@ manager. Add `~/.local/bin` to your login profile's `PATH`.
 
 ### 4. Launch
 
-Log into Hyprland through your display manager or run `start-hyprland` in a TTY.
+Select **HICS** in your display manager or run `hics-start` from a TTY.
 In a terminal, run:
 
 ```bash

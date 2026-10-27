@@ -1,7 +1,8 @@
 local home   = os.getenv("HOME")
 local config = os.getenv("XDG_CONFIG_HOME") or home .. "/.config"
-local hypr = config .. "/hypr"
-package.path = package.path .. ";" .. hypr .. "/?.lua;" .. config .. "/hics/?.lua"
+local hypr = os.getenv("HICS_HYPR_CONFIG_DIR") or config .. "/hypr"
+local shipped = (os.getenv("HICS_DATA_DIR") or os.getenv("HYPRSTACK_DATA_DIR") or "/usr/share/hics") .. "/shell/assets/hyprland/config"
+package.path = package.path .. ";" .. hypr .. "/?.lua;" .. shipped .. "/?.lua;" .. config .. "/hics/?.lua"
 
 -- Create a file if it doesn't exist, optionally with initial content
 local function maybe_create(file, content)
@@ -27,7 +28,7 @@ local function maybe_copy(src, dst)
         return
     end
 
-    local input = io.open(src, "r")
+    local input = io.open(src, "r") or io.open(shipped .. "/scheme/default.lua", "r")
     if not input then return end
 
     out = io.open(dst, "w")

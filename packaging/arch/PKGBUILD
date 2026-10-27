@@ -2,7 +2,7 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=80
+pkgrel=84
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 # Preserve bundled runtime/plugin checksums generated during packaging.
@@ -13,10 +13,10 @@ license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US)
 depends=(gnome-keyring 'ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman libdrm libinput systemd
     hyprland-guiutils wayland libxkbcommon pango cairo libcups cups accountsservice fprintd fwupd colord gamemode flatpak apparmor restic seahorse fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt squeekboard poppler icu python python-pillow kitty firefox fuzzel
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
-    glib2 gvfs libnotify brightnessctl networkmanager libnm libsecret pipewire pipewire-pulse libpulse wireplumber
+    glib2 gvfs libnotify brightnessctl networkmanager libnm libsecret pipewire pipewire-pulse libpulse wireplumber rtkit upower
     polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2
     adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb
-    gtk2 gtk3 gtk4 libadwaita webkitgtk-6.0 blueman bluez-obex pacman-contrib gsettings-desktop-schemas
+    gtk2 gtk3 gtk4 libadwaita webkitgtk-6.0 blueman bluez bluez-obex pacman-contrib gsettings-desktop-schemas
     'util-linux>=2.41' kmod btrfs-progs bubblewrap
     orca python-atspi at-spi2-core speech-dispatcher espeak-ng
     xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland)
@@ -49,6 +49,12 @@ package() {
     # build-package.sh stages the repository tree here (source=()).
     cd "$startdir/src/hics"
     DESTDIR="$pkgdir" cmake --install build
+    # A cached/package-only build must not silently produce a shell without
+    # its private runtime. Never depend on the developer's system Qt here.
+    for hics_payload in qs/bin/hics-qs qs/lib/libQt6Core.so.6 qs/lib/libQt6Concurrent.so.6 shell/shell.qml shell/recovery/shell.qml; do
+        [[ -s "$pkgdir/usr/share/hics/$hics_payload" ]] || { error "Missing packaged HICS runtime: $hics_payload"; return 1; }
+    done
+    [[ -x "$pkgdir/usr/share/hics/qs/bin/hics-qs" ]] || { error "Packaged HICS runtime is not executable"; return 1; }
     python distribution/native_plugins.py "$pkgdir/usr/share/hics/native" build
 
 }

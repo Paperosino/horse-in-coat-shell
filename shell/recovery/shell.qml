@@ -1,3 +1,4 @@
+//@ pragma AppId org.hics.Shell
 //@ pragma DefaultEnv QS_NO_RELOAD_POPUP=1
 import QtQuick
 import QtQuick.Layouts
@@ -9,8 +10,9 @@ import Quickshell.Io
 ShellRoot {
  id: root
  property var data: ({})
- property list<string> helperCommand: ["python3", Qt.resolvedUrl("../assets/shell_recovery.py").toString().replace(/^file:\/\//,"")]
+ property list<string> helperCommand: ["python3", Quickshell.shellDir + "/../assets/shell_recovery.py"]
  property string error: ""
+ property bool receivedReply: false
  property bool confirmation: false
  property real now: Date.now()
  readonly property int remaining: Math.max(0,Math.ceil(((data.pending?.deadline??0)*1000-now)/1000))
@@ -19,13 +21,23 @@ ShellRoot {
  function tr(en, ruText) { return ru ? ruText : en; }
  function invoke(action) {
   if (worker.running) return;
-  error = ""; worker.command = [...root.helperCommand, action]; worker.running = true;
+  error = ""; receivedReply = false; worker.command = [...root.helperCommand, action]; worker.running = true;
  }
  Component.onCompleted: invoke("status")
  Process {
   id: worker
-  stdout: StdioCollector { onStreamFinished: { try { const value=JSON.parse(text); if(value.error)root.error=value.error;else {root.now=Date.now();root.data=value;} } catch(e) {root.error=root.tr("Recovery service returned an invalid response.","Служба восстановления вернула некорректный ответ.");} } }
-  onExited: (code,status) => {if((code||status)&&!root.error)root.error=root.tr("Recovery operation failed.","Операция восстановления не выполнена.");}
+  stdout: StdioCollector { onStreamFinished: {
+   if (!text.trim()) return;
+   try {
+    const value=JSON.parse(text);
+    if (!value || typeof value!=="object" || Array.isArray(value)) throw new Error("Expected recovery object");
+    root.receivedReply=true;
+    if(value.error)root.error=String(value.error);else {root.now=Date.now();root.data=value;}
+   } catch(e) {root.error=root.tr("Recovery service returned an invalid response.","Служба восстановления вернула некорректный ответ.");}
+  } }
+  stderr: StdioCollector { onStreamFinished: {if(text.trim())root.error=text.trim().slice(0,2048);} }
+  onExited: (code,status) => {if(!root.error&&(code||status||!root.receivedReply))root.error=root.tr("Recovery operation failed. Check that the HICS package is installed completely.","Операция восстановления не выполнена. Проверьте полноту установки пакета HICS.");}
+
  }
  FloatingWindow {
   id: window

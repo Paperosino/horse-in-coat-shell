@@ -200,3 +200,9 @@
 
 !/distribution/audit_motion.py
 !/docs/UX_INTEGRATION_AUDIT.md
+
+!/distribution/sessions/
+!/distribution/sessions/hics.desktop.in
+!/distribution/bin/hics-start
+
+!/distribution/sessions/org.hics.Shell.desktop.in

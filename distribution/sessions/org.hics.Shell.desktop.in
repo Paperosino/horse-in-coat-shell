@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=HICS Shell
+Name[ru]=Оболочка HICS
+Comment=Horse-in-coat desktop shell
+Type=Application
+Exec="@CMAKE_INSTALL_FULL_BINDIR@/hics-shell"
+TryExec=@CMAKE_INSTALL_FULL_BINDIR@/hics-shell
+Icon=hics
+NoDisplay=true
+Categories=System;

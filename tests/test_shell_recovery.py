@@ -113,3 +113,27 @@ class RecoveryTests(unittest.TestCase):
   r=self.r;r.STATE.mkdir(parents=True,exist_ok=True)
   (r.STATE/'configuration-preview.json').write_text('{}')
   self.assertFalse(r.healthy(r.candidate()));self.assertFalse(r.GOOD.exists())
+
+ def test_nonregular_recovery_record_never_blocks_startup(self):
+  r=self.r;r.RECORD.parent.mkdir(parents=True)
+  os.mkfifo(r.RECORD)
+  self.assertFalse(r.begin(10))
+  self.assertTrue(r.RECORD.is_file())
+ def test_checkpoint_rejects_nonfinite_configuration(self):
+  r=self.r;r.STATE.mkdir(parents=True,exist_ok=True)
+  files={name:'{}' for name in r.CORE};files['shell.json']='{"scale":NaN}'
+  r.GOOD.write_text(json.dumps({'version':1,'files':files}))
+  with self.assertRaises(ValueError):r.good()
+ def test_record_symlink_does_not_read_external_content(self):
+  r=self.r;r.STATE.mkdir(parents=True,exist_ok=True)
+  external=self.base/'external';external.write_text('{"requested":true}')
+  r.RECORD.symlink_to(external)
+  self.assertFalse(r.begin(10))
+  self.assertEqual(external.read_text(),'{"requested":true}')
+
+ def test_oversized_snapshot_section_is_rejected_before_reading(self):
+  m=self.configuration_manager;m.CONFIG.mkdir(parents=True,exist_ok=True)
+  path=m.CONFIG/'shell.json'
+  with path.open('wb') as stream:stream.truncate(64*1024*1024)
+  with patch.object(Path,'open',side_effect=AssertionError('Oversized file must not be read')):
+   with self.assertRaisesRegex(ValueError,'too large'):m.gather()

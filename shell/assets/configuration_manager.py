@@ -29,7 +29,9 @@ def gather(appearance=False):
   p=target(name)
   if not p.is_file() or p.is_symlink():continue
   if not p.resolve().is_relative_to(STATE.resolve() if name.startswith('state/') else CONFIG.resolve()):continue
-  data=p.read_bytes();total+=len(data)
+  if p.stat().st_size>1048576:raise ValueError('Configuration is too large for a safe snapshot')
+  with p.open('rb') as stream:data=stream.read(1048577)
+  total+=len(data)
   if len(data)>1048576 or total>MAX_BYTES:raise ValueError('Configuration is too large for a safe snapshot')
   if name=='widgets.json':continue
   text=data.decode('utf-8')
@@ -435,10 +437,14 @@ def watch():
        os.read(fd,262144);arm();changed=time.monotonic()+.7
       else:
        with server.accept()[0] as client:
+        request_deadline=time.monotonic()+2
         client.settimeout(2)
         try:
          raw=b''
          while b'\n' not in raw:
+          remaining=request_deadline-time.monotonic()
+          if remaining<=0:raise TimeoutError('Configuration request exceeded its time limit')
+          client.settimeout(remaining)
           part=client.recv(16384)
           if not part or len(raw)+len(part)>65536:raise ValueError('Invalid configuration request')
           raw+=part

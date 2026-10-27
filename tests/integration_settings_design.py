@@ -262,8 +262,9 @@ ShellRoot {
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/panel-controls.qml').read_text())
     if os.environ.get('HICS_TEST_RECOVERY'):
         stub=base/'recovery-stub.py'
-        stub.write_text('import json,sys\nprint(json.dumps({"startupCheckpoint":{"available":True},"pending":{"token":"fixture"} if sys.argv[1]=="restore" else {},"restarting":sys.argv[1]=="resume"}))\n')
+        stub.write_text('import json,sys,time\nprint(json.dumps({"startupCheckpoint":{"available":True},"pending":{"token":"fixture","deadline":time.time()+30} if sys.argv[1]=="restore" else {},"restarting":sys.argv[1]=="resume"}))\n')
         fixture=(ROOT/'shell/recovery/shell.qml').read_text()
+        if os.environ.get('HICS_TEST_RECOVERY_LOCALE')=='ru':fixture=fixture.replace('Qt.locale().name.startsWith("ru")','true')
         fixture=fixture.replace('Component.onCompleted: invoke("status")','Component.onCompleted: {root.helperCommand=["python3",'+json.dumps(str(stub))+'];root.invoke("status");}')
         checks="""
  property int phase:0
@@ -272,7 +273,7 @@ ShellRoot {
   if(worker.running)return;
   if(root.phase===0){if(!root.data.startupCheckpoint?.available)throw new Error("Missing startup checkpoint");root.named(recoveryContent,"restoreStartup").clicked();if(!root.confirmation)throw new Error("Recovery must require review");}
   if(root.phase===1)root.named(recoveryContent,"restoreStartup").clicked();
-  if(root.phase===2){if(!root.data.pending?.token)throw new Error("No guarded restore");recoveryContent.grabToImage(result=>result.saveToFile("/tmp/hics-recovery-mode.png"));root.named(recoveryContent,"resumeStartup").clicked();}
+  if(root.phase===2){if(!root.data.pending?.token||root.remaining<1||root.remaining>30)throw new Error("No timed guarded restore");recoveryContent.grabToImage(result=>result.saveToFile("/tmp/hics-recovery-mode.png"));root.named(recoveryContent,"resumeStartup").clicked();}
   if(root.phase===3){if(!root.data.restarting)throw new Error("Resume missing");console.log("SETTINGS_DESIGN_OK RECOVERY_MODE_OK");Qt.quit();}
   root.phase++;
  }}

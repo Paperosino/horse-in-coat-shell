@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=HICS
+Comment=Horse-in-coat desktop
+Comment[ru]=Рабочий стол HICS
+Icon=hics
+Exec="@CMAKE_INSTALL_FULL_BINDIR@/hics-start"
+TryExec=@CMAKE_INSTALL_FULL_BINDIR@/hics-start
+Type=Application
+DesktopNames=HICS;Hyprland;

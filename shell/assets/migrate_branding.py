@@ -22,7 +22,7 @@ def migrate():
         legacy_env.rename(current_env)
     # Old shell preferences name built-in schemes with the original prefix;
     # those IDs remain accepted by the theme service.
-    config = roots[0] / 'hypr'
+    config = Path(os.environ.get('HICS_HYPR_CONFIG_DIR', str(roots[0] / 'hypr')))
     # Register before user keybindings so their original Lua callbacks remain
     # available to the shortcut editor. Existing user configuration is preserved.
     main = config / 'hyprland.lua'

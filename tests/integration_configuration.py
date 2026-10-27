@@ -48,6 +48,25 @@ with tempfile.TemporaryDirectory(prefix='hics-configuration-test-') as directory
   state=call('configuration_manager.py','preview-profile',{'id':profile['id'],'sections':['shell.json']})
   journal=base/'state/hics/configuration-preview.json';j=json.loads(journal.read_text());j['deadlineMonotonic']=time.monotonic()-.1;journal.write_text(json.dumps(j));wait(lambda:not call('configuration_manager.py','status')['pending'])
   print('PASS: explicit confirmation and timer rollback',flush=True)
+  # A trickling local client must not keep the independent rollback guard
+  # inside recv() indefinitely. Socket timeout must bound the whole request.
+  import threading
+  state=call('configuration_manager.py','preview-profile',{'id':profile['id'],'sections':['shell.json']})
+  endpoint=Path(state['statePath']).parent/'control.sock'
+  slow=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);slow.connect(str(endpoint))
+  stopping=threading.Event()
+  def trickle():
+   while not stopping.wait(.1):
+    try:slow.sendall(b' ')
+    except OSError:return
+  sender=threading.Thread(target=trickle);sender.start()
+  try:
+   time.sleep(.15)
+   j=json.loads(journal.read_text());j['deadlineMonotonic']=time.monotonic()+.1;journal.write_text(json.dumps(j))
+   wait(lambda:not journal.exists(),timeout=2.7)
+   print('PASS: trickling IPC client cannot postpone the independent rollback deadline',flush=True)
+  finally:
+   stopping.set();slow.close();sender.join(timeout=1)
   (cfg/'shell.json').write_text('{broken JSON')
   wait(lambda:(cfg/'shell.json').read_text()!='{broken JSON')
   assert json.loads((cfg/'shell.json').read_text())['appearance']['scale']==1

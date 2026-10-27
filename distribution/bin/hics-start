@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+hics_bin_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+hics_data=${HICS_DATA_DIR:-${HYPRSTACK_DATA_DIR:-$hics_bin_dir/../share/hics}}
+if [[ ! -d $hics_data ]]; then
+    if [[ -d ${XDG_DATA_HOME:-$HOME/.local/share}/hics ]]; then
+        hics_data=${XDG_DATA_HOME:-$HOME/.local/share}/hics
+    else
+        hics_data=/usr/share/hics
+    fi
+fi
+export HICS_DATA_DIR="$hics_data"
+exec python3 "$hics_data/shell/assets/session_bootstrap.py" "$@"

@@ -1,0 +1,33 @@
+"""The real Arch package() refuses an incomplete private runtime."""
+import os, shutil, subprocess, tempfile, unittest
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+class PackagePayload(unittest.TestCase):
+ def setUp(self):
+  tmp=tempfile.TemporaryDirectory(prefix='hics package payload ');self.addCleanup(tmp.cleanup);self.base=Path(tmp.name)
+  self.source=self.base/'fixture';self.package=self.base/'pkg';self.start=self.base/'build';(self.start/'src/hics').mkdir(parents=True)
+  self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','shell/shell.qml','shell/recovery/shell.qml')
+  for name in self.payload:
+   p=self.source/'usr/share/hics'/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('fixture');p.chmod(0o755 if name.endswith('hics-qs') else 0o644)
+ def run_package(self):
+  if self.package.exists():shutil.rmtree(self.package)
+  self.package.mkdir()
+  env=dict(os.environ,startdir=str(self.start),pkgdir=str(self.package),HICS_PAYLOAD_FIXTURE=str(self.source),HICS_VALIDATED=str(self.base/'validated'))
+  script='''source "$1"
+cmake() { cp -a "$HICS_PAYLOAD_FIXTURE/." "$pkgdir/"; }
+python() { touch "$HICS_VALIDATED"; }
+error() { printf '%s\\n' "$*" >&2; }
+package
+'''
+  return subprocess.run(['bash','-e','-c',script,'_',str(ROOT/'packaging/arch/PKGBUILD')],env=env,capture_output=True,text=True,timeout=5)
+ def test_each_missing_runtime_component_stops_packaging_before_native_validation(self):
+  for name in self.payload:
+   with self.subTest(component=name):
+    p=self.source/'usr/share/hics'/name;data=p.read_bytes();mode=p.stat().st_mode;p.unlink()
+    result=self.run_package();self.assertNotEqual(result.returncode,0);self.assertIn(name,result.stderr);self.assertFalse((self.base/'validated').exists())
+    p.write_bytes(data);p.chmod(mode)
+ def test_complete_payload_reaches_native_validation_but_nonexecutable_runtime_does_not(self):
+  result=self.run_package();self.assertEqual(result.returncode,0,result.stderr);(self.base/'validated').unlink()
+  (self.source/'usr/share/hics/qs/bin/hics-qs').chmod(0o644)
+  result=self.run_package();self.assertNotEqual(result.returncode,0);self.assertIn('not executable',result.stderr);self.assertFalse((self.base/'validated').exists())
+if __name__=='__main__':unittest.main()
