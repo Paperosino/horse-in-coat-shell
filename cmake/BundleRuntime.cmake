@@ -11,19 +11,21 @@ if(HICS_PATCH_QT_RUNTIME)
     if(NOT Qt6_VERSION VERSION_EQUAL "6.12.0")
         message(FATAL_ERROR "The patched binary runtime requires audited Qt 6.12.0. HICS_PATCH_QT_RUNTIME=OFF is for development with other Qt versions, not a patched release.")
     endif()
-    find_package(Qt6 6.12.0 EXACT REQUIRED COMPONENTS WaylandClient Multimedia)
+    find_package(Qt6 6.12.0 EXACT REQUIRED COMPONENTS WaylandClient Multimedia QuickEffects)
     set(qt_patch_inputs
         "${CMAKE_CURRENT_SOURCE_DIR}/distribution/build_qt_runtime_patches.py"
         "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtbase-6.12.0-portal-registration.patch"
         "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtbase-6.12.0-text-input-focus.patch"
-        "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtmultimedia-6.12.0-lazy-hw-diagnostics.patch")
+        "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtmultimedia-6.12.0-lazy-hw-diagnostics.patch"
+        "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtdeclarative-6.12.0-shadow-ownership.patch"
+        "${CMAKE_CURRENT_SOURCE_DIR}/distribution/qtquickeffects/CMakeLists.txt")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${qt_patch_inputs})
     set(qt_patch_signature "${Qt6_VERSION}")
     foreach(input IN LISTS qt_patch_inputs)
         file(SHA256 "${input}" input_sha)
         string(APPEND qt_patch_signature "${input_sha}")
     endforeach()
-    foreach(module Core Gui WaylandClient Multimedia)
+    foreach(module Core Gui WaylandClient Multimedia QuickEffects Qml Quick)
         get_target_property(qt_module_library Qt6::${module} IMPORTED_LOCATION_RELEASE)
         if(NOT EXISTS "${qt_module_library}")
             get_target_property(qt_module_library Qt6::${module} IMPORTED_LOCATION)
@@ -76,7 +78,8 @@ endif()
 set(qs_patch_signature "")
 foreach(input distribution/apply_quickshell_patches.py
         distribution/patches/quickshell-v0.3.2-logging-lifetime.patch
-        distribution/patches/quickshell-v0.3.2-shutdown-lifetime.patch)
+        distribution/patches/quickshell-v0.3.2-shutdown-lifetime.patch
+        distribution/patches/quickshell-v0.3.2-process-lifetime.patch)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${input}")
     file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/${input}" input_sha)
     string(APPEND qs_patch_signature "${input_sha}")

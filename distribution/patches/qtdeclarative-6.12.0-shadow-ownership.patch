@@ -1,0 +1,23 @@
+--- a/src/effects/qquickrectangularshadow.cpp
++++ b/src/effects/qquickrectangularshadow.cpp
+@@ -161,6 +161,10 @@
+ QQuickRectangularShadow::QQuickRectangularShadow(QQuickItem *parent)
+     : QQuickItem(*new QQuickRectangularShadowPrivate, parent)
+ {
++    Q_D(QQuickRectangularShadow);
++    // QObjectPrivate is linked to its public object only by QObject's ctor.
++    // The material is created before that, so adopt it now for destruction.
++    d->m_defaultMaterial->setParent(this);
+     setFlag(ItemHasContents);
+ }
+ 
+@@ -664,8 +668,7 @@
+ 
+ QQuickRectangularShadowPrivate::QQuickRectangularShadowPrivate()
+ {
+-    Q_Q(QQuickRectangularShadow);
+-    m_defaultMaterial = new QQuickShaderEffect(q);
++    m_defaultMaterial = new QQuickShaderEffect;
+     // Initial values to not get warnings of missing properties.
+     // Proper values are updated later.
+     m_defaultMaterial->setProperty("iResolution", QVector3D());

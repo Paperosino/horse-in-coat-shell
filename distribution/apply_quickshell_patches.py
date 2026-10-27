@@ -12,7 +12,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE_SHA256 = '946a27e2a276917a03c1079e5c60971af84ece73088c3661dee455d92eb420f7'
-PATCHES = ('quickshell-v0.3.2-logging-lifetime.patch', 'quickshell-v0.3.2-shutdown-lifetime.patch')
+PATCHES = ('quickshell-v0.3.2-logging-lifetime.patch', 'quickshell-v0.3.2-shutdown-lifetime.patch', 'quickshell-v0.3.2-process-lifetime.patch')
 MANIFEST = 'hics-quickshell-patches.json'
 
 

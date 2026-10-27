@@ -16,7 +16,7 @@ class PackagePayload(unittest.TestCase):
   root=self.source/'usr/share/hics/qs'
   (root/'hics-qt-patches.json').write_text(json.dumps({'qtVersion':'6.12.0','files':{
    'lib/libQt6Core.so.6':hashlib.sha256((root/'lib/libQt6Core.so.6').read_bytes()).hexdigest()},'symlinks':{}}))
-  patches=('quickshell-v0.3.2-logging-lifetime.patch','quickshell-v0.3.2-shutdown-lifetime.patch')
+  patches=tuple(p.name for p in sorted((helper/'patches').glob('quickshell-v0.3.2-*.patch')))
   (root/'hics-quickshell-patches.json').write_text(json.dumps({'version':'0.3.2','archiveSha256':'946a27e2a276917a03c1079e5c60971af84ece73088c3661dee455d92eb420f7','patches':{p:hashlib.sha256((helper/'patches'/p).read_bytes()).hexdigest() for p in patches},'executableSha256':hashlib.sha256((root/'bin/hics-qs').read_bytes()).hexdigest()}))
  def run_package(self):
   if self.package.exists():shutil.rmtree(self.package)

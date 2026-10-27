@@ -20,11 +20,13 @@ ROOT=Path(__file__).resolve().parents[1]
 VERSION='6.12.0'
 SOURCES={
  'qtbase':('https://github.com/qt/qtbase/archive/refs/tags/v6.12.0.tar.gz','dff6570582c272cbe744d2e460700318262af505460f4215276459970ae31b46'),
+ 'qtdeclarative':('https://github.com/qt/qtdeclarative/archive/refs/tags/v6.12.0.tar.gz','0b71aa358703de8217177dbb620c86af9e9804482e607bb2cadbf116a65bd9c6'),
  'qtmultimedia':('https://github.com/qt/qtmultimedia/archive/refs/tags/v6.12.0.tar.gz','896543478b9dcdc1811e2960f74d926572cf5d97ce9ad7a53b6ea335cafe8561'),
  'renderdoc':('https://raw.githubusercontent.com/baldurk/renderdoc/v1.43/renderdoc/api/app/renderdoc_app.h','b7005e7dc34c3635046868bbd76d81b9b055aede0f56daa0bd39fedee0639ffb'),
 }
 PATCHES={'qtbase':['qtbase-6.12.0-portal-registration.patch','qtbase-6.12.0-text-input-focus.patch'],
- 'qtmultimedia':['qtmultimedia-6.12.0-lazy-hw-diagnostics.patch']}
+ 'qtmultimedia':['qtmultimedia-6.12.0-lazy-hw-diagnostics.patch'],
+ 'qtdeclarative':['qtdeclarative-6.12.0-shadow-ownership.patch']}
 
 def sha(path):
     with Path(path).open('rb') as stream:return hashlib.file_digest(stream,'sha256').hexdigest()
@@ -80,8 +82,8 @@ def main():
     if version!=VERSION:raise SystemExit('Qt runtime patches require audited Qt '+VERSION+', found '+version)
     headers=Path(subprocess.check_output(['qmake6','-query','QT_INSTALL_HEADERS'],text=True).strip())
     patch_hashes={name:sha(ROOT/'distribution/patches'/name) for names in PATCHES.values() for name in names}
-    fingerprint={'builder':sha(__file__),'patches':patch_hashes,'qtVersion':version,
-        'headers':{module:header_digest(headers/module) for module in ('QtCore','QtGui','QtWaylandClient','QtMultimedia')}}
+    fingerprint={'quickEffectsBuild':sha(ROOT/'distribution/qtquickeffects/CMakeLists.txt'),'builder':sha(__file__),'patches':patch_hashes,'qtVersion':version,
+        'headers':{module:header_digest(headers/module) for module in ('QtCore','QtGui','QtWaylandClient','QtMultimedia','QtQuickEffects','QtQml','QtQuick')}}
     if stage.exists():
         metadata=json.loads((stage/'hics-qt-patches.json').read_text())
         if metadata.get('fingerprint')!=fingerprint:raise SystemExit('Existing overlay is immutable; choose a new stage path')
@@ -91,7 +93,7 @@ def main():
             if not (stage/name).is_symlink() or os.readlink(stage/name)!=target:raise SystemExit('Existing overlay alias mismatch: '+name)
         print(stage);return
     work.mkdir(parents=True,exist_ok=True)
-    for module in ('qtbase','qtmultimedia'):
+    for module in ('qtbase','qtmultimedia','qtdeclarative'):
         archive=work/(module+'-v'+VERSION+'.tar.gz');fetch(archive,*SOURCES[module])
         source=work/(module+'-'+VERSION)
         if not source.exists():
@@ -128,6 +130,11 @@ def main():
     run(work,'hics-qtmultimedia-configure',['cmake','-S',str(work/('qtmultimedia-'+VERSION)),'-B',str(media),'-GNinja',
         '-DCMAKE_INSTALL_PREFIX='+str(work/'install-multimedia'),*options])
     run(work,'hics-qtmultimedia-build',['cmake','--build',str(media),'--target','QFFmpegMediaPlugin','-j'+str(a.jobs)])
+    effects=work/'build-quickeffects'
+    run(work,'hics-quickeffects-configure',['cmake','-S',str(ROOT/'distribution/qtquickeffects'),'-B',str(effects),'-GNinja',
+        '-DHICS_QT_DECLARATIVE_SOURCE='+str(work/('qtdeclarative-'+VERSION)),
+        '-DCMAKE_INSTALL_PREFIX='+str(work/'install-effects'),*options])
+    run(work,'hics-quickeffects-build',['cmake','--build',str(effects),'--target','QuickEffects','effectsplugin','-j'+str(a.jobs)])
     stage.parent.mkdir(parents=True,exist_ok=True)
     temporary=Path(tempfile.mkdtemp(prefix='.hics-qt-stage-',dir=stage.parent))
     try:
@@ -136,6 +143,10 @@ def main():
             files=list((base/'lib').glob('libQt6'+library+'.so*'))
             if not files:raise RuntimeError('Missing rebuilt Qt library: '+library)
             for file in files:shutil.copy2(file,temporary/'lib'/file.name,follow_symlinks=False)
+        for file in (effects/'lib').glob('libQt6QuickEffects.so*'):
+            shutil.copy2(file,temporary/'lib'/file.name,follow_symlinks=False)
+        if not (temporary/'lib/libQt6QuickEffects.so.6').is_file():
+            raise RuntimeError('Missing rebuilt Qt QuickEffects library')
         for name,source in [('platforms/libqoffscreen.so',base/'lib/qt6/plugins/platforms/libqoffscreen.so'),
                             ('platforms/libqwayland.so',base/'lib/qt6/plugins/platforms/libqwayland.so'),
                             ('multimedia/libffmpegmediaplugin.so',media/'lib/qt6/plugins/multimedia/libffmpegmediaplugin.so')]:
@@ -144,13 +155,14 @@ def main():
         licenses=temporary/'licenses';licenses.mkdir()
         shutil.copy2(work/('qtbase-'+VERSION)/'src/3rdparty/md4c/LICENSE.md',licenses/'md4c.txt')
         shutil.copy2(renderdoc/'renderdoc_app.h',licenses/'renderdoc-header.txt')
+        shutil.copy2(work/('qtdeclarative-'+VERSION)/'LICENSES/LGPL-3.0-only.txt',licenses/'qtdeclarative-LGPL-3.0-only.txt')
         for path in temporary.rglob('*.so*'):
             if path.is_file() and not path.is_symlink():
                 dynamic=subprocess.check_output(['readelf','-d',str(path)],text=True)
                 if any(str(work) in line for line in dynamic.splitlines() if 'RPATH' in line or 'RUNPATH' in line):
                     raise RuntimeError('Nonrelocatable Qt library: '+str(path))
         metadata={'qtVersion':VERSION,'fingerprint':fingerprint,'patches':patch_hashes,'sources':SOURCES,'features':comparison,
-            'scope':'QtCore/Gui/DBus/WaylandClient and selected plugins; original Multimedia/Quick/Qml libraries are retained',
+            'scope':'QtCore/Gui/DBus/WaylandClient/QuickEffects and selected plugins; original Multimedia/Quick/Qml libraries and declarative plugins are retained',
             'symlinks':{str(path.relative_to(temporary)):os.readlink(path) for path in temporary.rglob('*') if path.is_symlink()},
             'files':{str(path.relative_to(temporary)):sha(path) for path in temporary.rglob('*') if path.is_file() and not path.is_symlink()}}
         (temporary/'hics-qt-patches.json').write_text(json.dumps(metadata,indent=2)+'\n')

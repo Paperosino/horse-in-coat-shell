@@ -79,6 +79,8 @@ def stop(process):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--disposable-cachyos-vm', action='store_true', required=True)
+    p.add_argument('--trace-maps', action='store_true', help='Save bounded latest /proc maps for unloaded-module symbolization; test-only sampling')
+    p.add_argument('--timeout-seconds', type=int, help='Explicit cold sanitizer/JIT time budget, 10..3600 seconds')
     p.add_argument('--cycles', type=int, default=60)
     p.add_argument('--page', choices=['network', 'audio', 'storage', 'clipboard', 'display', 'configuration-history'], help='Repeat one real page to isolate its lifetime')
     p.add_argument('--mode', choices=['normal', 'heaptrack', 'asan'], default='normal')
@@ -86,18 +88,23 @@ def main():
     p.add_argument('--shell-overlay', type=Path, help='Test-only QML overrides, copied into the private shell tree')
     p.add_argument('--qml-fixture', type=Path, help='Minimal Qt lifetime fixture; use PROFILE_COMPLETE and CYCLES tokens')
     p.add_argument('--extra-import', type=Path, help='Explicit test-only QML diagnostic module directory')
+    p.add_argument('--expect-effects-sha256', help='Require the actual rebuilt QuickEffects image in process maps')
     p.add_argument('--runtime', type=Path, default=Path('/usr/share/hics/qs'))
     p.add_argument('--executable', type=Path, help='Immutable test QS binary; installed runtime is retained')
     p.add_argument('--output', type=Path, required=True)
     a = p.parse_args()
     assert os.getuid() == 1000 and Path('/etc/hostname').read_text().strip() == 'hics-test'
     assert subprocess.check_output(['systemd-detect-virt'], text=True).strip() in ('qemu', 'kvm')
+    if a.timeout_seconds is not None and not 10 <= a.timeout_seconds <= 3600: p.error('Use a bounded 10..3600 second timeout')
     if not 1 <= a.cycles <= 500 or a.output.exists():
         p.error('Use 1..500 cycles and a fresh output path')
     if Path('/var/lib/pacman/db.lck').exists():
         p.error('Finish the package transaction before profiling immutable modules')
     if a.mode == 'asan' and not a.asan_overlay and not a.qml_fixture:
         p.error('An instrumented module overlay is required')
+    effects_image = (a.runtime / 'lib/libQt6QuickEffects.so.6').resolve() if a.expect_effects_sha256 else None
+    if effects_image and hashlib.sha256(effects_image.read_bytes()).hexdigest() != a.expect_effects_sha256:
+        p.error('QuickEffects checksum mismatch')
     overlay_manifest = {}
     if a.asan_overlay:
         a.asan_overlay = a.asan_overlay.resolve(strict=True)
@@ -140,7 +147,7 @@ def main():
         if a.page:
             if a.qml_fixture: p.error('--page is for the built-in settings fixture')
             fixture = fixture.replace('["network","audio","storage","clipboard","display","configuration-history"]', json.dumps([a.page]))
-        (shell / 'shell.qml').write_text(fixture.replace('CYCLES', str(a.cycles)))
+        (shell / 'shell.qml').write_text(fixture.replace('CYCLES', str(a.cycles)).replace('EVIDENCE_DIRECTORY', json.dumps(str(a.output))))
         (root / 'run').mkdir(mode=0o700)
         config = root / 'bus.conf'
         config.write_text('<busconfig><type>session</type><listen>unix:tmpdir=' + str(root) +
@@ -176,11 +183,13 @@ def main():
             command = [str(executable), '-p', str(shell), '--no-duplicate']
             if a.mode == 'heaptrack':
                 command = ['heaptrack', '--record-only', '-o', str(a.output / 'heaptrack'), *command]
+            started_at = time.monotonic()
             with (a.output / 'process.log').open('w') as log:
                 process = subprocess.Popen(command, env=env, stdout=log, stderr=log, start_new_session=True)
                 asan_mapped = False
                 mapped_libraries = []
-                if a.mode == 'asan' and a.asan_overlay:
+                effects_mapped = None
+                if (a.mode == 'asan' and a.asan_overlay) or effects_image:
                     deadline = time.monotonic() + 15
                     while process.poll() is None and time.monotonic() < deadline:
                         maps = Path('/proc') / str(process.pid) / 'maps'
@@ -189,13 +198,32 @@ def main():
                             if name.startswith('lib/') and str(a.asan_overlay / name) in loaded]
                         expected_libraries = [name for name in overlay_manifest if name.startswith('lib/')]
                         asan_mapped = bool(expected_libraries) and len(mapped_libraries) == len(expected_libraries)
-                        if asan_mapped:
+                        effects_mapped = str(effects_image) in loaded if effects_image else None
+                        if (not a.asan_overlay or asan_mapped) and (not effects_image or effects_mapped):
                             break
                         time.sleep(.1)
-                    assert asan_mapped, 'Expected instrumented render modules were not mapped'
-                process.wait(timeout=30 + a.cycles * 5)
+                    if a.asan_overlay: assert asan_mapped, 'Expected instrumented render modules were not mapped'
+                    if effects_image: assert effects_mapped, 'Expected QuickEffects image was not mapped'
+                timeout = a.timeout_seconds or 30 + a.cycles * 5
+                if a.trace_maps:
+                    deadline = time.monotonic() + timeout
+                    while process.poll() is None:
+                        try:
+                            with (Path('/proc') / str(process.pid) / 'maps').open() as stream:
+                                maps = stream.read(2 * 1024 * 1024 + 1)
+                            if len(maps) > 2 * 1024 * 1024: raise RuntimeError('Maps evidence exceeds bound')
+                            (a.output / 'maps.log').write_text(maps)
+                        except FileNotFoundError:
+                            pass
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0: raise subprocess.TimeoutExpired(command, timeout)
+                        try: process.wait(timeout=min(.25, remaining))
+                        except subprocess.TimeoutExpired: pass
+                else:
+                    process.wait(timeout=timeout)
             text = (a.output / 'process.log').read_text()
-            report = {'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
+            report = {'mapsSampling':a.trace_maps, 'elapsedSeconds':time.monotonic()-started_at, 'timeoutSeconds':a.timeout_seconds or 30+a.cycles*5, 'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
+                'quickEffectsImage': str(effects_image) if effects_image else None, 'quickEffectsSha256': a.expect_effects_sha256, 'quickEffectsMapped': effects_mapped,
                 'asanModulesMapped': asan_mapped, 'asanLibrariesMapped': mapped_libraries, 'asanOverlayFiles': overlay_manifest, 'complete': 'PROFILE_COMPLETE ' + str(a.cycles) in text,
                 'extraImportFiles': {str(p.relative_to(a.extra_import)): hashlib.sha256(p.read_bytes()).hexdigest() for p in a.extra_import.rglob('*') if p.is_file()} if a.extra_import else {},
                 'qmlOverrides': {str(p.relative_to(a.shell_overlay)): hashlib.sha256(p.read_bytes()).hexdigest() for p in a.shell_overlay.rglob('*.qml')} if a.shell_overlay else {},

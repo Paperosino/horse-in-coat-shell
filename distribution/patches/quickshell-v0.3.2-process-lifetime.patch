@@ -1,0 +1,64 @@
+--- a/src/io/process.cpp
++++ b/src/io/process.cpp
+@@ -2,6 +2,8 @@
+ #include <csignal> // NOLINT
+ #include <utility>
+ 
++#include <qcoreapplication.h>
++#include <qpointer.h>
+ #include <qdir.h>
+ #include <qhash.h>
+ #include <qlist.h>
+@@ -19,7 +21,36 @@
+ #include "datastream.hpp"
+ #include "processcore.hpp"
+ 
++namespace {
++// QML teardown cannot wait on subprocesses. Retain their QObject/notifiers
++// until reaped; only final application destruction performs a bounded wait.
++class ProcessReaper final: public QObject {
++public:
++    using QObject::QObject;
++    ~ProcessReaper() override {
++        for (auto* process: this->findChildren<QProcess*>(QString(), Qt::FindDirectChildrenOnly)) {
++            if (process->state() != QProcess::NotRunning) {
++                process->kill();
++                process->waitForFinished(1000);
++            }
++        }
++    }
++    static ProcessReaper* instance() {
++        static QPointer<ProcessReaper> reaper;
++        if (!reaper) reaper = new ProcessReaper(QCoreApplication::instance());
++        return reaper;
++    }
++    void adopt(QProcess* process) {
++        process->disconnect();
++        process->setParent(this);
++        QObject::connect(process, &QProcess::finished, process, &QObject::deleteLater);
++        process->kill();
++    }
++};
++}
++
+ Process::Process(QObject* parent): PostReloadHook(parent) {
++    ProcessReaper::instance();
+ 	QObject::connect(
+ 	    QuickshellSettings::instance(),
+ 	    &QuickshellSettings::workingDirectoryChanged,
+@@ -29,13 +60,8 @@
+ }
+ 
+ Process::~Process() {
+-	if (this->process != nullptr && this->process->processId() != 0) {
+-		// Deleting after the process finishes hides the process destroyed warning in logs
+-		QObject::connect(this->process, &QProcess::finished, [p = this->process] { delete p; });
+-
+-		this->process->setParent(nullptr);
+-		this->process->kill();
+-	}
++    if (this->process != nullptr && this->process->state() != QProcess::NotRunning)
++        ProcessReaper::instance()->adopt(this->process);
+ }
+ 
+ void Process::onPostReload() { this->startProcessIfReady(); }

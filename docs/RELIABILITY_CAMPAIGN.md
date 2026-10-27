@@ -2874,3 +2874,58 @@ not establish that asynchronous incubation is its cause, or justify removing
 masks, blur or animation. Failed early NavLocations probes attempted a grab
 before the component acquired a window; their bounded timeouts are fixture
 failures, not reported as shell regressions.
+
+### Proven RectangularShadow and QS Process defects (110 candidate)
+
+The finer observer identified the survivor as **rectangularshadow.vert.qsb**,
+visually parented to QQuickRectangularShadow, with null QObject owner even
+before window destruction. Other MultiEffect mask shaders had correct owners.
+Thus the earlier “page-container” narrowing was not an incubation diagnosis:
+actual page content creates shadows which the simpler baseline did not.
+
+Pinned Qt6.12.0 source confirms defaultMaterial is constructed in the private
+constructor before QObject links q_ptr. The patch avoids that premature Q_Q
+and adopts defaultMaterial from the public constructor. Custom material
+ownership and shader/render code are unchanged. Native100-object test,
+including custom/default material switching: original reports100 orphaned,
+100 alive, LSan210900bytes/1600allocations; fixed and canonical-built library
+report0/0 and ASan/LSan exit0. `shadow-patch-provenance110.json` verifies actual
+original archive extraction, two idempotent applications and byte equality to
+built source. Archive SHA is0b71aa358703de8217177dbb620c86af9e9804482e607bb2cadbf116a65bd9c6.
+
+The canonical builder now builds only QuickEffects through Qt BuildInternals,
+retains original Qml/Quick/declarative plugins, fingerprints their headers and
+libraries, includes source/patch/wrapper provenance and LGPL license. No system
+Qt is replaced. Canonical rebuilt image SHA:
+ad378dc0f49d9f0bd6f7c0979486feb49364193c770d92c93bcd47cd7e529e5d.
+All157 original strong exported symbol names/versions are present; six RTTI/
+vtable symbols have weak rather than strong binding. The initial strong-only
+comparison falsely called those missing; corrected complete symbol evidence
+is saved. Symbol parity alone is not a full ABI proof.
+
+Actual VM six-case RectangularShadow grabs (blur/radius/spread/accent/cache)
+are pixel-identical, including PNG hashes; `shadow-render-comparison110.json`.
+The480x320 accent shadow image was visually inspected. This supports preserving
+these shadows, not a claim of whole-desktop or hardware-GPU visual acceptance.
+VM six-page test with fixed QuickEffects removed shader leaks, exposing7192
+remaining bytes/74allocations, notably two QProcess objects from QS::~Process.
+
+QS originally detached still-running children with setParent(nullptr) and
+relied on finished to delete them after the event loop had already stopped.
+A third pinned QS patch gives these processes an application-owned reaper,
+also handling Starting state, with no wait in QML destruction and only bounded
+final-app reap. Native private-QML three-child shutdown probe: original
+LSan6304bytes/66allocations; fixed exit0, three children started, no live child
+or running-QProcess warning. Category/filter/binary-log regression remains green.
+
+A parallel cold software-render sanitizer run hit its60s fixture budget.
+A bounded GDB observation of that private process found LLVM/Mesa JIT target
+construction while GUI waited for rendering; not a proven deadlock. It is not
+a clean acceptance run. Repeating sequentially with an explicit180s budget
+completed all6 actual settings pages in68.73s, loaded all six ASan native
+libraries and the expected QuickEffects image, with no shader/QProcess leaks.
+LSan still reports240bytes/3allocations in unloaded modules. Attribution and
+longer runs remain open; no suppressions, hardware-disable flags, host install
+or completion claim have been made. Optional bounded maps sampling in the VM
+fixture now preserves address evidence for these unloaded modules; timings
+from that diagnostic sampling are not production benchmarks.

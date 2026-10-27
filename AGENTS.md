@@ -417,3 +417,10 @@
   minimal effects, containers and actual pages in the VM before changing their
   implementation. Test observers use weak references and resource generations;
   address reuse must not hide a newly created object.
+- QObjectPrivate constructors run before q_ptr is linked to the public object.
+  Do not use Q_Q there to assign child ownership. Visual parent alone does not
+  free a QQuickItem. Test default/custom materials and QObject destruction;
+  a cached shader or shadow can retain a complete native object graph.
+- Check all exported symbol definitions when comparing runtime images: weak
+  RTTI/vtable definitions are present symbols, not automatically missing ABI.
+  Symbol-name parity still does not prove complete private ABI compatibility.

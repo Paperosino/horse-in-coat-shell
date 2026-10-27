@@ -1,6 +1,8 @@
 # Исправления частного Qt runtime hics
 
-Пакет109 включает три локальных исправления **Qt6.12.0**. Системный Qt и
+Пакет109 включает три локальных исправления **Qt6.12.0**. Кандидат110
+добавляет исправление владения материалом RectangularShadow; его установка
+ожидает полной приёмки. Системный Qt и
 библиотеки других приложений не заменяются. При переходе на другую версию Qt
 нужны повторный разбор исходников, перенос патчей и приёмка; сборка пакета
 останавливается при несовпадении версии/проверяемых feature flags.
@@ -42,11 +44,37 @@ frontend не создаёт app association: отдельная проверк�
 всех утечек multimedia или GPU-драйверов**. Переменные, отключающие аппаратные
 кодеки, в production не добавлены. Подавления LSan не используются.
 
+## Тени RectangularShadow
+
+В [исходнике Qt6.12.0](https://github.com/qt/qtdeclarative/blob/v6.12.0/src/effects/qquickrectangularshadow.cpp)
+private-конструктор создаёт default material до того, как QObject установит
+q_ptr. Переданный Q_Q поэтому ещё не задаёт владельца. Визуальный parent
+появляется позже, но он не заменяет QObject-владение, и шейдер переживает тень.
+Патч явно создаёт материал без преждевременного Q_Q и назначает QObject-parent
+из public-конструктора. Пользовательский материал не присваивается во владение
+тени, его API и переключение к default material сохраняются.
+
+Пересобирается только QuickEffects из закреплённого qtdeclarative, против
+совпадающих private Qt Qml/Quick headers; исходные Qml/Quick и declarative
+plugins остаются в bundle. У100 реальных объектов исходный runtime оставлял
+материалы в памяти, исправленный проходит ASan/LSan. Шесть render cases в ВМ
+с разными blur/radius/spread/color/cache дают попиксельно одинаковые PNG до
+и после. Это не заменяет приёмку всей оболочки или физических GPU.
+
+## Жизненный цикл Quickshell
+
+Частный Quickshell0.3.2 также содержит закреплённые source patches: владение
+именами категорий в очереди/кэшах журнала, порядок завершения QML/application
+и владение процессами при удалении QML Process. Асинхронное завершение не
+оставляет QObject без владельца перед остановкой event loop. Только финальный
+выход приложения допускает ограниченное ожидание reap; обычный QML teardown
+не ждёт процессы. Manifest связывает executable SHA с полным набором патчей.
+
 ## Воспроизводимая сборка и доставка
 
 `distribution/build_qt_runtime_patches.py` загружает исходники по закреплённым
 SHA256, применяет patch с fuzz=0, проверяет feature flags и создаёт неизменяемый
-overlay. QtCore/DBus/Gui/WaylandClient и три выбранных plugin пересобираются;
+overlay. QtCore/DBus/Gui/WaylandClient/QuickEffects и три выбранных plugin пересобираются;
 исходные QtMultimedia/Quick/Qml и остальные плагины сохраняются. Vendored md4c
 сохраняет поддержку Markdown при несовместимости актуальных системных headers.
 
@@ -72,6 +100,9 @@ CMake включает этот шаг перед сборкой частног�
 - `test_wallpaper_playback.py`: цветные кадры, pause/resume, restart и потеря
   sink после первого реального кадра. Проверка watchdog не должна отключать
   sink по произвольной задержке до готовности декодера на холодном старте.
+- `diagnose_qt_shadow_lifetime.py`: default/custom material,100 объектов, ASan/LSan.
+- `qt-shadow-render.qml` с VM profiler: попиксельное сравнение шести теней.
+- `diagnose_quickshell_process_lifetime.py`: выход с тремя запущенными процессами.
 - `test_qt_runtime_overlay.py`: checksums, aliases, обход путей, symlink/FIFO
   manifest, сохранение старого inode и остальных plugins.
 

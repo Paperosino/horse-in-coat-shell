@@ -15,7 +15,10 @@ public:
             visited.insert(entry);
             const QByteArray type = entry->metaObject()->className();
             if ((type.contains("ShaderEffect") || type.contains("MultiEffect")) && !m_seen.contains(entry)) {
-                qInfo() << "LIFETIME_TRACK" << type << entry << "owner" << entry->parent();
+                const auto *item = qobject_cast<QQuickItem *>(entry);
+                qInfo() << "LIFETIME_TRACK" << type << entry << "owner" << entry->parent()
+                        << "visualParent" << (item ? item->parentItem() : nullptr)
+                        << "shader" << entry->property("vertexShader");
                 m_seen.insert(entry);
                 m_objects.append({entry, type});
                 connect(entry, &QObject::destroyed, this, [this, entry] { m_seen.remove(entry); });
