@@ -1650,3 +1650,36 @@ system bus/audio. Проверены замершие frames во время loc
 стандартных portal services в private bus через явный busconfig.
 32 desktop tests прошли. Installed98 пока со старым DemoCard; source fix
 должен войти в следующий пакет и пройти установленную проверку.
+
+### TOUR-FINISH98: диски, inspection route, выход и повторный UI
+
+Step8 StoragePage показал HICS_TEST_ROOT /dev/vda2 Btrfs59.5GiB и свободное
+место; lsblk подтвердил физический60GiB vda,512MiB ESP и системный Btrfs.
+Wheel и scrollbar drag достигли разделов диска/съёмных накопителей. Это
+проверка отображения/навигации, не форматирования, unmount root или SMART
+физического устройства. Найдена английская Estimate в StorageCleanup,
+добавлен msgstr Оценка; msgfmt --check прошёл. Installed98 пока со старой строкой.
+
+Step9 History row открыл Nexus configuration-history внутри тура. Во время
+паузы активировался idle lock: первый чёрный frame не был крашем. Проверены
+locked=true, прежние runner6340/shell6437 и NRestarts0; нормальный PAM unlock
+сохранил inspection page. Кнопка Back закрыла inspection без ухода со step9.
+Step10 показал финальный экран и Start using hics. Pointer finish асинхронно
+сохранил state=completed/autoShow=false, submap hics-onboarding→default,
+onboarding_guard worker завершился. Screenshot tour-finished.png показывает
+панель и выбранные GNOME обои. Мгновенный frame после press ещё содержал тур;
+проверка дождалась фактического результата, не объявляла кнопку нерабочей.
+
+QMP Super+Enter после выхода открыл настоящий Kitty10432; acceptsInput=true,
+visible=true. Он в отдельном hics-app-8b503c...scope. Затем coordinated resume
+перезапустил UI6437→10609 при прежнем runner6340, app10432 сохранился,
+ready=true/configerrors пуст. tour-finish98.json: completed/autoShowfalse,
+submapdefault. Hyprland layers после нового UI не содержат onboarding surface;
+тур не открылся повторно. Это reload UI, а не полный logout/reboot.
+
+32 desktop tests и msgfmt проверены. Первый обычный маршрут всех10 страниц
+пройден с конкретными действиями локали, клавиатуры, display rollback,
+stacking, light/dark, downloads/selection и финального выхода. Не каждый
+контрол/режим/диск проверен этим проходом; Skip/cancel, полный повторный login,
+доступность, многомониторная конфигурация и все оставшиеся DE gates открыты.
+Все текущие source fixes после98 ещё надо собрать и проверить установленными.

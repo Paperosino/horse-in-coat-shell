@@ -194,3 +194,12 @@ attribution hashes, выбор сохраняет реальный wallpaper pat
 Найден скрытый decode демонстрации под lock screen; source fix паузит player
 по PerformancePolicy.locked/visible. Real-player regression падает без gate
 (frames4→40) и проходит с ним (pause/resume). В installed98 этого fix ещё нет.
+
+Первый нормальный маршрут всех10 страниц тура в fresh98 доведён до завершения.
+Диски отображены согласно lsblk, configuration-history inspection открывается
+и Back возвращает в тур. Finish сохраняет completed/autoShowfalse, снимает
+submap и guard; панель возвращается. Super+Enter открыл Kitty в независимом
+scope. После coordinated UI reload приложение живо, ready=true, configerrors
+пуст, onboarding layer отсутствует. Evidence tour-finish98.json и screenshots.
+Это не проверка каждого контрола, Skip и полного logout/login. Добавлен перевод
+Estimate; после98 source fixes ещё не проверены новым установленным пакетом.

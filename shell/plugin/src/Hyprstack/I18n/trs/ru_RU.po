@@ -13095,3 +13095,6 @@ msgstr "Системный компонент вернул слишком бол
 
 msgid "The system component did not respond in time. Check that its service is running and try again."
 msgstr "Системный компонент не ответил вовремя. Проверьте, запущена ли его служба, и повторите попытку."
+
+msgid "Estimate"
+msgstr "Оценка"
