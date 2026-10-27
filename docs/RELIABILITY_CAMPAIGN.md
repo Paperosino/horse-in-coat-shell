@@ -2486,3 +2486,22 @@ runner457 и отдельный Kitty2067 сохранены. Первый за�
 оба формата описаний и типизированный возврат Lua. Сборка проекта успешна.
 Синтетическое удаление владельца — доказательство конкретной ошибки lifetime,
 не утверждение о естественном воспроизведении пользовательского падения.
+
+### Установленный DEVICES107
+
+Пакет107 SHA256 c8381b8e204ec6b16fd1c2f202ef95848349209471bb23c51509671f6abef075.
+`transitions-locked107.json` (перед обновлением ещё106): on/resume отклонены
+под настоящим lock, journal и процессы неизменны. `locked-upgrade107.json`:
+runner457/UI499/Kitty2067/207bindings/locked=true совпадают до/после upgrade.
+`transitions-unlocked107.json`: после штатной PAM-разблокировки три пары
+on/resume уже на107; runner и Kitty сохраняются, failures=[], configerrors пуст.
+Это явные согласованные переходы UI, не hot reload нативных плагинов.
+
+Затем намеренный reboot ВМ. SSH закрылся с255 при reboot; первая проверка
+сеанса застала незавершённый запуск. Повторный read-only запрос подтвердил
+новый boot и активный тот же запрошенный сеанс; дополнительного reboot не было.
+`devices-boot107.json`: boot f4dcf894-1965-4029-9620-d4d4c32df142,
+runner478/UI520, health=true, safe=false, NRestarts=0, 207bindings,
+configerrors/failed units отсутствуют. Проверены SHA/inode загруженных
+bars/config/services; services541902a6bbc1b10c8c6e8e810cd810b85bb0e5cf053a92cdb00e005f94e74706.
+Это не измерение холодной задержки login и не новая чистая установка.
