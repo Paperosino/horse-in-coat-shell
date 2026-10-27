@@ -1920,3 +1920,45 @@ Not packaged or installed yet. Full VM acceptance of this native change,
 ASan/leak soak, snapped/multi-monitor removal reflow, privacy lock transitions
 and other remaining features are still open gates. The tests do not prove full
 screen-reader compatibility or all settings actions.
+
+### Installed101 native/settings acceptance in CachyOS
+
+Candidate101 packages the previous source fixes. Existing native build was
+reused after rebuilding hics-bars; this is not a clean build of all dependencies.
+Six QML/Lua members and hics-bars.so in the archive match current sources/build.
+Package SHA256 `96964af75137bdc3540e7cedc492139fbaf3470673be1d3525ffcbee08cee0d8`;
+native SHA256 `5f2918d05b1ca2084a3d5fcecc90161cf0b77d1a5de2df0f84cf634c5fe453e3`.
+Artifact evidence: external lab/package101-artifacts.json.
+
+Original guest22280 was woken from suspended state. Pacman100→101 under a real
+lock preserved runner14832, UI child17798, Kitty2593,207bindings, locked=true
+and empty configerrors (`cachyos/upgrade101.json`). The guest was then unlocked
+normally through PAM, without stopping its lock owner. No password is recorded.
+
+`tests/vm_settings_workarea.py` uploads tests only; guest ROOT/shell points at
+/usr/share/hics/shell, QML imports/shared libraries are installed paths, and
+native modules copied into the nested compositor are the installed modules.
+The test checks the installed config .so mapping and rejects mutable build
+libraries. It requires an unlocked disposable hics-test KVM/QEMU guest, preserves
+its exact main-session/app snapshot, retains an observation-timeout worker for
+inspection, and does not unload/reload native modules in the main compositor.
+
+All7 real settings/work-area checks passed on the installed runtime, including
+late reservations, large UI, actual control reveal, stable event publication
+and close during resize. Initial image inspection exposed a fixture problem:
+the replacement root omitted production GSFLoader. Globally installed host fonts
+had hidden this on the developer machine. The fixture now uses production font
+loading and asserts Material Symbols registration; its installed run passed again.
+The corrected real capture was inspected: icons render as symbols and125%
+control remains fully visible. This does not claim a font bug in the main shell.
+
+Evidence under external cachyos lab:
+- settings-workarea-installed101-fonts.json (7checks, before/after snapshots,
+  installed native hash and capture hash);
+- settings-workarea-installed101-fonts.png (real production Nexus child);
+- /var/tmp/hics-installed-workarea.log in the guest.
+Capture SHA256 `5887b34827406011e76c4988b84689b4a46b996e38ccd9e2ec0b7c22beee16ff`.
+Main runner/UI/app and unlocked state remain unchanged. This proves installed
+modules in a separate nested compositor, not a complete fresh login/cold boot,
+all settings actions, physical GPU behaviour or a leak-free long soak. Host78
+and fresh guest99 are untouched; full main-session101 acceptance remains open.

@@ -274,3 +274,11 @@ integration7 checks проходит, native100 counterfactual падает на
 Также прошли16 workarea checks,5 drag rounds и settings design integration.
 Снимок settings-workarea-compact.png проверен. Ещё не упаковано/не установлено;
 ASan/VM/multi-monitor/прочие hardware/functionality gates остаются открыты.
+
+Candidate101 установлен в исходную CachyOS100→101 под lock; процесс-владелец
+блокировки, app и bindings сохранены. После штатного PAM unlock installed-only
+nested integration прошла7checks с реальными packaged QML/native modules и
+проверкой .so mapping. Fixture теперь подключает production GSFLoader: отсутствие
+его было видно на первом guest screenshot, исправленный capture проверен.
+Evidence settings-workarea-installed101-fonts.json/png. Это не проверка полного
+нового входа main session101; хост78/fresh guest99 не изменялись.

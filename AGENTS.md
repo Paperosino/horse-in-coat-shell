@@ -307,3 +307,7 @@
   шрифтах/низком окне. Компактный header сохраняет управление и навигацию;
   tall SelectRow раскрывает searchFocusItem, если вся строка не помещается.
   grabToImage вызывать у QML Nexus, а не у C++ contentItem без QML engine.
+
+- Изолированный settings root должен подключать production GSFLoader и проверять
+  регистрацию Material Symbols. Глобально установленный шрифт на host скрывает
+  пропуск FontLoader в fixture; проверять реальный installed screenshot в ВМ.
