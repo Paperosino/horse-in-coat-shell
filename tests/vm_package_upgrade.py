@@ -16,11 +16,19 @@ package.chmod(0o644)
 env=dict(os.environ,LANG='ru_RU.UTF-8',XDG_RUNTIME_DIR='/run/user/1000',DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/1000/bus',WAYLAND_DISPLAY='wayland-1')
 def user(*args):return subprocess.check_output(['runuser','-u','hics-test','--',*args],env=env,text=True,timeout=10).strip()
 def state():
- return {'runner':int(subprocess.check_output(['systemctl','--user','--machine=1000@.host','show','hic-session.service','--property=MainPID','--value'],text=True).strip()),
- 'shell':user('pgrep','-x','hics-qs'),'apps':user('pgrep','-x','kitty'),
+ runner=int(subprocess.check_output(['systemctl','--user','--machine=1000@.host','show','hic-session.service','--property=MainPID','--value'],text=True).strip())
+ children=Path('/proc/'+str(runner)+'/task/'+str(runner)+'/children').read_text().split()
+ shells=[]
+ for pid in children:
+  try:
+   if Path('/proc/'+pid+'/comm').read_text().strip()=='hics-qs':shells.append(pid)
+  except FileNotFoundError:pass
+ assert len(shells)==1,{'runner':runner,'mainShellChildren':shells}
+ return {'runner':runner,'shell':shells[0],'apps':user('pgrep','-x','kitty'),
  'locked':user('/usr/share/hics/qs/bin/hics-qs','ipc','-p','/usr/share/hics/shell','call','lock','isLocked'),
  'binds':len(json.loads(user('hyprctl','-i','0','-j','binds'))),
  'errors':user('hyprctl','-i','0','configerrors')}
+
 before=state();assert before['locked']=='true' and before['binds']>10 and not before['errors'],before
 assert not Path('/var/lib/pacman/db.lck').exists(),'Another package transaction is active'
 log=Path('/var/tmp/hics-package-upgrade.log')

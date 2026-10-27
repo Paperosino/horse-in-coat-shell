@@ -739,3 +739,30 @@ duplicate path, depth limit, HTTPS downgrade/чужой host, oversized API upda
 fixture, не реальный отказ GitHub. Медленные drip-feed ответы и длительность
 всего дерева ещё не закрыты одним общим deadline. Установленные пакеты пока
 не обновлены; это остаётся частью следующего VM package regression.
+
+### Пакет 90: совокупная проверка recovery/extension исправлений
+
+Собран hic-shell 1.1.1-90 (SHA256
+`d3e4acfb33b8a3d9ffcde2baebaff41d26132c3c2d693734430516e4ed51fe2e`).
+Четыре упакованных Python helper побайтно сверены с worktree, включая новый
+plugin_preferences.py. CMake regenerate обновил install glob. Это package-only
+сборка с ранее проверенным частным Qt/Quickshell runtime, не fresh rebuild Qt.
+makepkg dependency check на хосте выявил отсутствующий rtkit; повторная
+package-only сборка выполнена с --nodeps, без изменения depends. В CachyOS guest
+pacman -T rtkit успешен; установка пакета выполняла обычную проверку зависимостей.
+
+Locked install через настоящий install.sh сохранил runner 29181, shell 29220,
+Kitty 6637, locked=true, 207 binds и пустой configerrors. Guard autoreload снят;
+активного package guard после транзакции нет. hic-session active, NRestarts=0.
+Это сохранение старого lock owner; новый QML процесс пока не запускался.
+В evidence: locked-upgrade90.json и /var/tmp/hics-package-upgrade.log гостя.
+VM harness теперь определяет UI PID по прямому ребёнку session runner, чтобы
+не считать IPC/PAM помощников вторым экземпляром.
+
+Новый tests/vm_extension_faults.py запускает реальные установленные helpers
+обычным гостевым пользователем, с отдельными временными XDG_HOME. Семь fault
+cases прошли (extension-faults90.json): invalid/schema/deep JSON, FIFO, symlink,
+marker FIFO, изоляция плохого манифеста. Установленный тестовый plugin сохранён
+побайтно. Первый запуск fixture не создал каталог state перед mkfifo и завершился
+FileNotFoundError: исправлен сам fixture, затем весь сценарий повторён успешно.
+Реальный профиль, lock owner и приложения не менялись. Хостовый пакет не обновлён.
