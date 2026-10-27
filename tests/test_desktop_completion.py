@@ -64,6 +64,23 @@ class DesktopCompletion(unittest.TestCase):
   with patch.object(config,'apply_files',side_effect=fail_runtime):config.rollback()
   self.assertFalse(path.exists());self.assertFalse(config.JOURNAL.exists())
   self.assertIn('Fixture compositor unavailable',config.read_json(self.state/'configuration-recovery-warning.json')['warning'])
+ def test_rollback_skips_unsafe_changed_sections_and_restores_other_files(self):
+  import os
+  bad=self.cfg/'dock.json';good=self.cfg/'shell.json';external=self.root/'outside';external.write_text('{}')
+  for kind in ('fifo','symlink','oversize','array','invalid-json'):
+   with self.subTest(kind=kind):
+    bad.unlink(missing_ok=True);good.write_text('{"trial":true}')
+    if kind=='fifo':os.mkfifo(bad)
+    elif kind=='symlink':bad.symlink_to(external)
+    elif kind=='oversize':
+     with bad.open('wb') as stream:stream.truncate(2*1024*1024)
+    else:bad.write_text('[]' if kind=='array' else '{invalid')
+    inode=bad.lstat().st_ino
+    config.atomic_json(config.JOURNAL,{'before':{'dock.json':'{"enabled":true}','shell.json':'{"original":true}'},'applied':{'dock.json':'{}','shell.json':'{"trial":true}'}})
+    config.rollback(False)
+    self.assertEqual(bad.lstat().st_ino,inode);self.assertEqual(external.read_text(),'{}')
+    self.assertEqual(json.loads(good.read_text()),{'original':True});self.assertFalse(config.JOURNAL.exists())
+    self.assertIn('dock.json',config.read_json(self.state/'configuration-recovery-warning.json')['warning'])
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)

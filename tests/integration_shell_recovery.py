@@ -14,6 +14,7 @@ with tempfile.TemporaryDirectory(prefix='hics real recovery ') as directory:
  env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
  subprocess.run([sys.executable,'-c','import sys;sys.path.insert(0,sys.argv[1]);import shell_recovery as r;assert r.healthy(r.candidate())',str(ROOT/'shell/assets')],env=env,check=True)
  (config/'shell.json').write_text('{"appearance":{"scale":1.5}}')
+ warning=base/'state/hics/configuration-recovery-warning.json';warning.write_text(json.dumps({'warning':'dock.json: fixture unsafe section preserved'}))
  fixture=(ROOT/'shell/recovery/shell.qml').read_text()
  checks='''
  property int phase:0
@@ -25,6 +26,7 @@ with tempfile.TemporaryDirectory(prefix='hics real recovery ') as directory:
   if(worker.running)return;
   if(root.phase!==3&&root.error){root.fail(root.error);return;}
   if(root.phase===0){
+   if(!recoveryWarningText.visible || !recoveryWarningText.text.includes("fixture unsafe section")){root.fail("Recovery warning is not visible");return;}
    if(!root.data.startupCheckpoint?.available){root.fail("Real checkpoint is not visible");return;}
    root.invoke("restore");root.phase=1;
   }else if(root.phase===1){

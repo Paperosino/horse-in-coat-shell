@@ -88,6 +88,14 @@ ShellRoot {
      contentItem:Text {text:parent.text;color:"#e6e1e5";font.pixelSize:16;horizontalAlignment:Text.AlignHCenter;verticalAlignment:Text.AlignVCenter;renderType:Text.QtRendering}
     }
     Text {Layout.fillWidth:true;visible:worker.running;text:root.tr("Working…", "Выполняется…");color:"#d0bcff";renderType:Text.QtRendering}
+    Text {
+     id: recoveryWarningText
+     objectName: "recoveryWarning"
+     Layout.fillWidth: true
+     visible: !!root.data.recoveryWarning
+     text: root.tr("Some settings could not be restored. Details:", "Часть настроек не удалось восстановить. Подробности:") + "\n" + (root.data.recoveryWarning || "")
+     color: "#ffb4ab";font.pixelSize:15;wrapMode:Text.WordWrap;textFormat:Text.PlainText;renderType:Text.QtRendering
+    }
     Text {Layout.fillWidth:true;visible:!!root.error;text:root.error;color:"#ffb4ab";wrapMode:Text.WordWrap;textFormat:Text.PlainText;renderType:Text.QtRendering}
    }
   }

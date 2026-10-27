@@ -244,11 +244,21 @@ def merge_revert(before,applied,current):
 def rollback(runtime_apply=True):
  d=read_json(JOURNAL)
  if not d:return
- restored={};remove_defaults=set()
+ from shell_recovery import read_text as bounded_text, strict_object
+ restored={};remove_defaults=set();warnings=[]
  absent=d.get('absent',[])
  if not isinstance(absent,list):absent=[]
  for name,applied in d['applied'].items():
-  p=target(name);current=gather().get(name) if name=='widgets.json' else p.read_text() if p.is_file() else None;before=d['before'].get(name)
+  p=target(name);before=d['before'].get(name)
+  try:
+   if name=='widgets.json':current=gather().get(name)
+   else:
+    try:current=bounded_text(p,1048576)
+    except FileNotFoundError:current=None
+   if current is not None and name.endswith('.json'):strict_object(current)
+  except (OSError,ValueError):
+   warnings.append(name+': Changed section could not be read safely; left untouched')
+   continue
   if current==applied:
    if name!='widgets.json' and (before is None or name in absent):remove_defaults.add(name)
    if before is None:
@@ -260,10 +270,10 @@ def rollback(runtime_apply=True):
  apply_files(restored,False)
  try:
   if runtime_apply:apply_files(restored,True,False)
- except (OSError,subprocess.SubprocessError,ValueError) as error:atomic_json(STATE/'configuration-recovery-warning.json',{'warning':str(error)},private=True)
+ except (OSError,subprocess.SubprocessError,ValueError) as error:warnings.append(str(error))
+ if warnings:atomic_json(STATE/'configuration-recovery-warning.json',{'warning':'; '.join(warnings)},private=True)
  # Runtime application needs defaults, but an abandoned trial must also
  # restore the original absence of files. Keep edits made during rollback.
- from shell_recovery import read_text as bounded_text
  for name in remove_defaults:
   path=target(name)
   try:current=bounded_text(path,1048576)
