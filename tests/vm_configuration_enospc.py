@@ -57,6 +57,8 @@ root=Path(tempfile.mkdtemp(prefix='hics-real-enospc-',dir='/var/tmp'));os.chown(
 for name in ('state','runtime'):
  path=root/name;path.mkdir();os.chown(path,1000,1000);path.chmod(0o700)
 with tarfile.open(archive) as bundle:bundle.extractall(root/'assets',filter='data')
+if USE_INSTALLED:
+ shutil.rmtree(root/'assets');(root/'assets').symlink_to('/usr/share/hics/shell/assets',target_is_directory=True)
 worker=root/'worker.py';worker.write_text(WORKER);worker.chmod(0o644)
 subprocess.run(['mount','-t','tmpfs','-o','size=2M,mode=0700,uid=1000,gid=1000','hics-enospc-test',str(root/'state')],check=True)
 process=subprocess.Popen(['runuser','-u','hics-test','--','python3',str(worker),str(root)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
@@ -66,11 +68,11 @@ except subprocess.TimeoutExpired:
  raise RuntimeError('Inspect this running worker before cleanup; no restart attempted')
 try:
  assert process.returncode==0,stdout+stderr
- report=json.loads(stdout);report['sourceSha256']=source_hash;print(json.dumps(report))
+ report=json.loads(stdout);report['sourceSha256']=source_hash;report['sourceMode']='installed' if USE_INSTALLED else 'snapshot';report['package']=subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip();print(json.dumps(report))
 finally:
  subprocess.run(['umount',str(root/'state')],check=True);shutil.rmtree(root)
 '''
-p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--out',required=True,type=Path);p.add_argument('--disposable-cachyos-vm',required=True,action='store_true');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--out',required=True,type=Path);p.add_argument('--disposable-cachyos-vm',required=True,action='store_true');p.add_argument('--installed',action='store_true');a=p.parse_args()
 if a.out.exists():raise SystemExit('Choose a fresh evidence file')
 archive=a.lab/(a.out.stem+'-sources.tar.gz')
 with tarfile.open(archive,'w:gz') as bundle:
@@ -78,6 +80,6 @@ with tarfile.open(archive,'w:gz') as bundle:
  bundle.add(ROOT/'shell/assets/feature_data',arcname='feature_data')
 key=['-i',str(a.lab/'guest_ed25519'),'-o','UserKnownHostsFile='+str(a.lab/'known_hosts-installed')]
 subprocess.run(['scp',*key,'-P','22280',str(archive),'root@127.0.0.1:/var/tmp/hics-enospc-sources.tar.gz'],check=True)
-r=subprocess.run(['ssh',*key,'-p','22280','root@127.0.0.1','python3 -'],input='WORKER='+repr(WORKER)+'\n'+REMOTE,capture_output=True,text=True,timeout=75)
+r=subprocess.run(['ssh',*key,'-p','22280','root@127.0.0.1','python3 -'],input='WORKER='+repr(WORKER)+'\nUSE_INSTALLED='+repr(a.installed)+'\n'+REMOTE,capture_output=True,text=True,timeout=75)
 if r.returncode:raise SystemExit(r.stdout+r.stderr)
 report=json.loads(r.stdout);assert report['serviceSourceSha256']==hashlib.sha256((ROOT/'shell/assets/configuration_manager.py').read_bytes()).hexdigest();a.out.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

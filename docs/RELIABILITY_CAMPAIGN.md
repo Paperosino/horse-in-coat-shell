@@ -1046,3 +1046,29 @@ test mounts. Настоящий VM session runner 32439 и Kitty 6637 сохра
 переполнения STATE tmpfs конкретной службы; не доказательство работы всей DE
 при полном корневом диске или одновременном переполнении /run. Пакет ВМ/хоста
 этим source-fixture не обновлялся; накопленные изменения требуют следующей сборки.
+
+### Пакет 92: установленные recovery/watch исправления
+
+Собран hic-shell 1.1.1-92, SHA256
+`d79c30e09a8e22deb99ab1f9caaa5bf33f78d680b5c05f2e963e54b7f5af7584`.
+Упакованные configuration_manager.py, shell_recovery.py и recovery/shell.qml
+побайтно совпадают с source. Как предыдущие кандидаты: package-only сборка
+--nodeps на хосте с ранее проверенным private Qt/QS runtime, не новая сборка
+всех зависимостей. Гостевой installer проверяет пакет/зависимости обычным путём.
+
+Safe update через install.sh сохранил runner 32439, recovery UI 32445, Kitty 6637,
+207 binds, locked=false и пустой configerrors; autoreload восстановлен.
+Evidence safe-upgrade92.json. VM enospc fixture получил --installed: root/assets
+ссылается на установленный каталог, не на загруженный snapshot. Service source
+SHA сверяется с worktree. enospc-installed92.json подтверждает package92,
+реальный 2MiB tmpfs/errno28, idle syscw delta=0, тот же процесс и восстановление
+после освобождения места. Временный mount очищается; реальный профиль вне fixture.
+
+После проверки отсутствия активного preview явно перезапущена только
+hics-configuration.service (33294→34308), чтобы активный Python процесс загрузил
+пакет92. Status возвращает pendingValid=true/settingsValid=true. Session/lock
+owner не перезапускался, Kitty остался 6637. Recovery UI продолжает работать
+старым сохранённым процессом; проверка нового QML в текущем VM root не заявляется,
+но была выполнена в nested integration до упаковки. Хостовый пакет не обновлён.
+Общий unit прогон после последней серии ещё предстоит; baseline unit-context90
+нельзя выдавать за проверку всех новых изменений.
