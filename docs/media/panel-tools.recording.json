@@ -1,0 +1,28 @@
+{
+  "capture": "wf-recorder, real CachyOS guest UI",
+  "package": "hic-shell 1.1.1-95",
+  "locale": "ru_RU.UTF-8",
+  "hyprland": "0.56.2",
+  "sourceSize": [
+    1280,
+    800
+  ],
+  "sourceFps": 24,
+  "gifFps": 20,
+  "frames": 170,
+  "trimStartSeconds": 30,
+  "durationSeconds": 8.5,
+  "actions": [
+    "controlled hics notification",
+    "open history using panel bell",
+    "close using Escape"
+  ],
+  "audio": false,
+  "authenticationRecorded": false,
+  "rawSha256": "e66eab17a921ced76d548486389bd2e189c2ee40b932f4feb61b4b54c096c699",
+  "gifSha256": "396455b1352e8f6321243e98d5dcd26c1bc43afc7430e2c436e5850e25ce8159",
+  "limitations": [
+    "software-rendered disposable VM; not a hardware performance measurement",
+    "only panel-tools clip replaced; other historical media remain under audit"
+  ]
+}
