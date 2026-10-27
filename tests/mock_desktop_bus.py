@@ -58,6 +58,10 @@ class Disks(dbus.service.Object):
             DRIVE: {UD + '.Drive': {'Model': 'USB test', 'Removable': True, 'CanPowerOff': True, 'Ejectable': False}}}
 
 class Encrypted(dbus.service.Object):
+    @dbus.service.method(UD + '.Filesystem', in_signature='a{sv}', out_signature='s')
+    def Mount(self, options):
+        return '/run/media/fixture'
+
     @dbus.service.method(UD + '.Encrypted', in_signature='sa{sv}', out_signature='o')
     def Unlock(self, password, options):
         if password != 'correct passphrase':

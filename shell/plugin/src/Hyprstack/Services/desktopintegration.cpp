@@ -1,6 +1,7 @@
 #include "desktopintegration.hpp"
 #include "wallpaperplayer.hpp"
 #include <QAudioDevice>
+#include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QPointer>
 #include <memory>
@@ -71,8 +72,41 @@ DesktopIntegration::DesktopIntegration(QObject *parent) : QObject(parent) {
     m_micTimeout.setInterval(15000);
     connect(&m_micTimeout, &QTimer::timeout, this, &DesktopIntegration::stopMicrophoneTest);
 }
+DesktopIntegration::~DesktopIntegration() {
+    // QProcess destruction waits for a running child. Reap killed helpers from
+    // the event loop instead of blocking QML teardown or deleting their signal
+    // sender while Qt is still handling a completion event.
+    for (auto *process : findChildren<QProcess *>(QString(), Qt::FindDirectChildrenOnly)) {
+        process->disconnect(this);
+        for (auto *timer : process->findChildren<QTimer *>()) timer->stop();
+        process->setParent(QCoreApplication::instance());
+        process->closeReadChannel(QProcess::StandardOutput);
+        process->closeReadChannel(QProcess::StandardError);
+        if (process->state() == QProcess::NotRunning) process->deleteLater();
+        else {
+            connect(process, &QProcess::finished, process, &QObject::deleteLater);
+            process->kill();
+        }
+    }
+}
+void DesktopIntegration::notifyChanged() {
+    if (m_changedQueued) return;
+    m_changedQueued = true;
+    QMetaObject::invokeMethod(this, [this] {
+        m_changedQueued = false;
+        emit changed();
+    }, Qt::QueuedConnection);
+}
+void DesktopIntegration::notifyMicrophoneChanged() {
+    if (m_microphoneQueued) return;
+    m_microphoneQueued = true;
+    QMetaObject::invokeMethod(this, [this] {
+        m_microphoneQueued = false;
+        emit microphoneChanged();
+    }, Qt::QueuedConnection);
+}
 QUrl DesktopIntegration::wallpaperVideo(const QString &path) const { return WallpaperPlayer::resolveVideo(path); }
-void DesktopIntegration::fail(const QString &message) { m_error = message; emit changed(); }
+void DesktopIntegration::fail(const QString &message) { m_error = message; notifyChanged(); }
 void DesktopIntegration::process(const QString &program, const QStringList &args, Result result, bool reportError) {
     auto executable = QStandardPaths::findExecutable(program);
     if (executable.isEmpty()) {
@@ -83,7 +117,7 @@ void DesktopIntegration::process(const QString &program, const QStringList &args
     auto env = QProcessEnvironment::systemEnvironment();
     env.insert(u"LC_ALL"_s, u"C"_s);
     p->setProcessEnvironment(env);
-    ++m_pending; emit changed();
+    ++m_pending; notifyChanged();
     auto *timeout = new QTimer(p);
     timeout->setSingleShot(true);
     struct Output {
@@ -124,6 +158,12 @@ void DesktopIntegration::process(const QString &program, const QStringList &args
         --m_pending;
         if (output->overflow || output->timedOut)
             qCWarning(lcDesktopOperations) << program << (output->overflow ? "response size limit exceeded" : "operation timed out");
+        // Detach before any result callback: it may synchronously delete this
+        // owner while Qt is still emitting QProcess::finished/errorOccurred.
+        p->disconnect(this);
+        p->setParent(QCoreApplication::instance());
+        p->deleteLater();
+        notifyChanged();
         // Do not log argv or raw stderr: helpers can return private user data.
         if (!failedToStart && !output->overflow && !output->timedOut && code == 0 && status == QProcess::NormalExit)
             result(output->standard);
@@ -136,14 +176,14 @@ void DesktopIntegration::process(const QString &program, const QStringList &args
                 fail(detail.isEmpty() ? tr("Operation failed or timed out") : detail);
             }
         } else result({});
-        emit changed(); p->deleteLater();
+
     };
     connect(p, &QProcess::errorOccurred, this, [finish](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart) finish(true, -1, QProcess::CrashExit);
     });
     connect(p, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
             [finish](int code, QProcess::ExitStatus status) { finish(false, code, status); });
-    p->start(executable, args); timeout->start(15000);
+    timeout->start(15000); p->start(executable, args);
 }
 void DesktopIntegration::refresh() {
     if (busy()) return;
@@ -155,7 +195,7 @@ void DesktopIntegration::refresh() {
         --m_pending;
         m_portalSourceTypes = reply.type() == QDBusMessage::ErrorMessage ? 0
             : qdbus_cast<QDBusVariant>(reply.arguments().value(0)).variant().toInt();
-        emit changed();
+        notifyChanged();
     });
     refreshDisks(); refreshWifi();
     m_recordingSources.clear();
@@ -209,7 +249,7 @@ void DesktopIntegration::refreshMonitoring() {
 }
 void DesktopIntegration::refreshCapture() {
     m_captureAvailable = !QStandardPaths::findExecutable(u"pw-dump"_s).isEmpty();
-    if (!m_captureAvailable) { m_captures.clear(); emit changed(); return; }
+    if (!m_captureAvailable) { m_captures.clear(); notifyChanged(); return; }
     process(u"pw-dump"_s, {}, [this](const QByteArray &raw) {
         QJsonParseError error;
         auto document = QJsonDocument::fromJson(raw, &error);
@@ -235,7 +275,7 @@ void DesktopIntegration::setCardProfile(const QString &card, const QString &prof
     if (busy()) return;
     m_error.clear();
     process(u"pactl"_s, {u"set-card-profile"_s, card, profile}, [this](const QByteArray &) {
-        emit operationSucceeded(); QTimer::singleShot(0, this, &DesktopIntegration::refresh);
+        QTimer::singleShot(0, this, &DesktopIntegration::refresh); emit operationSucceeded();
     });
 }
 void DesktopIntegration::startMicrophoneTest() {
@@ -271,9 +311,9 @@ void DesktopIntegration::startMicrophoneTest() {
             }
             if (std::isfinite(sample)) peak = std::max(peak, qreal(std::abs(sample)));
         }
-        m_level = std::min(peak, qreal(1)); emit microphoneChanged();
+        m_level = std::min(peak, qreal(1)); notifyMicrophoneChanged();
     });
-    m_micTimeout.start(); emit microphoneChanged();
+    m_micTimeout.start(); notifyMicrophoneChanged();
 }
 void DesktopIntegration::stopMicrophoneTest() {
     m_micTimeout.stop();
@@ -283,14 +323,14 @@ void DesktopIntegration::stopMicrophoneTest() {
         devices->deleteLater();
     }
     if (m_audio) { auto *audio = m_audio; m_audio = nullptr; audio->stop(); audio->deleteLater(); }
-    m_level = 0; emit microphoneChanged();
+    m_level = 0; notifyMicrophoneChanged();
 }
 void DesktopIntegration::refreshWifi() {
     ++m_pending;
     asyncCall(this, NM, NP, NM, u"GetDevices"_s, {}, [this](const QDBusMessage &r) {
         --m_pending;
         m_wifi.clear();
-        if (r.type() == QDBusMessage::ErrorMessage) { emit changed(); return; }
+        if (r.type() == QDBusMessage::ErrorMessage) { notifyChanged(); return; }
         const auto paths = qdbus_cast<QList<QDBusObjectPath>>(r.arguments().value(0));
         for (const auto &path : paths) {
             ++m_pending;
@@ -307,14 +347,14 @@ void DesktopIntegration::refreshWifi() {
                             --m_pending;
                             const auto w = qdbus_cast<QVariantMap>(wireless.arguments().value(0));
                             m_wifi.append(QVariantMap{{u"path"_s, path.path()}, {u"name"_s, p.value(u"Interface"_s)}, {u"active"_s, active}, {u"hotspot"_s, w.value(u"Mode"_s).toUInt() == 3}, {u"supportsAp"_s, (w.value(u"WirelessCapabilities"_s).toUInt() & 0x40) != 0}});
-                            emit changed();
+                            notifyChanged();
                         }, 5000);
                     }
                 }
-                emit changed();
+                notifyChanged();
             }, 5000);
         }
-        emit changed();
+        notifyChanged();
     }, 5000);
 }
 void DesktopIntegration::startHotspot(const QString &device, const QString &ssid, const QString &password) {
@@ -328,17 +368,16 @@ void DesktopIntegration::startHotspot(const QString &device, const QString &ssid
         {u"802-11-wireless"_s, {{u"ssid"_s, ssid.toUtf8()}, {u"mode"_s, u"ap"_s}}},
         {u"802-11-wireless-security"_s, {{u"key-mgmt"_s, u"wpa-psk"_s}, {u"psk"_s, password}}},
         {u"ipv4"_s, {{u"method"_s, u"shared"_s}}}, {u"ipv6"_s, {{u"method"_s, u"disabled"_s}}}};
-    ++m_pending; m_error.clear(); emit changed();
+    ++m_pending; m_error.clear(); notifyChanged();
     // Volatile connection disappears when deactivated; its password is not persisted.
     asyncCall(this, NM, NP, NM, u"AddAndActivateConnection2"_s,
         {QVariant::fromValue(settings), QVariant::fromValue(QDBusObjectPath(device)), QVariant::fromValue(QDBusObjectPath(u"/"_s)),
          QVariantMap{{u"persist"_s, u"volatile"_s}}}, [this](const QDBusMessage &r) {
-        --m_pending;
+        --m_pending; notifyChanged();
         if (r.type() == QDBusMessage::ErrorMessage) fail(tr("Could not start the hotspot: %1").arg(r.errorMessage()));
         else awaitActivation(qdbus_cast<QDBusObjectPath>(r.arguments().value(1)).path(), [this](bool success) {
-            if (success) { emit operationSucceeded(); refresh(); }
+            if (success) { QTimer::singleShot(0, this, &DesktopIntegration::refresh); emit operationSucceeded(); }
         });
-        emit changed();
     });
 }
 bool DesktopIntegration::connectHiddenNetwork(const QString &ssid, const QString &password, bool secured, bool hidden) {
@@ -351,18 +390,19 @@ bool DesktopIntegration::connectHiddenNetwork(const QString &ssid, const QString
         {u"802-11-wireless"_s, {{u"ssid"_s, ssid.toUtf8()}, {u"hidden"_s, hidden}}},
         {u"ipv4"_s, {{u"method"_s, u"auto"_s}}}, {u"ipv6"_s, {{u"method"_s, u"auto"_s}}}};
     if (secured) settings[u"802-11-wireless-security"_s] = {{u"key-mgmt"_s, u"wpa-psk"_s}, {u"psk"_s, password}};
-    ++m_pending; m_error.clear(); emit changed();
+    ++m_pending; m_error.clear(); notifyChanged();
     asyncCall(this, NM, NP, NM, u"AddAndActivateConnection2"_s,
         {QVariant::fromValue(settings), QVariant::fromValue(QDBusObjectPath(u"/"_s)), QVariant::fromValue(QDBusObjectPath(u"/"_s)),
          QVariantMap{{u"persist"_s, u"disk"_s}}}, [this](const QDBusMessage &r) {
-        --m_pending;
+        --m_pending; notifyChanged();
         if (r.type() == QDBusMessage::ErrorMessage) {
             fail(r.errorMessage()); emit hiddenNetworkFinished(false);
         } else awaitActivation(qdbus_cast<QDBusObjectPath>(r.arguments().value(1)).path(), [this](bool success) {
+            const QPointer<DesktopIntegration> guard(this);
             emit hiddenNetworkFinished(success);
-            if (success) { emit operationSucceeded(); refresh(); }
+            if (!guard) return;
+            if (success) { QTimer::singleShot(0, this, &DesktopIntegration::refresh); emit operationSucceeded(); }
         });
-        emit changed();
     });
     return true;
 }
@@ -381,7 +421,7 @@ void DesktopIntegration::awaitActivation(const QString &path, std::function<void
         guard->stop(); guard->deleteLater();
         --m_pending;
         if (!success) fail(error);
-        done(success); emit changed();
+        notifyChanged(); done(success);
     };
     connect(timer, &QTimer::timeout, this, [this, guard, path, finish, elapsed] {
         if (!guard || guard->property("waiting").toBool()) return;
@@ -404,19 +444,18 @@ void DesktopIntegration::awaitActivation(const QString &path, std::function<void
 void DesktopIntegration::stopHotspot(const QString &active) {
     if (busy() || !active.startsWith(QString(NP) + u"/ActiveConnection/"_s)) return;
     // The UI only offers this for adapters whose wireless mode is AP (see status).
-    ++m_pending; m_error.clear(); emit changed();
+    ++m_pending; m_error.clear(); notifyChanged();
     asyncCall(this, NM, NP, NM, u"DeactivateConnection"_s, {QVariant::fromValue(QDBusObjectPath(active))}, [this](const QDBusMessage &r) {
-        --m_pending;
+        --m_pending; notifyChanged();
         if (r.type() == QDBusMessage::ErrorMessage) fail(r.errorMessage());
-        else { emit operationSucceeded(); refresh(); }
-        emit changed();
+        else { QTimer::singleShot(0, this, &DesktopIntegration::refresh); emit operationSucceeded(); }
     });
 }
 void DesktopIntegration::refreshDisks() {
     ++m_pending;
     asyncCall(this, UD, u"/org/freedesktop/UDisks2"_s, u"org.freedesktop.DBus.ObjectManager"_s, u"GetManagedObjects"_s, {}, [this](const QDBusMessage &r) {
         --m_pending;
-        if (r.type() == QDBusMessage::ErrorMessage) { m_encrypted.clear(); m_drives.clear(); emit changed(); return; }
+        if (r.type() == QDBusMessage::ErrorMessage) { m_encrypted.clear(); m_drives.clear(); notifyChanged(); return; }
         auto objects = qdbus_cast<ManagedObjects>(r.arguments().value(0));
         m_encrypted.clear(); m_drives.clear();
         QSet<QString> volumes;
@@ -448,27 +487,31 @@ void DesktopIntegration::refreshDisks() {
                 if (m_disksLoaded && !m_knownVolumes.contains(it.key().path())) {
                     const auto filesystem = ifaces.value(UD + u".Filesystem"_s);
                     const auto mounts = qdbus_cast<QList<QByteArray>>(filesystem.value(u"MountPoints"_s));
+                    const QPointer<DesktopIntegration> guard(this);
                     if (mounts.isEmpty()) emit removableVolumeAdded(it.key().path());
                     else emit volumeMounted(QString::fromUtf8(mounts.first().split('\0').first()));
+                    if (!guard) return;
                 }
             }
         }
-        m_knownVolumes = volumes; m_disksLoaded = true; emit changed();
+        m_knownVolumes = volumes; m_disksLoaded = true; notifyChanged();
     }, 5000);
 }
 void DesktopIntegration::diskCall(const QString &path, const QString &iface, const QString &method, const QVariantList &args) {
     if (busy()) return;
     const bool drive = iface.endsWith(u".Drive"_s);
     if (!validDisk(path, drive ? u"drives"_s : u"block_devices"_s)) { fail(tr("Invalid device path")); return; }
-    ++m_pending; m_error.clear(); emit changed();
+    ++m_pending; m_error.clear(); notifyChanged();
     asyncCall(this, UD, path, iface, method, args, [this, method](const QDBusMessage &r) {
-        --m_pending;
+        --m_pending; notifyChanged();
         if (r.type() == QDBusMessage::ErrorMessage) fail(r.errorMessage());
         else {
+            QTimer::singleShot(0, this, &DesktopIntegration::refresh);
+            const QPointer<DesktopIntegration> guard(this);
             if (method == u"Mount"_s) emit volumeMounted(r.arguments().value(0).toString());
-            emit operationSucceeded(); refresh();
+            if (!guard) return;
+            emit operationSucceeded();
         }
-        emit changed();
     });
 }
 void DesktopIntegration::unlockVolume(const QString &p, const QString &password) {

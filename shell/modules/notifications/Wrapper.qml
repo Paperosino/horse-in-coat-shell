@@ -16,7 +16,10 @@ Item {
     visible: height > 0 && !(Presentation.privateOn(root.screenState.modelData))
     anchors.topMargin: -5
     implicitWidth: Math.max(sidebarPanel.width, content.implicitWidth)
-    implicitHeight: content.implicitHeight
+    // Content keeps its expressive height animation. The outer viewport must
+    // obey the current free space immediately while another popout moves;
+    // animating the capacity itself lets notifications spill below the screen.
+    implicitHeight: Math.max(0, Math.min(availableHeight, content.implicitHeight))
 
     Content {
         id: content

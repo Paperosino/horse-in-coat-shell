@@ -366,3 +366,16 @@
   уведомлений; queued callback берёт последнее pending состояние, а не старую
   захваченную копию. Не прекращать набор NOTIFY по одному generation без
   сохранения оставшихся изменений: это может оставить bindings устаревшими.
+
+- DesktopIntegration публикует changed/microphoneChanged одним context-bound
+  queued уведомлением после целостного обновления состояния; getters/busy
+  синхронны. Не возвращать emit changed в середину запуска QProcess или
+  startMicrophoneTest после stopMicrophoneTest: обработчик может удалить owner.
+- Терминальный callback может удалить DesktopIntegration. Перед ним отделить
+  завершённый QProcess от owner, назначить application shutdown owner и
+  deleteLater. Для уничтожения с активным helper — kill и async reap; проверять
+  фактический exit и отсутствие retired QObject до выхода test app.
+- Анимация высоты уведомлений не должна анимировать предел доступной области:
+  внешний viewport немедленно ограничивается availableHeight при движении
+  соседнего popout, внутренняя анимация сохраняется. Проверять каждый кадр,
+  а не только один снимок через фиксированные 500мс.

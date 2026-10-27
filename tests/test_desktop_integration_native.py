@@ -18,27 +18,37 @@ class DesktopIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory(prefix='hics-desktop-test-')
+        cls.addClassCleanup(cls.cleanup)
         cls.base = Path(cls.temp.name)
         cls.binary = cls.base / 'probe'
         flags = shlex.split(subprocess.check_output(['pkg-config', '--cflags', '--libs',
             'Qt6Core', 'Qt6Qml', 'Qt6DBus', 'Qt6Multimedia'], text=True))
-        sources = [ROOT / 'tests/fixtures/desktop-integration-probe.cpp']
+        probe_source=cls.base/'probe.cpp'
+        shutil.copy2(ROOT/'tests/fixtures/desktop-integration-probe.cpp',probe_source)
+        sources = [probe_source]
         for name in ('desktopintegration', 'notificationpolicy', 'wallpaperplayer'):
+            source = Path(os.environ.get('HICS_TEST_DESKTOP_SOURCE', SERVICES / (name + '.cpp'))) if name == 'desktopintegration' else SERVICES / (name + '.cpp')
+            header = Path(os.environ.get('HICS_TEST_DESKTOP_HEADER', SERVICES / (name + '.hpp'))) if name == 'desktopintegration' else SERVICES / (name + '.hpp')
+            shutil.copy2(source,cls.base/(name+'.cpp'));shutil.copy2(header,cls.base/(name+'.hpp'))
             moc = cls.base / (name + '-moc.cpp')
-            subprocess.run([str(Path(subprocess.check_output(['pkg-config', '--variable=libexecdir', 'Qt6Core'], text=True).strip()) / 'moc'), str(SERVICES / (name + '.hpp')), '-o', str(moc), *shlex.split(subprocess.check_output(['pkg-config', '--cflags', 'Qt6Qml', 'Qt6Multimedia'], text=True))], check=True)
-            sources.extend([SERVICES / (name + '.cpp'), moc])
+            subprocess.run([str(Path(subprocess.check_output(['pkg-config', '--variable=libexecdir', 'Qt6Core'], text=True).strip()) / 'moc'), str(cls.base / (name + '.hpp')), '-o', str(moc), *shlex.split(subprocess.check_output(['pkg-config', '--cflags', 'Qt6Qml', 'Qt6Multimedia'], text=True))], check=True)
+            sources.extend([cls.base/(name+'.cpp'), moc])
         sanitizers=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-g'] if os.environ.get('HICS_TEST_SANITIZERS') else []
-        subprocess.run(['c++', '-std=c++20', '-fPIC', *sanitizers, *map(str, sources), '-I', str(SERVICES),
+        subprocess.run(['c++', '-std=c++20', '-fPIC', *sanitizers, *map(str, sources), '-I', str(cls.base), '-I', str(SERVICES),
             *flags, '-o', str(cls.binary)], check=True)
         if os.environ.get('HICS_TEST_ARTIFACT_DIR'):
             artifact=Path(os.environ['HICS_TEST_ARTIFACT_DIR']);artifact.mkdir(parents=True,exist_ok=True,mode=0o700)
             shutil.copy2(cls.binary,artifact/'desktop-probe')
-        cls.bus = subprocess.Popen(['dbus-daemon', '--session', '--nofork', '--print-address=1'], stdout=subprocess.PIPE, text=True)
+        bus_config = cls.base/'bus.conf'
+        bus_config.write_text('<busconfig><type>session</type><listen>unix:tmpdir='+str(cls.base)+'</listen><policy context="default"><allow send_destination="*"/><allow receive_sender="*"/><allow own="*"/></policy></busconfig>')
+        cls.bus = subprocess.Popen(['dbus-daemon', '--config-file='+str(bus_config), '--nofork', '--print-address=1'], stdout=subprocess.PIPE, text=True)
         cls.env = dict(os.environ, DBUS_SYSTEM_BUS_ADDRESS=cls.bus.stdout.readline().strip(),
             DESKTOP_BUS_LOG=str(cls.base / 'bus.log'), XDG_CONFIG_HOME=str(cls.base / 'config'),
+            HOME=str(cls.base/'home'), XDG_DATA_HOME=str(cls.base/'data'),
+            XDG_STATE_HOME=str(cls.base/'state'), XDG_CACHE_HOME=str(cls.base/'cache'),
             DESKTOP_PORTAL_FAULT_FILE=str(cls.base/'portal-fault'))
         cls.mock = subprocess.Popen(['python3', str(ROOT / 'tests/mock_desktop_bus.py')], env=cls.env, stdout=subprocess.PIPE, text=True)
-        if cls.mock.stdout.readline().strip() != 'ready':
+        if not select.select([cls.mock.stdout],[],[],5)[0] or cls.mock.stdout.readline().strip() != 'ready':
             raise RuntimeError('Private desktop D-Bus fixture failed to start')
         tools = cls.base / 'tools'
         tools.mkdir()
@@ -68,11 +78,15 @@ elif name=='hyprctl':
             PIPEWIRE_REMOTE='hics-desktop-test-absent', PULSE_SERVER='unix:'+str(cls.base/'absent-pulse'),QT_FORCE_STDERR_LOGGING='1')
 
     @classmethod
-    def tearDownClass(cls):
-        for process in (cls.mock, cls.bus):
-            process.terminate()
-            process.wait(timeout=5)
-            process.stdout.close()
+    def cleanup(cls):
+        for name in ('mock', 'bus'):
+            process = getattr(cls,name,None)
+            if not process:continue
+            if process.poll() is None:
+                process.terminate()
+                try:process.wait(timeout=5)
+                except subprocess.TimeoutExpired:process.kill();process.wait(timeout=5)
+            if process.stdout and not process.stdout.closed:process.stdout.close()
         cls.temp.cleanup()
 
     def probe(self, operation, environment=None, **options):
@@ -86,6 +100,47 @@ elif name=='hyprctl':
     def test_network_refresh_does_not_load_multimedia_backend(self):
         data=self.probe('refresh')
         self.assertFalse(data['multimediaBackendLoaded'])
+
+    def test_observers_can_destroy_backend_at_operation_boundaries(self):
+        for mode in ('delete-busy', 'delete-success', 'delete-microphone'):
+            with self.subTest(mode=mode):
+                env = dict(self.env,QT_FFMPEG_DECODING_HW_DEVICE_TYPES=',',QT_FFMPEG_ENCODING_HW_DEVICE_TYPES=',')
+                data = self.probe(mode,environment=env)
+                self.assertTrue(data['deletedFromSignal'])
+                self.assertTrue(data['childReaped'])
+                self.assertEqual(data['retiredProcesses'],0)
+
+    def test_deleting_backend_reaps_hanging_helper_without_ui_wait(self):
+        data = self.probe('delete-busy',environment=dict(self.env,HICS_TEST_TOOL_MODE='hang'))
+        self.assertTrue(data['deletedFromSignal'])
+        self.assertTrue(data['childReaped'])
+        self.assertLess(data['deletionMs'],1000)
+        self.assertNotIn('Destroyed while process',self.last_stderr)
+        self.assertEqual(data['retiredProcesses'],0)
+
+    def test_dbus_result_signals_can_destroy_backend(self):
+        for mode, backend in (('delete-success','hotspot'), ('delete-success','unlock'),
+                              ('delete-hidden-finished',''), ('delete-mounted','')):
+            with self.subTest(mode=mode,backend=backend):
+                self.assertTrue(self.probe(mode,backend=backend)['deletedFromSignal'])
+
+    def test_error_notification_can_destroy_backend_after_failed_exec(self):
+        tool = self.base/'tools/pactl'; original = tool.read_bytes()
+        tool.write_text('#!/nonexistent/hics-test-interpreter\n')
+        try:
+            self.assertTrue(self.probe('delete-error')['deletedFromSignal'])
+        finally:
+            tool.write_bytes(original)
+
+    def test_destroy_while_exec_is_failing_does_not_leave_retired_process(self):
+        tool = self.base/'tools/pactl'; original = tool.read_bytes()
+        tool.write_text('#!/nonexistent/hics-test-interpreter\n')
+        try:
+            data = self.probe('delete-busy')
+            self.assertTrue(data['deletedFromSignal'])
+            self.assertEqual(data['retiredProcesses'],0)
+        finally:
+            tool.write_bytes(original)
 
     def test_stdout_overflow_is_bounded_and_releases_busy(self):
         data=self.probe('refresh',environment=dict(self.env,HICS_TEST_TOOL_MODE='stdout-overflow'))
@@ -225,11 +280,13 @@ elif name=='hyprctl':
         self.assertEqual(json.loads((self.base / 'profile.json').read_text()), ['set-card-profile', name, 'stereo'])
 
     def test_hotspot_is_volatile_and_password_goes_over_dbus(self):
+        log = self.base/'bus.log'
+        offset = log.stat().st_size if log.exists() else 0
         result = self.probe('hotspot', path='/org/freedesktop/NetworkManager/Devices/1', ssid='Test hotspot', password='secret123')
         self.assertTrue(result['succeeded'], result)
-        entries = [json.loads(line) for line in (self.base / 'bus.log').read_text().splitlines()]
-        hotspot = next(e['data'] for e in entries if e['method'] == 'hotspot')
-        self.assertEqual(hotspot, dict(ssid='Test hotspot', password='secret123', persist='volatile', method='shared'))
+        entries = [json.loads(line) for line in log.read_bytes()[offset:].splitlines()]
+        hotspots = [e['data'] for e in entries if e['method'] == 'hotspot']
+        self.assertEqual(hotspots, [dict(ssid='Test hotspot', password='secret123', persist='volatile', method='shared')])
 
     def test_hidden_network_uses_dbus_and_keeps_a_saved_profile(self):
         result = self.probe('hidden', ssid='Hidden test', password='secret123')

@@ -29,6 +29,7 @@ class DesktopIntegration : public QObject {
     Q_PROPERTY(qreal microphoneLevel READ microphoneLevel NOTIFY microphoneChanged)
 public:
     explicit DesktopIntegration(QObject *parent = nullptr);
+    ~DesktopIntegration() override;
     int portalSourceTypes() const { return m_portalSourceTypes; }
     bool busy() const { return m_pending > 0; }
     QString error() const { return m_error; }
@@ -66,6 +67,9 @@ private:
     void process(const QString &program, const QStringList &args, Result result, bool reportError = true);
     void diskCall(const QString &path, const QString &interface, const QString &method, const QVariantList &args);
     void fail(const QString &message);
+    void notifyChanged();
+    void notifyMicrophoneChanged();
+    bool m_changedQueued = false, m_microphoneQueued = false;
     void refreshDisks();
     void refreshCapture();
     void refreshWifi();

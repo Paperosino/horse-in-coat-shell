@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from integration_support import snapshot_qml_runtime, run_snapshot_qml
 
 ROOT = Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix='hics-desktop-ui-') as directory:
@@ -64,6 +65,11 @@ ShellRoot {
  ScreenState { id: popupState; modelData: Quickshell.screens[0] }
  Bar.BarWrapper { id: testBar; parent:host; screen:Quickshell.screens[0]; screenState:popupState; popouts:popupPanels.popouts; fullscreen:false }
  Drawers.Panels { id:popupPanels; parent:host; screen:Quickshell.screens[0]; screenState:popupState; bar:testBar; borderThickness:0 }
+ FrameAnimation {
+  running:Notifs.popups.length>0 && popupPanels.notificationPopoutOverlap
+  onTriggered:root.check(popupPanels.notifications.height<=popupPanels.notifications.availableHeight+1,
+   "notification viewport stays bounded during popup motion: height="+popupPanels.notifications.height+" available="+popupPanels.notifications.availableHeight)
+ }
  PageBase {
   id: scrollProbe; parent: host; title: "Scroll regression"; nState: root.state; width: 800; height: 360
   property var rows: Array.from({length: 40}, (_, i) => i)
@@ -330,7 +336,7 @@ ShellRoot {
  }
  function sendNotification(): void { notifier.exec(["notify-send", "--app-name=Integration test", "--expire-time=10000", "Integration notification"]); }
  function check(condition, message): bool { if (condition) return true; console.error("NOTIFICATION_TEST_FAILED", message); Qt.quit(); return false; }
- property var sources: PageRegistry.navigationPages.map(p => p.pageIndex).concat(["DockPage.qml", "AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml", "network/VpnProfilesPage.qml", "network/VpnEditorPage.qml", "network/VpnPluginsPage.qml", "ClipboardPage.qml", "ShortcutEditorPage.qml", "WorkspaceSessionPage.qml"]).concat(__DESIGN_PAGES__).concat(["wireguard","openvpn","pptp","l2tp","openconnect","vpnc","strongswan","libreswan","sstp","fortisslvpn","ssh"].map(p=>"vpn-test:"+p))
+ property var sources: Quickshell.env("HICS_TEST_NOTIFICATION_LAYOUT_ONLY") ? [] : PageRegistry.navigationPages.map(p => p.pageIndex).concat(["DockPage.qml", "AudioPage.qml", "NetworkPage.qml", "StoragePage.qml", "AccessibilityPage.qml", "SharingPage.qml", "services/NotificationsPage.qml", "network/AddNetworkPage.qml", "MediaPage.qml", "network/VpnProfilesPage.qml", "network/VpnEditorPage.qml", "network/VpnPluginsPage.qml", "ClipboardPage.qml", "ShortcutEditorPage.qml", "WorkspaceSessionPage.qml"]).concat(__DESIGN_PAGES__).concat(["wireguard","openvpn","pptp","l2tp","openconnect","vpnc","strongswan","libreswan","sstp","fortisslvpn","ssh"].map(p=>"vpn-test:"+p))
  Component.onCompleted: {
   const oldVideos=LiveWallpapers.videoStates, oldEngines=LiveWallpapers.engineRunning;
   LiveWallpapers.reportEngine("fixture",false);const engineState=LiveWallpapers.engineRunning;
@@ -403,7 +409,7 @@ ShellRoot {
      if (!root.check(Notifs.popups.length === 1, "resume popups")) return;
      if (!root.check(popupPanels.notificationPopoutOverlap, "right-hand popup intersects notification column")) return;
      if (!root.check(popupPanels.notifications.y + 5 >= popupPanels.popoutsWrapper.y + popupPanels.popoutsWrapper.height, "notifications are below the popup instead of overlapping")) return;
-     if (!root.check(popupPanels.notifications.y + popupPanels.notifications.height <= popupPanels.height + 1, "notification stack fits remaining screen height")) return;
+     if (!root.check(popupPanels.notifications.y + popupPanels.notifications.height <= popupPanels.height + 1, "notification stack fits remaining screen height: y="+popupPanels.notifications.y+" height="+popupPanels.notifications.height+" available="+popupPanels.notifications.availableHeight+" panel="+popupPanels.height+" popupBottom="+(popupPanels.popoutsWrapper.y+popupPanels.popoutsWrapper.height))) return;
      const card = root.findPopup(popupPanels.notifications);
      if (!root.check(card !== null, "actual notification card exists")) return;
      const cardTop = card.mapToItem(popupPanels, 0, 0).y;
@@ -539,16 +545,22 @@ ShellRoot {
         XDG_DATA_HOME=str(base / 'data'), XDG_CACHE_HOME=str(base / 'cache'),
         TEST_NETWORK_LOG=str(base / 'network.log'), XDG_RUNTIME_DIR=str(base / 'runtime'), QML_IMPORT_PATH=str(ROOT / 'build/qml'),
         QML2_IMPORT_PATH=str(ROOT / 'build/qml'), HYPRSTACK_NESTED='1', HICS_NO_ONBOARDING='1', HICS_CONFIG_NO_SYSTEMD='1', HICS_DISPLAY_NO_SYSTEMD='1',
-        PATH=str(tools) + ':' + os.environ['PATH'])
+        HOME=str(base/'home'), PIPEWIRE_REMOTE='hics-desktop-ui-absent',
+        PULSE_SERVER='unix:'+str(base/'absent-pulse'), PATH=str(tools) + ':' + os.environ['PATH'])
+    env.update(snapshot_qml_runtime(ROOT,base))
     if os.environ.get('HICS_UI_HARDWARE'):
         env.pop('QT_QUICK_BACKEND',None)
         env['QSG_RHI_BACKEND']='opengl'
     Path(env['XDG_RUNTIME_DIR']).mkdir(mode=0o700)
     env.pop('HYPRLAND_INSTANCE_SIGNATURE', None)
     env.pop('WAYLAND_DISPLAY', None)
-    # Use one private bus for both APIs so no host service can be activated.
-    runner = base / 'run.py'
-    runner.write_text('import os,sys\nos.environ["DBUS_SYSTEM_BUS_ADDRESS"]=os.environ["DBUS_SESSION_BUS_ADDRESS"]\nos.execvp(sys.argv[1],sys.argv[1:])\n')
+    # No service directories: a private bus must not activate real portals,
+    # indexers or input methods from the developer's installed session.
+    bus_config=base/'bus.conf'
+    bus_config.write_text('<busconfig><type>session</type><listen>unix:tmpdir='+str(base)+'</listen><policy context="default"><allow send_destination="*"/><allow receive_sender="*"/><allow own="*"/></policy></busconfig>')
+    bus=subprocess.Popen(['dbus-daemon','--config-file='+str(bus_config),'--nofork','--print-address=1'],stdout=subprocess.PIPE,text=True)
+    address=bus.stdout.readline().strip();assert address
+    env.update(DBUS_SESSION_BUS_ADDRESS=address,DBUS_SYSTEM_BUS_ADDRESS=address)
     compositor = None
     try:
         display = os.environ.get('WAYLAND_DISPLAY')
@@ -574,19 +586,25 @@ ShellRoot {
         instances = list((Path(env['XDG_RUNTIME_DIR']) / 'hypr').glob('*'))
         if instances:
             env['HYPRLAND_INSTANCE_SIGNATURE'] = instances[0].name
-        run = subprocess.run(['dbus-run-session', '--', 'python3', str(runner),
-            'quickshell', '-p', str(shell)], env=env, capture_output=True, text=True, timeout=120)
+        run = run_snapshot_qml(['/usr/share/hics/qs/bin/hics-qs','-p',str(shell)],env,ROOT/'build',120)
         output = run.stdout + run.stderr
         Path("/tmp/hics-desktop-full54.log").write_text(output)
         print(output[-24000:])
-        assert run.returncode == 0 and 'DESKTOP_UI_OK' in output and 'VPN_CREDENTIALS_DELETE_OK' in output and 'ISOLATED_RESTART_OK' in output and 'ISOLATED_WIDGET_OK' in output and 'SETTINGS_EXPANSION_OK' in output and 'NETWORK_QUICK_VPN_OK' in output and 'SCROLL_REFRESH_OK' in output and 'NOTIFICATION_ACTIVATION_OK' in output and 'NOTIFICATION_DBUS_ACTION_OK' in output and 'NOTIFICATION_POPUP_LAYOUT_OK' in output, 'Pages failed to construct'
+        expected = ['DESKTOP_UI_OK','NOTIFICATION_ACTIVATION_OK','NOTIFICATION_DBUS_ACTION_OK','NOTIFICATION_POPUP_LAYOUT_OK']
+        if not os.environ.get('HICS_TEST_NOTIFICATION_LAYOUT_ONLY'):
+            expected += ['VPN_CREDENTIALS_DELETE_OK','ISOLATED_RESTART_OK','ISOLATED_WIDGET_OK','SETTINGS_EXPANSION_OK','NETWORK_QUICK_VPN_OK','SCROLL_REFRESH_OK']
+        assert run.returncode == 0 and all(marker in output for marker in expected), 'Pages failed to construct'
         forbidden = ('TypeError:', 'ReferenceError:', 'Unable to assign', 'PAGE_CREATION_FAILED', 'Cannot assign to non-existent', 'Binding loop', 'NOTIFICATION_TEST_FAILED')
         print('Runtime warnings:', '\n'.join(line for line in output.splitlines() if any(message in line for message in forbidden)))
         assert not any(message in output for message in forbidden), 'QML runtime errors'
         import json
         assert not (base / 'network.log').exists(), 'Network facade unexpectedly spawned nmcli'
-        print('PASS: all navigation pages, profile menus, notification delivery, palettes and autoconnect credential preservation')
+        if os.environ.get('HICS_TEST_NOTIFICATION_LAYOUT_ONLY'):
+            print('PASS: focused notification delivery, action and animated viewport checks')
+        else:
+            print('PASS: all fixture navigation pages, profile menus, notification delivery, palettes and autoconnect credential preservation')
     finally:
+        bus.terminate();bus.wait(timeout=5);bus.stdout.close()
         if compositor and compositor.poll() is None:
             compositor.terminate()
             compositor.wait(timeout=5)

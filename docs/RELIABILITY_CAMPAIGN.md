@@ -2505,3 +2505,54 @@ runner478/UI520, health=true, safe=false, NRestarts=0, 207bindings,
 configerrors/failed units отсутствуют. Проверены SHA/inode загруженных
 bars/config/services; services541902a6bbc1b10c8c6e8e810cd810b85bb0e5cf053a92cdb00e005f94e74706.
 Это не измерение холодной задержки login и не новая чистая установка.
+
+## DESKTOP108: разрушение backend из callback и viewport уведомлений
+
+Исходники на базе93612d6. На старом DesktopIntegration подтверждены ASan SEGV
+при удалении из changed во время запуска process(), use-after-free после
+operationSucceeded и use-after-free в startMicrophoneTest после сигнала из
+stopMicrophoneTest. `desktop-before108.log`; повтор с согласованными старыми
+cpp/header и изолированной обвязкой — `desktop108-counterfactual.log`, все три
+сценария снова падают. Это синтетические lifecycle сценарии, не естественное
+воспроизведение редкого сбоя пользователя.
+
+Изменения: queued/coalesced changed и microphoneChanged, синхронные getters;
+таймаут помощника запускается до start, завершённый process получает shutdown
+owner до callback. Удаление backend убивает/асинхронно убирает активные helpers,
+не ждёт их в UI. Терминальные события сети/дисков завершают callback или
+проверяют QPointer. Постоянных таймеров/служб/потоков не добавлено.
+
+`desktop108-native-acceptance.log`: 28 тестов, ASan/UBSan/LSan,57.051s, OK.
+Включены busy/success/error/microphone deletion, hotspot/hidden-network/
+mount/unlock callbacks, зависший helper, FailedToStart, oversized stdout/stderr,
+таймауты/поздние ответы/смена владельца portal, bus failures, сохранение secret
+только в подставном D-Bus. Состояние retired process проверяется до app exit.
+В первом расширенном прогоне hotspot-проверка читала более раннюю запись
+другого теста; журнал теперь ограничен offset конкретной операции.
+
+Первый microphone ASan-run после product fix показал1989байт/28allocation
+при multimedia HW probing (стеки CUDA, DBus и unknown module). Это не объявлено
+исправленным driver leak. Lifecycle acceptance использует только в fixture
+пустые списки HW codec backends по [документации Qt](https://doc.qt.io/qt-6/advanced-ffmpeg-configuration.html),
+без sanitizer suppressions/detect_leaks=0. Production runtime и ускорение
+видео не менялись; аппаратный multimedia/leak gate остаётся открытым.
+
+Native fixture копирует согласованные cpp/header и зависимости перед сборкой,
+HOME/XDG/private D-Bus не имеют activation dirs. QML integration теперь также
+работает напрямую на private runtime snapshot с проверкой maps, без случайного
+installed module или запуска пользовательских portals/indexers/input methods.
+
+Именно этот current-source QML прогон выявил выход notification viewport за
+оставшуюся высоту при анимации audio popup. Короткий статичный повтор иногда
+проходил; покадровый до исправления подтвердил height88.927 при capacity87.634
+(`desktop108-notification-frame-before.log`). Wrapper немедленно ограничивает
+внешнюю высоту availableHeight; внутренняя expressive анимация остаётся.
+`desktop108-notification-frame-fixed.log` и полный `desktop108-qml-final.log`
+прошли: все fixture navigation pages, credential forms, popup geometry на
+каждом кадре, действия уведомлений, scroll retention, isolated widget restart.
+Это не полная ручная проверка всех возможностей DE. В журнале сохраняются
+известные Qt Wayland text-input warnings; их не фильтровали как исправленные.
+
+Сборка и пакет108 успешны, используется прежний проверенный частный Qt/QS,
+не свежая пересборка зависимостей. SHA256 пакета
+c44ba759bf8b887dbf91e3b250b4242d332c3c0c556829397f693aed372a0fcd.

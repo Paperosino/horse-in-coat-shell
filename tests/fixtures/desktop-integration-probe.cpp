@@ -10,6 +10,10 @@
 #include <QTimer>
 #include <QProcess>
 #include <QDBusPendingCallWatcher>
+#include <QPointer>
+#include <QElapsedTimer>
+#include <csignal>
+#include <cerrno>
 using namespace hyprstack::services;
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
@@ -25,6 +29,42 @@ int main(int argc, char **argv) {
         } else if (operation == "policy-resume") policy.resume();
         result = {{"paused", policy.paused()}, {"until", policy.pausedUntil()},
             {"rule", policy.rule("org.example.Chat")}, {"applications", QJsonArray::fromVariantList(policy.applications())}, {"error", policy.error()}};
+    } else if (operation.startsWith("delete-")) {
+        auto *desktop = new DesktopIntegration;
+        QPointer<DesktopIntegration> guard(desktop);
+        bool destroyed = false;
+        qint64 childPid = 0, deletionMs = 0;
+        const auto erase = [&] {
+            for (auto *process : desktop->findChildren<QProcess *>())
+                if (process->processId()) childPid = process->processId();
+            QElapsedTimer elapsed; elapsed.start(); delete desktop; deletionMs = elapsed.elapsed();
+        };
+        QObject::connect(desktop, &QObject::destroyed, &app, [&] { destroyed = true; });
+        if (operation == "delete-success")
+            QObject::connect(desktop, &DesktopIntegration::operationSucceeded, &app, erase);
+        else if (operation == "delete-hidden-finished")
+            QObject::connect(desktop, &DesktopIntegration::hiddenNetworkFinished, &app, erase);
+        else if (operation == "delete-mounted")
+            QObject::connect(desktop, &DesktopIntegration::volumeMounted, &app, erase);
+        else if (operation == "delete-microphone")
+            QObject::connect(desktop, &DesktopIntegration::microphoneChanged, &app, erase);
+        else QObject::connect(desktop, &DesktopIntegration::changed, &app, [&] {
+            if ((operation == "delete-busy" && desktop->busy()) ||
+                (operation == "delete-error" && !desktop->error().isEmpty())) erase();
+        });
+        if (operation == "delete-microphone") desktop->startMicrophoneTest();
+        else if (operation == "delete-hidden-finished") desktop->connectHiddenNetwork("Test network", "test password", true, true);
+        else if (operation == "delete-mounted") desktop->mountVolume("/org/freedesktop/UDisks2/block_devices/luks");
+        else if (request["backend"] == "hotspot") desktop->startHotspot("/org/freedesktop/NetworkManager/Devices/1", "Test hotspot", "test password");
+        else if (request["backend"] == "unlock") desktop->unlockVolume("/org/freedesktop/UDisks2/block_devices/luks", "correct passphrase");
+        else desktop->setCardProfile("fixture", "stereo");
+        QEventLoop loop;
+        QTimer::singleShot(800, &loop, &QEventLoop::quit); loop.exec();
+        const bool fromSignal = !guard;
+        if (guard) delete desktop;
+        const bool reaped = !childPid || (::kill(childPid, 0) < 0 && errno == ESRCH);
+        result = {{"destroyed", destroyed}, {"deletedFromSignal",fromSignal}, {"childReaped",reaped}, {"deletionMs",deletionMs},
+            {"retiredProcesses",app.findChildren<QProcess *>(QString(),Qt::FindDirectChildrenOnly).size()}};
     } else if (operation == "destroy-active") {
         auto *desktop = new DesktopIntegration;
         bool destroyed = false;
