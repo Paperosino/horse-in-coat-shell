@@ -54,8 +54,8 @@ assert unit.returncode!=0,'A package guard was left running'
 with package.open('rb') as stream: package_sha256=hashlib.file_digest(stream,'sha256').hexdigest()
 print(json.dumps({'sessionMode':session_mode,'packageSha256':package_sha256,'before':before,'after':after,'version':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'autoreloadRestored':True,'log':str(log)},indent=2))
 '''
-p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--package',required=True);p.add_argument('--output',required=True,type=Path);p.add_argument('--session-mode',choices=['locked','safe'],default='locked');a=p.parse_args()
-command=['ssh','-i',str(a.lab/'guest_ed25519'),'-p','22280','-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(a.lab/'known_hosts-installed'),'root@127.0.0.1','python3 - '+shlex.quote(a.package)+' '+shlex.quote(a.session_mode)]
+p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--package',required=True);p.add_argument('--output',required=True,type=Path);p.add_argument('--session-mode',choices=['locked','safe'],default='locked');p.add_argument('--ssh-port',type=int,default=22280);p.add_argument('--identity',type=Path);p.add_argument('--known-hosts',type=Path);a=p.parse_args()
+command=['ssh','-i',str(a.identity or a.lab/'guest_ed25519'),'-p',str(a.ssh_port),'-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(a.known_hosts or a.lab/'known_hosts-installed'),'root@127.0.0.1','python3 - '+shlex.quote(a.package)+' '+shlex.quote(a.session_mode)]
 result=subprocess.run(command,input=REMOTE,capture_output=True,text=True,timeout=280)
 if result.returncode:raise SystemExit(result.stdout+result.stderr)
 report=json.loads(result.stdout);a.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

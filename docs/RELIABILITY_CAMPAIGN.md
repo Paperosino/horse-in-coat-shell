@@ -1683,3 +1683,31 @@ stacking, light/dark, downloads/selection и финального выхода. 
 контрол/режим/диск проверен этим проходом; Skip/cancel, полный повторный login,
 доступность, многомониторная конфигурация и все оставшиеся DE gates открыты.
 Все текущие source fixes после98 ещё надо собрать и проверить установленными.
+
+### Пакет99: новые QML и фактически загруженный перевод
+
+Revision99 включает event refresh UI после display rollback, locked playback
+gate, Disabled shortcut label и перевод Estimate. hyprstack-i18n пересобран:
+msgfmt/rcc/QML cache/link, log i18n99-build.log. Остальной private Qt/Quickshell
+runtime прежний; это не полная свежая сборка всех зависимостей.
+
+Package SHA2560236f851626e9b221ebc33858b4c83f11e46743f307b41da245fa798d18fb61b.
+Из tar побайтно сверены Hypr.qml, Monitors.qml, DemoCard.qml, Wizard.qml и
+root shell.qml; packaged GNUTranslations переводит Estimate→Оценка.
+Actual production DemoCard playback test снова прошёл со snapshot modules.
+
+vm_package_upgrade получил необязательные ssh-port/identity/known-hosts, чтобы
+проверять второй guest без подмены default22280. locked-upgrade99.json в
+cachyos-fresh98: runner6340/shell10609/Kitty10432/lockedtrue/208binds/empty
+configerrors сохранены, autoreload restored. Гость22281 теперь99, исходный
+гость22280 остаётся98, host78 не менялся. Работающий UI ещё10609 со старым QML:
+новые изменения требуют обычного unlock и согласованного UI transition.
+
+Дополнительный offscreen QML probe под обычным гостевым пользователем загружает
+именно /usr/share/hics/qml и private libs; Tr.language=ru_RU,
+Tr.tr(Estimate)=Оценка. HOME/XDG/DBus изолированы; lock-owner не меняется.
+Первая попытка наследовала XDG_RUNTIME_DIR=/run/user/0 от root SSH и корректно
+отказала до QML. Исправлен private runtime0700; повторный probe прошёл.
+Это ошибка fixture, не дефект перевода. Installed video pause/display UI fix
+ещё надо проверить после загрузки нового main UI; отсутствие строк в .po или
+байтовое совпадение QML сами по себе не закрывают этот gate.

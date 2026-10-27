@@ -203,3 +203,10 @@ scope. После coordinated UI reload приложение живо, ready=tru
 пуст, onboarding layer отсутствует. Evidence tour-finish98.json и screenshots.
 Это не проверка каждого контрола, Skip и полного logout/login. Добавлен перевод
 Estimate; после98 source fixes ещё не проверены новым установленным пакетом.
+
+Гость fresh98/SSH22281 обновлён до99 при настоящем lock: процессы, приложение,
+208binds и конфигурация сохранены. Исходный гость22280 по-прежнему98.
+Пакет99 содержит последние QML/translation fixes; target i18n пересобран,
+5 QML артефактов побайтно сверены. Отдельный installed QML probe реально
+переводит Estimate→Оценка. Главный UI10609 ещё старый, поскольку владелец lock
+сохранён: требуется нормальный unlock/transition и проверка исправлений там.
