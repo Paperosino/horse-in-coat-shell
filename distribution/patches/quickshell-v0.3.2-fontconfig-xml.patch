@@ -1,0 +1,11 @@
+--- a/src/launch/launch.cpp
++++ b/src/launch/launch.cpp
+@@ -219,7 +219,7 @@
+ </fontconfig>
+ )");
+ 
+-				QTextStream(&filterFile) << filterTemplate.arg(baseConfigPath);
++				QTextStream(&filterFile) << filterTemplate.arg(baseConfigPath.toHtmlEscaped());
+ 				filterFile.close();
+ 				qputenv("FONTCONFIG_FILE", filterPath.toUtf8());
+ 			} else {

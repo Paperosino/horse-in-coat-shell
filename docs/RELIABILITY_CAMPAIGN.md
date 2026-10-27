@@ -3233,3 +3233,23 @@ Normal logout/login is required to load updated running user/native images;
 no compositor plugin was hot-unloaded and no application was killed. The
 remaining Fontconfig LSan finding, unreproduced portal warning, hardware-GPU
 coverage and higher cold RSS are still open, not marked complete by deployment.
+
+### Follow-up114: Fontconfig XML path encoding
+
+Inspection of the real pinned QS launch source exposed an independent XML
+encoding bug: FONTCONFIG_FILE is interpolated verbatim into the generated
+filter's `<include>`. A native Fontconfig parser probe with the actual upstream
+template and an existing `fonts & include.conf` reproduces rejection at line4
+(`not well-formed (invalid token)`), whereas XML-escaped text parses correctly.
+Raw diagnostic files are retained outside Git under fontconfig-xml114. This
+is unrelated to the587-byte global-configuration LSan finding.
+
+The source patch now passes baseConfigPath.toHtmlEscaped() to that template.
+It applies to the actual0.3.2 source with fuzz=0 and an independent copied-source
+forward/reverse dry-run verifies idempotency without mutating the canonical113
+source stage. The patch participates in source checking and cache identity;
+all29 existing provenance/payload/closure/policy tests pass with the four-patch
+set. A first manually written hunk had an incorrect context length and failed
+the dry-run; it was regenerated from the actual source diff before acceptance.
+Full Qt/VM acceptance of a rebuilt114 image is still pending; installed113 is
+unchanged by this source-only follow-up.
