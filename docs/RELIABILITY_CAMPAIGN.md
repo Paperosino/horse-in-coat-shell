@@ -2929,3 +2929,47 @@ longer runs remain open; no suppressions, hardware-disable flags, host install
 or completion claim have been made. Optional bounded maps sampling in the VM
 fixture now preserves address evidence for these unloaded modules; timings
 from that diagnostic sampling are not production benchmarks.
+
+
+### Installed package110 acceptance and remaining memory evidence
+
+The canonical package110 (SHA256
+88a592122816fb913d0c15b090147eb535a9e8e51150d91c337710a91c9679d2)
+was upgraded in the disposable VM while locked, without replacing the lock
+owner, runner or a running application. After an intentional guest reboot,
+installed-runtime portal, real portal frontend, FFmpeg audio, text-input with
+Fcitx5 and without IME, video and sink-watchdog cases all passed (7/7).
+The120-cycle real settings soak completed without a restart or configuration
+errors. RSS nevertheless grew from572620 to1410052KiB (peak1423340KiB).
+This is an open retention investigation, not a memory-improvement claim.
+
+The isolated settings fixture previously omitted GSFLoader. It now loads and
+asserts both production font families and retains production font/render
+pragmas. Earlier ownership reproductions remain useful, but were not complete
+font/visual acceptance. With production fonts,60 completed cycles report
+827bytes/9LSan allocations:587 in fontconfig and240 in an unloaded module.
+No suppressions or hardware-disable environment were used.
+
+Diagnostic loader-base evidence maps the latter allocation sites to installed
+Mesa libgallium26.2.4 (build-id7ca4984374952ab5b5bbe28ff9d9fd252ba0dab9).
+Disassembly and checksum-verified Mesa source identify the128-byte CPU L3
+mask allocation and two56-byte u_mmInit blocks. This is allocation-site
+attribution; complete lifetime/caller proof and bounded-growth evidence are
+still required. No Mesa patch or allocator workaround has been shipped.
+Optional loader tracing and slow ASan DWARF unwinding are test-only, not
+production performance measurements.
+
+A separate fresh guest resumed with a black display and unresponsive SSH.
+Its private register/memory evidence was retained before a disposable-VM
+reset. Previous-boot journal ends at deep suspend; there is no demonstrated
+HICS crash or proof that an idle-policy change fixes kernel/firmware resume.
+Normal console PAM login after reset succeeds. Cold portal startup with
+G_DEBUG=fatal-criticals remains alive without a coredump in this run; this
+single run does not close the intermittent portal GLib finding.
+
+First-run setup now participates in the existing idle policy: automatic
+HICS idle actions are disabled while Onboarding.running, and the existing
+inhibitor receives the same state. A private VM fixture tests setup entry,
+actual finish()/skip(), restoration of baseline policy and preservation of
+manual keep-awake (4.49s, exit0). This does not test physical suspend, PAM or
+claim compositor idle-inhibit protocol behaviour from a property assertion.

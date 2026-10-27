@@ -17,11 +17,21 @@ import subprocess
 import tempfile
 import time
 
-QML = '''import QtQuick
+QML = '''//@ pragma AppId org.hics.Shell
+//@ pragma DefaultEnv QS_NO_RELOAD_POPUP=1
+//@ pragma DefaultEnv QS_DROP_EXPENSIVE_FONTS=1
+//@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
+//@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
+//@ pragma IconTheme Adwaita
+import QtQuick
 import Quickshell
 import qs.modules.nexus
+import qs.modules as Modules
 ShellRoot {
  id:root
+ settings.watchFiles:false
+ Modules.GSFLoader {}
+ property bool fontsChecked:false
  property var current:null
  property int index:0
  property int phase:0
@@ -38,6 +48,13 @@ ShellRoot {
   interval:200;repeat:true;running:true
   onTriggered:{
    if(root.phase===0){
+    if(!root.fontsChecked){
+     const families=Qt.fontFamilies();
+     if(!families.includes("Google Sans Flex")||!families.includes("Material Symbols Rounded")){
+      if(++root.waits>50){console.error("PROFILE_FAIL production fonts");Qt.exit(1);}return;
+     }
+     root.fontsChecked=true;root.waits=0;console.log("PROFILE_FONTS_READY");
+    }
     if(root.index>=CYCLES){console.log("PROFILE_COMPLETE",root.index);Qt.quit();return;}
     root.current=factory.createObject(root,{pageId:root.pages[root.index%root.pages.length],visible:true});
     if(!root.current){console.error("PROFILE_FAIL create");Qt.exit(1);return;}
@@ -79,6 +96,8 @@ def stop(process):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--disposable-cachyos-vm', action='store_true', required=True)
+    p.add_argument('--loader-trace', action='store_true', help='glibc loader file/base evidence, including short-lived unloaded drivers; test-only')
+    p.add_argument('--slow-unwind', action='store_true', help='ASan DWARF allocation stacks for uninstrumented dependencies; diagnostic, potentially very slow')
     p.add_argument('--trace-maps', action='store_true', help='Save bounded latest /proc maps for unloaded-module symbolization; test-only sampling')
     p.add_argument('--timeout-seconds', type=int, help='Explicit cold sanitizer/JIT time budget, 10..3600 seconds')
     p.add_argument('--cycles', type=int, default=60)
@@ -102,6 +121,7 @@ def main():
         p.error('Finish the package transaction before profiling immutable modules')
     if a.mode == 'asan' and not a.asan_overlay and not a.qml_fixture:
         p.error('An instrumented module overlay is required')
+    if a.slow_unwind and a.mode != 'asan': p.error('--slow-unwind requires ASan mode')
     effects_image = (a.runtime / 'lib/libQt6QuickEffects.so.6').resolve() if a.expect_effects_sha256 else None
     if effects_image and hashlib.sha256(effects_image.read_bytes()).hexdigest() != a.expect_effects_sha256:
         p.error('QuickEffects checksum mismatch')
@@ -170,11 +190,14 @@ def main():
             if a.extra_import:
                 env['QML_IMPORT_PATH'] = str(a.extra_import) + ':' + env['QML_IMPORT_PATH']
                 env['QML2_IMPORT_PATH'] = env['QML_IMPORT_PATH']
+            env.pop('LD_DEBUG', None)
+            env.pop('LD_DEBUG_OUTPUT', None)
+            if a.loader_trace: env['LD_DEBUG'] = 'files'
             for key in ('LD_PRELOAD', 'LSAN_OPTIONS', 'ASAN_OPTIONS'):
                 env.pop(key, None)
             if a.mode == 'asan':
                 env['LD_PRELOAD'] = '/usr/lib/libasan.so.8'
-                env['ASAN_OPTIONS'] = 'detect_leaks=1:halt_on_error=1'
+                env['ASAN_OPTIONS'] = 'detect_leaks=1:halt_on_error=1' + (':fast_unwind_on_malloc=0' if a.slow_unwind else '')
                 if a.asan_overlay:
                     env['LD_LIBRARY_PATH'] = str(a.asan_overlay / 'lib') + ':' + env['LD_LIBRARY_PATH']
                     env['QML_IMPORT_PATH'] = str(a.asan_overlay / 'qml') + ':' + env['QML_IMPORT_PATH']
@@ -190,7 +213,7 @@ def main():
                 mapped_libraries = []
                 effects_mapped = None
                 if (a.mode == 'asan' and a.asan_overlay) or effects_image:
-                    deadline = time.monotonic() + 15
+                    deadline = time.monotonic() + min(60, a.timeout_seconds or 30 + a.cycles * 5)
                     while process.poll() is None and time.monotonic() < deadline:
                         maps = Path('/proc') / str(process.pid) / 'maps'
                         loaded = maps.read_text()
@@ -222,16 +245,16 @@ def main():
                 else:
                     process.wait(timeout=timeout)
             text = (a.output / 'process.log').read_text()
-            report = {'mapsSampling':a.trace_maps, 'elapsedSeconds':time.monotonic()-started_at, 'timeoutSeconds':a.timeout_seconds or 30+a.cycles*5, 'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
+            report = {'slowUnwinding':a.slow_unwind, 'loaderTracing':a.loader_trace, 'mapsSampling':a.trace_maps, 'elapsedSeconds':time.monotonic()-started_at, 'timeoutSeconds':a.timeout_seconds or 30+a.cycles*5, 'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
                 'quickEffectsImage': str(effects_image) if effects_image else None, 'quickEffectsSha256': a.expect_effects_sha256, 'quickEffectsMapped': effects_mapped,
-                'asanModulesMapped': asan_mapped, 'asanLibrariesMapped': mapped_libraries, 'asanOverlayFiles': overlay_manifest, 'complete': 'PROFILE_COMPLETE ' + str(a.cycles) in text,
+                'asanModulesMapped': asan_mapped, 'asanLibrariesMapped': mapped_libraries, 'asanOverlayFiles': overlay_manifest, 'complete': 'PROFILE_COMPLETE ' + str(a.cycles) in text, 'productionFontsReady': 'PROFILE_FONTS_READY' in text if not a.qml_fixture else None,
                 'extraImportFiles': {str(p.relative_to(a.extra_import)): hashlib.sha256(p.read_bytes()).hexdigest() for p in a.extra_import.rglob('*') if p.is_file()} if a.extra_import else {},
                 'qmlOverrides': {str(p.relative_to(a.shell_overlay)): hashlib.sha256(p.read_bytes()).hexdigest() for p in a.shell_overlay.rglob('*.qml')} if a.shell_overlay else {},
                 'page': a.page, 'fixtureSha256': hashlib.sha256(a.qml_fixture.read_bytes()).hexdigest() if a.qml_fixture else None,
                 'scope': 'Custom isolated Qt lifetime fixture' if a.qml_fixture else 'Isolated real settings windows with rendered grabs; not the whole desktop or every control'}
             (a.output / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
             print(json.dumps(report, indent=2))
-            assert report['code'] == 0 and report['complete'], text[-5000:]
+            assert report['code'] == 0 and report['complete'] and (a.qml_fixture or report['productionFontsReady']), text[-5000:]
         finally:
             stop(process)
             stop(bus)
