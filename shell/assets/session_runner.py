@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import select
 import selectors
 import shutil
 import signal
@@ -66,6 +67,24 @@ def load_capture_plugin(name="hics-capture"):
         print("Unable to load " + name + ":", error, file=sys.stderr)
 
 
+def wait_preflight(child, timeout):
+    """Observe exit without reaping the leader until its group is stopped.
+
+    Keeping it waitable reserves the PID/PGID; an unconditional killpg after
+    Popen.wait() could otherwise address a reused unrelated process group.
+    pidfd readiness wakes immediately, without adding a polling delay.
+    """
+    descriptor=os.pidfd_open(child.pid)
+    try:
+        poller=select.poll()
+        poller.register(descriptor,select.POLLIN)
+        if not poller.poll(max(1,int(timeout*1000))):
+            raise subprocess.TimeoutExpired('startup helper',timeout)
+        state=os.waitid(os.P_PID,child.pid,os.WEXITED|os.WNOWAIT)
+        return state.si_status if state.si_code==os.CLD_EXITED else -state.si_status
+    finally:os.close(descriptor)
+
+
 def prepare_session(cancelled=lambda: False):
     """Independent recovery/accessibility jobs overlap palette preparation.
 
@@ -103,16 +122,17 @@ def prepare_session(cancelled=lambda: False):
                     print("Unable to initialize " + label + ": timed out", file=sys.stderr)
                     break
                 try:
-                    result = child.wait(timeout=min(.25,remaining))
+                    result = wait_preflight(child,min(.25,remaining))
                     if result:
                         print("Unable to initialize " + label + ": exit", result, file=sys.stderr)
                     break
                 except subprocess.TimeoutExpired:pass
     finally:
         for _, child, _ in pending:
-            if child.poll() is None:
-                try: os.killpg(child.pid, signal.SIGKILL)
-                except ProcessLookupError: pass
+            # No poll()/wait() has reaped this leader yet, even if it exited.
+            # Terminate descendants before releasing its reserved group id.
+            try: os.killpg(child.pid, signal.SIGKILL)
+            except ProcessLookupError: pass
             child.wait()
     os.environ["QT_QPA_PLATFORMTHEME"] = "hics"
     os.environ["QT_QUICK_CONTROLS_CONF"] = str(Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config"))/"hics/qtquickcontrols2.conf")

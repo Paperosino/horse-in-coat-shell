@@ -1429,3 +1429,31 @@ helper process groups. Подготовка теперь принимает canc
 подменяют killpg, чтобы не адресовать существующие процессы машины теста.
 29 recovery и2 session-restart tests также прошли. Изменение после пакета97;
 установленная ВМ ещё не подтверждает этот cancellation path.
+
+### STARTUP-DESCENDANTS: потомок переживает завершившегося помощника
+
+Новый реальный тест запускает по помощнику на preflight job; каждый создаёт
+sleep60 в своей группе и сам завершается успешно. До исправления тест упал:
+все3 потомка продолжали жить, потому что cleanup проверял только leader.poll().
+
+Ожидание заменено на pidfd readiness + waitid(WEXITED|WNOWAIT). Статус лидера
+наблюдается без reap; до освобождения зарезервированного PID/PGID cleanup
+останавливает группу и только затем вызывает Popen.wait. Нельзя просто вызвать
+killpg после старого wait: между reap и kill номер мог быть переиспользован.
+pidfd poll возвращается сразу при готовности, нет добавленной задержки250ms
+успешному startup; poll также не имеет FD_SETSIZE ограничения select.select.
+Открытый pidfd всегда закрывается в finally. API доступен в целевом Linux,
+Python>=3.11; зависимостей и resident сервисов не добавлено.
+
+Первичная документация:
+https://docs.python.org/3/library/os.html#os.waitid
+https://docs.python.org/3/library/os.html#os.WNOWAIT
+https://docs.python.org/3/library/os.html#os.pidfd_open
+
+Тест усилен: каждый helper создаёт также detached sleep60 с новой сессией.
+После cleanup 3 managed descendants не работают, 3 detached живы; fixture
+после проверки завершает и их. Это проверяет границу очистки: собственные
+configuration/display guards с start_new_session не должны быть убиты.
+Сама проверка /proc/stat исправлена для ESRCH при исчезновении inode во время
+read, не только ENOENT. Все6 startup и29 recovery tests проходят;2 session
+restart tests прошли после основной правки. Установленный пакет97 пока старый.

@@ -15,7 +15,7 @@ class StartupTests(unittest.TestCase):
    def poll(self):return 0
   appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:True),session_environment=lambda:{})
   theme=types.SimpleNamespace(restore=lambda:events.append(('theme',None)))
-  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner.os,'killpg'):runner.prepare_session()
+  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner,'wait_preflight',side_effect=lambda child,timeout:child.wait(timeout=timeout)),patch.object(runner.os,'killpg'):runner.prepare_session()
   starts=[i for i,e in enumerate(events) if e[0]=='start'];waits=[i for i,e in enumerate(events) if e[0]=='wait']
   self.assertEqual(len(starts),4);self.assertLess(max(starts),min(waits));self.assertLess(events.index(('theme',None)),min(waits))
  def test_timeout_kills_and_reaps_unfinished_helper(self):
@@ -28,7 +28,7 @@ class StartupTests(unittest.TestCase):
     self.stopped=True;return -9
   appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:False),session_environment=lambda:{})
   theme=types.SimpleNamespace(restore=lambda:None)
-  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner.os,'killpg') as kill,patch.object(runner.time,'monotonic',side_effect=itertools.count(step=10).__next__):
+  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner,'wait_preflight',side_effect=lambda child,timeout:child.wait(timeout=timeout)),patch.object(runner.os,'killpg') as kill,patch.object(runner.time,'monotonic',side_effect=itertools.count(step=10).__next__):
    runner.prepare_session();self.assertEqual(kill.call_count,3)
  def test_stop_during_preparation_cancels_and_reaps_all_started_jobs(self):
   stopping=False;children=[]
@@ -44,7 +44,7 @@ class StartupTests(unittest.TestCase):
     self.reaped=True;return -9
   appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:False),session_environment=lambda:{})
   theme=types.SimpleNamespace(restore=lambda:None)
-  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner.os,'killpg') as kill:
+  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner,'wait_preflight',side_effect=lambda child,timeout:child.wait(timeout=timeout)),patch.object(runner.os,'killpg') as kill:
    self.assertFalse(runner.prepare_session(lambda:stopping))
   self.assertEqual(len(children),3);self.assertEqual(kill.call_count,3)
   self.assertTrue(all(c.reaped for c in children));self.assertLessEqual(children[0].timeout,.25)
@@ -73,3 +73,32 @@ class StartupTests(unittest.TestCase):
    for child in children:
     if child.poll() is None:child.kill()
     child.wait()
+ def test_finished_helper_cannot_leave_running_descendants(self):
+  import json,os,signal,subprocess,time
+  children=[];descendants=[];popen=subprocess.Popen
+  with tempfile.TemporaryDirectory() as directory:
+   def spawn(argv,**kwargs):
+    marker=Path(directory)/str(len(children))
+    script='import subprocess,pathlib,json; p=subprocess.Popen(["sleep","60"]); d=subprocess.Popen(["sleep","60"],start_new_session=True);pathlib.Path('+repr(str(marker))+').write_text(json.dumps({"managed":p.pid,"detached":d.pid}))'
+    child=popen([sys.executable,'-c',script],**kwargs);children.append(child);return child
+   appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:False),session_environment=lambda:{})
+   theme=types.SimpleNamespace(restore=lambda:None)
+   try:
+    with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',side_effect=spawn):
+     self.assertTrue(runner.prepare_session())
+    records=[json.loads(p.read_text()) for p in Path(directory).iterdir()]
+    descendants=[r['managed'] for r in records]
+    self.assertEqual(len(descendants),3)
+    def active(pid):
+     try:return Path(f'/proc/{pid}/stat').read_text().rsplit(')',1)[1].split()[0]!='Z'
+     except (FileNotFoundError,ProcessLookupError):return False
+    deadline=time.monotonic()+2
+    while any(active(p) for p in descendants) and time.monotonic()<deadline:time.sleep(.01)
+    self.assertFalse(any(active(p) for p in descendants),'Completed preflight leaked a running grandchild')
+    self.assertTrue(all(active(r['detached']) for r in records),'Independent service group was terminated')
+   finally:
+    for p in Path(directory).iterdir():
+     for pid in json.loads(p.read_text()).values():
+      try:os.kill(pid,signal.SIGKILL)
+      except ProcessLookupError:pass
+    for child in children:child.wait()
