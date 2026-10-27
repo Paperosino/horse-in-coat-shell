@@ -1962,3 +1962,65 @@ Main runner/UI/app and unlocked state remain unchanged. This proves installed
 modules in a separate nested compositor, not a complete fresh login/cold boot,
 all settings actions, physical GPU behaviour or a leak-free long soak. Host78
 and fresh guest99 are untouched; full main-session101 acceptance remains open.
+
+### Full main-session101 boot and repeated settings lifecycle
+
+A requested systemd reboot of the disposable original guest changed boot ID
+add14e7e-6569-4955-b600-86378169ce08 → fa00805c-688a-4f1a-b002-d181ae5334a8.
+The guest's existing startup launched its graphical session automatically; no
+new autologin policy was installed by this test. Main compositor382/runner476/
+UI518 are new processes. `tests/vm_session_probe.py` verifies the loaded module's
+inode against the installed file and its expected hash, normal recovery state,
+first-frame health,207bindings, no configuration/failed-unit errors and zero
+service restarts. Real QMP desktop capture was inspected. This is functional
+acceptance after reboot, not an uncached host-storage latency benchmark or proof
+of a manual login-manager flow. The prior session's applications close normally
+at logout/reboot; application survival is required across shell reloads, not
+across destruction of their compositor connection.
+
+The lifecycle test now selects the UI from the runner's direct children, checks
+its process start time and samples CPU ticks as well as RSS/PSS/private dirty,
+FDs and threads. It reads both journal entries after a cursor and bounded decoded
+Quickshell logs. A zero new-journal count is reported literally; the second run
+also checks18 decoded Quickshell lines and finds no binding/JavaScript errors.
+Its warnings include software-rendering limitations, portal registration and
+textinput teardown: these are not silently called a clean all-warning pass.
+
+Two runs each completed120 open/close cycles of network/audio/storage/clipboard/
+display/configuration-history. Dwell is0.3s after mapping: this deliberately
+closes in-flight page work and does not prove every page action/body loaded.
+Temporary logind inhibit and neutral QMP Shift input keep the test visible;
+normal PAM unlock is performed before acceptance, never by restarting a lock
+owner. `vm_guest_auth.py` reads an external bounded/private credential file,
+rejects unsupported display/keymap fixtures before typing, and emits no secret.
+
+Evidence in external cachyos lab:
+- cold-session101.json/png: new boot, ready main session, matching loaded native.
+- settings-soak-cold101.json:120cycles/118.34s, FD89→88, threads27→25;
+  RSS796960→1490692KiB, PSS685254→1366063KiB.
+- settings-soak-after-trim101.json: another120cycles/117.91s, FD90→88,
+  threads27→25; RSS1057096→1731708KiB. No new binding/JS errors in both sources.
+
+Memory result is an open performance finding, not a leak-free pass. In the first
+run it approaches a plateau, but a second batch reaches a higher plateau. GDB18.1
+was installed **only in the guest** for two explicit diagnostic malloc_trim(0)
+calls while unlocked. Both detached and left the same UI healthy:
+- malloc-trim-diagnostic101.json: RSS1614312→767744KiB, private dirty
+  1373584→527028KiB;
+- malloc-trim-second101.json: RSS1724328→922312KiB, private dirty
+  1490756→688740KiB.
+These show a large amount of already freed storage retained by the allocator;
+they do not rule out a smaller live leak or driver/font caches. No periodic trim,
+drop_caches service, allocator environment override or production tuning was added.
+Detailed smaps grouping is memory-after-soak101.txt; software LLVM/Gallium and
+font mappings make extrapolation to physical GPUs unsafe.
+
+Next controlled allocator experiments must distinguish memory savings from CPU/
+latency regressions. Primary glibc documentation says an explicit mmap threshold
+disables its dynamic adjustment, while mallopt is MT-Unsafe init; do not apply a
+late mallopt call inside the running multithreaded shell as a shortcut:
+https://sourceware.org/glibc/manual/latest/html_node/Memory-Allocation-Tunables.html
+https://sourceware.org/glibc/manual/latest/html_node/Malloc-Tunable-Parameters.html
+The portal duplicate-app-ID warning and textinput warnings need separate protocol
+investigation. Hardware GPU, all settings actions, full leak profiling and all
+remaining branding/media gates stay open. Host78/fresh guest99 are untouched.

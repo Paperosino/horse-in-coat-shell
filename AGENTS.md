@@ -311,3 +311,13 @@
 - Изолированный settings root должен подключать production GSFLoader и проверять
   регистрацию Material Symbols. Глобально установленный шрифт на host скрывает
   пропуск FontLoader в fixture; проверять реальный installed screenshot в ВМ.
+
+- RSS после закрытия окон не равен объёму живых объектов: glibc/графический стек
+  могут удерживать свободные страницы. Проверять PSS/private dirty, повторные
+  серии, FD/threads и профиль, не называть одиночный plateau отсутствием утечки.
+  Диагностический malloc_trim в ВМ не превращать в постоянный таймер очистки.
+  mallopt MT-Unsafe init: не менять политику поздним вызовом в работающем Qt.
+- Lifecycle soak выбирает прямого UI-ребёнка runner и проверяет его start time;
+  проверяет journal и decoded Quickshell log, а быстрый dwell не выдаёт за полную
+  загрузку/проверку каждого control. Credentials стенда — только приватный файл
+  вне Git и штатный PAM; lock owner не перезапускается ради теста.

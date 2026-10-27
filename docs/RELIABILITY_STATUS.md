@@ -282,3 +282,14 @@ nested integration прошла7checks с реальными packaged QML/native
 его было видно на первом guest screenshot, исправленный capture проверен.
 Evidence settings-workarea-installed101-fonts.json/png. Это не проверка полного
 нового входа main session101; хост78/fresh guest99 не изменялись.
+
+Main101 прошёл новый boot: inode/hash загруженного bars совпадает с installed,
+первый кадр/normal state/207bindings подтверждены, рестартов и failed units нет.
+Два прогона по120 быстрых open/close cycles прошли без падения/JS binding errors;
+FD/thread counts стабильны. Это lifecycle с dwell0.3s, не приёмка всех actions.
+Выявлен высокий расход RAM: RSS достигает1.49/1.73GiB в терминах KiB-отчёта
+(точные значения1490692/1731708KiB). Два диагностических malloc_trim освободили
+примерно800MiB, UI сохранился; это не доказательство отсутствия live leak.
+Никакая периодическая очистка/allocator policy не внедрена. Требуется A/B
+allocation-policy и профилирование; portal registration/textinput warnings
+также остаются открыты. Evidence cold-session101, settings-soak-*, malloc-trim-*.
