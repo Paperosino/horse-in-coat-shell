@@ -4,7 +4,7 @@ Credentials, clipboard contents and active monitor rules are excluded. Appearanc
 imports contain data only; their preview is rolled back by an independent worker.
 """
 from __future__ import annotations
-import argparse,copy,ctypes,io,stat,zlib,fcntl,gzip,hashlib,json,math,os,re,selectors,signal,socket,struct,subprocess,sys,tempfile,time,uuid
+import argparse,copy,ctypes,stat,zlib,fcntl,gzip,hashlib,json,math,os,re,selectors,signal,socket,struct,subprocess,sys,tempfile,time,uuid
 from pathlib import Path
 from feature_common import CONFIG,STATE,DATA,read_json,atomic_json,output
 from application_environment import application_environment
@@ -90,9 +90,12 @@ def load_snapshot(path):
   compressed=stream.read(MAX_BYTES+1)
  if len(compressed)>MAX_BYTES:raise ValueError('Snapshot is too large')
  try:
-  with gzip.GzipFile(fileobj=io.BytesIO(compressed)) as archive:raw=archive.read(MAX_BYTES+1)
+  decoder=zlib.decompressobj(16+zlib.MAX_WBITS)
+  raw=decoder.decompress(compressed,MAX_BYTES+1)
  except zlib.error as error:raise ValueError('Corrupt snapshot compression') from error
  if len(raw)>MAX_BYTES:raise ValueError('Snapshot is too large')
+ if not decoder.eof:raise ValueError('Truncated snapshot compression')
+ if decoder.unused_data:raise ValueError('Snapshot must contain exactly one gzip member')
  d=strict_object(raw);validate_bundle(d,False)
  created=d.get('created')
  if not isinstance(d.get('id'),str) or not re.fullmatch('[a-f0-9-]{36}',d['id']) or type(created) not in (int,float) or not 0<=created<=1e12:raise ValueError('Invalid history metadata')

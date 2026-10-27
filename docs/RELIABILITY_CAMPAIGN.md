@@ -1133,3 +1133,24 @@ rollback проходят. Повреждённые архивы не перез
 файлов может пересчитать hash. Исторические снимки, созданные штатным snapshot(),
 используют тот же digest и canonical filename. Общая регрессия unit-context92
 предшествует этому изменению; пакет92 остаётся старой установленной версией.
+
+### HISTORY-003: цепочки пустых gzip members занимали decoder
+
+GzipFile.read(limit) соблюдал лимит output, но принимал любое число пустых
+сегментов перед JSON. Нагрузочный fixture с 1000 сегментов и штатным архивом
+успешно читался до исправления. Поскольку snapshot() всегда создаёт один gzip
+member, load_snapshot теперь использует ограниченный zlib decoder и отвергает
+unused_data, отсутствие EOF и ошибки CRC/потока. Compressed/output пределы
+сохранены. Это правило внутреннего формата истории, не универсальный gzip reader.
+
+В локальном CPU эксперименте 100000 пустых members (2000022 bytes) заняли
+около0.996s старого decoder против0.00025s для распознавания/отказа нового.
+history-members-benchmark.json сохраняет также случаи1000/10000. Это одно
+измерение decoder на стенде, не процент ускорения оболочки/загрузки/CPU в простое.
+Новый путь не перебирает все members в Python и не вводит новые фоновые работы.
+
+32 test_desktop_completion проходят, включая concat, expansion>8MiB,
+truncated trailer и неверный CRC. 25 recovery tests, 3 watcher lifecycle и
+настоящий recovery QML/helper/rollback проходят. Штатные single-member snapshots
+продолжают читаться и проверяться по payload SHA. Установка ещё не выполнялась;
+общий unit-context92 является baseline до HISTORY-001..003, не итоговой проверкой.

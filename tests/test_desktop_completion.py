@@ -168,6 +168,17 @@ class DesktopCompletion(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'checksum'):config.load_snapshot(path)
   path.write_bytes(raw);other=config.HISTORY/'00000000-0000-0000-0000-000000000000.json.gz';other.write_bytes(raw)
   self.assertEqual([row['id'] for row in config.history()],[good])
+ def test_history_rejects_concatenated_members_and_expansion_over_limit(self):
+  import gzip
+  good=config.snapshot('Good');path=config.HISTORY/(good+'.json.gz');original=path.read_bytes()
+  path.write_bytes(gzip.compress(b'')*1000+original)
+  with self.assertRaisesRegex(ValueError,'gzip member'):config.load_snapshot(path)
+  path.write_bytes(gzip.compress(b' '*(config.MAX_BYTES+1)))
+  with self.assertRaisesRegex(ValueError,'too large'):config.load_snapshot(path)
+  path.write_bytes(original[:-4])
+  with self.assertRaises((ValueError,EOFError)):config.load_snapshot(path)
+  broken=bytearray(original);broken[-8]^=1;path.write_bytes(broken)
+  with self.assertRaisesRegex(ValueError,'compression'):config.load_snapshot(path)
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)
