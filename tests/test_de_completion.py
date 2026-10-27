@@ -27,6 +27,27 @@ class DesktopCompletion(unittest.TestCase):
   self.assertFalse(self.feature_common.read_json(recovery.CONFIG/'plugins.json').get('recoveryMode',False))
   recovery.finish(-11);recovery.begin();prefs=self.feature_common.read_json(recovery.CONFIG/'plugins.json')
   self.assertTrue(prefs['recoveryMode']);self.assertEqual(prefs['recoveryAllow'],{})
+ def test_extension_marker_fifo_never_blocks_and_disables_extensions(self):
+  r=self.extension_recovery;r.MARKER.parent.mkdir(parents=True);os.mkfifo(r.MARKER)
+  r.begin()
+  self.assertTrue(self.feature_common.read_json(r.CONFIG/'plugins.json')['recoveryMode'])
+  self.assertTrue(r.MARKER.is_file());r.finish(0)
+ def test_extension_marker_symlink_never_reads_or_modifies_target(self):
+  r=self.extension_recovery;r.MARKER.parent.mkdir(parents=True)
+  external=self.base/'external';external.write_text('{"clean":true}')
+  r.MARKER.symlink_to(external);r.begin()
+  self.assertTrue(self.feature_common.read_json(r.CONFIG/'plugins.json')['recoveryMode'])
+  self.assertEqual(external.read_text(),'{"clean":true}');self.assertFalse(r.MARKER.is_symlink())
+ def test_extension_marker_oversize_fails_closed(self):
+  r=self.extension_recovery;r.MARKER.parent.mkdir(parents=True)
+  with r.MARKER.open('wb') as stream:stream.truncate(16*1024*1024)
+  r.begin();self.assertTrue(self.feature_common.read_json(r.CONFIG/'plugins.json')['recoveryMode'])
+ def test_extension_marker_invalid_schema_fails_closed(self):
+  r=self.extension_recovery
+  for record in ({'clean':'false','boot':'x'},{'clean':True,'boot':[]},{'clean':False,'boot':'x','exitCode':{}}):
+   with self.subTest(record=record):
+    self.feature_common.atomic_json(r.MARKER,record)
+    r.begin();self.assertTrue(self.feature_common.read_json(r.CONFIG/'plugins.json')['recoveryMode'])
  def test_widget_placement_does_not_replace_settings(self):
   manager=self.plugin_manager;manager.atomic_json(manager.PREFS,{'settings':{'system-monitor':{'refresh':5}}})
   manager.desktop_layout('system-monitor',{'screen':'TEST-1','geometry':{'x':48,'y':64,'locked':True}})

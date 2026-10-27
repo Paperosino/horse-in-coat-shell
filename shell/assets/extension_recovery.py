@@ -2,10 +2,23 @@
 import json,os,time
 from pathlib import Path
 from feature_common import CONFIG,STATE,read_json,atomic_json
+from shell_recovery import read as read_recovery
 MARKER=STATE/'extension-session.json'
 
+def marker():
+    try:
+        record=read_recovery(MARKER)
+        if record and (type(record.get('clean')) is not bool or not isinstance(record.get('boot'),str)
+                       or record.get('exitCode') is not None and type(record['exitCode']) is not int):
+            raise ValueError('Invalid extension session marker')
+        return record
+    except (OSError,ValueError):
+        # Unreadable crash evidence must not permit third-party code to run.
+        return {'clean':False,'exitCode':1}
+
+
 def begin():
-    previous=read_json(MARKER)
+    previous=marker()
     try:boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip()
     except OSError:boot=''
     interrupted=previous and not previous.get('clean',True) and (previous.get('exitCode') is not None or previous.get('boot')==boot)
@@ -17,5 +30,5 @@ def begin():
     atomic_json(MARKER,{'clean':False,'boot':boot,'started':int(time.time()),'pid':os.getpid()})
 
 def finish(exit_code=0):
-    record=read_json(MARKER);record.update(clean=exit_code==0,exitCode=exit_code,ended=int(time.time()))
+    record=marker();record.update(clean=exit_code==0,exitCode=exit_code,ended=int(time.time()))
     atomic_json(MARKER,record)
