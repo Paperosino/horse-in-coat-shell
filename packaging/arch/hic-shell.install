@@ -29,22 +29,22 @@ hics_restart_user_sessions() {
                 printf 'hics: could not reload user manager %s; session was not restarted.\n' "$hics_uid" >&2
                 continue
             fi
-            hics_action=try-restart
             if ! hics_environment=$(systemctl --user --machine="$hics_uid@.host" show-environment); then
                 printf 'hics: could not read session environment for user %s.\n' "$hics_uid" >&2
                 continue
             fi
-            if hics_hyprland_environment_ready "$hics_uid" "$hics_environment"; then
-                hics_action=restart
+            if ! hics_hyprland_environment_ready "$hics_uid" "$hics_environment"; then
+                continue
             fi
-            for hics_helper in hics-configuration.service hics-displays.service hics-desktop.service; do
-                if ! systemctl --user --machine="$hics_uid@.host" "$hics_action" "$hics_helper"; then
+            # start is deliberately idempotent: never kill a running lock owner or
+            # interrupt configuration rollback/background jobs during an upgrade.
+            # Checking lock.isLocked before restart would still have a TOCTOU race.
+            for hics_helper in hics-configuration.service hics-displays.service hics-desktop.service hic-session.service; do
+                if ! systemctl --user --machine="$hics_uid@.host" start "$hics_helper"; then
                     printf 'hics: could not activate %s for user %s.\n' "$hics_helper" "$hics_uid" >&2
                 fi
             done
-            if ! systemctl --user --machine="$hics_uid@.host" "$hics_action" hic-session.service; then
-                printf 'hics: could not restart the active shell for user %s.\n' "$hics_uid" >&2
-            fi
+            printf 'hics: running user services for %s are preserved; log out and back in to apply their update.\n' "$hics_uid" >&2
         done
 }
 

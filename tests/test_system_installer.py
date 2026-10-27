@@ -53,25 +53,18 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
   commands=[json.loads(line) for line in self.log.read_text().splitlines()]
   self.assertEqual(result.returncode,0,result.stderr)
   return result,commands
- def test_reload_and_try_restart_each_running_user_manager(self):
+ def test_no_graphical_session_only_reloads_managers(self):
   self.env['HICS_TEST_UNITS']+='\nuser@invalid.service loaded active running invalid\nunrelated.service loaded active running other'
-  result,commands=self.run_hook()
-  self.assertEqual([c for c in commands[1:] if c[-1]!='show-environment'],[['--user','--machine=1000@.host','daemon-reload'],['--user','--machine=1000@.host','try-restart','hics-configuration.service'],['--user','--machine=1000@.host','try-restart','hics-displays.service'],['--user','--machine=1000@.host','try-restart','hics-desktop.service'],['--user','--machine=1000@.host','try-restart','hic-session.service'],['--user','--machine=1001@.host','daemon-reload'],['--user','--machine=1001@.host','try-restart','hics-configuration.service'],['--user','--machine=1001@.host','try-restart','hics-displays.service'],['--user','--machine=1001@.host','try-restart','hics-desktop.service'],['--user','--machine=1001@.host','try-restart','hic-session.service']])
-  # A plain restart/start would also launch shells in inactive or TTY sessions.
-  self.assertFalse(any('restart' in command or 'start' in command for command in commands))
-  self.assertEqual(result.stderr,'')
+  _,commands=self.run_hook()
+  self.assertEqual([c for c in commands[1:] if c[-1]!='show-environment'],[
+   ['--user','--machine=1000@.host','daemon-reload'],
+   ['--user','--machine=1001@.host','daemon-reload']])
+  self.assertFalse(any(action in c for c in commands for action in ('start','restart','try-restart','stop')))
  def test_unreachable_user_does_not_block_other_sessions(self):
   self.env.update(HICS_TEST_FAIL_MACHINE='--machine=1000@.host',HICS_TEST_FAIL_COMMAND='daemon-reload')
   result,commands=self.run_hook()
-  self.assertNotIn(['--user','--machine=1000@.host','try-restart','hic-session.service'],commands)
-  self.assertIn(['--user','--machine=1001@.host','try-restart','hic-session.service'],commands)
+  self.assertIn(['--user','--machine=1001@.host','daemon-reload'],commands)
   self.assertIn('could not reload user manager 1000',result.stderr)
- def test_failed_restart_does_not_abort_package_or_other_users(self):
-  # Match the final argument (unit name) for this simulated transport failure.
-  self.env.update(HICS_TEST_FAIL_MACHINE='--machine=1000@.host',HICS_TEST_FAIL_COMMAND='hic-session.service')
-  result,commands=self.run_hook()
-  self.assertIn(['--user','--machine=1001@.host','try-restart','hic-session.service'],commands)
-  self.assertIn('could not restart the active shell for user 1000',result.stderr)
  def test_package_enables_and_starts_system_and_session_units(self):
   import json
   if not Path('/run/systemd/system').is_dir():self.skipTest('requires systemd installation paths')
@@ -96,10 +89,24 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
    sock=socket.socket(socket.AF_UNIX);sock.bind(str(runtime/name));sockets.append(sock);self.addCleanup(sock.close)
   self.env['HICS_TEST_MANAGER_ENV']='HYPRLAND_INSTANCE_SIGNATURE=fixture\nWAYLAND_DISPLAY=wayland-1\nXDG_RUNTIME_DIR='+str(runtime)
   result,commands=self.run_hook()
-  self.assertIn(['--user','--machine=1000@.host','restart','hic-session.service'],commands)
-  self.assertIn(['--user','--machine=1001@.host','restart','hic-session.service'],commands)
+  self.assertIn(['--user','--machine=1000@.host','start','hic-session.service'],commands)
+  self.assertIn(['--user','--machine=1001@.host','start','hic-session.service'],commands)
   for unit in ('hics-configuration.service','hics-displays.service','hics-desktop.service'):
-   self.assertIn(['--user','--machine=1000@.host','restart',unit],commands)
+   self.assertIn(['--user','--machine=1000@.host','start',unit],commands)
+  self.assertFalse(any(action in c for c in commands for action in ('restart','try-restart','stop')))
+  self.assertIn('log out and back in',result.stderr)
+
+ def test_failed_activation_does_not_stop_existing_services(self):
+  import socket
+  runtime=self.directory/'runtime';(runtime/'hypr/fixture').mkdir(parents=True)
+  for name in ('hypr/fixture/.socket.sock','wayland-1'):
+   sock=socket.socket(socket.AF_UNIX);sock.bind(str(runtime/name));self.addCleanup(sock.close)
+  self.env.update(HICS_TEST_MANAGER_ENV='HYPRLAND_INSTANCE_SIGNATURE=fixture\nWAYLAND_DISPLAY=wayland-1\nXDG_RUNTIME_DIR='+str(runtime),
+   HICS_TEST_FAIL_MACHINE='--machine=1000@.host',HICS_TEST_FAIL_COMMAND='hic-session.service')
+  result,commands=self.run_hook()
+  self.assertIn('could not activate hic-session.service for user 1000',result.stderr)
+  self.assertIn(['--user','--machine=1001@.host','start','hic-session.service'],commands)
+  self.assertFalse(any(action in c for c in commands for action in ('restart','try-restart','stop')))
 
  def test_no_running_user_managers_do_not_start_a_shell(self):
   self.env['HICS_TEST_UNITS']=''
