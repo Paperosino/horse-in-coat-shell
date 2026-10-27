@@ -54,7 +54,7 @@ StyledRect {
 
             MonoText {
                 Layout.fillWidth: true
-                text: "hyprstackfetch.sh"
+                text: "hics"
                 elide: Text.ElideRight
             }
 

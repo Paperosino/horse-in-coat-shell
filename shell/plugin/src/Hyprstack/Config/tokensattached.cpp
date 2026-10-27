@@ -8,11 +8,11 @@ namespace hyprstack::config {
 
 namespace {
 
-const AppearanceConfig* resolveAppearance(const ConfigRoot* config, bool complete, const char* prop, QObject* parent) {
+const AppearanceConfig* resolveAppearance(const ConfigRoot* config, bool complete, const char* prop, QObject* parent, const Tokens* attached) {
     if (config)
         return config->appearance();
     if ((complete || !qobject_cast<QQuickItem*>(parent)) && parent)
-        qCWarning(lcConfig, "Tokens.%s accessed without a screen set on %s", prop, parent->metaObject()->className());
+        warnMissingScreen(attached, "Tokens", prop);
     return ConfigSingleton::instance()->appearance();
 }
 
@@ -94,7 +94,7 @@ void Tokens::bindFont() {
 
 #define TOKENS_ATTACHED_GETTER(Type, name)                                                                             \
     const Type* Tokens::name() const {                                                                                 \
-        auto* a = resolveAppearance(m_config, m_complete, #name, parent());                                            \
+        auto* a = resolveAppearance(m_config, m_complete, #name, parent(), this);                                            \
         return a ? a->name() : nullptr;                                                                                \
     }
 
@@ -117,7 +117,7 @@ const ScaledSizeTokens* Tokens::sizes() const {
     if (m_tokens)
         return m_tokens->scaledSizes();
     if ((m_complete || !qobject_cast<QQuickItem*>(parent())) && parent())
-        qCWarning(lcConfig, "Tokens.sizes accessed without a screen set on %s", parent()->metaObject()->className());
+        warnMissingScreen(this, "Tokens", "sizes");
     return TokensSingleton::instance()->scaledSizes();
 }
 

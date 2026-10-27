@@ -28,6 +28,9 @@ namespace hyprstack::config {
 
 Q_DECLARE_LOGGING_CATEGORY(lcConfig)
 
+// Report unresolved context after QML construction, at most once per property.
+void warnMissingScreen(const QObject *attached, const char *scope, const char *property);
+
 QString configDir();
 QString monitorConfigDir();
 

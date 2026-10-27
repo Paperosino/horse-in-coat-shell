@@ -85,11 +85,10 @@ Item {
                 }
             }
 
-            CachingImage {
+            ProfileImage {
                 id: pfp
 
                 anchors.fill: parent
-                path: `${Paths.home}/.face`
             }
 
             StyledRect {

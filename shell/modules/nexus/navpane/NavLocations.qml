@@ -117,14 +117,17 @@ VerticalFadeFlickable {
                 }
 
                 ToolTip {
+                    id: navTip
+                    Config.screen: item.Config.screen
+                    Tokens.screen: item.Tokens.screen
                     visible: root.compact && stateLayer.containsMouse
                     delay: 600
                     text: item.modelData.label
                     x: item.width + Tokens.spacing.small
                     y: (item.height - height) / 2
                     padding: Tokens.padding.medium
-                    background: StyledRect { radius: Tokens.rounding.medium; color: Colours.palette.m3inverseSurface }
-                    contentItem: StyledText { text: item.modelData.label; font: Tokens.font.body.small; color: Colours.palette.m3inverseOnSurface }
+                    background: StyledRect { Config.screen: navTip.Config.screen; Tokens.screen: navTip.Tokens.screen; radius: Tokens.rounding.medium; color: Colours.palette.m3inverseSurface }
+                    contentItem: StyledText { Config.screen: navTip.Config.screen; Tokens.screen: navTip.Tokens.screen; text: item.modelData.label; font: Tokens.font.body.small; color: Colours.palette.m3inverseOnSurface }
                 }
 
                 RowLayout {

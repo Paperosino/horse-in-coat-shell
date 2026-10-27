@@ -7,7 +7,7 @@ Does not unlock or kill the session. Requires a package already copied into
 import argparse, json, shlex, subprocess
 from pathlib import Path
 REMOTE=r'''
-import json,os,subprocess,sys,time
+import hashlib,json,os,subprocess,sys,time
 from pathlib import Path
 assert Path('/etc/hostname').read_text().strip()=='hics-test'
 assert subprocess.check_output(['systemd-detect-virt'],text=True).strip() in ('kvm','qemu')
@@ -41,7 +41,8 @@ after=state();assert after==before,{'before':before,'after':after}
 assert not Path('/var/lib/pacman/db.lck').exists()
 unit=subprocess.run(['systemctl','--user','--machine=1000@.host','is-active','--quiet','hics-package-config-guard.service'],timeout=5)
 assert unit.returncode!=0,'A package guard was left running'
-print(json.dumps({'before':before,'after':after,'version':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'autoreloadRestored':True,'log':str(log)},indent=2))
+with package.open('rb') as stream: package_sha256=hashlib.file_digest(stream,'sha256').hexdigest()
+print(json.dumps({'packageSha256':package_sha256,'before':before,'after':after,'version':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'autoreloadRestored':True,'log':str(log)},indent=2))
 '''
 p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--package',required=True);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
 command=['ssh','-i',str(a.lab/'guest_ed25519'),'-p','22280','-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(a.lab/'known_hosts-installed'),'root@127.0.0.1','python3 - '+shlex.quote(a.package)]

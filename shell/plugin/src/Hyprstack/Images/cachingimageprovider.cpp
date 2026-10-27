@@ -6,6 +6,8 @@
 #include <qloggingcategory.h>
 #include <qrunnable.h>
 #include <qthreadpool.h>
+#include <QUrl>
+#include <QUrlQuery>
 
 #include <utility>
 
@@ -64,7 +66,8 @@ void CachingImageResponse::run() {
 }
 
 void CachingImageResponse::process() {
-    QString path = QString::fromUtf8(m_id.toUtf8().percentDecoded());
+    const auto request = QUrl::fromEncoded(m_id.toUtf8());
+    QString path = request.path(QUrl::FullyDecoded);
     if (!path.startsWith(u'/'))
         path.prepend(u'/');
 
@@ -107,7 +110,10 @@ void CachingImageResponse::process() {
 
     // Decode once in this worker and always return the requested dimensions,
     // including the first load, so small cards never upload a full wallpaper.
-    m_image = ImageCacher::load(path, size, m_fillMode);
+    // Avatar updates use a new QSG URL and fresh decode, even when an editor
+    // preserves size/mtime. Do not accumulate revisions in the disk cache.
+    const bool cache = !QUrlQuery(request).hasQueryItem(u"hics-avatar-revision"_s);
+    m_image = ImageCacher::load(path, size, m_fillMode, cache);
     if (m_image.isNull()) {
         m_error = u"Failed to decode source: "_s + path;
         qCWarning(lcCProv).noquote() << m_error;

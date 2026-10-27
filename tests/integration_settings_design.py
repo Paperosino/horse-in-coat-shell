@@ -36,6 +36,8 @@ ShellRoot {
  property var shots:["dock","network","audio","display","shortcuts","session-recovery","touchpad","apps","app-info","keyboard","panels","statusbar-layout","panel-options","panel-status-icons","region","storage","performance","application-rules","passwords","operations","backup","file-search","presentation","focus","file-integration","accessibility","clipboard","bluetooth","power","accounts","firmware","tablets","colour-profiles","configuration-history","about"]
  FloatingWindow {
   id:win;visible:true;implicitWidth:1180;implicitHeight:820;color:Colours.palette.m3surface
+  contentItem.Config.screen:screen?.name??""
+  contentItem.Tokens.screen:screen?.name??""
   Nexus {id:settings;width:root.narrow?560:parent.width;height:parent.height;visible:!fixture.visible}
   PageBase {
    id:fixture;x:20;y:20;width:root.narrow?360:parent.width-40;height:parent.height-40;visible:false;title:"Design regression";nState:settings.nState
@@ -366,6 +368,7 @@ ShellRoot {
             assert all(image.size==images[0].size and image.tobytes()==images[0].tobytes() for image in images), 'Text rendering preferences changed the icon raster'
         # Qt destroys global menu contexts after Qt.quit; only reject live UI warnings.
         live=output.split('SETTINGS_DESIGN_OK')[0]
+        assert not any('accessed without a screen set on ToolTip' in line for line in live.splitlines()),live[:7000]
         assert not any(s in live for s in ('TypeError:','ReferenceError:','Binding loop','Cannot assign','Unable to assign')),live[-7000:]
         print('PASS: live settings screenshots, searchable disclosure, narrow forms, reduced motion, high contrast and rapid navigation')
     finally:

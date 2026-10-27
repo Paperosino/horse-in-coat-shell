@@ -500,3 +500,79 @@ PowerProfilesDaemon отсутствует (необязательная зав�
 Предупреждения программного EGL/SHM на bochs-drm не приписываются физическим GPU.
 Проверка настоящих portal sessions/permissions, microphone input, GPU paths,
 всех UI-действий и полного медиабрендинга остаётся в общей матрице.
+
+### UI-004: popup-контекст и обновление аватара
+
+Воспроизведение ToolTip: integration_window_tokens.py с настоящим вложенным
+монитором и private per-monitor scale=1.5, padding.scale=2. Подсказка реального
+NavLocations имела padding=12 вместо ожидаемых 36, attached screen был пустым
+также у её текста/фона. После явного назначения Config/Tokens screen всем трём
+получается 36; сам window/content по-прежнему имеют large padding=48 против
+глобальных 16. Цветовые StyledRect/Text обёртки в этом узком тесте заменены на
+обычные элементы; реальные styled-компоненты проверяются отдельно полным UI
+regression. Его FloatingWindow fixture теперь задаёт contentItem context как
+настоящий SettingsWindow, вместо неявного глобального профиля.
+
+Прежние getter-warning для Window/Popup могли выполняться до заполнения
+screen. Теперь warning откладывается на текущий event loop, привязан к lifetime
+attached QObject и дедуплицируется по свойству. Это не глобальное подавление:
+тот же тест специально оставляет QtObject без screen и подтверждает сохранение
+ровно одного Tokens.padding и одного Config.appearance warning при повторных
+обращениях. Правильно настроенные ToolTip/StyledWindow больше не предупреждают.
+
+У аватара обе поверхности безусловно декодировали ~/.face: в госте без файла
+было четыре предупреждения cache provider и warning QML. Добавлен ProfileImage
+и ленивый shared IUtils.profilePicture: пустой URL при отсутствии/необычном типе
+файла, один QFileSystemWatcher на engine, каталог + существующий файл,
+переустановка наблюдения после atomic replace, single-shot coalescing 50ms.
+В простое опроса нет. Картинки декодируются/масштабируются существующим worker
+с DPR и crop; нулевая геометрия вообще не запускает запрос.
+
+Image URL содержит revision; для аватара disk cache обходится, чтобы редактор,
+сохранивший size/mtime, не оставлял старые пиксели. Новые ревизии аватара не
+накапливаются на диске. Обычный image cache сохранён. Provider корректно отделяет
+query от percent-encoded пути: проверены Unicode, %, ? и #. Отсутствие аватара
+не достигает декодера; реальные ошибки других изображений не скрываются.
+Источник поведения file watch после rename:
+[QFileSystemWatcher](https://doc.qt.io/qt-6/qfilesystemwatcher.html).
+
+Новый test_profile_picture.py строит настоящий C++ backend и рендерит async
+provider в offscreen Qt Quick. Проверяются пиксели после create, atomic replace
+с прежними размером/mtime, delete, symlink и замены его цели, URL escaping,
+FIFO, один observer и отсутствие активного таймера в конце. 2/2 проходят также
+ASan+UBSan с leak detection без suppressions. Первый sanitizer-прогон FIFO
+выявил 448 байт Qt Quick allocation при выходе fixture до первого event loop;
+fixture теперь даёт показанному окну обработать кадр перед завершением.
+Предыдущий упавший лог сохранён, финальный — avatar88-asan-final.log.
+
+Полный изолированный unit-прогон: 66 модулей, 349 тестов, 5 известных пропусков,
+без ошибок (unit-context88/). После его старта добавлен последний QML guard
+нулевого размера; он отдельно проверен production ProfileImage в настоящем
+Quickshell через integration_window_tokens.py: source пуст при 0×0 и Image.Ready
+после назначения 32×32. C++ source hash соответствует unit manifest, кроме последующего переименования
+локальной переменной для устранения -Wshadow. Повторная сборка после rename
+даёт побайтно тот же libhyprstack-config.so (SHA256
+1a634869392b2d44bf62447de881a297f299de85141419c00fc843dbdac7a07a), без warning.
+Полный
+settings design regression с native fixture также проходит, без ToolTip context
+warnings. Свежий кандидат 88 пересобран после этого guard, SHA записан в
+locked-upgrade88-final.json; обновление сохранило lock, shell/app PID и binds.
+
+После нормальной PAM-разблокировки в контролируемой ВМ загружен новый процесс;
+Kitty сохранил свой scope/PID. tests/vm_profile_picture.py затем на настоящем
+lock UI проверил красный → синий аватар → fallback, один и тот же shell PID,
+locked=true всю проверку; центральные пиксели [255,0,0], [0,0,255], затем нейтральный
+fallback. Файл удалён только после проверки SHA; предсуществующий avatar тест
+отвергает. Доступны snapshots и JSON в avatar88-repro/. В journal нового процесса
+0 упоминаний .face, 0 missing-screen, 0 TypeError/ReferenceError в этом сценарии.
+Это не тест кликов file chooser или всех аватаров сторонних DE. На lock UI
+декоративная старая подпись hyprstackfetch.sh заменена на hics. Старые GIF/видео
+документации/тура всё ещё требуют медиапрохода.
+
+**BIND-001, новая находка:** при повторном запуске shell число binds увеличивалось
+на два (213 → 215 → 217 → 219). Полные записи не совпадают побайтно, так как __lua
+id каждый раз новый, но функционально накапливаются Custom: Caps_Lock и
+Custom: Num_Lock. Источник — безусловный hl.bind в Hypr.qml reloadDynamicConfs.
+Это не закрыто текущими исправлениями. Следующая проверка должна обеспечить
+идемпотентность, повторную регистрацию после config reload и сохранение чужих
+Caps/Num bindings; слепой hl.unbind(key) удалит пользовательские действия.

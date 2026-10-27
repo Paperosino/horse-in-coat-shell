@@ -42,11 +42,10 @@ Item {
         visible: pfp.status !== Image.Ready
     }
 
-    CachingImage {
+    ProfileImage {
         id: pfp
 
         anchors.fill: shape
-        path: `${Paths.home}/.face`
 
         layer.enabled: true
         layer.effect: Mask {

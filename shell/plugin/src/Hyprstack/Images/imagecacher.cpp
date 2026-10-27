@@ -107,11 +107,11 @@ void ImageCacher::runJob(const QString& sourcePath, const QString& cachePath, co
     load(sourcePath, size, fillMode);
 }
 
-QImage ImageCacher::load(const QString& sourcePath, const QSize& size, FillMode fillMode) {
+QImage ImageCacher::load(const QString& sourcePath, const QSize& size, FillMode fillMode, bool useDiskCache) {
     if (!size.isValid() || size.isEmpty() || size.width() > 16384 || size.height() > 16384 ||
         static_cast<qint64>(size.width()) * size.height() > 64 * 1024 * 1024)
         return {};
-    const auto cachePath = cachePathFor(sourcePath, size, fillMode);
+    const auto cachePath = useDiskCache ? cachePathFor(sourcePath, size, fillMode) : QString();
     if (QFile::exists(cachePath)) {
         QImageReader cached(cachePath);
         auto image = cached.read();
