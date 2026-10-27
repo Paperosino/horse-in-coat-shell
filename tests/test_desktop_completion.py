@@ -30,6 +30,21 @@ class DesktopCompletion(unittest.TestCase):
    data=config.dispatch('preview-profile',{'id':profile['id']});self.assertEqual(json.loads((self.cfg/'shell.json').read_text())['appearance']['scale'],1)
    config.dispatch('revert',{'token':data['pending']['token']})
   self.assertEqual(json.loads((self.cfg/'shell.json').read_text())['appearance']['scale'],1.25)
+ def test_rollback_removes_files_absent_before_trial_and_keeps_user_edits(self):
+  for edited in (False,True):
+   path=self.cfg/'dock.json';path.unlink(missing_ok=True)
+   config.atomic_json(config.JOURNAL,{'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
+   path.write_text('{"enabled":false,"userEdit":true}' if edited else '{"enabled":false}')
+   config.rollback(False)
+   if edited:self.assertTrue(json.loads(path.read_text())['userEdit'])
+   else:self.assertFalse(path.exists())
+ def test_preview_records_physical_absence_even_for_synthesized_defaults(self):
+  with patch.object(config,'apply_files',side_effect=lambda files,*args:[config.write_text(config.target(k),v) for k,v in files.items()]),patch.object(config,'runtime',return_value=self.root/'runtime'):
+   data=config.dispatch('preset',{'id':'classic'})
+   journal=config.read_json(config.JOURNAL)
+   self.assertIn('dock.json',journal['absent'])
+   config.rollback(False)
+  self.assertFalse((self.cfg/'dock.json').exists());self.assertFalse((self.cfg/'shell.json').exists())
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)

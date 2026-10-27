@@ -9,7 +9,7 @@ from pathlib import Path
 from vm_cachyos import qmp
 
 REMOTE=r'''
-import json,os,signal,subprocess,time
+import hashlib,json,os,signal,subprocess,time
 from pathlib import Path
 assert subprocess.check_output(['systemd-detect-virt'],text=True).strip() in ('kvm','qemu')
 assert Path('/etc/hostname').read_text().strip()=='hics-test'
@@ -19,9 +19,22 @@ app=int(subprocess.check_output(['pgrep','-u','hics-test','-x','kitty'],text=Tru
 assert Path(f'/proc/{app}/exe').resolve()==Path('/usr/bin/kitty')
 report={'appPid':app,'cgroup':Path(f'/proc/{app}/cgroup').read_text(),'crashes':[]}
 assert '/app.slice/hics-app-' in report['cgroup'],'Launch Kitty through the actual HICS menu first'
+env=dict(os.environ,LANG='ru_RU.UTF-8',XDG_RUNTIME_DIR='/run/user/1000',DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/1000/bus',WAYLAND_DISPLAY='wayland-1')
+def unlocked():
+ result=subprocess.check_output(['runuser','-u','hics-test','--','hyprctl','-i','0','-j','locked'],env=env,text=True,timeout=5)
+ assert json.loads(result).get('locked') is False,'Authenticate normally before crash testing; never kill the lock owner'
 def shell():
- p=subprocess.run(['pgrep','-u','hics-test','-x','hics-qs'],text=True,capture_output=True)
- return int(p.stdout.strip()) if p.returncode==0 else None
+ runner=subprocess.check_output(['systemctl','--user','--machine=1000@.host','show','hic-session.service','--property=MainPID','--value'],text=True).strip()
+ if runner=='0':return None
+ try:children=Path('/proc/'+runner+'/task/'+runner+'/children').read_text().split()
+ except FileNotFoundError:return None
+ candidates=[]
+ for pid in children:
+  try:
+   if Path('/proc/'+pid+'/comm').read_text().strip()=='hics-qs':candidates.append(int(pid))
+  except FileNotFoundError:pass
+ assert len(candidates)<=1,{'runner':runner,'mainShellChildren':candidates}
+ return candidates[0] if candidates else None
 def wait(check):
  end=time.monotonic()+35
  while time.monotonic()<end:
@@ -30,8 +43,13 @@ def wait(check):
   time.sleep(.2)
  raise AssertionError('Timed out waiting for guest recovery')
 for n in range(2):
+ unlocked()
  old=shell();assert old
- assert Path(f'/proc/{old}/exe').resolve()==Path('/usr/share/hics/qs/bin/hics-qs')
+ executable=Path(f'/proc/{old}/exe');expected=Path('/usr/share/hics/qs/bin/hics-qs')
+ assert os.readlink(executable) in (str(expected),str(expected)+' (deleted)'),os.readlink(executable)
+ # Package upgrades preserve the old mapped inode until normal restart.
+ with executable.open('rb') as active,expected.open('rb') as installed:
+  assert hashlib.file_digest(active,'sha256').digest()==hashlib.file_digest(installed,'sha256').digest(),'Mapped shell executable differs; inspect before crash injection'
  os.kill(old,signal.SIGKILL)
  new=wait(lambda: (p if (p:=shell()) and p!=old else None))
  os.kill(app,0);recovery=json.loads(record.read_text())

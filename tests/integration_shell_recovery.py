@@ -65,6 +65,7 @@ with tempfile.TemporaryDirectory(prefix='hics real recovery ') as directory:
   reverted=subprocess.run([sys.executable,str(ROOT/'shell/assets/configuration_manager.py'),'revert'],env=env,input=json.dumps({'token':pending['token']}),capture_output=True,text=True,timeout=10)
   assert reverted.returncode==0,reverted.stdout+reverted.stderr
   assert json.loads((config/'shell.json').read_text())['appearance']['scale']==1.5
+  assert all(not (config/name).exists() for name in ('dock.json','shell-tokens.json','panels.json','effects.json')),'Rollback created files absent before preview'
   print('PASS: independent recovery QML resolves real helper outside shell root, reads checkpoint, starts guarded restore and reverts actual settings')
  finally:
   for process in (guard,compositor):

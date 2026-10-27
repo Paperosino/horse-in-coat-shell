@@ -244,10 +244,13 @@ def merge_revert(before,applied,current):
 def rollback(runtime_apply=True):
  d=read_json(JOURNAL)
  if not d:return
- restored={}
+ restored={};remove_defaults=set()
+ absent=d.get('absent',[])
+ if not isinstance(absent,list):absent=[]
  for name,applied in d['applied'].items():
   p=target(name);current=gather().get(name) if name=='widgets.json' else p.read_text() if p.is_file() else None;before=d['before'].get(name)
   if current==applied:
+   if name!='widgets.json' and (before is None or name in absent):remove_defaults.add(name)
    if before is None:
     restored[name]='{}' if name.endswith('.json') else '-- Restored defaults by hics\n' if name.endswith('.lua') else ''
    else:restored[name]=before
@@ -258,6 +261,14 @@ def rollback(runtime_apply=True):
  try:
   if runtime_apply:apply_files(restored,True)
  except (OSError,subprocess.SubprocessError,ValueError) as error:atomic_json(STATE/'configuration-recovery-warning.json',{'warning':str(error)},private=True)
+ # Runtime application needs defaults, but an abandoned trial must also
+ # restore the original absence of files. Keep edits made during rollback.
+ from shell_recovery import read_text as bounded_text
+ for name in remove_defaults:
+  path=target(name)
+  try:current=bounded_text(path,1048576)
+  except (OSError,ValueError):continue
+  if current==restored[name]:path.unlink(missing_ok=True)
  JOURNAL.unlink(missing_ok=True)
 
 def presets():
@@ -336,7 +347,7 @@ def dispatch(op,p,shell_pid=None):
    files=d['files'];selected=p.get('sections',list(files))
    if not isinstance(selected,list) or not selected or set(selected)-set(files):raise ValueError('Select configuration sections to restore')
    files={name:files[name] for name in selected};before=gather();snapshot('Before '+d.get('name','restore'),False)
-   atomic_json(JOURNAL,dict(token=str(uuid.uuid4()),name=d.get('name','Profile'),deadline=time.time()+30,deadlineMonotonic=time.monotonic()+30,shellPid=shell_pid,shellStart=process_start(shell_pid),before={k:before.get(k) for k in files},applied=files),private=True)
+   atomic_json(JOURNAL,dict(token=str(uuid.uuid4()),name=d.get('name','Profile'),deadline=time.time()+30,deadlineMonotonic=time.monotonic()+30,shellPid=shell_pid,shellStart=process_start(shell_pid),before={k:before.get(k) for k in files},absent=[k for k in files if k!='widgets.json' and not (target(k).exists() or target(k).is_symlink())],applied=files),private=True)
    try:apply_files(files)
    except Exception:rollback();raise
  elif op in ('confirm','revert'):
