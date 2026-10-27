@@ -3,6 +3,8 @@
 #include <qjsonarray.h>
 #include <qjsonobject.h>
 #include <qmetaobject.h>
+#include <qmutex.h>
+#include <qsharedpointer.h>
 
 #include <cmath>
 
@@ -15,6 +17,11 @@ using Qt::StringLiterals::operator""_s;
 using util::i18n::mark;
 
 namespace {
+
+QRecursiveMutex& codecRegistryMutex() {
+    static QRecursiveMutex mutex;
+    return mutex;
+}
 
 // We don't know the option here so it isn't set, it should be set by the caller
 DecodeResult error(DiagnosticType::Type type, const QString& message) {
@@ -80,11 +87,12 @@ ExpectedType ValueCodec::expected() const {
 
 ValueCodec* ValueCodec::codecFor(const QMetaType& type) {
     // Cache for codecs, keyed by type id
-    static QHash<int, ValueCodec*> s_registry;
+    static QHash<int, QSharedPointer<ValueCodec>> s_registry;
+    const QMutexLocker locker(&codecRegistryMutex());
 
     // Cached lookup
     if (const auto it = s_registry.constFind(type.id()); it != s_registry.constEnd())
-        return *it;
+        return it->data();
 
     ValueCodec* codec = nullptr;
     switch (type.id()) {
@@ -116,14 +124,15 @@ ValueCodec* ValueCodec::codecFor(const QMetaType& type) {
 
     // Cache codec
     if (codec)
-        s_registry.insert(type.id(), codec);
+        s_registry.insert(type.id(), QSharedPointer<ValueCodec>(codec));
 
     return codec;
 }
 
 ValueCodec* ValueCodec::unionFor(const QList<QMetaType>& types) {
     // Cache for union codecs, keyed by their alternatives
-    static QHash<QString, ValueCodec*> s_registry;
+    static QHash<QString, QSharedPointer<ValueCodec>> s_registry;
+    const QMutexLocker locker(&codecRegistryMutex());
 
     if (types.size() < 2) {
         qCCritical(lcSettings, "A union needs at least two types, got %lld", types.size());
@@ -134,7 +143,7 @@ ValueCodec* ValueCodec::unionFor(const QList<QMetaType>& types) {
 
     // Cached lookup
     if (const auto it = s_registry.constFind(key); it != s_registry.constEnd())
-        return *it;
+        return it->data();
 
     QList<const ValueCodec*> alternatives;
     alternatives.reserve(types.size());
@@ -149,7 +158,7 @@ ValueCodec* ValueCodec::unionFor(const QList<QMetaType>& types) {
     }
 
     auto* const codec = new UnionCodec(alternatives);
-    s_registry.insert(key, codec);
+    s_registry.insert(key, QSharedPointer<ValueCodec>(codec));
 
     return codec;
 }

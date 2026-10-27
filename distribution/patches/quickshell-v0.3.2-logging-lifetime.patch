@@ -1,0 +1,151 @@
+--- a/src/core/logging.hpp
++++ b/src/core/logging.hpp
+@@ -31,13 +31,16 @@
+ 	)
+ 	    : type(type)
+ 	    , time(std::move(time))
+-	    , category(category)
++	    , categoryStorage(category.data(), category.size())
++	    , category(categoryStorage.constData(), categoryStorage.size())
+ 	    , body(std::move(body)) {}
+ 
+ 	bool operator==(const LogMessage& other) const;
+ 
+ 	QtMsgType type = QtDebugMsg;
+ 	QDateTime time;
++	// QML logging categories can disappear while a queued message is still pending.
++	QByteArray categoryStorage;
+ 	QLatin1StringView category;
+ 	QByteArray body;
+ 	quint16 readCategoryId = 0;
+@@ -118,9 +121,10 @@
+ 	QString mRulesString;
+ 	QList<qt_logging_registry::QLoggingRule>* rules = nullptr;
+ 	QtMsgType mDefaultLevel = QtWarningMsg;
+-	QHash<QLatin1StringView, QtMsgType> defaultLevels;
+-	QHash<const void*, CategoryFilter> sparseFilters;
+-	QHash<QLatin1StringView, CategoryFilter> allFilters;
++	QHash<QByteArray, QtMsgType> defaultLevels;
++	QHash<QByteArray, CategoryFilter> sparseFilters;
++	QHash<QByteArray, CategoryFilter> allFilters;
++	QMutex filterMutex;
+ 
+ 	QTextStream stdoutStream;
+ 	QMutex stdoutMutex;
+--- a/src/core/logging_p.hpp
++++ b/src/core/logging_p.hpp
+@@ -81,7 +81,7 @@
+ 
+ 	WriteBuffer buffer;
+ 
+-	QHash<QLatin1StringView, quint16> categories;
++	QHash<QByteArray, quint16> categories;
+ 	quint16 nextCategory = EncodedLogOpcode::BeginCategories;
+ 
+ 	QDateTime lastMessageTime = QDateTime::fromSecsSinceEpoch(0);
+--- a/src/core/logging.cpp
++++ b/src/core/logging.cpp
+@@ -214,10 +214,11 @@
+ 
+ 	auto display = true;
+ 
+-	const auto* key = static_cast<const void*>(context.category);
+-
+-	if (self->sparseFilters.contains(key)) {
+-		display = self->sparseFilters.value(key).shouldDisplay(type);
++	const auto& key = message.categoryStorage;
++	{
++		auto locker = QMutexLocker(&self->filterMutex);
++		if (self->sparseFilters.contains(key))
++			display = self->sparseFilters.value(key).shouldDisplay(type);
+ 	}
+ 
+ 	if (display) {
+@@ -239,7 +240,8 @@
+ void LogManager::filterCategory(QLoggingCategory* category) {
+ 	auto* instance = LogManager::instance();
+ 
+-	auto categoryName = QLatin1StringView(category->categoryName());
++	const auto ownedName = QByteArray(category->categoryName());
++	auto categoryName = QLatin1StringView(ownedName);
+ 	auto isQs = categoryName.startsWith(QLatin1StringView("quickshell."));
+ 
+ 	CategoryFilter filter;
+@@ -248,7 +250,11 @@
+ 	// default configs that hide everything. QT_LOGGING_RULES is considered via the filter list.
+ 	if (isQs) {
+ 		// QtDebugMsg == 0, so default
+-		auto defaultLevel = instance->defaultLevels.value(categoryName);
++		QtMsgType defaultLevel;
++		{
++			auto locker = QMutexLocker(&instance->filterMutex);
++			defaultLevel = instance->defaultLevels.value(ownedName);
++		}
+ 
+ 		filter = CategoryFilter();
+ 		// clang-format off
+@@ -279,8 +285,11 @@
+ 	}
+ 
+ 	if (isQs && !instance->sparse) {
+-		// We assume the category name pointer will always be the same and be comparable in the message handler.
+-		instance->sparseFilters.insert(static_cast<const void*>(category->categoryName()), filter);
++		// Names, unlike pointers from transient QML categories, have stable identity.
++		{
++			auto locker = QMutexLocker(&instance->filterMutex);
++			instance->sparseFilters.insert(ownedName, filter);
++		}
+ 
+ 		// all enabled by default
+ 		CategoryFilter().apply(category);
+@@ -288,7 +297,8 @@
+ 		filter.apply(category);
+ 	}
+ 
+-	instance->allFilters.insert(categoryName, filter);
++	auto locker = QMutexLocker(&instance->filterMutex);
++	instance->allFilters.insert(ownedName, filter);
+ }
+ 
+ LogManager* LogManager::instance() {
+@@ -355,7 +365,9 @@
+ }
+ 
+ void initLogCategoryLevel(const char* name, QtMsgType defaultLevel) {
+-	LogManager::instance()->defaultLevels.insert(QLatin1StringView(name), defaultLevel);
++	auto* manager = LogManager::instance();
++	auto locker = QMutexLocker(&manager->filterMutex);
++	manager->defaultLevels.insert(QByteArray(name), defaultLevel);
+ }
+ 
+ void LogManager::initFs() {
+@@ -371,7 +383,8 @@
+ bool LogManager::isSparse() const { return this->sparse; }
+ 
+ CategoryFilter LogManager::getFilter(QLatin1StringView category) {
+-	return this->allFilters.value(category);
++	auto locker = QMutexLocker(&this->filterMutex);
++	return this->allFilters.value(QByteArray(category.data(), category.size()));
+ }
+ 
+ void ThreadLogging::init() {
+@@ -861,15 +874,16 @@
+ }
+ 
+ quint16 EncodedLogWriter::getOrCreateCategory(QLatin1StringView category) {
+-	if (this->categories.contains(category)) {
+-		return this->categories.value(category);
++	const auto ownedName = QByteArray(category.data(), category.size());
++	if (this->categories.contains(ownedName)) {
++		return this->categories.value(ownedName);
+ 	} else {
+ 		this->writeOp(EncodedLogOpcode::RegisterCategory);
+ 		// id is implicitly the next available id
+ 		this->writeString(category);
+ 
+ 		auto id = this->nextCategory++;
+-		this->categories.insert(category, id);
++		this->categories.insert(ownedName, id);
+ 
+ 		auto filter = LogManager::instance()->getFilter(category);
+ 		quint8 flags = 0;

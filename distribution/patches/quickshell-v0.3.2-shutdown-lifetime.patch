@@ -1,0 +1,84 @@
+--- a/src/core/scan.cpp
++++ b/src/core/scan.cpp
+@@ -3,6 +3,8 @@
+ #include <utility>
+ 
+ #include <qcontainerfwd.h>
++#include <qcoreapplication.h>
++#include <qpointer.h>
+ #include <qcryptographichash.h>
+ #include <qdir.h>
+ #include <qfileinfo.h>
+@@ -369,11 +371,13 @@
+ }
+ 
+ QJSEngine* QmlScanner::preprocEngine() {
+-	static auto* engine = [] {
+-		auto* engine = new QJSEngine();
+-		engine->globalObject().setPrototype(engine->newQObject(new qs::scan::env::PreprocEnv()));
+-		return engine;
+-	}();
+-
++	static QPointer<QJSEngine> engine;
++	if (!engine) {
++		engine = new QJSEngine(QCoreApplication::instance());
++		auto* environment = new qs::scan::env::PreprocEnv();
++		environment->setParent(engine);
++		engine->globalObject().setPrototype(engine->newQObject(environment));
++	}
+ 	return engine;
+ }
++
+--- a/src/core/paths.cpp
++++ b/src/core/paths.cpp
+@@ -6,6 +6,7 @@
+ 
+ #include <fcntl.h>
+ #include <qcontainerfwd.h>
++#include <qcoreapplication.h>
+ #include <qdatastream.h>
+ #include <qdir.h>
+ #include <qlogging.h>
+@@ -354,7 +355,7 @@
+ void QsPaths::createLock() {
+ 	if (auto* runDir = this->instanceRunDir()) {
+ 		auto path = runDir->filePath("instance.lock");
+-		auto* file = new QFile(path); // leaked
++		auto* file = new QFile(path, QCoreApplication::instance());
+ 
+ 		if (!file->open(QFile::ReadWrite | QFile::Truncate)) {
+ 			qCCritical(logPaths) << "Could not create instance lock at" << path;
+--- a/src/ipc/ipc.cpp
++++ b/src/ipc/ipc.cpp
+@@ -35,7 +35,8 @@
+ void IpcServer::start() {
+ 	if (auto* run = QsPaths::instance()->instanceRunDir()) {
+ 		auto path = run->filePath("ipc.sock");
+-		new IpcServer(path);
++		auto* server = new IpcServer(path);
++		server->setParent(QCoreApplication::instance());
+ 	} else {
+ 		qCCritical(
+ 		    logIpc
+--- a/src/launch/launch.cpp
++++ b/src/launch/launch.cpp
+@@ -317,12 +317,13 @@
+ 	qs::ipc::IpcServer::start();
+ 	QsPaths::instance()->createLock();
+ 
+-	auto root = RootWrapper(args.configPath, shellId);
+-	QGuiApplication::setQuitOnLastWindowClosed(false);
+-
+-	exitDaemon(0);
+-
+-	auto code = QGuiApplication::exec();
++	int code;
++	{
++		auto root = RootWrapper(args.configPath, shellId);
++		QGuiApplication::setQuitOnLastWindowClosed(false);
++		exitDaemon(0);
++		code = QGuiApplication::exec();
++	} // Destroy any remaining QML generation before its application.
+ 	delete app;
+ 	return code;
+ }

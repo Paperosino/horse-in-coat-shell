@@ -2789,3 +2789,40 @@ PkgConfig переменных дочерних каталогов. find_package
 два wl-paste QProcess уничтожаются работающими; ClipboardHistory::watchers
 также содержит waitForFinished(800) в GUI-потоке. Нужна отдельная безопасная
 асинхронная остановка/lifetime приёмка, без маскировки сообщения и без sleep.
+
+### Runtime110 candidate: owned logs, shutdown and codec lifetimes
+
+Quickshell0.3.2 fixes now have reproducible source patches and canonical build
+integration. Category names are owned in queued messages, filters and binary-log
+writer; shared filter maps are serialized. Scanner JS engine, IPC server and
+instance lock have explicit application ownership; the remaining QML generation
+is destroyed before the application. These are dependency fixes, not a claim
+that the natural Mesa crash or portal GLib warning has been explained.
+
+The full Release build completed. `categories-release110.json` records an
+ASan/LSan run without suppressions: 200 transient categories, 175 visible
+messages with one category filtered, all 200 category/body pairs recovered from
+the binary log, exit0. The original native queued-message probe and original
+QS category fixture reproduced ASan UAF; patched probes pass. Earlier tests used
+RelWithDebInfo; Release was separately checked, not inferred from that build.
+
+Settings codec caches now own their values through QSharedPointer and serialize
+recursive factory access with QRecursiveMutex. The original serial native
+probe leaked1196bytes/10allocations; fixed eight-thread decode/identity probe
+exits0 under ASan/LSan (`codecs-fixed110-regression.json`). This does not imply
+that all settings/render lifetimes are fixed: actual VM six-page profile with
+fixed codecs still reports75930bytes/442allocations, including seven indirect
+QQuickShaderEffect objects. The preceding60-cycle profile used the earlier
+module overlay and reported435258bytes/2666allocations; these are not a fair
+before/after memory comparison. Two live wl-paste shutdown warnings also remain.
+
+A source-builder correctness issue was caught: GNU patch reverse dry-run with
+--batch can guess the opposite direction and return success on unpatched
+sources. Both Qt and QS helpers now use --force --fuzz=0, and regression tests
+actually apply patches twice to original fixtures and verify the resulting
+bytes. Fresh QS source application matches all eight audited modified files.
+Rebuilding Qt with the corrected helper produced exactly the same library and
+patch hashes as the verified109 overlay; its builder fingerprint changed.
+QS runtime manifests bind audited source archive, patch set and executable SHA.
+Ten source/manifest tests and three package-payload tests pass. Package110 and
+host installation are still pending the remaining lifecycle/VM acceptance gates.

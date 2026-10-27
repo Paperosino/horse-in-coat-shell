@@ -6,21 +6,25 @@ class PackagePayload(unittest.TestCase):
  def setUp(self):
   tmp=tempfile.TemporaryDirectory(prefix='hics package payload ');self.addCleanup(tmp.cleanup);self.base=Path(tmp.name)
   self.source=self.base/'fixture';self.package=self.base/'pkg';self.start=self.base/'build';(self.start/'src/hics').mkdir(parents=True)
-  self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','qs/hics-qt-patches.json','shell/shell.qml','shell/recovery/shell.qml')
+  self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','qs/hics-qt-patches.json','qs/hics-quickshell-patches.json','shell/shell.qml','shell/recovery/shell.qml')
   for name in self.payload:
    p=self.source/'usr/share/hics'/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('fixture');p.chmod(0o755 if name.endswith('hics-qs') else 0o644)
   helper=self.start/'src/hics/distribution';helper.mkdir()
   shutil.copy2(ROOT/'distribution/apply_qt_runtime_patches.py',helper/'apply_qt_runtime_patches.py')
+  shutil.copy2(ROOT/'distribution/apply_quickshell_patches.py',helper/'apply_quickshell_patches.py')
+  shutil.copytree(ROOT/'distribution/patches',helper/'patches')
   root=self.source/'usr/share/hics/qs'
   (root/'hics-qt-patches.json').write_text(json.dumps({'qtVersion':'6.12.0','files':{
    'lib/libQt6Core.so.6':hashlib.sha256((root/'lib/libQt6Core.so.6').read_bytes()).hexdigest()},'symlinks':{}}))
+  patches=('quickshell-v0.3.2-logging-lifetime.patch','quickshell-v0.3.2-shutdown-lifetime.patch')
+  (root/'hics-quickshell-patches.json').write_text(json.dumps({'version':'0.3.2','archiveSha256':'946a27e2a276917a03c1079e5c60971af84ece73088c3661dee455d92eb420f7','patches':{p:hashlib.sha256((helper/'patches'/p).read_bytes()).hexdigest() for p in patches},'executableSha256':hashlib.sha256((root/'bin/hics-qs').read_bytes()).hexdigest()}))
  def run_package(self):
   if self.package.exists():shutil.rmtree(self.package)
   self.package.mkdir()
   env=dict(os.environ,startdir=str(self.start),pkgdir=str(self.package),HICS_PAYLOAD_FIXTURE=str(self.source),HICS_VALIDATED=str(self.base/'validated'))
   script='''source "$1"
 cmake() { cp -a "$HICS_PAYLOAD_FIXTURE/." "$pkgdir/"; }
-python() { if [[ $1 == distribution/apply_qt_runtime_patches.py ]]; then command python "$@"; else touch "$HICS_VALIDATED"; fi; }
+python() { if [[ $1 == distribution/apply_qt_runtime_patches.py || $1 == distribution/apply_quickshell_patches.py ]]; then command python "$@"; else touch "$HICS_VALIDATED"; fi; }
 error() { printf '%s\\n' "$*" >&2; }
 package
 '''

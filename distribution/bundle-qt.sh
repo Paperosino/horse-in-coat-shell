@@ -178,4 +178,7 @@ if [[ -e $root/bin/quickshell || -L $root/bin/quickshell ]]; then
 fi
 rm -f "$root/bin/qs"
 
+# Refuse an old cached QS binary/source stage without the audited source fixes.
+python3 "$(dirname "$0")/apply_quickshell_patches.py" stamp --source "$qs_source" --root "$root"
+
 printf 'bundle complete: %s\n' "$root"

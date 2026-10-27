@@ -8,6 +8,7 @@ is test-only. This is lifecycle/render coverage, not all settings actions.
 """
 import argparse
 import json
+import hashlib
 import os
 from pathlib import Path
 import socket
@@ -82,6 +83,7 @@ def main():
     p.add_argument('--mode', choices=['normal', 'heaptrack', 'asan'], default='normal')
     p.add_argument('--asan-overlay', type=Path)
     p.add_argument('--runtime', type=Path, default=Path('/usr/share/hics/qs'))
+    p.add_argument('--executable', type=Path, help='Immutable test QS binary; installed runtime is retained')
     p.add_argument('--output', type=Path, required=True)
     a = p.parse_args()
     assert os.getuid() == 1000 and Path('/etc/hostname').read_text().strip() == 'hics-test'
@@ -123,8 +125,8 @@ def main():
                 DBUS_SYSTEM_BUS_ADDRESS='unix:path=' + str(root / 'absent'), LANG='ru_RU.UTF-8',
                 PIPEWIRE_REMOTE='hics-profile-absent', PULSE_SERVER='unix:' + str(root / 'absent-pulse'),
                 LD_LIBRARY_PATH=str(a.runtime / 'lib') + ':/usr/share/hics/qml/Hyprstack/lib:/usr/share/hics/lib',
-                QT_PLUGIN_PATH=str(a.runtime / 'lib/qt6/plugins'), QML_IMPORT_PATH='/usr/share/hics/qml',
-                QML2_IMPORT_PATH='/usr/share/hics/qml')
+                QT_PLUGIN_PATH=str(a.runtime / 'lib/qt6/plugins'), QML_IMPORT_PATH='/usr/share/hics/qml:' + str(a.runtime / 'lib/qt6/qml'),
+                QML2_IMPORT_PATH='/usr/share/hics/qml:' + str(a.runtime / 'lib/qt6/qml'))
             for key in ('LD_PRELOAD', 'LSAN_OPTIONS', 'ASAN_OPTIONS'):
                 env.pop(key, None)
             if a.mode == 'asan':
@@ -133,7 +135,8 @@ def main():
                 env['LD_LIBRARY_PATH'] = str(a.asan_overlay / 'lib') + ':' + env['LD_LIBRARY_PATH']
                 env['QML_IMPORT_PATH'] = str(a.asan_overlay / 'qml') + ':' + env['QML_IMPORT_PATH']
                 env['QML2_IMPORT_PATH'] = env['QML_IMPORT_PATH']
-            command = [str(a.runtime / 'bin/hics-qs'), '-p', str(shell), '--no-duplicate']
+            executable = a.executable or a.runtime / 'bin/hics-qs'
+            command = [str(executable), '-p', str(shell), '--no-duplicate']
             if a.mode == 'heaptrack':
                 command = ['heaptrack', '--record-only', '-o', str(a.output / 'heaptrack'), *command]
             with (a.output / 'process.log').open('w') as log:
@@ -152,7 +155,7 @@ def main():
                     assert asan_mapped, 'Expected instrumented render modules were not mapped'
                 process.wait(timeout=30 + a.cycles * 5)
             text = (a.output / 'process.log').read_text()
-            report = {'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
+            report = {'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
                 'asanModulesMapped': asan_mapped, 'complete': 'PROFILE_COMPLETE ' + str(a.cycles) in text,
                 'scope': 'Isolated real settings windows with rendered grabs; not the whole desktop or every control'}
             (a.output / 'result.json').write_text(json.dumps(report, indent=2) + '\n')

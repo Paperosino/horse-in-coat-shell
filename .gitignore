@@ -39,6 +39,7 @@
 !/distribution/bundle-qt.sh
 !/distribution/build_qt_runtime_patches.py
 !/distribution/apply_qt_runtime_patches.py
+!/distribution/apply_quickshell_patches.py
 !/distribution/patches/
 /distribution/patches/*
 !/distribution/patches/*.patch

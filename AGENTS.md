@@ -399,3 +399,12 @@
   каталогов: не создавать root-owned ~/.config при подготовке диагностики.
   Исправлять только собственные setup каталоги; не chown всего HOME и не
   выдавать permission error тестовой обвязки за дефект установленной оболочки.
+- Queued logging messages and category/filter caches must own category names;
+  QStringView/QLatin1StringView into a destroyed QLoggingCategory is unsafe.
+  Test asynchronous copies, moves, filtering and binary-log decoding together.
+- GNU patch --batch may guess direction even during reverse dry-run. Audited
+  patch helpers use --force --fuzz=0 and test real original-source application,
+  idempotency and manifest/executable tampering, not just mocked return codes.
+- A green UAF regression is not a clean lifetime acceptance when LSan is red.
+  Keep leak detection enabled and document scope, module hashes and remaining
+  allocations. Do not suppress Qt/driver categories to make the report green.

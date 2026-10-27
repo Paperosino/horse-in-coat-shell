@@ -60,6 +60,15 @@ def header_digest(directory):
         digest.update(path.read_bytes())
     return digest.hexdigest()
 
+def apply_source_patch(source, patch):
+    # --force disables GNU patch's auto-reversal guess, including during -R
+    # dry-runs. Otherwise an unapplied patch can be mistaken for an applied one.
+    command=['patch','--force','--batch','--fuzz=0','-p1','-i',str(patch)]
+    reverse=subprocess.run([*command,'--reverse','--dry-run'],cwd=source,capture_output=True)
+    if reverse.returncode:
+        subprocess.run([*command,'--forward','--dry-run'],cwd=source,check=True,capture_output=True)
+        subprocess.run([*command,'--forward'],cwd=source,check=True,capture_output=True)
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--work',type=Path,required=True)
@@ -89,11 +98,7 @@ def main():
             with tarfile.open(archive) as bundle:bundle.extractall(work,filter='data')
         for name in PATCHES[module]:
             patch=ROOT/'distribution/patches'/name
-            command=['patch','--batch','--fuzz=0','-p1','-i',str(patch)]
-            reverse=subprocess.run([*command,'--reverse','--dry-run'],cwd=source,capture_output=True)
-            if reverse.returncode:
-                subprocess.run([*command,'--forward','--dry-run'],cwd=source,check=True,capture_output=True)
-                subprocess.run([*command,'--forward'],cwd=source,check=True,capture_output=True)
+            apply_source_patch(source, patch)
     renderdoc=work/'deps/renderdoc';renderdoc.mkdir(parents=True,exist_ok=True)
     fetch(renderdoc/'renderdoc_app.h',*SOURCES['renderdoc'])
     expected_core=fields(header(headers,'QtCore',True));expected_gui=fields(header(headers,'QtGui',True))

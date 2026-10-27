@@ -17,6 +17,7 @@ if(HICS_PATCH_QT_RUNTIME)
         "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtbase-6.12.0-portal-registration.patch"
         "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtbase-6.12.0-text-input-focus.patch"
         "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtmultimedia-6.12.0-lazy-hw-diagnostics.patch")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${qt_patch_inputs})
     set(qt_patch_signature "${Qt6_VERSION}")
     foreach(input IN LISTS qt_patch_inputs)
         file(SHA256 "${input}" input_sha)
@@ -69,10 +70,28 @@ endif()
 set(HICS_BUNDLE_PREFIX_PATH "$ENV{HOME}/.local"
     CACHE STRING "Extra CMAKE_PREFIX_PATH for the bundled quickshell build")
 
-set(HYPRSTACK_QS_STAGE "${CMAKE_BINARY_DIR}/runtime/qs")
-set(HYPRSTACK_QS_SOURCE "${CMAKE_BINARY_DIR}/runtime/src-quickshell")
-set(HYPRSTACK_QS_BINARY "${CMAKE_BINARY_DIR}/runtime/build-quickshell")
-set(HYPRSTACK_QS_PREFIX "${CMAKE_BINARY_DIR}/runtime/quickshell-runtime")
+if(NOT HICS_QUICKSHELL_TAG STREQUAL "v0.3.2")
+    message(FATAL_ERROR "The source fixes require audited Quickshell v0.3.2")
+endif()
+set(qs_patch_signature "")
+foreach(input distribution/apply_quickshell_patches.py
+        distribution/patches/quickshell-v0.3.2-logging-lifetime.patch
+        distribution/patches/quickshell-v0.3.2-shutdown-lifetime.patch)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${input}")
+    file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/${input}" input_sha)
+    string(APPEND qs_patch_signature "${input_sha}")
+endforeach()
+string(SHA256 qs_patch_hash "${qs_patch_signature}")
+string(SUBSTRING "${qs_patch_hash}" 0 16 qs_patch_id)
+set(qs_runtime "${CMAKE_BINARY_DIR}/runtime/qs-${qs_patch_id}")
+set(HYPRSTACK_QS_STAGE "${qs_runtime}/stage")
+set(HYPRSTACK_QS_SOURCE "${qs_runtime}/source")
+set(HYPRSTACK_QS_BINARY "${qs_runtime}/build")
+set(HYPRSTACK_QS_PREFIX "${qs_runtime}/external")
+set(HICS_QS_RUNTIME_JOBS 2 CACHE STRING "Parallel jobs for the private Quickshell build")
+if(NOT HICS_QS_RUNTIME_JOBS MATCHES "^[1-9][0-9]*$")
+    message(FATAL_ERROR "HICS_QS_RUNTIME_JOBS must be a positive integer")
+endif()
 
 ExternalProject_Add(quickshell-runtime
     PREFIX "${HYPRSTACK_QS_PREFIX}"
@@ -83,6 +102,8 @@ ExternalProject_Add(quickshell-runtime
     URL "https://github.com/quickshell-mirror/quickshell/archive/refs/tags/${HICS_QUICKSHELL_TAG}.tar.gz"
     URL_HASH "SHA256=946a27e2a276917a03c1079e5c60971af84ece73088c3661dee455d92eb420f7"
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    PATCH_COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/distribution/apply_quickshell_patches.py" apply --source <SOURCE_DIR>
+    BUILD_COMMAND "${CMAKE_COMMAND}" --build <BINARY_DIR> --parallel "${HICS_QS_RUNTIME_JOBS}"
     CMAKE_GENERATOR Ninja
     CMAKE_ARGS
         "-DCMAKE_BUILD_TYPE=Release"
