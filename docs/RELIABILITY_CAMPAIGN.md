@@ -3031,3 +3031,19 @@ Arch archive's compatible rtkit0.14-1 and its verified fully trusted packager
 signature, in the same transaction as HICS111. Signature verification was not
 disabled and no unrelated system upgrade was performed. Snapper pre/post
 snapshots499/500 were created by the system's existing pacman hooks.
+
+
+Ten additional private-bus real portal cold starts with GTK and Hyprland
+backends passed under G_DEBUG=fatal-criticals on installed111. The registry,
+appearance Settings.ReadAll and ScreenCast interface availability are checked;
+this is not ten screen-sharing frame captures or proof the original rare
+GLib warning is eliminated. The actual desktop portal was not restarted.
+The VM profiler can optionally sample only its private process's RSS/high-water
+RSS, CPU ticks and thread count at1Hz, with bounded lifetime and explicit
+allocator environment in the report. Sampling is off by default and adds no
+production observer. Locked-desktop allocation diagnostics must not be reported
+as visible-UI latency/CPU acceptance; final comparison needs the interactive
+soak and consistent exposure/load conditions. Startup allocator experiments
+must follow the actual glibc documentation, preserve sanitizer findings, and
+must not become a periodic trim or a late mallopt change:
+https://sourceware.org/glibc/manual/latest/html_node/Memory-Allocation-Tunables.html

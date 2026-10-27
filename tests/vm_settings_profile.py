@@ -97,6 +97,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--disposable-cachyos-vm', action='store_true', required=True)
     p.add_argument('--loader-trace', action='store_true', help='glibc loader file/base evidence, including short-lived unloaded drivers; test-only')
+    p.add_argument('--sample-resources', action='store_true', help='Bounded 1Hz private-process RSS/CPU samples; diagnostic only')
     p.add_argument('--slow-unwind', action='store_true', help='ASan DWARF allocation stacks for uninstrumented dependencies; diagnostic, potentially very slow')
     p.add_argument('--trace-maps', action='store_true', help='Save bounded latest /proc maps for unloaded-module symbolization; test-only sampling')
     p.add_argument('--timeout-seconds', type=int, help='Explicit cold sanitizer/JIT time budget, 10..3600 seconds')
@@ -182,7 +183,7 @@ def main():
                 XDG_CONFIG_HOME=str(root / 'config'), XDG_DATA_HOME=str(root / 'data'),
                 XDG_STATE_HOME=str(root / 'state'), XDG_CACHE_HOME=str(root / 'cache'),
                 WAYLAND_DISPLAY=str(display), DBUS_SESSION_BUS_ADDRESS=address,
-                DBUS_SYSTEM_BUS_ADDRESS='unix:path=' + str(root / 'absent'), LANG='ru_RU.UTF-8',
+                DBUS_SYSTEM_BUS_ADDRESS='unix:path=' + str(root / 'absent'), LANG='ru_RU.UTF-8', HICS_NO_ONBOARDING='1',
                 PIPEWIRE_REMOTE='hics-profile-absent', PULSE_SERVER='unix:' + str(root / 'absent-pulse'),
                 LD_LIBRARY_PATH=str(a.runtime / 'lib') + ':/usr/share/hics/qml/Hyprstack/lib:/usr/share/hics/lib',
                 QT_PLUGIN_PATH=str(a.runtime / 'lib/qt6/plugins'), QML_IMPORT_PATH='/usr/share/hics/qml:' + str(a.runtime / 'lib/qt6/qml'),
@@ -228,14 +229,30 @@ def main():
                     if a.asan_overlay: assert asan_mapped, 'Expected instrumented render modules were not mapped'
                     if effects_image: assert effects_mapped, 'Expected QuickEffects image was not mapped'
                 timeout = a.timeout_seconds or 30 + a.cycles * 5
-                if a.trace_maps:
+                resource_samples = []
+                next_resource_sample = started_at
+                if a.trace_maps or a.sample_resources:
                     deadline = time.monotonic() + timeout
                     while process.poll() is None:
                         try:
-                            with (Path('/proc') / str(process.pid) / 'maps').open() as stream:
-                                maps = stream.read(2 * 1024 * 1024 + 1)
-                            if len(maps) > 2 * 1024 * 1024: raise RuntimeError('Maps evidence exceeds bound')
-                            (a.output / 'maps.log').write_text(maps)
+                            proc = Path('/proc') / str(process.pid)
+                            if a.trace_maps:
+                                with (proc / 'maps').open() as stream:
+                                    maps = stream.read(2 * 1024 * 1024 + 1)
+                                if len(maps) > 2 * 1024 * 1024: raise RuntimeError('Maps evidence exceeds bound')
+                                (a.output / 'maps.log').write_text(maps)
+                            if a.sample_resources and time.monotonic() >= next_resource_sample:
+                                status = dict(line.split(':', 1) for line in (proc / 'status').read_text().splitlines() if ':' in line)
+                                stats = (proc / 'stat').read_text().rsplit(')', 1)[1].split()
+                                # A process can become a zombie between poll() and these reads.
+                                if all(key in status for key in ('VmRSS', 'VmHWM', 'Threads')):
+                                    sample = {'seconds':time.monotonic()-started_at,
+                                        'rssKiB':int(status['VmRSS'].split()[0]), 'peakRssKiB':int(status['VmHWM'].split()[0]),
+                                        'cpuTicks':int(stats[11])+int(stats[12]), 'threads':int(status['Threads'])}
+                                    resource_samples.append(sample)
+                                    with (a.output / 'resources.jsonl').open('a') as stream:
+                                        stream.write(json.dumps(sample) + '\n')
+                                next_resource_sample = time.monotonic() + 1
                         except FileNotFoundError:
                             pass
                         remaining = deadline - time.monotonic()
@@ -245,7 +262,9 @@ def main():
                 else:
                     process.wait(timeout=timeout)
             text = (a.output / 'process.log').read_text()
-            report = {'slowUnwinding':a.slow_unwind, 'loaderTracing':a.loader_trace, 'mapsSampling':a.trace_maps, 'elapsedSeconds':time.monotonic()-started_at, 'timeoutSeconds':a.timeout_seconds or 30+a.cycles*5, 'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
+            allocator_keys = ('GLIBC_TUNABLES', 'MALLOC_MMAP_THRESHOLD_', 'MALLOC_TRIM_THRESHOLD_', 'MALLOC_ARENA_MAX')
+            report = {'resourceSamples':resource_samples, 'clockTicksPerSecond':os.sysconf('SC_CLK_TCK'), 'allocatorEnvironment':{key:env[key] for key in allocator_keys if key in env},
+                'slowUnwinding':a.slow_unwind, 'loaderTracing':a.loader_trace, 'mapsSampling':a.trace_maps, 'elapsedSeconds':time.monotonic()-started_at, 'timeoutSeconds':a.timeout_seconds or 30+a.cycles*5, 'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
                 'quickEffectsImage': str(effects_image) if effects_image else None, 'quickEffectsSha256': a.expect_effects_sha256, 'quickEffectsMapped': effects_mapped,
                 'asanModulesMapped': asan_mapped, 'asanLibrariesMapped': mapped_libraries, 'asanOverlayFiles': overlay_manifest, 'complete': 'PROFILE_COMPLETE ' + str(a.cycles) in text, 'productionFontsReady': 'PROFILE_FONTS_READY' in text if not a.qml_fixture else None,
                 'extraImportFiles': {str(p.relative_to(a.extra_import)): hashlib.sha256(p.read_bytes()).hexdigest() for p in a.extra_import.rglob('*') if p.is_file()} if a.extra_import else {},
