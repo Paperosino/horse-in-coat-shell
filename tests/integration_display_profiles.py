@@ -26,6 +26,7 @@ with tempfile.TemporaryDirectory(prefix='hics-display-integration-') as director
     value=check()
     if value:return value
     time.sleep(.1)
+   if (base/'shell.log').exists():Path('/tmp/hics-display-integration.log').write_text((base/'shell.log').read_text())
    raise AssertionError('Display condition timed out: '+str(monitors()))
   wait_for(lambda:monitors())
   primary=monitors()[0]['name'];initial=monitors()[0];before=file.read_bytes()
@@ -46,8 +47,31 @@ import Quickshell.Io
 import Quickshell.Hyprland as H
 import qs.services
 import qs.modules.displays
+import qs.modules.nexus
+import qs.modules.nexus.pages
 ShellRoot {
- IpcHandler {target:"displayTest";function scale():real{return Monitors.arranged[0]?.scale??-1;}function seedSnapshot():void{H.Hyprland.refreshMonitors();}}
+ id:root
+ NexusState {id:pageState;screen:Quickshell.screens[0];isWindow:true}
+ FloatingWindow {visible:true;implicitWidth:1100;implicitHeight:720;DisplayPage {id:page;anchors.fill:parent;nState:pageState}}
+ function find(item,test){if(test(item))return item;for(const child of item.children??[]){const found=find(child,test);if(found)return found;}return null;}
+ function scaleRow(){return find(page,item=>item.objectName==="displayScale");}
+ IpcHandler {
+  target:"displayTest"
+  function scale():real{return Monitors.arranged[0]?.scale??-1;}
+  function seedSnapshot():void{H.Hyprland.refreshMonitors();}
+  function failPreview():void{const patches={};patches[Monitors.arranged[0].name]={scale:0};DisplayProfiles.preview(patches);}
+  function error():string{return DisplayProfiles.error;}
+  function selectedScale():real{return root.scaleRow()?.active?.value??-1;}
+  function chooseScale():bool {
+   const row=root.scaleRow();if(!row)return false;
+   const button=root.find(row,item=>item.menu!==undefined&&item.menuItems!==undefined);
+   if(!button)return false;button.menu.expanded=true;
+   const option=root.find(button.menu,item=>item.modelData?.value===.5);
+   if(!option)return false;
+   const layer=option.children.find(child=>typeof child.clicked==="function");
+   if(!layer)return false;layer.clicked(null);Monitors.apply();return true;
+  }
+ }
  Confirmation {}
  Timer {interval:100;running:true;repeat:true;onTriggered:if(DisplayProfiles.pending){console.log("DISPLAY_CONFIRMATION_VISIBLE");stop();}}
 }''')
@@ -63,8 +87,18 @@ ShellRoot {
   print('PASS: Escape dismisses the real confirmation and reverts display changes',flush=True)
   def ui_scale():
    return float(subprocess.check_output(['quickshell','ipc','-p',str(copy),'call','displayTest','scale'],env=env,text=True,timeout=5).strip())
-  call('preview',{'patches':{primary:{'scale':.5}}})
+  def ui_error():return subprocess.check_output(['quickshell','ipc','-p',str(copy),'call','displayTest','error'],env=env,text=True,timeout=5).strip()
+  subprocess.run(['quickshell','ipc','-p',str(copy),'call','displayTest','failPreview'],env=env,check=True,capture_output=True,timeout=5)
+  wait_for(ui_error)
+  external=call('preview',{'patches':{primary:{'scale':.5}}})
   wait_for(lambda:monitors()[0]['scale']==.5)
+  wait_for(lambda:not ui_error())
+  call('revert',{'token':external['pending']['token']})
+  wait_for(lambda:monitors()[0]['scale']==initial['scale'])
+  def choose_scale():return subprocess.check_output(['quickshell','ipc','-p',str(copy),'call','displayTest','chooseScale'],env=env,text=True,timeout=5).strip()=='true'
+  wait_for(choose_scale)
+  wait_for(lambda:monitors()[0]['scale']==.5)
+  wait_for(lambda:not ui_error())
   # Seed the same stale client snapshot seen after a real mode change. The
   # completion edge must refresh it even without a configreloaded event.
   subprocess.run(['quickshell','ipc','-p',str(copy),'call','displayTest','seedSnapshot'],env=env,check=True,capture_output=True,timeout=5)
@@ -72,6 +106,7 @@ ShellRoot {
   call('revert',{'token':call('status')['pending']['token']})
   wait_for(lambda:monitors()[0]['scale']==initial['scale'])
   wait_for(lambda:ui_scale()==initial['scale'])
+  wait_for(lambda:float(subprocess.check_output(['quickshell','ipc','-p',str(copy),'call','displayTest','selectedScale'],env=env,text=True,timeout=5).strip())==initial['scale'])
   print('PASS: monitor settings model agrees with compositor after preview rollback',flush=True)
   preview=call('preview',{'patches':{primary:{'x':initial['x']+64}}});time.sleep(.4)
   if os.environ.get('HICS_DISPLAY_PREVIEW'):subprocess.run(['grim',os.environ['HICS_DISPLAY_PREVIEW']],env=env,check=True)

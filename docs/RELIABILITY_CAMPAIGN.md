@@ -1711,3 +1711,45 @@ Tr.tr(Estimate)=Оценка. HOME/XDG/DBus изолированы; lock-owner �
 Это ошибка fixture, не дефект перевода. Installed video pause/display UI fix
 ещё надо проверить после загрузки нового main UI; отсутствие строк в .po или
 байтовое совпадение QML сами по себе не закрывают этот gate.
+
+### LOADED99 и DISPLAY-CONTROL: привязка меню и устаревшая ошибка
+
+После нормального PAM unlock выполнен coordinated resume: runner6340 сохранён,
+UI10609→13037, Kitty10432 жив, ready=true, configerrors пуст, onboarding layer
+отсутствует. loaded-ui99.json сохранён в fresh98lab. Это загруженный пакет99,
+не только успешная pacman транзакция.
+
+Открыт настоящий display settings window. Первая pointer Apply попала в
+движущийся после scroll контент, trial не начался. Следующий выбор оказался
+150%, не задуманные125% (scale99-after-ui.png подтверждает150): service отверг
+дробный logical size, native scale остался1. Поэтому этот отказ не объявляется
+поломкой Apply. Далее точный scale1.25 задан через штатный display_profiles
+helper/IPC. display-rollback99.json: pendingtrue,error="", автоматический возврат
+к1 через15.24s. scale99-settled.png после2s показывает настоящий confirmation,
+кнопки/таймер доступны. Обычное settings window частично выходит за правый край
+при этом масштабе; его позиционирование после scale change остаётся отдельным
+аудитом. Это не закрывает вопрос адаптивности всех окон/турa125%.
+
+Проверка настоящего UI показала неполноту86bf0bb: модель обновляется, но SelectRow
+остаётся на старом пункте. Menu.updateActiveOnSelection=true сам присваивает
+active после сигнала и удаляет binding, заданный DisplayPage. У5 display
+selectors включён уже существующий controlled режим updateActiveOnSelection=false.
+Не меняются defaults прочих меню. Дополнительно confirmation показывал старую
+ошибку invalid preview при data.error="" в новой успешной пробе. DisplayProfiles
+сбрасывает backend.error только для строго более новой успешной revision и
+при отсутствии busy операции, не для старого/ошибочного ответа.
+
+integration_display_profiles теперь создаёт настоящий DisplayPage и находит
+scale SelectRow/Menu, вызывает production StateLayer.clicked(null), затем
+Monitors.apply. Проверяет active.value поля после rollback, а не только модель.
+Отдельный invalid UI request → external valid preview проверяет очистку ошибки.
+Временные копии без каждого fix падают независимо: selectedScale timeout при
+native scale1; ui_error timeout при native scale0.5. Counterfactual лог
+ display-selection-before-fixes.log. Оба source fix вместе проходят весь
+integration прогон (Escape/model+control/error/timeout/crash/persist/hotplug),
+13 display unit tests прошли. Первый signal fixture вызывал clicked без null
+MouseEvent argument и получил Insufficient arguments; это ошибка теста.
+
+Эти2 новых source fix не входят в99. Требуются следующий пакет и installed UI
+проверка; прежний зелёный тест модели не доказывал обновление самого контрола.
+Остальные общие reliability/DE/media/hardware gates остаются открытыми.

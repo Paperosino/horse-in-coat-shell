@@ -203,6 +203,7 @@ PageBase {
 
             SelectRow {
                 objectName: "displayResolution"
+                updateActiveOnSelection: false
                 visible: root.current !== null
                 label: Tr.tr("Resolution")
                 subtext: root.current?.focused ? Tr.tr("Focused display") : ""
@@ -213,6 +214,7 @@ PageBase {
 
             SelectRow {
                 objectName: "displayRefreshRate"
+                updateActiveOnSelection: false
                 visible: root.current !== null
                 label: Tr.tr("Refresh rate")
                 menuItems: rateItems.instances
@@ -236,6 +238,7 @@ PageBase {
 
             SelectRow {
                 objectName: "displayScale"
+                updateActiveOnSelection: false
                 visible: root.current !== null
                 label: Tr.tr("Scale")
                 subtext: Tr.tr("Fraction of the native pixel density used for UI")
@@ -251,6 +254,7 @@ PageBase {
 
             SelectRow {
                 objectName: "displayOrientation"
+                updateActiveOnSelection: false
                 visible: root.current !== null
                 label: Tr.tr("Orientation")
                 subtext: Tr.tr("Rotation of this display")
@@ -261,6 +265,7 @@ PageBase {
 
             SelectRow {
                 objectName: "displayVrr"
+                updateActiveOnSelection: false
                 visible: root.current !== null
                 label: Tr.tr("Adaptive sync (VRR)")
                 subtext: Tr.tr("Opt in for this display. Confirm the image is stable; changes roll back if not confirmed.")

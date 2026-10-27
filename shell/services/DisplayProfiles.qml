@@ -16,6 +16,8 @@ Singleton {
     property int secondsLeft: 0
     function accept(value: var): void {
         if (!value?.statePath || Number(value.revision??0)<Number(data.revision??0)) return;
+        if (Number(value.revision??0)>Number(data.revision??0) && !value.error && !backend.busy)
+            backend.error="";
         data=value;
         updateCountdown();
     }
