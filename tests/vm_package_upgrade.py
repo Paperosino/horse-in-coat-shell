@@ -11,6 +11,7 @@ import hashlib,json,os,subprocess,sys,time
 from pathlib import Path
 assert Path('/etc/hostname').read_text().strip()=='hics-test'
 assert subprocess.check_output(['systemd-detect-virt'],text=True).strip() in ('kvm','qemu')
+session_mode=sys.argv[2];assert session_mode in ('locked','safe')
 package=Path(sys.argv[1]);assert package.is_file() and package.parent==Path('/var/tmp') and package.name.startswith('hic-shell-') and package.name.endswith('.pkg.tar.zst')
 package.chmod(0o644)
 env=dict(os.environ,LANG='ru_RU.UTF-8',XDG_RUNTIME_DIR='/run/user/1000',DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/1000/bus',WAYLAND_DISPLAY='wayland-1')
@@ -25,11 +26,12 @@ def state():
   except FileNotFoundError:pass
  assert len(shells)==1,{'runner':runner,'mainShellChildren':shells}
  return {'runner':runner,'shell':shells[0],'apps':user('pgrep','-x','kitty'),
- 'locked':user('/usr/share/hics/qs/bin/hics-qs','ipc','-p','/usr/share/hics/shell','call','lock','isLocked'),
+ 'locked':'true' if json.loads(user('hyprctl','-i','0','-j','locked'))['locked'] else 'false',
  'binds':len(json.loads(user('hyprctl','-i','0','-j','binds'))),
  'errors':user('hyprctl','-i','0','configerrors')}
 
-before=state();assert before['locked']=='true' and before['binds']>10 and not before['errors'],before
+before=state();assert before['locked']==('true' if session_mode=='locked' else 'false') and before['binds']>10 and not before['errors'],before
+if session_mode=='safe':assert json.loads(Path('/home/hics-test/.local/state/hics/shell-recovery.json').read_text()).get('safe') is True
 assert not Path('/var/lib/pacman/db.lck').exists(),'Another package transaction is active'
 log=Path('/var/tmp/hics-package-upgrade.log')
 with log.open('w') as stream:
@@ -50,10 +52,10 @@ assert not Path('/var/lib/pacman/db.lck').exists()
 unit=subprocess.run(['systemctl','--user','--machine=1000@.host','is-active','--quiet','hics-package-config-guard.service'],timeout=5)
 assert unit.returncode!=0,'A package guard was left running'
 with package.open('rb') as stream: package_sha256=hashlib.file_digest(stream,'sha256').hexdigest()
-print(json.dumps({'packageSha256':package_sha256,'before':before,'after':after,'version':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'autoreloadRestored':True,'log':str(log)},indent=2))
+print(json.dumps({'sessionMode':session_mode,'packageSha256':package_sha256,'before':before,'after':after,'version':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'autoreloadRestored':True,'log':str(log)},indent=2))
 '''
-p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--package',required=True);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
-command=['ssh','-i',str(a.lab/'guest_ed25519'),'-p','22280','-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(a.lab/'known_hosts-installed'),'root@127.0.0.1','python3 - '+shlex.quote(a.package)]
+p=argparse.ArgumentParser();p.add_argument('--lab',required=True,type=Path);p.add_argument('--package',required=True);p.add_argument('--output',required=True,type=Path);p.add_argument('--session-mode',choices=['locked','safe'],default='locked');a=p.parse_args()
+command=['ssh','-i',str(a.lab/'guest_ed25519'),'-p','22280','-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(a.lab/'known_hosts-installed'),'root@127.0.0.1','python3 - '+shlex.quote(a.package)+' '+shlex.quote(a.session_mode)]
 result=subprocess.run(command,input=REMOTE,capture_output=True,text=True,timeout=280)
 if result.returncode:raise SystemExit(result.stdout+result.stderr)
 report=json.loads(result.stdout);a.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

@@ -45,6 +45,25 @@ class DesktopCompletion(unittest.TestCase):
    self.assertIn('dock.json',journal['absent'])
    config.rollback(False)
   self.assertFalse((self.cfg/'dock.json').exists());self.assertFalse((self.cfg/'shell.json').exists())
+ def test_rollback_does_not_write_defaults_twice_over_late_edit(self):
+  path=self.cfg/'dock.json';path.write_text('{"enabled":false}')
+  config.atomic_json(config.JOURNAL,{'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
+  original=config.apply_files
+  def apply_then_edit(files,runtime_apply=True,*args):
+   original(files,runtime_apply,*args)
+   if not runtime_apply:path.write_text('{"userEdit":true}')
+  with patch.object(config,'apply_files',side_effect=apply_then_edit):config.rollback()
+  self.assertEqual(json.loads(path.read_text()),{'userEdit':True})
+ def test_failed_runtime_rollback_still_restores_absence_and_reports_error(self):
+  path=self.cfg/'dock.json';path.write_text('{"enabled":false}')
+  config.atomic_json(config.JOURNAL,{'before':{'dock.json':None},'applied':{'dock.json':'{"enabled":false}'},'absent':['dock.json']})
+  original=config.apply_files
+  def fail_runtime(files,runtime_apply=True,*args):
+   if runtime_apply:raise ValueError('Fixture compositor unavailable')
+   original(files,False,*args)
+  with patch.object(config,'apply_files',side_effect=fail_runtime):config.rollback()
+  self.assertFalse(path.exists());self.assertFalse(config.JOURNAL.exists())
+  self.assertIn('Fixture compositor unavailable',config.read_json(self.state/'configuration-recovery-warning.json')['warning'])
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)

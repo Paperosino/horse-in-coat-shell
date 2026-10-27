@@ -809,3 +809,35 @@ widgets.json является виртуальной секцией и не уд
 recovery QML/helper/rollback повторён с проверкой отсутствия четырёх файлов.
 Общая регрессия выше относится к baseline до этого нового исправления; пакет90
 в ВМ ещё содержит старый rollback. Нужна следующая package/VM проверка.
+
+### ROLLBACK-006 и пакет 91: поздняя правка между двумя записями
+
+Fault-case после ROLLBACK-005 воспроизвёл потерю правки: rollback вызывал
+apply_files(restored,False), затем apply_files(restored,True), что повторно
+записывало исходные значения поверх изменения пользователя между фазами.
+Добавлен внутренний persist=False для runtime-фазы. Файлы записываются один
+раз; cleanup отсутствовавших секций сравнивает текущее содержимое с defaults
+и сохраняет позднюю правку. Новые тесты воспроизвели дефект до исправления,
+затем проверили сохранение правки и возврат отсутствия при отказе композитора
+с записью warning. 20 test_desktop_completion, 24 test_shell_recovery и настоящий
+nested recovery UI/helper/guarded rollback проходят.
+
+Пакет hic-shell 1.1.1-91 (SHA256
+`d2cc318fc3016d858ba052f23e3d86a63d5c6971e027b6052eca125c82862b33`)
+собран с ранее проверенным private runtime. Упакованный configuration_manager.py
+побайтно совпадает с worktree. Safe-mode update через install.sh сохранил runner
+32439, recovery UI 32445, Kitty 6637, locked=false, 207 binds и пустой configerrors;
+autoreload восстановлен. evidence safe-upgrade91.json. VM harness различает
+locked/safe режимы и проверяет compositor lock, а не отсутствие обычного IPC
+объекта в минимальном recovery root.
+
+Перед повтором UI-пробы удалены только три пустых файла, созданных нашим
+предыдущим неудачным тестом: исходное отсутствие доказано recovery90-before.json,
+каждое содержимое проверено на точное '{}'. Остальные файлы не менялись.
+При закрытом preview перезапущен только hics-configuration.service для загрузки
+нового Python helper; session/lock owner не перезапускался. Кнопка safe UI
+начала 30s trial, journal содержал absent для трёх секций. После deadline
+проверка before/after SHA и отсутствия совпала полностью, display profiles
+не изменились (recovery91-result.json). Kitty 6637 сохранился. NRestarts=2
+hic-session отражает два намеренных SIGKILL из предыдущего crash-cycle90,
+не новые самопроизвольные падения. ВМ остаётся в безопасном режиме, хост не обновлён.

@@ -190,7 +190,7 @@ def changes(files):
    rows.append(row)
  return rows
 
-def apply_files(files,runtime_apply=True):
+def apply_files(files,runtime_apply=True,persist=True):
  files=dict(files)
  if 'application-rules.json' in files or 'device-rules.json' in files:
   from desktop_rules import regenerate
@@ -200,7 +200,7 @@ def apply_files(files,runtime_apply=True):
  if 'window-controls.json' in files:
   from gtk_theme import validate_window_controls
   validate_window_controls(json.loads(files['window-controls.json']))
- for name,text in files.items():
+ for name,text in (files.items() if persist else ()):
   if name=='widgets.json':
    prefs=read_json(CONFIG/'plugins.json');prefs['desktopLayout']=json.loads(text).get('desktopLayout',{});atomic_json(CONFIG/'plugins.json',prefs,private=True)
   else:write_text(target(name),text)
@@ -259,7 +259,7 @@ def rollback(runtime_apply=True):
    except ValueError:pass
  apply_files(restored,False)
  try:
-  if runtime_apply:apply_files(restored,True)
+  if runtime_apply:apply_files(restored,True,False)
  except (OSError,subprocess.SubprocessError,ValueError) as error:atomic_json(STATE/'configuration-recovery-warning.json',{'warning':str(error)},private=True)
  # Runtime application needs defaults, but an abandoned trial must also
  # restore the original absence of files. Keep edits made during rollback.
