@@ -4,6 +4,7 @@
 #include <qobject.h>
 #include <qqmlintegration.h>
 #include <qqmllist.h>
+#include <optional>
 
 namespace hyprstack::services::hypr {
 
@@ -47,6 +48,8 @@ signals:
 
 private:
     QJsonObject m_lastIpcObject;
+    bool m_updating = false;
+    std::optional<QJsonObject> m_pending;
 };
 
 class HyprDevices : public QObject {
@@ -69,6 +72,8 @@ signals:
 
 private:
     QList<HyprKeyboard*> m_keyboards;
+    bool m_updating = false;
+    std::optional<QJsonObject> m_pending;
 };
 
 } // namespace hyprstack::services::hypr

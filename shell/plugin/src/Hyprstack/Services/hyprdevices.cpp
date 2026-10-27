@@ -1,6 +1,7 @@
 #include "hyprdevices.hpp"
 
 #include <qjsonarray.h>
+#include <QPointer>
 
 #include <algorithm>
 #include <utility>
@@ -90,51 +91,77 @@ bool HyprKeyboard::main() const {
 }
 
 bool HyprKeyboard::updateLastIpcObject(const QJsonObject& object) {
+    if (m_updating) {
+        m_pending = object;
+        return true;
+    }
     if (m_lastIpcObject == object) {
         return false;
     }
 
+    const QPointer<HyprKeyboard> guard(this);
+    m_updating = true;
     const auto last = m_lastIpcObject;
     const auto isMain = object.value(u"main"_s).toBool();
 
     m_lastIpcObject = object;
     emit lastIpcObjectChanged();
+    if (!guard) return true;
 
     bool dirty = false;
     if (last.value(u"address"_s) != object.value(u"address"_s)) {
         dirty = true;
         emit addressChanged();
+        if (!guard) return true;
     }
     if (last.value(u"name"_s) != object.value(u"name"_s)) {
         dirty = true;
         emit nameChanged();
+        if (!guard) return true;
     }
     if (last.value(u"layout"_s) != object.value(u"layout"_s)) {
         dirty = true;
         emit layoutChanged();
+        if (!guard) return true;
     }
     if (last.value(u"active_keymap"_s) != object.value(u"active_keymap"_s)) {
         dirty = true;
         emit activeKeymapChanged();
+        if (!guard) return true;
         if (isMain && !last.value(u"active_keymap"_s).toString().isEmpty())
             toastKbLayout(object.value(u"active_keymap"_s).toString());
+        if (!guard) return true;
     }
     if (last.value(u"capsLock"_s) != object.value(u"capsLock"_s)) {
         dirty = true;
         emit capsLockChanged();
+        if (!guard) return true;
         if (isMain)
             toastCapsLock(object.value(u"capsLock"_s).toBool());
+        if (!guard) return true;
     }
     if (last.value(u"numLock"_s) != object.value(u"numLock"_s)) {
         dirty = true;
         emit numLockChanged();
+        if (!guard) return true;
         if (isMain)
             toastNumLock(object.value(u"numLock"_s).toBool());
+        if (!guard) return true;
     }
     if (last.value(u"main"_s) != object.value(u"main"_s)) {
         dirty = true;
         emit mainChanged();
+        if (!guard) return true;
     }
+    if (m_pending) {
+        // Do not recurse through signal handlers or overwrite a later arrival
+        // with a captured stale snapshot. The queued call consumes the latest.
+        QMetaObject::invokeMethod(this, [this] {
+            auto next = std::exchange(m_pending, std::nullopt);
+            m_updating = false;
+            updateLastIpcObject(*next);
+        }, Qt::QueuedConnection);
+    } else m_updating = false;
     return dirty;
 }
 
@@ -146,6 +173,12 @@ QQmlListProperty<HyprKeyboard> HyprDevices::keyboards() {
 }
 
 bool HyprDevices::updateLastIpcObject(const QJsonObject& object) {
+    if (m_updating) {
+        m_pending = object;
+        return true;
+    }
+    m_updating = true;
+    const QPointer<HyprDevices> guard(this);
     const auto val = object.value(u"keyboards"_s).toArray();
     bool dirty = false;
 
@@ -174,6 +207,9 @@ bool HyprDevices::updateLastIpcObject(const QJsonObject& object) {
 
         if (it != m_keyboards.end()) {
             dirty |= (*it)->updateLastIpcObject(obj);
+            // A property handler may destroy the model. Reentrant snapshots
+            // are coalesced until the current coherent update has finished.
+            if (!guard) return true;
         } else {
             dirty = true;
             m_keyboards << new HyprKeyboard(obj, this);
@@ -182,8 +218,18 @@ bool HyprDevices::updateLastIpcObject(const QJsonObject& object) {
 
     if (dirty) {
         emit keyboardsChanged();
+        if (!guard) return true;
     }
 
+    if (m_pending) {
+        // Do not recurse through signal handlers or overwrite a later arrival
+        // with a captured stale snapshot. The queued call consumes the latest.
+        QMetaObject::invokeMethod(this, [this] {
+            auto next = std::exchange(m_pending, std::nullopt);
+            m_updating = false;
+            updateLastIpcObject(*next);
+        }, Qt::QueuedConnection);
+    } else m_updating = false;
     return dirty;
 }
 
