@@ -154,6 +154,13 @@ class DesktopCompletion(unittest.TestCase):
   self.assertTrue(config.configuration_event_relevant(event(2,'.configuration-recovery-warning.jsonabc'),paths))
   self.assertTrue(config.configuration_event_relevant(struct.pack('iIII',-1,0x4000,0,0),paths))
   self.assertTrue(config.configuration_event_relevant(own[:-1],paths))
+ def test_bad_history_archives_do_not_hide_valid_checkpoint(self):
+  import gzip,os
+  good=config.snapshot('Good');path=config.HISTORY/(good+'.json.gz');payload=json.loads(gzip.decompress(path.read_bytes()))
+  payload['created']=10**400;(config.HISTORY/'huge.json.gz').write_bytes(gzip.compress(json.dumps(payload).encode()))
+  (config.HISTORY/'corrupt.json.gz').write_bytes(b'\x1f\x8b'+b'x'*30)
+  os.mkfifo(config.HISTORY/'fifo.json.gz');(config.HISTORY/'link.json.gz').symlink_to(path)
+  self.assertEqual([row['id'] for row in config.history()],[good])
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)

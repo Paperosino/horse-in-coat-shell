@@ -1098,3 +1098,21 @@ media-audit92/docs-middle.jpg; это выборка, не полный визу
 Добавлен краткий RELIABILITY_STATUS.md с границами доказательств и открытыми gates.
 Хостовый pacman -Q подтверждает 1.1.1-78; новых установок/перезапусков в этом
 прогоне не было. Полный рабочий стол и вся аппаратура этим прогоном не покрыты.
+
+### HISTORY-001: повреждённые архивы не должны скрывать рабочие точки
+
+load_snapshot открывал gzip по проверенному ранее пути с возможностью следования
+ссылке и без защиты от FIFO race. math.isfinite(created) мог выбросить OverflowError
+на большом JSON integer, не перехватываемый history(). Теперь compressed input
+читается через nofollow/nonblock descriptor с fstat regular-file и пределом8MiB;
+decompressed output также ограничен8MiB. Ошибка zlib преобразуется в ValueError.
+Структура и вложенные JSON sections проходят strict_object; created проверяется
+диапазоном без преобразования огромного integer во float. Аналогично исправлен
+порядок проверки чисел widget geometry в bundle validator.
+
+30 test_desktop_completion проходят: среди corrupt gzip/огромного created/FIFO/
+symlink рабочий checkpoint продолжает перечисляться единственным валидным.
+25 recovery tests и настоящий nested recovery UI/helper/revert также проходят.
+Ограничение памяти относится к compressed/decompressed buffers, не является
+измерением RSS. Полный перебор archive fuzzing/IO races ещё открыт. Изменения
+пока не установлены; пакет92 в ВМ остаётся предыдущим кандидатом.

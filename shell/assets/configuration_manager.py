@@ -4,7 +4,7 @@ Credentials, clipboard contents and active monitor rules are excluded. Appearanc
 imports contain data only; their preview is rolled back by an independent worker.
 """
 from __future__ import annotations
-import argparse,copy,ctypes,fcntl,gzip,hashlib,json,math,os,re,selectors,signal,socket,struct,subprocess,sys,tempfile,time,uuid
+import argparse,copy,ctypes,io,stat,zlib,fcntl,gzip,hashlib,json,math,os,re,selectors,signal,socket,struct,subprocess,sys,tempfile,time,uuid
 from pathlib import Path
 from feature_common import CONFIG,STATE,DATA,read_json,atomic_json,output
 from application_environment import application_environment
@@ -83,11 +83,19 @@ def validate_preferences(raw):
 def preferences():return validate_preferences(read_preferences())
 
 def load_snapshot(path):
- if path.stat().st_size>MAX_BYTES:raise ValueError('Snapshot is too large')
- with gzip.open(path,'rb') as f:raw=f.read(MAX_BYTES+1)
+ descriptor=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
+ with os.fdopen(descriptor,'rb') as stream:
+  info=os.fstat(stream.fileno())
+  if not stat.S_ISREG(info.st_mode) or info.st_size>MAX_BYTES:raise ValueError('Snapshot is too large or unsafe')
+  compressed=stream.read(MAX_BYTES+1)
+ if len(compressed)>MAX_BYTES:raise ValueError('Snapshot is too large')
+ try:
+  with gzip.GzipFile(fileobj=io.BytesIO(compressed)) as archive:raw=archive.read(MAX_BYTES+1)
+ except zlib.error as error:raise ValueError('Corrupt snapshot compression') from error
  if len(raw)>MAX_BYTES:raise ValueError('Snapshot is too large')
- d=json.loads(raw);validate_bundle(d,False)
- if not isinstance(d.get('id'),str) or not re.fullmatch('[a-f0-9-]{36}',d['id']) or type(d.get('created')) not in (int,float) or not math.isfinite(d['created']) or d['created']<0:raise ValueError('Invalid history metadata')
+ d=strict_object(raw);validate_bundle(d,False)
+ created=d.get('created')
+ if not isinstance(d.get('id'),str) or not re.fullmatch('[a-f0-9-]{36}',d['id']) or type(created) not in (int,float) or not 0<=created<=1e12:raise ValueError('Invalid history metadata')
  if not isinstance(d.get('hash'),str) or not re.fullmatch('[a-f0-9]{64}',d['hash']):raise ValueError('Invalid history checksum')
  return d
 
@@ -99,8 +107,7 @@ def validate_bundle(d,appearance=True):
   total+=len(text.encode())
   if len(text.encode())>1048576 or total>MAX_BYTES:raise ValueError('Configuration bundle is too large')
   if name.endswith('.json'):
-   val=json.loads(text,parse_constant=lambda value: (_ for _ in ()).throw(ValueError('Non-finite configuration value')))
-   if not isinstance(val,dict):raise ValueError('Configuration sections must be JSON objects')
+   val=strict_object(text)
    if name=='state/scheme.json':
     if val.get('mode') not in ('dark','light') or not isinstance(val.get('colours'),dict) or not val['colours']:raise ValueError('Invalid desktop palette')
     for role,color in val['colours'].items():
@@ -119,7 +126,7 @@ def validate_bundle(d,appearance=True):
        if key in ('locked','snap'):
         if not isinstance(value,bool):raise ValueError('Invalid widget switch')
        elif key in ('x','y','width','height','grid'):
-        if isinstance(value,bool) or not isinstance(value,(int,float)) or not __import__('math').isfinite(value) or abs(value)>1000000:raise ValueError('Invalid widget coordinate')
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not -1000000<=value<=1000000:raise ValueError('Invalid widget coordinate')
        else:raise ValueError('Unknown widget geometry option')
    if name=='layouts.json' and val.get('mode','scrolling') not in ('canvas','stacking','tiling','scrolling'):raise ValueError('Invalid window mode')
  return d
