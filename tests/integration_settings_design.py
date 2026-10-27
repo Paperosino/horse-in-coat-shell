@@ -313,6 +313,14 @@ ShellRoot {
         (base/'shell/shell.qml').write_text(fixture)
     if os.environ.get('HICS_TEST_CPU_SENSOR'):
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/cpu-sensor.qml').read_text())
+    if os.environ.get('HICS_TEST_GPU_SENSOR'):
+        (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/gpu-sensor.qml').read_text())
+        helpers=base/'sensor-helpers';helpers.mkdir()
+        helper=helpers/'hics-gpu-monitor'
+        helper.write_text('#!'+sys.executable+'\nimport sys,json\ni=0\nfor line in sys.stdin:\n print(json.dumps({"available":True,"usage":25+min(i,3),"temperature":[43,0,-1,37][min(i,3)],"cpuTemperature":-1}),flush=True);i+=1\n')
+        helper.chmod(0o700)
+        for executable,body in [('nvidia-smi','exit 1'),('glxinfo','echo "Device: Fixture graphics"'),('lspci','exit 1')]:
+            path=helpers/executable;path.write_text('#!/bin/sh\n'+body+'\n');path.chmod(0o700)
     if os.environ.get('HICS_TEST_SCALING'):
         (base/'config/hics/shell.json').write_text('{"appearance":{"reducedMotion":true,"font":{"hinting":"none"}}}')
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/scaling-quality.qml').read_text())
@@ -334,6 +342,8 @@ ShellRoot {
         assert select.select([private_bus.stdout],[],[],3)[0], 'Private test bus did not start'
         address=private_bus.stdout.readline().strip();assert address.startswith('unix:'),address
         env.update(HOME=str(home),DBUS_SESSION_BUS_ADDRESS=address,DBUS_SYSTEM_BUS_ADDRESS='unix:path='+str(base/'absent-system'),PIPEWIRE_REMOTE='hics-fixture-absent',PULSE_SERVER='unix:'+str(base/'absent-pulse'))
+        if os.environ.get('HICS_TEST_GPU_SENSOR'):
+            env.update(HICS_HELPER_DIR=str(helpers),PATH=str(helpers)+os.pathsep+env.get('PATH',''))
         log=(base/'compositor.log').open('w');compositor=subprocess.Popen(['Hyprland','--config',str(base/'compositor.lua')],env=env,stdout=log,stderr=subprocess.STDOUT)
         instance=None
         for _ in range(80):
@@ -374,6 +384,8 @@ ShellRoot {
         assert not any(s in live for s in ('TypeError:','ReferenceError:','Binding loop','Cannot assign','Unable to assign')),live[-7000:]
         if os.environ.get('HICS_TEST_CPU_SENSOR'):
             print('PASS: real dashboard card distinguishes absent, zero and valid temperature without an indefinite progress animation')
+        elif os.environ.get('HICS_TEST_GPU_SENSOR'):
+            print('PASS: real GPU backend/helper and dashboard show valid, zero, lost and recovered temperature')
         else:
             print('PASS: live settings screenshots, searchable disclosure, narrow forms, reduced motion, high contrast and rapid navigation')
     finally:

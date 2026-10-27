@@ -2188,3 +2188,50 @@ snapshot. Evidence cpu-sensor-availability.log, cpu-availability-build.log and
 cpu-sensor-ui.log outside Git. The backend test isolates the sampler from tick
 policy; this is not physical sensor hardware validation. The new source has
 not yet been packaged/installed; guest remains102, host78.
+
+
+### GPU-SENSOR-001 and installed candidate103
+
+Gpu previously retained its last temperature if the helper still supplied load
+but no longer supplied a temperature; numeric0also conflated missing/zero in UI.
+Added temperatureAvailable with the existing signal, a single validation/update
+path, and dashboard binding. Native successful load samples now invalidate a
+missing temperature rather than freezing an older number. Native load is bounded
+and finite; temperature must be finite in[0,150). Invalid CLI response clears
+availability; game-mode helper failure does not keep a stale temperature forever.
+Real0is distinguished from the helper's-1sentinel. Existing cached/throttled CLI
+sampling remains, with no extra request/timer/process added. GPU stop/type/source
+and whole load availability still need broader hardware/driver lifecycle audit.
+
+The real Gpu singleton, ServiceRef, existing asynchronous helper protocol and
+actual HeroCard passed the43→0→missing→37sequence on a private nested compositor.
+The helper and GPU-name commands are controlled fixtures; no physical GPU or
+NVML compatibility is inferred. CPU card integration passed again; all5existing
+GPU helper tests passed, including driver hang/backoff. Full dependent build
+completed before constructing the immutable UI snapshots. Evidence gpu-sensor-ui,
+gpu-sampler-availability, cpu-sensor-ui-after-gpu, gpu-availability-build and
+sensor-dependents-build logs outside Git.
+
+Candidate103 includes both CPU/GPU fixes. Package services .text matched the
+rebuilt library before installation (RPATH changes at install). Uses the existing
+private runtime, not a clean rebuild of all dependencies. Package SHA:
+5892bbfdd7288e205a0629cc584a474ed3ffd0e402f6862607423a63601c8583.
+Installed through current install.sh on the genuinely locked original guest:
+runner456/UI498, independent Kitty5302,207bindings and actual session lock were
+identical before/after; no configerrors. Package guard restored autoreload.
+Evidence upgrade103.json. Then normal PAM unlock, explicit guest reboot and
+sensors-boot103.json verified boot835f1c7c-261e-4655-b958-fe0ba3dc4f14,
+loaded bars/config/services inode matches, services SHA
+44fd74acf57c2b20c7eb0e5701bf1b70881d76242bf62e15c978784594e89425,
+ready normal mode,0restarts and no failed units/configerrors. Reused numerical
+PIDs across boots were not mistaken for unchanged process identity.
+
+Actual main103 dashboard screenshot sensors103-performance.png shows an em dash
+for absent CPU sensor; settled screenshot sensors103-settled.png confirms network
+history and traffic counters update. Earlier Collecting data observation was
+transient: guest resourceUpdateInterval=2000ms requires two actual history samples
+after the baseline. It is not a demonstrated stuck network graph. This does not
+validate disconnected/error cases or per-interface totals. CPU load in these
+software-rendered screenshots is not a physical-GPU performance benchmark.
+Host78 and fresh guest99 remain untouched. Portal dependency fixes, retained RAM,
+media audit, full fresh installation and physical hardware gates remain open.

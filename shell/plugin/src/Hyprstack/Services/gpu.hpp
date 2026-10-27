@@ -23,6 +23,7 @@ class Gpu : public TickingService {
     Q_PROPERTY(bool detecting READ detecting NOTIFY detectingChanged)
     Q_PROPERTY(qreal percentage READ percentage NOTIFY percentageChanged)
     Q_PROPERTY(qreal temperature READ temperature NOTIFY temperatureChanged)
+    Q_PROPERTY(bool temperatureAvailable READ temperatureAvailable NOTIFY temperatureChanged)
 
 public:
     explicit Gpu(QObject* parent = nullptr);
@@ -33,6 +34,7 @@ public:
     [[nodiscard]] bool detecting() const;
     [[nodiscard]] qreal percentage() const;
     [[nodiscard]] qreal temperature() const;
+    [[nodiscard]] bool temperatureAvailable() const;
 
 signals:
     void typeChanged();
@@ -58,6 +60,7 @@ private:
 
     void startGpuUsage();
     void resetUsage();
+    void updateTemperature(qreal value);
 
     // Runs a one-shot process, delivering its stdout to callback exactly once (empty
     // output if it fails, crashes or never starts), then tears the process down.
@@ -76,6 +79,7 @@ private:
     bool m_detecting = false;
     qreal m_percentage = 0.0;
     qreal m_temperature = 0.0;
+    bool m_temperatureAvailable = false;
 
     // /sys/class/drm card busy files, enumerated once at construction (the card
     // set is static at runtime) and reused by resolution and the tick path.

@@ -5,6 +5,7 @@
 #include <qfile.h>
 #include <QTimer>
 #include <memory>
+#include <cmath>
 #include <qregularexpression.h>
 
 #include "config/rootnodes.hpp"
@@ -187,6 +188,20 @@ qreal Gpu::temperature() const {
     return m_temperature;
 }
 
+bool Gpu::temperatureAvailable() const {
+    return m_temperatureAvailable;
+}
+
+void Gpu::updateTemperature(qreal value) {
+    const bool available = std::isfinite(value) && value >= 0 && value < 150;
+    const qreal next = available ? value : 0;
+    if (available != m_temperatureAvailable || std::abs(next - m_temperature) > .05) {
+        m_temperatureAvailable = available;
+        m_temperature = next;
+        emit temperatureChanged();
+    }
+}
+
 void Gpu::setType(GpuType value) {
     if (value == m_type) {
         return;
@@ -331,14 +346,14 @@ void Gpu::startGpuUsage() {
     const int generation=m_usageGeneration;
     m_metrics.request([this,generation](double nativeUsage,double nativeTemperature,double,bool available) {
         if (generation!=m_usageGeneration) return;
-        if (available && nativeUsage>=0) {
+        if (available && std::isfinite(nativeUsage) && nativeUsage>=0 && nativeUsage<=100) {
             const auto next=nativeUsage/100.0;
             if(std::abs(next-m_percentage)>.0001){m_percentage=next;emit percentageChanged();}
-            if(nativeTemperature>0 && std::abs(nativeTemperature-m_temperature)>.05){m_temperature=nativeTemperature;emit temperatureChanged();}
+            updateTemperature(nativeTemperature);
             m_nvidiaQuerying=false;return;
         }
         if (m_type!=GpuType::Nvidia) {m_nvidiaQuerying=false;resetUsage();return;}
-        if (TickingService::gaming()) {m_nvidiaQuerying=false;return;}
+        if (TickingService::gaming()) {m_nvidiaQuerying=false;updateTemperature(-1);return;}
         // Unsupported NVIDIA drivers retain the bounded CLI fallback at <= 0.2 Hz.
         if (m_fallbackSample.isValid() && m_fallbackSample.elapsed()<5000) {m_nvidiaQuerying=false;return;}
         m_fallbackSample.start();
@@ -347,12 +362,12 @@ void Gpu::startGpuUsage() {
             [this,generation](const QByteArray& out) {
                 if(generation!=m_usageGeneration)return;
                 m_nvidiaQuerying=false;
-                const auto parts=out.trimmed().split(',');if(parts.size()<2)return;
+                const auto parts=out.trimmed().split(',');if(parts.size()<2){updateTemperature(-1);return;}
                 bool usageOk=false,tempOk=false;
                 const auto usage=parts[0].trimmed().toDouble(&usageOk)/100.0;
                 const auto temp=parts[1].trimmed().toDouble(&tempOk);
                 if(usageOk && usage>=0 && usage<=1 && std::abs(usage-m_percentage)>.0001){m_percentage=usage;emit percentageChanged();}
-                if(tempOk && temp>0 && temp<150 && std::abs(temp-m_temperature)>.05){m_temperature=temp;emit temperatureChanged();}
+                updateTemperature(tempOk ? temp : -1);
             });
     },false,m_type==GpuType::Nvidia?QByteArrayLiteral("nvidia"):QByteArrayLiteral("generic"));
 }
@@ -363,10 +378,7 @@ void Gpu::resetUsage() {
         m_percentage = 0.0;
         emit percentageChanged();
     }
-    if (std::abs(m_temperature) > 0.05) {
-        m_temperature = 0.0;
-        emit temperatureChanged();
-    }
+    updateTemperature(-1);
 }
 
 } // namespace hyprstack::services
