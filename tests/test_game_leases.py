@@ -1,5 +1,5 @@
 """Real native game helper against private fake daemons; no host power writes."""
-import json,os,subprocess,tempfile,time,unittest
+import json,os,shlex,subprocess,tempfile,time,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 class GameLeases(unittest.TestCase):
@@ -49,3 +49,36 @@ class GameLeases(unittest.TestCase):
  def test_zero_cookie_is_released_explicitly(self):
   self.env['HICS_LEASE_TEST_COOKIE']='0';self.start();self.until(lambda:len(self.events())==2);self.helper.stdin.close();self.assert_released()
   self.assertEqual(next(e['cookie'] for e in self.events() if e['kind']=='power-released'),0)
+
+ def test_controller_destruction_preserves_late_native_power_release(self):
+  self.mock=subprocess.Popen(['python3',str(ROOT/'tests/mock_performance_bus.py')],env=dict(self.env,HICS_LEASE_TEST_DELAY='300',HICS_LEASE_TEST_COOKIE='0'),stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+  self.until(lambda:(self.base/'ready').exists())
+  services=ROOT/'shell/plugin/src/Hyprstack/Services'
+  source=self.base/'controller.cpp';source.write_text(r'''#include "runtimeperformance.hpp"
+#include <QCoreApplication>
+#include <QTimer>
+#include <QFile>
+#include <cassert>
+#include <memory>
+using hyprstack::services::RuntimePerformance;
+int main(int argc,char**argv){QCoreApplication app(argc,argv);auto p=std::make_unique<RuntimePerformance>();
+assert(p->set("performanceProfile",true));p->observeWindow({{"class","steam_app_42"},{"pid",int(app.applicationPid())},{"mapped",true},{"fullscreen",2}});p->setSessionState(true,false,false);
+QTimer::singleShot(80,&app,[&]{p.reset();QFile f(qEnvironmentVariable("HICS_LEASE_TEST_LOG"));assert(f.open(QIODevice::WriteOnly|QIODevice::Append));f.write("{\"kind\":\"controller-deleted\"}\n");});
+bool done=false;QTimer poll;poll.setInterval(20);QObject::connect(&poll,&QTimer::timeout,&app,[&]{if(done)return;QFile f(qEnvironmentVariable("HICS_LEASE_TEST_LOG"));if(f.open(QIODevice::ReadOnly)&&f.readAll().contains("power-released")){done=true;QTimer::singleShot(250,&app,&QCoreApplication::quit);}});poll.start();QTimer::singleShot(5000,&app,[]{std::abort();});return app.exec();}
+''')
+  moc=self.base/'moc.cpp';mocbin=Path(subprocess.check_output(['pkg-config','--variable=libexecdir','Qt6Core'],text=True).strip())/'moc'
+  subprocess.run([str(mocbin),str(services/'runtimeperformance.hpp'),*shlex.split(subprocess.check_output(['pkg-config','--cflags','Qt6Qml'],text=True)),'-o',str(moc)],check=True,capture_output=True,timeout=15)
+  flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','Qt6Core','Qt6Qml'],text=True))
+  sanitize=['-fsanitize=address','-fno-omit-frame-pointer'] if os.environ.get('HICS_TEST_ASAN') else []
+  binary=self.base/'controller'
+  result=subprocess.run(['c++','-std=c++20','-fPIC','-g',*sanitize,str(source),str(services/'runtimeperformance.cpp'),str(moc),'-I'+str(services),*flags,'-o',str(binary)],capture_output=True,text=True,timeout=45)
+  self.assertEqual(result.returncode,0,result.stderr)
+  (self.base/'run').mkdir(mode=0o700)
+  env=dict(self.env,HOME=str(self.base),XDG_CONFIG_HOME=str(self.base/'config'),XDG_STATE_HOME=str(self.base/'state'),XDG_DATA_HOME=str(self.base/'data'),XDG_RUNTIME_DIR=str(self.base/'run'),HICS_HELPER_DIR=str(ROOT/'build/native/system'))
+  self.helper=subprocess.Popen([str(binary)],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+  out,err=self.helper.communicate(timeout=8);self.assertEqual(self.helper.returncode,0,out+err)
+  self.assertNotIn('QProcess: Destroyed while process',err)
+  events=self.events();kinds=[event['kind'] for event in events]
+  self.assertLess(kinds.index('controller-deleted'),kinds.index('power-acquired'))
+  self.assertLess(kinds.index('power-acquired'),kinds.index('power-released'))
+  self.assertEqual(next(event['cookie'] for event in events if event['kind']=='power-released'),0)

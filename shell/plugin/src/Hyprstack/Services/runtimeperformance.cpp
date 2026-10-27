@@ -12,12 +12,48 @@
 #include <QMap>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QSet>
 #include <QStandardPaths>
 #include <cmath>
 #include <utility>
 
 namespace hyprstack::services {
 namespace {
+void retireLeaseProcess(QProcess *process, QObject *owner) {
+  process->disconnect(owner);
+  for (auto *timer : process->findChildren<QTimer *>(QString(), Qt::FindDirectChildrenOnly))
+    timer->stop();
+  process->setParent(QCoreApplication::instance());
+  // Disconnecting a consumer does not stop QProcess buffering stdout. Allow
+  // small late release replies, but do not let a retiring helper flood RAM.
+  auto budget = std::make_shared<qint64>(65536);
+  const auto discard = [process, budget] {
+    process->setReadChannel(QProcess::StandardOutput);
+    const auto available = process->bytesAvailable();
+    if (available > *budget) {
+      qWarning("hics game lease: retired helper exceeded output budget");
+      process->kill();
+      process->closeReadChannel(QProcess::StandardOutput);
+      return;
+    }
+    *budget -= available;
+    if (available > 0) process->read(available);
+  };
+  QObject::connect(process, &QProcess::readyReadStandardOutput, process, discard);
+  discard();
+  // EOF allows acquired power/GameMode leases, including late replies, to
+  // unwind in the helper. Never wait for D-Bus or the driver in the UI thread.
+  process->closeWriteChannel();
+  if (process->state() == QProcess::NotRunning) {
+    process->deleteLater();
+    return;
+  }
+  QObject::connect(process, &QProcess::finished, process, &QObject::deleteLater);
+  QTimer::singleShot(4000, process, [process] {
+    if (process->state() != QProcess::NotRunning)
+      process->kill();
+  });
+}
 QVariantMap defaults() {
   return {{"autoGameMode", false},
           {"fullscreenOnly", true},
@@ -155,13 +191,7 @@ RuntimePerformance::~RuntimePerformance() {
     saveHistory();
   // EOF lets the independent helper unwind acquisitions even after QML reload.
   if (m_lease) {
-    m_lease->closeWriteChannel();
-    m_lease->setParent(nullptr);
-    m_lease->disconnect(this);
-    if (m_lease->state() == QProcess::NotRunning)
-      m_lease->deleteLater();
-    else
-      connect(m_lease, &QProcess::finished, m_lease, &QObject::deleteLater);
+    retireLeaseProcess(std::exchange(m_lease, nullptr), this);
   }
 }
 bool RuntimePerformance::set(const QString &key, const QVariant &value) {
@@ -249,14 +279,16 @@ bool RuntimePerformance::set(const QString &key, const QVariant &value) {
   if (!m_directory.isEmpty() && !save(m_directory + "/performance.json",
                                       QJsonObject::fromVariantMap(updated))) {
     m_status["error"] = "Unable to save performance preferences";
-    emit statusChanged();
+    queueStatus();
     return false;
   }
   m_status.remove("error");
   m_settings = updated;
   if (!m_settings.value("prefetch").toBool())
     stopPrefetch();
+  const QPointer<RuntimePerformance> guard(this);
   evaluateGame();
+  if (!guard) return false;
   updateTimer();
   updateLease();
   emit settingsChanged();
@@ -266,14 +298,16 @@ void RuntimePerformance::observeWindow(const QVariantMap &window,
                                        const QString &desktopId,
                                        const QString &executable) {
   m_window = window;
+  const QPointer<RuntimePerformance> guard(this);
   evaluateGame();
+  if (!guard) return;
   const auto application = window.value("class").toString();
   if (!application.isEmpty() && application.size() <= 160 &&
       application != "org.quickshell" && !application.startsWith("org.hics.") &&
       application != "hics" &&
       m_status.value("lastApplication").toString() != application) {
     m_status["lastApplication"] = application;
-    emit statusChanged();
+    queueStatus();
   }
   if (!m_settings.value("prefetch").toBool() || m_locked ||
       desktopId.isEmpty() || desktopId.size() > 160 || executable.size() > 4096)
@@ -335,7 +369,9 @@ void RuntimePerformance::setSessionState(bool gameMode, bool onBattery,
   if (gameMode || locked ||
       (onBattery && !m_settings.value("allowOnBattery").toBool()))
     stopPrefetch();
+  const QPointer<RuntimePerformance> guard(this);
   evaluateGame();
+  if (!guard) return;
   updateTimer();
   updateLease();
 }
@@ -369,7 +405,7 @@ void RuntimePerformance::updateTimer() {
   if (!m_settings.value("thermalGuard").toBool())
     m_policy.hot = false;
   m_status["monitoring"] = needed;
-  emit statusChanged();
+  queueStatus();
 }
 void RuntimePerformance::sample() {
   double cpu = -1, gpu = -1, temperature = -1, memory = -1;
@@ -438,7 +474,7 @@ void RuntimePerformance::sample() {
     stopPrefetch();
   if (wasHot != m_policy.hot)
     updateLease();
-  emit statusChanged();
+  queueStatus();
 }
 void RuntimePerformance::updateLease() {
   const bool eligible =
@@ -456,23 +492,13 @@ void RuntimePerformance::updateLease() {
   m_leaseKey = key;
   if (m_lease) {
     auto *previous = std::exchange(m_lease, nullptr);
-    previous->closeWriteChannel();
-    previous->setParent(nullptr);
-    // Keep the old process alive while it releases asynchronous leases.
-    if (previous->state() == QProcess::NotRunning)
-      previous->deleteLater();
-    else
-      connect(previous, &QProcess::finished, previous, &QObject::deleteLater);
-    QTimer::singleShot(4000, previous, [previous] {
-      if (previous->state() != QProcess::NotRunning)
-        previous->kill();
-    });
+    retireLeaseProcess(previous, this);
   }
   bool cleared = false;
   for (const auto &field : {"leaseError", "gamemodeError", "powerError"})
     cleared |= m_status.remove(field) > 0;
   if (cleared)
-    emit statusChanged();
+    queueStatus();
   if (key.isEmpty())
     return;
   const auto helper =
@@ -485,32 +511,85 @@ void RuntimePerformance::updateLease() {
     arguments << "--gamemode";
   if (power)
     arguments << "--performance";
-  connect(process, &QProcess::readyReadStandardOutput, this, [this, process] {
-    while (process->canReadLine()) {
-      const auto row =
-          QJsonDocument::fromJson(process->readLine(8192)).object();
-      if (process != m_lease)
-        continue;
-      m_status[row.value("lease").toString() + "Error"] =
-          row.value("error").toString();
-      emit statusChanged();
+  struct Response {
+    QByteArray bytes;
+    qsizetype total = 0;
+    QSet<QString> received;
+  };
+  auto response = std::make_shared<Response>();
+  QSet<QString> expected;
+  if (feral) expected.insert(QStringLiteral("gamemode"));
+  if (power) expected.insert(QStringLiteral("power"));
+  auto *deadline = new QTimer(process);
+  deadline->setSingleShot(true);
+  connect(deadline, &QTimer::timeout, this, [this, process] {
+    failLease(process, "acquisition response timed out");
+  });
+  connect(process, &QProcess::readyReadStandardOutput, this, [this, process, response, expected, deadline] {
+    if (process != m_lease) return;
+    if (process->bytesAvailable() > 16384 - response->total) {
+      failLease(process, "response size limit exceeded");
+      return;
     }
+    const auto data = process->read(16385 - response->total);
+    response->total += data.size();
+    response->bytes += data;
+    const auto previousCount = response->received.size();
+    while (response->bytes.contains('\n')) {
+      const auto end = response->bytes.indexOf('\n');
+      if (end >= 8192) { failLease(process, "response frame too large"); return; }
+      QJsonParseError error;
+      const auto document = QJsonDocument::fromJson(response->bytes.left(end), &error);
+      response->bytes.remove(0, end + 1);
+      const auto row = document.object();
+      const auto kind = row.value("lease").toString();
+      if (error.error != QJsonParseError::NoError || !document.isObject() ||
+          !expected.contains(kind) || response->received.contains(kind) || !row.value("error").isString()) {
+        failLease(process, "invalid or repeated response");
+        return;
+      }
+      response->received.insert(kind);
+      m_status[kind + "Error"] = row.value("error").toString();
+    }
+    if (response->bytes.size() >= 8192 || (response->received == expected && !response->bytes.isEmpty())) {
+      failLease(process, "unterminated or extra response");
+      return;
+    }
+    if (response->received == expected) deadline->stop();
+    if (response->received.size() != previousCount) queueStatus();
   });
   connect(process, &QProcess::errorOccurred, this,
           [this, process](QProcess::ProcessError) {
-            if (process == m_lease) {
-              m_status["leaseError"] = process->errorString();
-              emit statusChanged();
-            }
+            failLease(process, "helper process error");
           });
   connect(process, &QProcess::finished, this,
-          [this, process](int code, QProcess::ExitStatus exit) {
-            if (process == m_lease && (code || exit != QProcess::NormalExit)) {
+          [this, process, response, expected](int code, QProcess::ExitStatus exit) {
+            if (process != m_lease) return;
+            m_lease = nullptr;
+            if (code || exit != QProcess::NormalExit || response->received != expected) {
               m_status["leaseError"] = "Game lease ended unexpectedly";
-              emit statusChanged();
+              queueStatus();
             }
+            retireLeaseProcess(process, this);
           });
+  deadline->start(4000);
   process->start(helper, arguments);
+}
+void RuntimePerformance::queueStatus() {
+  if (m_statusQueued) return;
+  m_statusQueued = true;
+  QMetaObject::invokeMethod(this, [this] {
+    m_statusQueued = false;
+    emit statusChanged(); // Receivers may synchronously destroy this object.
+  }, Qt::QueuedConnection);
+}
+void RuntimePerformance::failLease(QProcess *process, const char *reason) {
+  if (process != m_lease) return;
+  qWarning("hics game lease: %s", reason); // Never log helper payloads.
+  m_lease = nullptr;
+  m_status["leaseError"] = tr("The game performance helper failed. Disable and re-enable its power-profile or GameMode integration to retry. See the system journal for details.");
+  retireLeaseProcess(process, this);
+  queueStatus();
 }
 void RuntimePerformance::saveHistory() {
   if (!m_settings.value("prefetch").toBool())
@@ -535,7 +614,7 @@ void RuntimePerformance::forgetHistory() {
   QFile::remove(m_historyPath);
   m_status.remove("prediction");
   m_status["prefetchedBytes"] = 0;
-  emit statusChanged();
+  queueStatus();
 }
 void RuntimePerformance::tryPrefetch() {
   if (!m_settings.value("prefetch").toBool() || m_gameMode || m_gamePid > 0 ||
@@ -577,7 +656,7 @@ void RuntimePerformance::tryPrefetch() {
   m_status["prediction"] = predicted;
   m_status["prefetchedBytes"] = 0;
   m_status["prefetchBusy"] = true;
-  emit statusChanged();
+  queueStatus();
   const auto serial = ++m_prefetchSerial;
   const auto helper =
       hics::performance::helperPath(QStringLiteral("hics-prefetch"));
@@ -598,7 +677,7 @@ void RuntimePerformance::tryPrefetch() {
             }
             m_status["prefetchBusy"] = false;
             process->deleteLater();
-            emit statusChanged();
+            queueStatus();
           });
   connect(process, &QProcess::errorOccurred, this,
           [this, process](QProcess::ProcessError error) {
@@ -608,7 +687,7 @@ void RuntimePerformance::tryPrefetch() {
               m_prefetch = nullptr;
             m_status["prefetchBusy"] = false;
             process->deleteLater();
-            emit statusChanged();
+            queueStatus();
           });
   // Never wait for a blocked filesystem operation in the GUI or a destructor.
   QTimer::singleShot(4000, process, [process] {

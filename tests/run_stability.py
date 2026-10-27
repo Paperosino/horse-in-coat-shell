@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run each unit-test module in an isolated process with bounded resources/time.
+"""Run each unit-test module with isolated settings and a per-module timeout.
 
 This does not claim VM, UI or hardware coverage. Each result points to its
 complete log; timeouts and missing dependencies remain visible as failures/skips.

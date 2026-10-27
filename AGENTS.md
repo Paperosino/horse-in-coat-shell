@@ -331,3 +331,16 @@
   кадр ограничен, legacy CLI остаётся совместимым для старых живых callers.
   Завершающийся QProcess сохраняет shutdown owner, если event loop остановился
   раньше finished/deleteLater; не превращать reap в ожидание драйвера на UI.
+
+
+- GameMode/power helper должен освобождать поздно полученные leases после EOF
+  даже при удалении controller/QML. Проверять порядок controller destroy → late
+  HoldProfile reply → ReleaseProfile, в том числе cookie0, на private D-Bus.
+- Disconnect stdout handler не ограничивает буфер QProcess. При async retirement
+  нужен ограниченный discard либо завершение нарушителя; не оставлять flood
+  на время grace timeout. Проверять фактический exit retired process до выхода
+  test app, иначе app destructor может скрыть накопление/неработающий reaper.
+- RuntimePerformance statusChanged публикуется после целостного обновления
+  состояния, одним queued notification; getters остаются синхронными. Не вернуть
+  emit внутри цикла ответов/промежуточной смены lease. После синхронного gameChanged
+  проверять lifetime перед дальнейшим обращением к controller.

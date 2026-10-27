@@ -6,9 +6,9 @@
 
 ## Что установлено
 
-- Основная тестовая CachyOS ВМ: `hic-shell 1.1.1-104`; отдельная fresh-ВМ пока99.
+- Основная тестовая CachyOS ВМ: `hic-shell 1.1.1-105`; отдельная fresh-ВМ пока99.
 - Рабочий хост: `hic-shell 1.1.1-78`; пакет на хосте в этой серии не обновлялся.
-- Пакет104 собран с пересобранными модулями проекта и ранее проверенным частным Qt/Quickshell runtime.
+- Пакет105 собран с пересобранными модулями проекта и ранее проверенным частным Qt/Quickshell runtime.
   Полная свежая сборка всех зависимостей и повторная чистая установка именно
   этого кандидата не подтверждены данной пакетной проверкой.
 
@@ -365,3 +365,17 @@ GPU/quality fixtures тоже прошли. Это не доказательст
 сценарий и новый boot104проверены, services inode/SHA совпадает с пакетом,
 normal/ready,207bindings,0restarts/failed units/configerrors. Рабочий хост78и
 fresh guest99не менялись. Детали и границы — в журнале GPU-IPC-001..003.
+
+
+Кандидат105: устранён ASan-подтверждённый use-after-free в обработчике ответов
+GameMode/power helper. Ответы и данные retiring process ограничены, acquisition
+имеет4s deadline, старый helper отключается от нового состояния и получает EOF
+для освобождения leases. Уведомления RuntimePerformance объединяются после
+целостного обновления; синхронный gameChanged сохраняет guards lifetime.
+8ASan/LSan protocol tests,5native/helper/controller lease tests (включая удаление
+controller до late HoldProfile и явный ReleaseProfile(cookie0)),4policy tests и
+реальная adaptive/thermal QML integration прошли. Это не физический power/GPU test.
+Под lock установлен105с сохранениемUI/app/207bindings/lock; новый boot подтвердил
+services inode/SHA пакета, normal/ready,0restarts/failed units/configerrors.
+Рабочий хост78и fresh guest99не менялись. Остальные IPC readers/prefetch, Qt portal,
+retained RAM, полный unit прогон после серии и прочие gates остаются открыты.

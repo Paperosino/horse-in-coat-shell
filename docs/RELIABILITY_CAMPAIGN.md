@@ -2313,3 +2313,81 @@ gpu-protocol104-asan-complete.log,9tests/33.809s, all pass, no sanitizer finding
 or QProcess lifetime warnings. No suppression or disabled leak detector was used.
 This closes the controlled sampler regressions only, not whole-shell leak or
 physical driver/kernel acceptance.
+
+
+### PERF-LEASE-001..004: controller callback lifetime and bounded retirement
+
+The game/power lease reader had the same response-loop lifetime hazard as the
+GPU sampler. Reusing the pre105 controller source with a two-row fake helper
+and a status listener which directly destroys RuntimePerformance reproduces an
+ASan heap-use-after-free at the old reader's process/current-owner check.
+Evidence lease-protocol105-before-asan.log; synthetic direct-destruction stress,
+not a claimed spontaneous user crash.
+
+The revised reader validates requested lease kind/error string, rejects repeated
+or malformed frames, bounds each frame to8192bytes and accumulated response to
+16384bytes, and has a single-shot4s acquisition deadline. A missing response,
+including clean exit before completion, is reported instead of left ambiguous.
+No raw response/argv is logged. Fixed reason categories appear as hics game lease
+in the journal; UI points to disabling/re-enabling the corresponding integration
+for retry. Normal complete acquisition stops the deadline.
+
+RuntimePerformance status notifications are coalesced through one owned queued
+invocation, with no timed debounce. Getters update immediately; notification
+occurs after the current state update. This also fixes the reproduced transient
+old lease error while switching off/on: updateTimer previously emitted before
+updateLease cleared the old state. Direct gameChanged remains synchronous, with
+QPointer checks after evaluateGame in set/observeWindow/setSessionState so a
+receiver can destroy the controller without continued field access. settingsChanged
+remains at the end of its setter. No new permanent worker/polling was added.
+
+Retirement disconnects old-owner consumers, gives the process an application
+shutdown owner, closes stdin for graceful release, and enforces an owned4s
+fallback kill timer. Retired QProcess stdout is explicitly drained with a64KiB
+budget; disconnect alone would keep buffering it. A flooding retired helper is
+killed and its read channel closed. Limits concern retained protocol data, not
+a promise that all Qt/OS buffers or total process RSS fit those exact sizes.
+Queued old replies cannot overwrite a new helper's result. Small late native
+acquisition/release messages retain graceful EOF handling. Prefetch retirement
+and unrelated IPC readers remain separate audit targets.
+
+Validation, external lab evidence:
+- lease-protocol105-asan-retired.log:8tests/11.480s, ASan+LSan pass, including
+  controller deletion from status/game signals, all3public mutation paths,
+  fragmented/invalid/unknown/type/duplicate/oversized frames, startup failure,
+  incomplete clean exit,4s silent timeout, old helper switch and continuous
+  stdout flooding. Flood/oversize assertions require the retired QProcess to
+  actually disappear within1s, not merely application exit hiding the buffer.
+  No QProcess-destroyed-while-running warnings or sanitizer suppressions.
+- game-leases105-controller-asan.log:5tests/8.614s, actual native lease helper
+  against private fake D-Bus daemons. Includes EOF, delayed reply, game exit,
+  zero cookie, and actual controller destruction80ms before delayed300ms power
+  acquisition. Event order controller-deleted→power-acquired→power-released is
+  asserted, including explicit ReleaseProfile(cookie0).
+- performance-lease105-final.log:4native controller/policy tests pass.
+- adaptive-lease105.log: real native adaptive/thermal timer recovery integration
+  passes with immutable module snapshot, private HOME and absent host buses/audio.
+  Appearance/reduced-motion preferences preserved; disabling policies stops polling.
+
+Build completed before immutable UI snapshots. These prove controlled callback,
+protocol and private-daemon behavior, not physical GameMode/power hardware,
+uninterruptible kernel shutdown, or absence of all whole-shell leaks.
+
+Candidate105 uses the existing private Qt/Quickshell runtime and rebuilt project
+modules. Package SHA94f50c28608297f928daa1a57261b13430edb5bc888c29a3c0751e74799af621.
+First SCP after guest wake timed out before any transaction; the same guest was
+observed running/reachable and copy retried, not recreated/restarted to bypass
+lock. Current installer then upgraded104→105 under actual session lock:
+runner455/UI497/independent Kitty2466,207bindings and lock unchanged, no
+configerrors; autoreload restored. Evidence upgrade105.json. Host78/fresh guest99
+remain unchanged; new main105boot verification is tracked separately below.
+
+
+Main105 new boot95e54d47-4163-4060-b0de-d9e72e92c148 verified actual loaded
+bars/config/services mappings; services SHA
+f99444a7af1c5dc66f21631ca93bd523fb2f77b8daef3da13fe88b5e394b30af matches the
+package, normal/ready,207bindings,0restarts and no failed units/configerrors.
+Evidence lease-protocol-boot105.json. PIDs may repeat across boots; boot identity
+is explicitly checked, not inferred from the numerical PID. No host installation
+or hot native plugin reload. Full isolated unit run after this series is next;
+the earlier clean-context92 results are not presented as current-source coverage.

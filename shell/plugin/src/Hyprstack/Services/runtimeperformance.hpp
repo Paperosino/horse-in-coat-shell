@@ -46,6 +46,8 @@ private:
   void updateTimer();
   void sample();
   void updateLease();
+  void queueStatus();
+  void failLease(QProcess *process, const char *reason);
   void saveHistory();
   void tryPrefetch();
   void stopPrefetch();
@@ -65,6 +67,7 @@ private:
   qint64 m_lastPrefetch = -3600000, m_sampledAt = -3600000;
   QProcess *m_lease = nullptr;
   QString m_leaseKey;
+  bool m_statusQueued = false;
   hics::performance::GpuMetricsSampler m_nvidia;
   double m_nvidiaUsage = -1, m_nvidiaTemperature = -1;
   qint64 m_nvidiaSampledAt = -3600000;
