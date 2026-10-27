@@ -512,6 +512,20 @@ def runtime():
  if root.is_symlink() or root.stat().st_uid!=os.getuid():raise ValueError('Unsafe configuration runtime directory')
  return root
 
+def configuration_event_relevant(data,watch_paths):
+ # Failed atomic writes still create/unlink temporary files. They are not
+ # configuration edits and must not schedule another attempt on a full disk.
+ offset=0
+ while offset+16<=len(data):
+  descriptor,mask,cookie,length=struct.unpack_from('iIII',data,offset)
+  end=offset+16+length
+  if end>len(data):return True
+  name=data[offset+16:end].split(b'\0',1)[0];offset=end
+  if watch_paths.get(descriptor)==STATE and name.startswith(b'.configuration-recovery-warning.json'):continue
+  return True
+ return offset!=len(data)
+
+
 def watch():
  root=runtime();CONFIG.mkdir(parents=True,exist_ok=True);STATE.mkdir(parents=True,exist_ok=True)
  with (root/'watch.lock').open('a+') as lock:
@@ -529,9 +543,12 @@ def watch():
    server.bind(str(endpoint));os.chmod(endpoint,0o600);server.listen(8)
    libc=ctypes.CDLL(None,use_errno=True);fd=libc.inotify_init1(os.O_NONBLOCK|os.O_CLOEXEC)
    if fd<0:raise OSError(ctypes.get_errno(),'Cannot watch configuration')
+   watch_paths={}
    def arm():
     for path in [CONFIG,STATE,STATE/'wallpaper',CONFIG/'monitors',*(CONFIG/'monitors').glob('*')]:
-     if path.is_dir() and not path.is_symlink():libc.inotify_add_watch(fd,os.fsencode(path),0x00000008|0x00000080|0x00000100|0x00000200)
+     if path.is_dir() and not path.is_symlink():
+      descriptor=libc.inotify_add_watch(fd,os.fsencode(path),0x00000008|0x00000080|0x00000100|0x00000200)
+      if descriptor>=0:watch_paths[descriptor]=path
    arm();stopping=False;changed=0;last_hash=None;paused_warning=None
    def stop(*_):
     nonlocal stopping
@@ -599,7 +616,8 @@ def watch():
         except (OSError,ValueError) as error:report_rollback_failure(error)
         os.close(fd);events.close();return
       elif key.fileobj==fd:
-       os.read(fd,262144);arm();changed=time.monotonic()+.7
+       data=os.read(fd,262144)
+       if configuration_event_relevant(data,watch_paths):arm();changed=time.monotonic()+.7
       else:
        with server.accept()[0] as client:
         request_deadline=time.monotonic()+2

@@ -1013,3 +1013,36 @@ observe пытался записать warning и исключение заве
 Это fault injection на уровне helper atomic write, не тест реально заполненного
 block device или tmpfs. Следующий gate — ограниченный ENOSPC filesystem в ВМ,
 затем пакетная проверка накопленных изменений. Хост и пакет ВМ пока не обновлены.
+
+### CONFIG-WATCH-006: настоящий ENOSPC и цикл собственных inotify событий
+
+Новый tests/vm_configuration_enospc.py работает только с guard disposable guest
+(hostname hics-test, KVM/QEMU, отдельный ordinary-user профиль). Root монтирует
+отдельный tmpfs 2MiB; основной диск/сеанс не заполняется. Снимок Python assets
+загружается отдельно от установленного пакета, SHA256 загруженного service source
+сверяется с worktree. Snapshot archive сохраняется рядом с evidence для повтора.
+
+Первый настоящий ENOSPC (enospc-first-sources.tar.gz) выявил цикл, не замеченный
+mock atomic_json: временный warning-файл создавался/удалялся при ошибке записи,
+inotify снова запускал observe/publish. /proc/<daemon>/io syscw за 2.2s вырос
+12→27 при отсутствии внешних изменений. Продукт не падал, но делал ненужные
+повторные попытки записи. Добавлена привязка watch descriptor→каталог и фильтр
+только собственных .configuration-recovery-warning.json* temporaries в STATE.
+Обычный warning, CONFIG события, mixed batches, overflow/truncated records
+сохраняют rescan; тесты проверяют эти ветки. Дополнительного polling нет.
+
+Финальный реальный прогон (enospc-final.json): capacity 2097152 bytes,
+filler 2093056 bytes, errno=28, тот же daemon, idle syscw delta=0 за контрольные
+2.2s, после освобождения места статус восстановился без рестарта. Service SHA256
+b2ee6de2e70010c3534bbd8fa75c54fdc9c1e9dbc337fcb16f30b7692d9bcbbd;
+source archive SHA256 03a4e38afa34fefb3160a887a2c1740e0f56374160186fd7c311d957c53ada6d.
+29 test_desktop_completion, 25 recovery tests, 3 watcher lifecycles и настоящий
+nested recovery QML/helper/rollback также проходят.
+
+После успеха/терминального отказа fixture unmount и очистка выполняются после
+остановки принадлежащего тесту daemon; при observation timeout оставляется PID
+для проверки, а не выполняется слепой restart. Проверено отсутствие оставшихся
+test mounts. Настоящий VM session runner 32439 и Kitty 6637 сохранены. Это проверка
+переполнения STATE tmpfs конкретной службы; не доказательство работы всей DE
+при полном корневом диске или одновременном переполнении /run. Пакет ВМ/хоста
+этим source-fixture не обновлялся; накопленные изменения требуют следующей сборки.

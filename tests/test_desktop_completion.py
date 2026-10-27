@@ -142,6 +142,18 @@ class DesktopCompletion(unittest.TestCase):
   config.persist_warning('Fixture section preserved',source)
   self.assertNotIn(source,config.WARNING_IO_FAILURES);self.assertNotIn(source,config.PENDING_WARNINGS)
   self.assertEqual(config.read_json(self.state/'configuration-recovery-warning.json')['warning'],'Fixture section preserved')
+ def test_failed_warning_temporary_events_do_not_retrigger_capture(self):
+  import struct
+  def event(wd,name):
+   raw=name.encode()+b'\0';return struct.pack('iIII',wd,0x100,0,len(raw))+raw
+  paths={1:self.state,2:self.cfg}
+  own=event(1,'.configuration-recovery-warning.jsonabc123')
+  self.assertFalse(config.configuration_event_relevant(own+own,paths))
+  self.assertTrue(config.configuration_event_relevant(event(1,'configuration-recovery-warning.json'),paths))
+  self.assertTrue(config.configuration_event_relevant(own+event(2,'dock.json'),paths))
+  self.assertTrue(config.configuration_event_relevant(event(2,'.configuration-recovery-warning.jsonabc'),paths))
+  self.assertTrue(config.configuration_event_relevant(struct.pack('iIII',-1,0x4000,0,0),paths))
+  self.assertTrue(config.configuration_event_relevant(own[:-1],paths))
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)
