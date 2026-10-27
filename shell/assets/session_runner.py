@@ -66,7 +66,7 @@ def load_capture_plugin(name="hics-capture"):
         print("Unable to load " + name + ":", error, file=sys.stderr)
 
 
-def prepare_session():
+def prepare_session(cancelled=lambda: False):
     """Independent recovery/accessibility jobs overlap palette preparation.
 
     All jobs finish before QML starts; rollback protection is never deferred.
@@ -82,6 +82,7 @@ def prepare_session():
     pending = []
     try:
         for label, script, operation, timeout in jobs:
+            if cancelled():return False
             try:
                 child = subprocess.Popen([sys.executable, str(Path(__file__).with_name(script)), operation],
                                          stdout=subprocess.DEVNULL, start_new_session=True)
@@ -89,17 +90,24 @@ def prepare_session():
             except OSError as error:
                 print("Unable to initialize " + label + ":", error, file=sys.stderr)
         from gtk_theme import restore as restore_gtk_theme
+        if cancelled():return False
         try:
             restore_gtk_theme()
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
             print("Unable to restore GTK dialog colours:", error, file=sys.stderr)
         for label, child, deadline in pending:
-            try:
-                result = child.wait(timeout=max(.01, deadline - time.monotonic()))
-                if result:
-                    print("Unable to initialize " + label + ": exit", result, file=sys.stderr)
-            except subprocess.TimeoutExpired:
-                print("Unable to initialize " + label + ": timed out", file=sys.stderr)
+            while True:
+                if cancelled():return False
+                remaining=deadline-time.monotonic()
+                if remaining<=0:
+                    print("Unable to initialize " + label + ": timed out", file=sys.stderr)
+                    break
+                try:
+                    result = child.wait(timeout=min(.25,remaining))
+                    if result:
+                        print("Unable to initialize " + label + ": exit", result, file=sys.stderr)
+                    break
+                except subprocess.TimeoutExpired:pass
     finally:
         for _, child, _ in pending:
             if child.poll() is None:
@@ -108,6 +116,7 @@ def prepare_session():
             child.wait()
     os.environ["QT_QPA_PLATFORMTHEME"] = "hics"
     os.environ["QT_QUICK_CONTROLS_CONF"] = str(Path(os.environ.get("XDG_CONFIG_HOME", Path.home()/".config"))/"hics/qtquickcontrols2.conf")
+    return True
 
 
 def session_wait_timeout(safe_mode, theme_at, capture_at, health_at, now):
@@ -155,7 +164,8 @@ def run_session():
                 recovery_data=Path(os.environ.get('HICS_DATA_DIR',os.environ.get('HYPRSTACK_DATA_DIR','/usr/share/hics')))
                 os.environ['FONTCONFIG_FILE']=str(recovery_data/'shell/recovery/fonts.conf')
             else:
-                prepare_session()
+                if prepare_session(lambda:termination_requested) is False:return 0
+            if termination_requested:return 0
             try: startup_candidate = None if safe_mode else shell_recovery.candidate()
             except (OSError,ValueError): startup_candidate = None
             print(f"hics startup: preparation {time.monotonic()-started:.3f}s", flush=True)

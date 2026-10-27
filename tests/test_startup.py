@@ -1,5 +1,5 @@
 """Preflight preserves recovery ordering without serial subprocess waits."""
-import importlib.util,sys,tempfile,types,unittest
+import importlib.util,itertools,sys,tempfile,types,unittest
 from pathlib import Path
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
@@ -15,7 +15,7 @@ class StartupTests(unittest.TestCase):
    def poll(self):return 0
   appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:True),session_environment=lambda:{})
   theme=types.SimpleNamespace(restore=lambda:events.append(('theme',None)))
-  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child):runner.prepare_session()
+  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner.os,'killpg'):runner.prepare_session()
   starts=[i for i,e in enumerate(events) if e[0]=='start'];waits=[i for i,e in enumerate(events) if e[0]=='wait']
   self.assertEqual(len(starts),4);self.assertLess(max(starts),min(waits));self.assertLess(events.index(('theme',None)),min(waits))
  def test_timeout_kills_and_reaps_unfinished_helper(self):
@@ -28,11 +28,48 @@ class StartupTests(unittest.TestCase):
     self.stopped=True;return -9
   appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:False),session_environment=lambda:{})
   theme=types.SimpleNamespace(restore=lambda:None)
-  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner.os,'killpg') as kill:
+  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner.os,'killpg') as kill,patch.object(runner.time,'monotonic',side_effect=itertools.count(step=10).__next__):
    runner.prepare_session();self.assertEqual(kill.call_count,3)
+ def test_stop_during_preparation_cancels_and_reaps_all_started_jobs(self):
+  stopping=False;children=[]
+  class Child:
+   pid=321
+   def __init__(self,*args,**kwargs):self.reaped=False;children.append(self)
+   def poll(self):return None
+   def wait(self,**kwargs):
+    nonlocal stopping
+    if kwargs:
+     self.timeout=kwargs['timeout'];stopping=True
+     raise runner.subprocess.TimeoutExpired('fixture',self.timeout)
+    self.reaped=True;return -9
+  appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:False),session_environment=lambda:{})
+  theme=types.SimpleNamespace(restore=lambda:None)
+  with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner.os,'killpg') as kill:
+   self.assertFalse(runner.prepare_session(lambda:stopping))
+  self.assertEqual(len(children),3);self.assertEqual(kill.call_count,3)
+  self.assertTrue(all(c.reaped for c in children));self.assertLessEqual(children[0].timeout,.25)
  def test_unchanged_theme_file_keeps_inode_and_mtime(self):
   spec=importlib.util.spec_from_file_location('startup_theme',ROOT/'shell/assets/gtk_theme.py');theme=importlib.util.module_from_spec(spec);spec.loader.exec_module(theme)
   with tempfile.TemporaryDirectory() as tmp:
    path=Path(tmp)/'palette';theme.atomic_text(path,'dark');before=path.stat();theme.atomic_text(path,'dark');after=path.stat()
    self.assertEqual((before.st_ino,before.st_mtime_ns),(after.st_ino,after.st_mtime_ns))
    theme.atomic_text(path,'light');self.assertEqual(path.read_text(),'light')
+ def test_cancellation_reaps_real_preflight_children(self):
+  import subprocess,time
+  children=[];start=time.monotonic();deadline=start+.3
+  popen=subprocess.Popen
+  def spawn(argv,**kwargs):
+   child=popen([sys.executable,'-c','import time;time.sleep(60)'],**kwargs)
+   children.append(child);return child
+  appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:False),session_environment=lambda:{})
+  theme=types.SimpleNamespace(restore=lambda:None)
+  try:
+   with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',side_effect=spawn):
+    self.assertFalse(runner.prepare_session(lambda:time.monotonic()>=deadline))
+   self.assertEqual(len(children),3)
+   self.assertTrue(all(c.poll() is not None for c in children))
+   self.assertLess(time.monotonic()-start,3)
+  finally:
+   for child in children:
+    if child.poll() is None:child.kill()
+    child.wait()
