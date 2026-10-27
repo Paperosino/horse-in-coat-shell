@@ -149,3 +149,16 @@ recovery-тестов прошли. Аппаратный startup и устано
 locked-upgrade98.json, startup98-installed.log, transition98-unlocked.json
 в закрытом lab. Не проверены ещё systemd stop именно во время установленного
 preflight, simultaneous lock/transition и fresh install98.
+
+Подтверждены дополнительные проверки после установки98:
+
+- Настоящий systemd stop отдельного unit с installed runner и injected
+  preflight stalls:0.199s, Result=success/ExecMainStatus=0,3 helper+3 descendant
+  завершены, основной сеанс и app сохранены. Event endpoint/GTK — fixtures.
+- Настоящий WlSessionLock во вложенном Hyprland и конкурентные lock/transition
+  IPC: наблюдались обе очередности победителя, нет покинутой блокировки после
+  принятого выхода75/76. Production transition/requestLock взяты из исходников;
+  authentication в этой изоляции подставная, не PAM.
+
+Это закрывает указанные узкие сценарии; массовый race stress, реальный отказ
+хранилища и чистая установка итогового кандидата всё ещё требуются.

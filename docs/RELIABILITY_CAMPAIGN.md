@@ -1483,3 +1483,37 @@ Popen.wait. Она была удалена без production fix: настоящ
 Остаются: настоящий stop/start systemd в preflight, одновременный lock/transition,
 реальные отказы диска в commit и свежая установка кандидата98. Общая кампания,
 проверка всех UI/hardware и замена оставшейся исторической медиатеки не завершены.
+
+### INSTALLED-STOP98 и протокольная гонка session lock
+
+vm_preflight_stop.py запускает отдельный transient user unit в CachyOS госте,
+ExecStart — установленный runner98, KillMode=process, TimeoutStopSec=10,
+Restart=no. Основной hic-session.service не останавливается. Private
+HOME/XDG-профиль и socket2 endpoint — fixtures; sitecustomize задерживает
+3 preflight helper перед выполнением их логики, каждый создаёт sleep60.
+GTK preparation подставлена, так что чужая конфигурация не изменяется.
+
+preflight-stop98.json: stop0.199s, Result=success, ExecMainStatus=0,
+NRestarts=0;3 помощника и3 потомка не работают, record.active=false,
+failures[]. Основной runner14832 и Kitty2593 сохранены. Cleanup fixture
+использует открытые до stop pidfd для безопасного завершения оставшихся
+тестовых процессов при провале; системный main unit не затрагивается.
+Это настоящий systemd stop установленного runner с injected stalls,
+не натуральное зависание помощников и не compositor disconnect.
+
+integration_session_transition теперь использует настоящий WlSessionLock и
+lock surfaces вложенного Hyprland. Из production исходников извлекаются
+sessionControl.transition и requestLock, а не копия условий. Реальный lock
+подтверждается hyprctl locked; denied transition не завершает owner.
+После fixture unlock одновременно запущены lock и transition IPC с разным
+порядком spawn. В первом прогоне on=false (lock выиграл), resume=true
+(transition выиграл); после последующего подтверждённого unlock повторный
+on завершился75. В повторном прогоне оба transition выиграли. Все принятые
+переходы завершились75/76, compositor после выхода не заблокирован.
+
+Это настоящие протокольные состояния и конкурентные процессы; authentication
+только fixture во вложенном compositor. PAM рабочего пользователя не обходится.
+Ранее проверенный PAM ВМ — отдельная проверка. Два/четыре конкурентных исхода
+не доказывают исчерпывающий стресс всех гонок/оборудования. Ошибки реального
+хранилища при commit, свежая установка98, весь DE и оставшаяся медиатека
+по-прежнему открыты. На этом шаге production code не менялся.
