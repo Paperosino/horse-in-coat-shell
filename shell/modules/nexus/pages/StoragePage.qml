@@ -14,6 +14,7 @@ import qs.utils
 
 PageBase {
     id: root
+    objectName: "storageSettingsPage"
     pageIcon: "hard_drive"
     title: Tr.tr("Storage")
     pageDescription: Tr.tr("Your drives, available space and device health")
@@ -142,11 +143,11 @@ PageBase {
                         anchors.fill: parent
                         spacing: 0
                         Repeater {
-                            model: disk.modelData.volumes
+                            model: disk?.modelData?.volumes ?? []
                             Rectangle {
                                 required property var modelData
                                 required property int index
-                                width: Math.max(0, (parent?.width ?? 0) * modelData.size / Math.max(1, disk.modelData.size))
+                                width: Math.max(0, (parent?.width ?? 0) * (modelData?.size ?? 0) / Math.max(1, disk?.modelData?.size ?? 0))
                                 height: parent?.height ?? 0
                                 radius: height / 2
                                 color: index % 2 ? Colours.palette.m3tertiary : Colours.palette.m3primary
@@ -157,14 +158,14 @@ PageBase {
                     }
                 }
                 Repeater {
-                    model: disk.modelData.volumes
+                    model: disk?.modelData?.volumes ?? []
                     ConnectedRect {
                         id: partition
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
                         first: index === 0
-                        last: index === disk.modelData.volumes.length - 1
+                        last: index === (disk?.modelData?.volumes?.length ?? 0) - 1
                         color: root.selectedPath === modelData.path ? Colours.tPalette.m3secondaryContainer : Colours.tPalette.m3surfaceContainer
                         implicitHeight: details.implicitHeight + Tokens.padding.large * 2
                         ColumnLayout {
@@ -192,7 +193,7 @@ PageBase {
                                     }
                                     StyledText {
                                         Layout.fillWidth: true
-                                        text: partition.modelData.device + " · " + partition.modelData.filesystem.toUpperCase()
+                                        text: partition.modelData.device + " · " + (String(partition.modelData.filesystem ?? "").toUpperCase() || Tr.tr("Unknown"))
                                         font: Tokens.font.body.small
                                         color: Colours.palette.m3onSurfaceVariant
                                         elide: Text.ElideMiddle

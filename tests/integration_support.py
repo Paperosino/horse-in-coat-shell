@@ -36,3 +36,47 @@ def resize_nested_compositor(pid, width=1280, height=900):
             return
         time.sleep(.1)
     raise AssertionError('Nested test compositor did not map a parent surface')
+
+
+def snapshot_qml_runtime(root, directory):
+    """Copy module plugins and their shared dependencies before loading them.
+
+    Build plugins contain absolute RUNPATHs to the build tree. Copying qmldir
+    alone is insufficient; a private library path must override those RUNPATHs.
+    This does not copy/override Qt or change the runtime of external apps.
+    """
+    import shutil
+    root=Path(root);directory=Path(directory);qml=directory/'qml';libraries=directory/'qml-libs'
+    shutil.copytree(root/'build/qml',qml,symlinks=False)
+    libraries.mkdir()
+    for source in (root/'build/shell/plugin/src/Hyprstack').rglob('libhyprstack-*.so'):
+        target=libraries/source.name
+        if target.exists():raise AssertionError('Ambiguous runtime library: '+source.name)
+        shutil.copy2(source,target)
+    shutil.copy2(root/'build/third_party/m3shapes/libm3shapes.so',libraries/'libm3shapes.so')
+    return {'QML_IMPORT_PATH':str(qml),'QML2_IMPORT_PATH':str(qml),'LD_LIBRARY_PATH':str(libraries)+((':'+os.environ['LD_LIBRARY_PATH']) if os.environ.get('LD_LIBRARY_PATH') else '')}
+
+
+def run_snapshot_qml(command, environment, build, timeout):
+    """Communicate without pipe deadlocks; reject worktree .so mappings."""
+    import subprocess
+    import time
+    process=subprocess.Popen(command,env=environment,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+    deadline=time.monotonic()+timeout
+    try:
+        while True:
+            remaining=deadline-time.monotonic()
+            if remaining<=0:raise subprocess.TimeoutExpired(command,timeout)
+            try:
+                stdout,stderr=process.communicate(timeout=min(.2,remaining))
+                return subprocess.CompletedProcess(command,process.returncode,stdout,stderr)
+            except subprocess.TimeoutExpired:
+                try:maps=Path('/proc')/str(process.pid)/'maps';loaded=maps.read_text()
+                except FileNotFoundError:continue
+                unsafe=[line for line in loaded.splitlines() if str(Path(build).resolve())+'/' in line and '.so' in line]
+                if unsafe:raise AssertionError('QML test still maps mutable build libraries: '+str(unsafe))
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            try:process.wait(timeout=5)
+            except subprocess.TimeoutExpired:process.kill();process.wait()

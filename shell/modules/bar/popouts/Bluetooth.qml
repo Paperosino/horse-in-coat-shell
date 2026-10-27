@@ -28,6 +28,7 @@ ColumnLayout {
 
     Toggle {
         label: Tr.trCtx("Enabled", "toggle label")
+        toggle.disabled: !Bluetooth.defaultAdapter
         checked: Bluetooth.defaultAdapter?.enabled ?? false // qmllint disable unresolved-type
         toggle.onToggled: {
             const adapter = Bluetooth.defaultAdapter; // qmllint disable unresolved-type
@@ -38,6 +39,7 @@ ColumnLayout {
 
     Toggle {
         label: Tr.trCtx("Discovering", "bluetooth adapter state")
+        toggle.disabled: !(Bluetooth.defaultAdapter?.enabled ?? false)
         checked: Bluetooth.defaultAdapter?.discovering ?? false // qmllint disable unresolved-type
         toggle.onToggled: {
             const adapter = Bluetooth.defaultAdapter; // qmllint disable unresolved-type
@@ -50,6 +52,8 @@ ColumnLayout {
         Layout.topMargin: Tokens.spacing.small
         Layout.rightMargin: Tokens.padding.extraSmall
         text: {
+            if (!Bluetooth.defaultAdapter)
+                return Tr.tr("No Bluetooth adapter available");
             const devices = Bluetooth.devices.values; // qmllint disable unresolved-type
             const connected = devices.filter(d => d.connected).length;
             if (connected > 0)

@@ -49,11 +49,14 @@ PageBase {
             FeatureError {error:DesktopConveniences.error}
         }
         ToggleRow {
+            objectName: "bluetoothPowerToggle"
             first: true
             text: Tr.tr("Bluetooth")
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased
             checked: root.btEnabled
+            disabled: !root.adapter
+            subtext: !root.adapter ? Tr.tr("Check that a Bluetooth adapter is connected and the Bluetooth service is running.") : ""
             onToggled: {
                 if (root.adapter)
                     root.adapter.enabled = checked;
@@ -65,7 +68,7 @@ PageBase {
 
             showList: root.btEnabled
             placeholderIcon: root.btEnabled ? "devices_other" : "bluetooth_disabled"
-            placeholderText: root.btEnabled ? Tr.tr("No saved devices") : Tr.tr("Bluetooth disabled")
+            placeholderText: !root.adapter ? Tr.tr("No Bluetooth adapter available") : root.btEnabled ? Tr.tr("No saved devices") : Tr.tr("Bluetooth disabled")
 
             model: ScriptModel {
                 values: Bluetooth.devices.values.filter(d => d.bonded).sort((a, b) => (b.connected - a.connected) || a.name.localeCompare(b.name)) // qmllint disable unresolved-type

@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Render the real settings UI and verify disclosure, narrow forms and navigation."""
 import json
+import select
 import ast
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
-from integration_support import require_wayland_session, resize_nested_compositor
+from integration_support import require_wayland_session, resize_nested_compositor, snapshot_qml_runtime, run_snapshot_qml
 require_wayland_session()
 ROOT=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix='hics-settings-design-') as directory:
@@ -101,6 +103,16 @@ ShellRoot {
      } else settings.nState.openPage(root.shots[index]);
     }
     else {
+     if(root.shots[index]==="storage"&&Quickshell.env("HICS_TEST_STORAGE_LIFETIME")){
+      const page=root.named(settings,"storageSettingsPage");
+      if(!root.check(!!page,"storage page is missing"))return;
+      page.backend=root.storageFixture;
+      if(!root.check(page.drives.length===1&&page.drives[0].volumes.length===2,"storage fixture did not create real partition delegates"))return;
+     }
+     if(root.shots[index]==="bluetooth"&&Quickshell.env("HICS_TEST_BT_UNAVAILABLE")){
+      const power=root.named(settings,"bluetoothPowerToggle");
+      if(!root.check(!!power&&power.disabled&&!power.enabled&&!power.checked&&power.subtext.length>0,"missing Bluetooth adapter still offers a working-looking switch"))return;
+     }
      if(root.shots[index]==="keyboard"&&Quickshell.env("HICS_TEST_WIDGET")){
       const characters=root.named(settings,"desktopCharacterPicker"),methods=root.named(settings,"desktopInputMethods");
       if(!root.check(!!characters&&!!methods,"text input settings are missing"))return;
@@ -183,6 +195,17 @@ ShellRoot {
   }
  }
 }''')
+    if os.environ.get('HICS_TEST_STORAGE_LIFETIME'):
+        p=base/'shell/shell.qml';qml=p.read_text().replace(' property int phase:0',''' property QtObject storageFixture: QtObject {
+  property bool busy:false
+  property string error:""
+  property var state:({volumes:[
+   {path:"/fixture/root",device:"/dev/fixture1",model:"Fixture disk",drivePath:"/fixture/drive",driveSize:21474836480,size:10737418240,total:10737418240,free:5368709120,mountPoint:"/",ssd:true},
+   {path:"/fixture/data",device:"/dev/fixture2",model:"Fixture disk",drivePath:"/fixture/drive",driveSize:21474836480,size:10737418240,total:10737418240,free:8589934592,mountPoint:"/home",ssd:true}
+  ]})
+  function reload(){}
+ }
+ property int phase:0''',1);p.write_text(qml)
     if os.environ.get('HICS_TEST_WIDGET'):
         qml=(base/'shell/shell.qml').read_text()
         qml=qml.replace('import qs.modules.nexus\n','import qs.modules.nexus\nimport Hyprstack.Services\nimport qs.modules.bar.components\nimport qs.modules.bar.popouts as BarPopouts\n')
@@ -293,9 +316,20 @@ ShellRoot {
     env=dict(os.environ,AQ_BACKEND='wayland',XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'))
     env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
     if os.environ.get('HICS_TEST_RECOVERY'):env['FONTCONFIG_FILE']=str(ROOT/'shell/recovery/fonts.conf')
+    runtime_env=snapshot_qml_runtime(ROOT,base)
     compositor=None
     desktop_daemon=None
+    fixture_bus=None
+    private_bus=None
     try:
+        # No activation directories: UI tests cannot start host user services.
+        home=base/'home';home.mkdir()
+        bus_config=base/'bus.conf'
+        bus_config.write_text('<busconfig><type>session</type><listen>unix:path='+str(base/'session-bus')+'</listen><auth>EXTERNAL</auth><policy context="default"><allow own="*"/><allow send_destination="*"/><allow receive_sender="*"/></policy></busconfig>')
+        private_bus=subprocess.Popen(['dbus-daemon','--nofork','--print-address=1','--config-file='+str(bus_config)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        assert select.select([private_bus.stdout],[],[],3)[0], 'Private test bus did not start'
+        address=private_bus.stdout.readline().strip();assert address.startswith('unix:'),address
+        env.update(HOME=str(home),DBUS_SESSION_BUS_ADDRESS=address,DBUS_SYSTEM_BUS_ADDRESS='unix:path='+str(base/'absent-system'),PIPEWIRE_REMOTE='hics-fixture-absent',PULSE_SERVER='unix:'+str(base/'absent-pulse'))
         log=(base/'compositor.log').open('w');compositor=subprocess.Popen(['Hyprland','--config',str(base/'compositor.lua')],env=env,stdout=log,stderr=subprocess.STDOUT)
         instance=None
         for _ in range(80):
@@ -304,9 +338,13 @@ ShellRoot {
             time.sleep(.1)
         assert instance,'No nested compositor'
         resize_nested_compositor(compositor.pid)
-        env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'],QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'),QT_QPA_PLATFORM='wayland')
+        env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'],QT_QPA_PLATFORM='wayland')
+        env.update(runtime_env)
         if os.environ.get('HICS_TEST_NATIVE_DESKTOP'):
-            desktop_daemon=subprocess.Popen([str(ROOT/'build/native/desktop/hics-desktopd')],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            fixture_bus=subprocess.Popen([sys.executable,str(ROOT/'tests/mock_desktop_jobs_bus.py')],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+            assert select.select([fixture_bus.stdout],[],[],3)[0] and fixture_bus.stdout.readline().strip()=='ready','Private desktop fixture did not start'
+            shutil.copy2(ROOT/'build/native/desktop/hics-desktopd',base/'hics-desktopd')
+            desktop_daemon=subprocess.Popen([str(base/'hics-desktopd')],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             for _ in range(100):
                 owner=subprocess.check_output(['gdbus','call','--session','--dest','org.freedesktop.DBus','--object-path','/org/freedesktop/DBus','--method','org.freedesktop.DBus.NameHasOwner','org.hics.Desktop1'],env=env,text=True)
                 if 'true' not in owner:
@@ -318,7 +356,7 @@ ShellRoot {
             assert ready.returncode==0,'Nested desktop daemon not ready'
             for operation in ['diagnostics.check','unknown.fixture']:
                 subprocess.run(['gdbus','call','--session','--dest','org.hics.Desktop1','--object-path','/org/hics/Desktop1','--method','org.hics.Desktop1.Start',operation,'{}'],env=env,capture_output=True,check=True)
-        result=subprocess.run(['/usr/share/hics/qs/bin/hics-qs','-p',str(base/'shell')],env=env,capture_output=True,text=True,timeout=65)
+        result=run_snapshot_qml(['/usr/share/hics/qs/bin/hics-qs','-p',str(base/'shell')],env,ROOT/'build',65)
         output=result.stdout+result.stderr
         (Path('/tmp/hics-settings-design-render.log')).write_text(output)
         assert result.returncode==0 and 'SETTINGS_DESIGN_OK' in output,output[-7000:]
@@ -339,3 +377,12 @@ ShellRoot {
             compositor.terminate()
             try:compositor.wait(timeout=5)
             except subprocess.TimeoutExpired:compositor.kill();compositor.wait()
+
+        if fixture_bus and fixture_bus.poll() is None:
+            fixture_bus.terminate()
+            try:fixture_bus.wait(timeout=5)
+            except subprocess.TimeoutExpired:fixture_bus.kill();fixture_bus.wait()
+        if private_bus and private_bus.poll() is None:
+            private_bus.terminate()
+            try:private_bus.wait(timeout=5)
+            except subprocess.TimeoutExpired:private_bus.kill();private_bus.wait()

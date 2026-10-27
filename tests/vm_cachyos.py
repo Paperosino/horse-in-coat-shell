@@ -19,7 +19,7 @@ def qmp(lab,execute,arguments=None):
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','status','stop'])
-    parser.add_argument('--lab',type=Path,required=True);parser.add_argument('--installed',action='store_true');args=parser.parse_args()
+    parser.add_argument('--lab',type=Path,required=True);parser.add_argument('--installed',action='store_true');parser.add_argument('--gpu',choices=['virtio-vga','VGA'],default='VGA',help='Explicit test graphics device; both use software rendering in this lab');args=parser.parse_args()
     os.umask(0o077);lab=args.lab.resolve();lab.mkdir(parents=True,exist_ok=True);lab.chmod(0o700)
     if args.action!='start':
         print(json.dumps(qmp(lab,'query-status' if args.action=='status' else 'quit')));return
@@ -38,7 +38,7 @@ def main():
     if not disk.exists():subprocess.run(['qemu-img','create','-f','qcow2',str(disk),'60G'],check=True)
     if not (lab/'uefi-vars.fd').exists():shutil.copyfile('/usr/share/edk2/x64/OVMF_VARS.4m.fd',lab/'uefi-vars.fd')
     argv=['qemu-system-x86_64','-name','hics-cachyos-stability','-accel','kvm','-cpu','host','-smp','2','-m','4096',
-          '-nodefaults','-device','virtio-vga','-display','none','-device','virtio-rng-pci',
+          '-nodefaults','-device',args.gpu,'-display','none','-device','virtio-rng-pci',
           '-drive','if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd',
           '-drive','if=pflash,format=raw,file='+str(lab/'uefi-vars.fd'),
           '-drive','if=virtio,format=qcow2,file='+str(disk),'-drive','if=virtio,format=raw,readonly=on,file='+str(iso),

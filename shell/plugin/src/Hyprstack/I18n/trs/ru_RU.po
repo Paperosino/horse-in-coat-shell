@@ -13083,3 +13083,9 @@ msgstr "Перезапускает только оболочку; приложе
 
 msgid "Unable to enter safe mode"
 msgstr "Не удалось запустить безопасный режим"
+
+msgid "No Bluetooth adapter available"
+msgstr "Адаптер Bluetooth недоступен"
+
+msgid "Check that a Bluetooth adapter is connected and the Bluetooth service is running."
+msgstr "Проверьте подключение адаптера и работу системной службы Bluetooth."

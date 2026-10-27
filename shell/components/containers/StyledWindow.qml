@@ -14,6 +14,9 @@ PanelWindow {
 
     GraphicsCache { cacheKey: root.name }
 
+    Config.screen: screen?.name??""
+    Tokens.screen: screen?.name??""
+
     contentItem.Config.screen: screen?.name??""
     contentItem.Tokens.screen: screen?.name??""
 }
