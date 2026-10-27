@@ -37,6 +37,7 @@
 /distribution/*
 !/distribution/bin/
 !/distribution/bundle-qt.sh
+!/distribution/runtime-dependencies.sh
 !/distribution/build_qt_runtime_patches.py
 !/distribution/apply_qt_runtime_patches.py
 !/distribution/apply_quickshell_patches.py

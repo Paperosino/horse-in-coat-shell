@@ -76,6 +76,45 @@ class RuntimeProvenanceTests(unittest.TestCase):
     def test_correct_binary_and_patch_manifest(self):
         QS.verify(self.root)
 
+    def set_allocator(self):
+        (self.root / 'lib').mkdir()
+        library = self.root / 'lib/libjemalloc.so.2'
+        library.write_bytes(b'allocator image')
+        self.data['allocator'] = {'kind':'jemalloc','path':'lib/libjemalloc.so.2','sha256':QS.sha(library)}
+        self.manifest.write_text(json.dumps(self.data))
+        return library
+
+    def test_allocator_is_attested_and_tampering_is_rejected(self):
+        library = self.set_allocator()
+        QS.verify(self.root)
+        library.write_bytes(b'changed allocator image')
+        with self.assertRaisesRegex(ValueError, 'Allocator checksum'):
+            QS.verify(self.root)
+
+    def test_release_gate_rejects_legacy_allocator_but_diagnostics_accept_it(self):
+        QS.verify(self.root)
+        with self.assertRaisesRegex(ValueError, 'jemalloc provenance'):
+            QS.verify(self.root, require_jemalloc=True)
+        self.set_allocator()
+        QS.verify(self.root, require_jemalloc=True)
+
+    def test_allocator_cannot_resolve_outside_bundle(self):
+        library = self.set_allocator()
+        external = self.root.parent / (self.root.name + '-external.so')
+        external.write_bytes(library.read_bytes())
+        self.addCleanup(lambda: external.unlink(missing_ok=True))
+        library.unlink()
+        library.symlink_to(external)
+        with self.assertRaisesRegex(ValueError, 'inside the runtime'):
+            QS.verify(self.root)
+
+    def test_allocator_manifest_path_cannot_escape(self):
+        self.set_allocator()
+        self.data['allocator']['path'] = '../external.so'
+        self.manifest.write_text(json.dumps(self.data))
+        with self.assertRaisesRegex(ValueError, 'Unsupported allocator'):
+            QS.verify(self.root)
+
     def test_changed_binary_is_rejected(self):
         self.binary.write_bytes(b'old cached QS')
         with self.assertRaisesRegex(ValueError, 'checksum'):

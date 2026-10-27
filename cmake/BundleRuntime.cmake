@@ -75,7 +75,15 @@ set(HICS_BUNDLE_PREFIX_PATH "$ENV{HOME}/.local"
 if(NOT HICS_QUICKSHELL_TAG STREQUAL "v0.3.2")
     message(FATAL_ERROR "The source fixes require audited Quickshell v0.3.2")
 endif()
-set(qs_patch_signature "")
+# The source archive has no .git directory. Letting upstream git rev-parse
+# walk upwards would label it with this shell repository's unrelated HEAD.
+set(hics_qs_revision "4f508be500dea6e5732cc3d50382a0048b17e7b1")
+option(HICS_QS_USE_JEMALLOC "Use upstream Quickshell's process-local allocator (disable for allocator diagnostics)" ON)
+if(HICS_QS_USE_JEMALLOC)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(HICS_JEMALLOC REQUIRED jemalloc)
+endif()
+set(qs_patch_signature "${hics_qs_revision};jemalloc=${HICS_QS_USE_JEMALLOC}")
 foreach(input distribution/apply_quickshell_patches.py
         distribution/patches/quickshell-v0.3.2-logging-lifetime.patch
         distribution/patches/quickshell-v0.3.2-shutdown-lifetime.patch
@@ -113,7 +121,8 @@ ExternalProject_Add(quickshell-runtime
         "-DCMAKE_INSTALL_PREFIX=${HYPRSTACK_QS_STAGE}"
         "-DCMAKE_PREFIX_PATH=${HICS_BUNDLE_PREFIX_PATH}"
         "-DDISTRIBUTOR=hics bundle"
-        "-DUSE_JEMALLOC=OFF"
+        "-DGIT_REVISION=${hics_qs_revision}"
+        "-DUSE_JEMALLOC=${HICS_QS_USE_JEMALLOC}"
         "-DCRASH_HANDLER=OFF"
         "-DSOCKETS=ON"
         "-DWAYLAND=ON"

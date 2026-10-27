@@ -3047,3 +3047,67 @@ soak and consistent exposure/load conditions. Startup allocator experiments
 must follow the actual glibc documentation, preserve sanitizer findings, and
 must not become a periodic trim or a late mallopt change:
 https://sourceware.org/glibc/manual/latest/html_node/Memory-Allocation-Tunables.html
+
+
+### Candidate112: allocator comparison and packaging closure
+
+Post-fix allocation diagnostics were repeated sequentially in the original
+2-vCPU/4GiB software-render guest, behind an unchanged lock. These60-cycle
+private SettingsWindow/grab runs measure allocation retention, not visible-UI
+latency or a universal CPU improvement. Production fonts are asserted and no
+sanitizer suppression, periodic trim, late mallopt or hardware-disable flag is
+used. CPU is the private process's own user+system ticks/100, sampled at1Hz:
+
+| Private process | Last RSS KiB | Observed peak RSS KiB | CPU seconds | Wall seconds |
+|---|---:|---:|---:|---:|
+| default, first |1082016|1122056|22.32|156.087|
+| default, repeat |1055788|1102848|21.55|153.445|
+| startup mmap threshold131072 |958100|1024780|22.84|159.029|
+| upstream USE_JEMALLOC=ON |460068|602024|20.90|148.538|
+
+The threshold experiment is not promoted. The jemalloc result is about449MiB
+last RSS versus1031MiB in the repeated baseline; earlier commentary rounded
+460068KiB incorrectly as460MiB. The candidate follows upstream's documented
+build option, not an allocator invented for HICS:
+https://github.com/quickshell-mirror/quickshell/blob/v0.3.2/BUILD.md#jemalloc
+
+Diagnostic executable6b5685f6d3a14e221ab396aa3d38298246a618b69b6254e1cfbe684e92efb228
+and private jemalloc3c08c19db13dee4d7b465ed36d9c6ddb7e2fecb8ec09d5a7c423b4b67265e0e9
+were checked in actual guest maps. A separate loader-binding trace confirms
+Qt/Core and libc malloc/free resolve to jemalloc; that trace is excluded from
+timing. No allocator environment is inherited by launched applications: the
+allocator is linked into QS alone, with no production LD_PRELOAD/tunable.
+The canonical source stage remained byte-identical while preparing this
+experimental executable. Its first preparation failed because patchelf was
+absent; CMake's built-in RPATH_CHANGE was used instead. A changed parent Git
+revision initially altered debug metadata; matching the baseline revision
+restored the original build SHA exactly. No installed stage was replaced.
+
+This exposed an upstream archive metadata trap: git rev-parse walks to the
+parent HICS checkout when QS has no .git. The canonical CMake now pins actual
+v0.3.2 commit4f508be500dea6e5732cc3d50382a0048b17e7b1 (dereferenced official
+tag), includes it and the allocator option in the source cache identity, and
+passes GIT_REVISION explicitly. Candidate112 enables the supported allocator,
+bundles its library/license and attests its checksum; legacy system-allocator
+manifest verification remains supported, while release packaging requires the
+new allocator provenance. HICS_QS_USE_JEMALLOC=OFF remains available for separate
+allocator diagnostics. Full installed-session/performance gates remain pending
+before candidate112 can replace installed host111.
+
+The dependency collector's Boolean convention was reversed: it stopped when
+libraries were copied and retried a stable closure up to100 times. The helper
+now converges, preserves paths with spaces, propagates copy errors and rejects
+unresolved dependencies. Three real native ELF tests cover transitive closure,
+idempotency, missing libraries and an unwritable destination. Strict checking
+then exposed an unusable optional Qt Firebird SQL plugin without libfbclient.
+The two actual HICS SQL consumers both select QSQLITE. The private bundle now
+ships that supported driver alone; external applications retain their system
+Qt/SQL drivers. This does not install a database server or remove host plugins.
+
+An existing full111 runtime copy was assembled twice with the new collector:
+first pass removed four unused private SQL server drivers and updated the QS
+manifest; second pass added/removed/changed no file hashes. A native Qt SQLite
+FTS5 create/insert/MATCH probe passes against this real bundle. Earlier failed
+Firebird closure probes remain separate evidence.27 source/provenance/payload/
+closure/overlay unit tests pass. Canonical fresh QS112 source build (two jobs)
+and the project build complete; package/installed VM gates follow separately.

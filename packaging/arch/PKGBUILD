@@ -2,14 +2,14 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=111
+pkgrel=112
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 # Preserve bundled runtime/plugin checksums generated during packaging.
 options=(!strip !debug)
 install=hic-shell.install
 url="https://github.com/Paperosino/horse-in-coat-shell"
-license=(GPL-3.0-only BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US)
+license=(GPL-3.0-only BSD-2-Clause BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US)
 depends=(gnome-keyring 'ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman libdrm libinput systemd
     hyprland-guiutils wayland libxkbcommon pango cairo libcups cups accountsservice fprintd fwupd colord gamemode flatpak apparmor restic seahorse fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt squeekboard poppler icu python python-pillow kitty firefox fuzzel
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
@@ -20,7 +20,7 @@ depends=(gnome-keyring 'ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman
     'util-linux>=2.41' kmod btrfs-progs bubblewrap
     orca python-atspi at-spi2-core speech-dispatcher espeak-ng
     xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland)
-makedepends=(base-devel git rsync cmake ninja pkgconf python gettext nlohmann-json
+makedepends=(base-devel git rsync cmake ninja pkgconf python gettext nlohmann-json jemalloc
     'qt6-base=6.12.0' qt6-declarative qt6-shadertools qt6-wayland qt6-svg
     qt6-imageformats qt6-multimedia spirv-tools wayland wayland-protocols mesa vulkan-headers
     libpipewire pam polkit glib2 cli11 hyprland lua hyprgraphics)
@@ -42,6 +42,7 @@ build() {
         -DHICS_BUILD_NATIVE=ON \
         -DHICS_BUILD_CANVAS=ON \
         -DHICS_BUNDLE_RUNTIME=ON \
+        -DHICS_QS_USE_JEMALLOC=ON \
         -DHICS_PATCH_QT_RUNTIME=ON
     cmake --build build
 }
@@ -52,12 +53,12 @@ package() {
     DESTDIR="$pkgdir" cmake --install build
     # A cached/package-only build must not silently produce a shell without
     # its private runtime. Never depend on the developer's system Qt here.
-    for hics_payload in qs/bin/hics-qs qs/lib/libQt6Core.so.6 qs/lib/libQt6Concurrent.so.6 qs/hics-qt-patches.json qs/hics-quickshell-patches.json shell/shell.qml shell/recovery/shell.qml; do
+    for hics_payload in qs/bin/hics-qs qs/lib/libQt6Core.so.6 qs/lib/libQt6Concurrent.so.6 qs/lib/libjemalloc.so.2 qs/licenses/jemalloc-BSD-2-Clause qs/hics-qt-patches.json qs/hics-quickshell-patches.json shell/shell.qml shell/recovery/shell.qml; do
         [[ -s "$pkgdir/usr/share/hics/$hics_payload" ]] || { error "Missing packaged HICS runtime: $hics_payload"; return 1; }
     done
     [[ -x "$pkgdir/usr/share/hics/qs/bin/hics-qs" ]] || { error "Packaged HICS runtime is not executable"; return 1; }
     python distribution/apply_qt_runtime_patches.py --root "$pkgdir/usr/share/hics/qs"
-    python distribution/apply_quickshell_patches.py verify --root "$pkgdir/usr/share/hics/qs"
+    python distribution/apply_quickshell_patches.py verify --root "$pkgdir/usr/share/hics/qs" --require-jemalloc
     python distribution/native_plugins.py "$pkgdir/usr/share/hics/native" build
 
 }

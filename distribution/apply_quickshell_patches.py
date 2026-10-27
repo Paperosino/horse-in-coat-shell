@@ -46,7 +46,21 @@ def binary(root):
     return path
 
 
-def verify(root):
+def allocator_library(root):
+    path = (root / 'lib/libjemalloc.so.2').resolve(strict=True)
+    if not path.is_relative_to(root.resolve()) or not path.is_file():
+        raise ValueError('Allocator must be a regular library inside the runtime')
+    return path
+
+
+def allocator_info(root):
+    dynamic = subprocess.check_output(['readelf', '-d', str(binary(root))], text=True, timeout=10)
+    if not re.search(r'\(NEEDED\).*\[libjemalloc\.so\.2\]', dynamic):
+        return {'kind': 'system'}
+    return {'kind': 'jemalloc', 'path': 'lib/libjemalloc.so.2', 'sha256': sha(allocator_library(root))}
+
+
+def verify(root, require_jemalloc=False):
     descriptor = os.open(root / MANIFEST, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(descriptor, 'rb') as stream:
         if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
@@ -58,6 +72,18 @@ def verify(root):
     if (data.get('version') != '0.3.2' or data.get('archiveSha256') != ARCHIVE_SHA256
             or data.get('patches') != patch_hashes() or data.get('executableSha256') != sha(binary(root))):
         raise ValueError('QS runtime provenance/checksum mismatch')
+    # Older system-allocator bundles have no allocator field. New linked
+    # allocators are attested together with the executable, not supplied by
+    # LD_PRELOAD or inherited by subsequently launched applications.
+    allocator = data.get('allocator')
+    if require_jemalloc and (not isinstance(allocator, dict) or allocator.get('kind') != 'jemalloc'):
+        raise ValueError('Bundled jemalloc provenance is required for release packages')
+    if allocator is not None and allocator != {'kind': 'system'}:
+        if (not isinstance(allocator, dict) or allocator.get('kind') != 'jemalloc'
+                or allocator.get('path') != 'lib/libjemalloc.so.2'):
+            raise ValueError('Unsupported allocator provenance')
+        if allocator.get('sha256') != sha(allocator_library(root)):
+            raise ValueError('Allocator checksum mismatch')
 
 
 def main():
@@ -65,6 +91,7 @@ def main():
     p.add_argument('action', choices=['apply', 'stamp', 'verify'])
     p.add_argument('--source', type=Path)
     p.add_argument('--root', type=Path)
+    p.add_argument('--require-jemalloc', action='store_true')
     a = p.parse_args()
     if a.action in ('apply', 'stamp'):
         if not a.source:
@@ -74,7 +101,8 @@ def main():
         if not a.root:
             p.error('--root is required')
         data = {'version': '0.3.2', 'archiveSha256': ARCHIVE_SHA256,
-                'patches': patch_hashes(), 'executableSha256': sha(binary(a.root))}
+                'patches': patch_hashes(), 'executableSha256': sha(binary(a.root)),
+                'allocator': allocator_info(a.root)}
         descriptor, temporary = tempfile.mkstemp(prefix='.hics-qs-manifest-', dir=a.root)
         try:
             with os.fdopen(descriptor, 'w') as stream:
@@ -87,7 +115,7 @@ def main():
     if a.action in ('stamp', 'verify'):
         if not a.root:
             p.error('--root is required')
-        verify(a.root)
+        verify(a.root, require_jemalloc=a.require_jemalloc)
 
 
 if __name__ == '__main__':

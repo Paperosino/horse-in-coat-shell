@@ -26,76 +26,7 @@ fi
 
 mkdir -p "$lib_dir" "$root/bin" "$root/licenses"
 
-# Shared glibc/toolchain libraries are always taken from the system.
-toolchain_re='^(ld-linux|libc\.so|libm\.so|libpthread|librt|libdl|libresolv|libstdc\+\+\.so|libgcc_s\.so|libatomic\.so)'
-
-is_excluded() {
-    [[ $1 =~ $toolchain_re ]]
-}
-
-have_lib() {
-    [[ -e $lib_dir/$1 ]]
-}
-
-copy_lib() {
-    local needed=$1 resolved=$2 real base
-    real=$(readlink -f "$resolved")
-    base=$(basename "$real")
-    if [[ ! -e $lib_dir/$base ]]; then
-        cp -a "$real" "$lib_dir/$base"
-        printf 'bundled lib: %s\n' "$base"
-    fi
-    if [[ $needed != "$base" && ! -e $lib_dir/$needed ]]; then
-        ln -sf "$base" "$lib_dir/$needed"
-    fi
-}
-
-# Copy the closure of one ELF object (binary or library). Returns 0 when at
-# least one new library was copied, 1 otherwise.
-scan_deps() {
-    local target=$1 copied=0 line needed resolved
-    while IFS= read -r line; do
-        if [[ $line =~ ^[[:space:]]*([^[:space:]]+)[[:space:]]+\=\>[[:space:]]+(/[^[:space:]]+) ]]; then
-            needed=${BASH_REMATCH[1]}
-            resolved=${BASH_REMATCH[2]}
-        elif [[ $line =~ ^[[:space:]]*(/[^[:space:]]+\.so[^[:space:]]*)[[:space:]]+\(0x ]]; then
-            resolved=${BASH_REMATCH[1]}
-            needed=$resolved
-        else
-            continue
-        fi
-        # NEEDED may itself be a path (e.g. /lib64/ld-linux-x86-64.so.2 on
-        # glibc 2.44 ldd output); only the plain soname is ever bundled.
-        needed=${needed##*/}
-        [[ -e $resolved ]] || continue
-        is_excluded "$needed" && continue
-        have_lib "$needed" && continue
-        copy_lib "$needed" "$resolved"
-        copied=1
-    done < <(ldd "$target" 2>/dev/null || true)
-    return "$copied"
-}
-
-# One pass over every library already in the bundle plus the qs binary.
-closure_pass() {
-    local copied=0 obj
-    scan_deps "$qs_bin" || copied=1
-    while IFS= read -r -d '' obj; do
-        scan_deps "$obj" || copied=1
-    done < <(find "$lib_dir" -xtype f \( -name '*.so' -o -name '*.so.*' \) -print0)
-    return "$copied"
-}
-
-fixpoint() {
-    local pass=0
-    while closure_pass; do
-        pass=$((pass + 1))
-        if ((pass > 100)); then
-            printf 'error: library closure did not converge\n' >&2
-            return 1
-        fi
-    done
-}
+source "$(dirname -- "${BASH_SOURCE[0]}")/runtime-dependencies.sh"
 
 # Native desktop workers use modules which quickshell itself may not link.
 # Keep their Qt ABI in the same private runtime as Core/DBus.
@@ -107,6 +38,13 @@ for module in Concurrent Sql; do
     fi
     copy_lib "$name" "$qt_libs/$name"
 done
+
+# Discard unsupported optional SQL server drivers from an older cached bundle
+# before its first closure check. The workers only instantiate QSQLITE.
+if [[ -d $lib_dir/qt6/plugins/sqldrivers ]]; then
+    find "$lib_dir/qt6/plugins/sqldrivers" -maxdepth 1 \( -type f -o -type l \) \
+        -name '*.so*' ! -name libqsqlite.so -delete
+fi
 
 # 1. Closure of the quickshell binary itself (Qt, wayland, icu, ...).
 fixpoint
@@ -125,7 +63,7 @@ done
 plugins_dest=$lib_dir/qt6/plugins
 for dir in platforms wayland-shell-integration wayland-decoration-client \
     wayland-graphics-integration-client imageformats iconengines \
-    sqldrivers tls multimedia; do
+    tls multimedia; do
     src=$qt_plugins/$dir
     if [[ ! -d $src ]]; then
         printf 'warn: Qt plugin directory missing: %s\n' "$src" >&2
@@ -135,6 +73,17 @@ for dir in platforms wayland-shell-integration wayland-decoration-client \
     find "$src" -maxdepth 1 \( -type f -o -type l \) \( -name '*.so' -o -name '*.so.*' \) \
         -exec cp -a -t "$plugins_dest/$dir" {} +
 done
+
+# Both private HICS databases use QSQLITE. Optional SQL server drivers may be
+# installed with Qt without their external client libraries (e.g. Firebird).
+# They have no caller in this runtime; external applications use their own Qt.
+sqlite_plugin=$qt_plugins/sqldrivers/libqsqlite.so
+if [[ ! -f $sqlite_plugin ]]; then
+    printf 'error: the private HICS databases require %s\n' "$sqlite_plugin" >&2
+    exit 1
+fi
+mkdir -p "$plugins_dest/sqldrivers"
+cp -a "$sqlite_plugin" "$plugins_dest/sqldrivers/"
 
 # Apply source-built Qt fixes before the final dependency closure. Keep QML,
 # graphics integrations and other unmodified plugins from the original bundle.
@@ -170,6 +119,14 @@ if [[ -f $qs_source/LICENSE ]]; then
     cp "$qs_source/LICENSE" "$root/licenses/quickshell-LGPL-3.0"
 else
     printf 'warn: quickshell LICENSE not found in %s\n' "$qs_source" >&2
+fi
+if [[ -e $lib_dir/libjemalloc.so.2 ]]; then
+    jemalloc_license=${HICS_JEMALLOC_LICENSE_FILE:-/usr/share/licenses/jemalloc/COPYING}
+    if [[ ! -f $jemalloc_license ]]; then
+        printf 'error: bundled jemalloc requires its license: %s\n' "$jemalloc_license" >&2
+        exit 1
+    fi
+    cp "$jemalloc_license" "$root/licenses/jemalloc-BSD-2-Clause"
 fi
 
 # 6. Use the HICS runtime binary name (qt.conf lookup is app-dir based).
