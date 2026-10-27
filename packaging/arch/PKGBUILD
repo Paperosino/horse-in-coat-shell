@@ -59,6 +59,7 @@ package() {
     [[ -x "$pkgdir/usr/share/hics/qs/bin/hics-qs" ]] || { error "Packaged HICS runtime is not executable"; return 1; }
     python distribution/apply_qt_runtime_patches.py --root "$pkgdir/usr/share/hics/qs"
     python distribution/apply_quickshell_patches.py verify --root "$pkgdir/usr/share/hics/qs" --require-jemalloc
+    python distribution/quickshell_allocator/verify.py "$pkgdir/usr/share/hics/qs/bin/hics-qs"
     python distribution/native_plugins.py "$pkgdir/usr/share/hics/native" build
 
 }

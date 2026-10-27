@@ -42,6 +42,7 @@
 !/distribution/apply_qt_runtime_patches.py
 !/distribution/apply_quickshell_patches.py
 !/distribution/qtquickeffects/
+!/distribution/quickshell_allocator/
 !/distribution/patches/
 /distribution/patches/*
 !/distribution/patches/*.patch

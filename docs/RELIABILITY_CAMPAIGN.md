@@ -3153,3 +3153,24 @@ is introduced. The native CMake-hook test reads actual mallctl options and
 checks that user MALLOC_CONF overrides remain honored without setting an
 environment variable for launched applications. Production adoption still
 requires the matched installed-session and visual/lifetime gates.
+
+The1000ms dirty/0ms muzzy experiment also completes120 real UI cycles, with
+stable runner/UI identity, no config/QML errors, and25 final threads. Start/end
+RSS are788856/1011160KiB, final PSS889751KiB and private dirty767344KiB. CPU is
+82.95s and wall118.841s; the default comparison is79.70s/116.156s. This single
+software-render measurement is not proof of a CPU improvement. Its startup
+check uses actual IPC readiness rather than the nonexistent recovery `ready`
+field. The owned experiment drop-in was removed; the current guest process
+still needs a new session before it can represent unmodified package defaults.
+
+Candidate113 implements the1000ms policy as an initialized C++ `malloc_conf`
+constant in the QS executable, attached through a deferred CMake project hook.
+It does not write MALLOC_CONF, enable background threads, force periodic
+purging or affect exec-launched applications. User startup overrides retain
+the documented precedence. Source and hook hashes enter the runtime cache key.
+Native tests exercise actual mallctl defaults/overrides and the allocator-OFF
+diagnostic build. A release-only ELF guard rejects cached executables lacking
+the exported policy symbol or configuration; the separate existing manifest
+still verifies complete executable and allocator image checksums. All29
+source/provenance/payload/closure/overlay/native-policy tests pass. This is a
+candidate implementation; installed VM/visual acceptance is still required.

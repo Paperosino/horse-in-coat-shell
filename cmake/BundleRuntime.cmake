@@ -85,6 +85,8 @@ if(HICS_QS_USE_JEMALLOC)
 endif()
 set(qs_patch_signature "${hics_qs_revision};jemalloc=${HICS_QS_USE_JEMALLOC}")
 foreach(input distribution/apply_quickshell_patches.py
+        distribution/quickshell_allocator/configure.cmake
+        distribution/quickshell_allocator/policy.cpp
         distribution/patches/quickshell-v0.3.2-logging-lifetime.patch
         distribution/patches/quickshell-v0.3.2-shutdown-lifetime.patch
         distribution/patches/quickshell-v0.3.2-process-lifetime.patch)
@@ -123,6 +125,7 @@ ExternalProject_Add(quickshell-runtime
         "-DDISTRIBUTOR=hics bundle"
         "-DGIT_REVISION=${hics_qs_revision}"
         "-DUSE_JEMALLOC=${HICS_QS_USE_JEMALLOC}"
+        "-DCMAKE_PROJECT_quickshell_INCLUDE=${CMAKE_CURRENT_SOURCE_DIR}/distribution/quickshell_allocator/configure.cmake"
         "-DCRASH_HANDLER=OFF"
         "-DSOCKETS=ON"
         "-DWAYLAND=ON"
