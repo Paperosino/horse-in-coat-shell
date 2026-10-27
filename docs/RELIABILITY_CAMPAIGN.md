@@ -1201,3 +1201,34 @@ configerrors Hyprland пуст. Это не отсутствие всех воз
 Нативные плагины на хосте не трогались; в ВМ оставлен обычный рабочий shell93
 вместо safe UI. Проверка первого запуска с чистым профилем и cold cache остаётся
 отдельной незавершённой задачей.
+
+### Reboot кандидата93 и отсутствие emoji font в чистой установке
+
+После preflight (нет preview/pacman transaction, safe=false) гостю отправлен
+systemctl reboot. Boot ID изменился a4c86e71…→add14e7e…, QEMU не перезапускался
+по observation timeout. Root service нового boot: MainPID483, NRestarts0,
+ExecMainStartTimestampMonotonic4.853735s, shell sessionHealth.ready=true при
+наблюдении uptime26.94s, safe=false, configerrors пуст (cold93-result.json).
+Гостевой kernel page cache новый; host/QEMU disk cache не очищался. Эти числа
+не являются измерением desktop-ready latency: IPC ready здесь означает первый
+visible frame, а точного timestamp его сообщения в journal этого boot нет.
+В журнале есть preparation0.266s на отметке5.177773s boot. Старый Kitty завершён
+обычным logout/reboot, это не тест сохранения процессов через shell restart.
+
+На screenshot cold93.png появилось штатное окно hyprland-update-screen с tofu
+вместо emoji. Проверен source Hyprland0.56.2 VersionKeeperManager: первое
+состояние lastVersion0.0.0 затем вызывает news, это не crash HICS. Окно не скрыто
+в конфиге. Исходник [guiutils v0.2.2](https://github.com/hyprwm/hyprland-guiutils/blob/v0.2.2/utils/update-screen/src/main.cpp)
+содержит обычные emoji в тексте/кнопках; список fontconfig гостя состоял из
+Adwaita/Free families без emoji font. После установки
+[noto-fonts-emoji из Extra](https://archlinux.org/packages/extra/any/noto-fonts-emoji/)
+fc-match sans:charset=1f604 выбрал Noto Color Emoji; повторный запуск upstream
+окна показал корректные цветные символы (emoji93-after.png). Между проверками
+idle lock снят нормальным PAM вводом приватного guest test password, без обхода.
+
+noto-fonts-emoji добавлен в depends, pkgrel94 подготовлен; это шрифт, не новый
+фоновый сервис. Текущий guest shell package остаётся93 плюс отдельно установленный
+font package1:2.057-1. Хост не менялся. Существующие tests_arch_installer7,
+test_system_installer11, test_package_payload2 проходят. Сборка/проверка пакета94
+и fresh install ещё впереди. Не заявляется поддержка всех emoji всеми тулкитами
+или ускорение boot на основании этого одиночного наблюдения.

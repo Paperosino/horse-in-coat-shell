@@ -2,7 +2,7 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=93
+pkgrel=94
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 # Preserve bundled runtime/plugin checksums generated during packaging.
@@ -15,7 +15,7 @@ depends=(gnome-keyring 'ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
     glib2 gvfs libnotify brightnessctl networkmanager libnm libsecret pipewire pipewire-pulse libpulse wireplumber rtkit upower
     polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2
-    adwaita-icon-theme dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb
+    adwaita-icon-theme noto-fonts-emoji dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb
     gtk2 gtk3 gtk4 libadwaita webkitgtk-6.0 blueman bluez bluez-obex pacman-contrib gsettings-desktop-schemas
     'util-linux>=2.41' kmod btrfs-progs bubblewrap
     orca python-atspi at-spi2-core speech-dispatcher espeak-ng
