@@ -161,6 +161,13 @@ class DesktopCompletion(unittest.TestCase):
   (config.HISTORY/'corrupt.json.gz').write_bytes(b'\x1f\x8b'+b'x'*30)
   os.mkfifo(config.HISTORY/'fifo.json.gz');(config.HISTORY/'link.json.gz').symlink_to(path)
   self.assertEqual([row['id'] for row in config.history()],[good])
+ def test_snapshot_checksum_and_file_identity_are_verified(self):
+  import gzip
+  good=config.snapshot('Good');path=config.HISTORY/(good+'.json.gz');raw=path.read_bytes();payload=json.loads(gzip.decompress(raw))
+  payload['files']['dock.json']='{"enabled":false}';path.write_bytes(gzip.compress(json.dumps(payload).encode()))
+  with self.assertRaisesRegex(ValueError,'checksum'):config.load_snapshot(path)
+  path.write_bytes(raw);other=config.HISTORY/'00000000-0000-0000-0000-000000000000.json.gz';other.write_bytes(raw)
+  self.assertEqual([row['id'] for row in config.history()],[good])
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)

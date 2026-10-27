@@ -96,7 +96,11 @@ def load_snapshot(path):
  d=strict_object(raw);validate_bundle(d,False)
  created=d.get('created')
  if not isinstance(d.get('id'),str) or not re.fullmatch('[a-f0-9-]{36}',d['id']) or type(created) not in (int,float) or not 0<=created<=1e12:raise ValueError('Invalid history metadata')
- if not isinstance(d.get('hash'),str) or not re.fullmatch('[a-f0-9]{64}',d['hash']):raise ValueError('Invalid history checksum')
+ if not isinstance(d.get('hash'),str) or not re.fullmatch('[a-f0-9]{64}',d['hash']) or d['hash']!=digest(d['files']):raise ValueError('Invalid history checksum')
+ if path.name!=d['id']+'.json.gz':raise ValueError('History filename does not match snapshot identity')
+ try:canonical=str(uuid.UUID(d['id']))
+ except ValueError as error:raise ValueError('Invalid history identity') from error
+ if canonical!=d['id']:raise ValueError('Invalid history identity')
  return d
 
 def validate_bundle(d,appearance=True):
