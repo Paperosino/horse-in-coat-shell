@@ -6,9 +6,9 @@
 
 ## Что установлено
 
-- Тестовая CachyOS ВМ: `hic-shell 1.1.1-97`.
+- Тестовая CachyOS ВМ: `hic-shell 1.1.1-98`.
 - Рабочий хост: `hic-shell 1.1.1-78`; пакет на хосте в этой серии не обновлялся.
-- Пакет 97 собран с ранее проверенным частным Qt/Quickshell runtime.
+- Пакет 98 собран с ранее проверенным частным Qt/Quickshell runtime.
   Полная свежая сборка всех зависимостей и повторная чистая установка именно
   этого кандидата не подтверждены данной пакетной проверкой.
 
@@ -138,3 +138,14 @@ preflight остаётся открытой.
 3 managed потомка и сохранение3 detached процессов. Все6 startup-тестов и29
 recovery-тестов прошли. Аппаратный startup и установленный новый пакет ещё не
 проверены; пакет97 этого изменения не содержит.
+
+
+Пакет98 включает последние runner cleanup/cancellation/descendant исправления.
+Проверены locked upgrade с сохранением владельца блокировки и приложения,
+побайтовое совпадение packaged runner/root QML с исходниками,6 startup-тестов
+против установленного кода в госте (не только checkout). После PAM unlock
+новый runner14832 сообщил first-frame ready,3 пары переходов normal/recovery
+сохранили app2593,207binds и пустой configerrors. Evidence:
+locked-upgrade98.json, startup98-installed.log, transition98-unlocked.json
+в закрытом lab. Не проверены ещё systemd stop именно во время установленного
+preflight, simultaneous lock/transition и fresh install98.

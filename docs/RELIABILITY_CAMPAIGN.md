@@ -1457,3 +1457,29 @@ configuration/display guards с start_new_session не должны быть у�
 Сама проверка /proc/stat исправлена для ESRCH при исчезновении inode во время
 read, не только ENOENT. Все6 startup и29 recovery tests проходят;2 session
 restart tests прошли после основной правки. Установленный пакет97 пока старый.
+
+### Пакет98: установленный код runner и повтор переходов
+
+Пакет eff1e8aa69da367f1750a0bba5aab19dca6862c1295932145400aea013e22ef1
+собран package-only с проверенным private runtime, после явного CMake configure.
+Root QML и session_runner.py из tar побайтно совпали с checkout.
+locked-upgrade98.json: runner9800/shell12345/app2593/lockedtrue/207binds/
+empty configerrors сохранены, autoreload восстановлен.
+
+После штатного PAM unlock загружен runner14832 (не hot unload native plugins).
+First-frame ready=true, app2593 жив. startup98-installed.log: все6 тестов
+под обычным пользователем ВМ, ROOT перенаправлен на /usr/share/hics, проходят.
+Это те же fixtures с настоящими дочерними/внучатыми процессами; исключения
+и моки остаются явно обозначенными, это не настоящий ENOSPC системного диска.
+transition98-unlocked.json:3 пары on/resume, runner14832 остаётся прежним,
+финальный shell17798, app2593 и207binds сохранены, failures[], configerrors
+пуст. Финальный кандидат в госте98; host78 не изменён.
+
+Во время предварительного аудита создана инъекция ChildProcessError из
+Popen.wait. Она была удалена без production fix: настоящий Popen сам обрабатывает
+этот случай, так что fixture искусственно обходил его контракт. Такой сбой
+не считается найденным реальным дефектом или закрытым reliability gate.
+
+Остаются: настоящий stop/start systemd в preflight, одновременный lock/transition,
+реальные отказы диска в commit и свежая установка кандидата98. Общая кампания,
+проверка всех UI/hardware и замена оставшейся исторической медиатеки не завершены.
