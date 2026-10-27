@@ -1347,3 +1347,37 @@ invalid mode отвергается, unlocked on/resume дают IPC true и exi
 запусками. Настоящий recovery QML+guard integration по-прежнему проходит.
 Пакет95/рабочий хост этот новый протокол ещё не получили; нужны новая сборка
 и VM-проверка с настоящей PAM блокировкой, обоими переходами и живым app scope.
+
+### PACKAGING-ROOT: устаревший generated shell.qml и установленный переход97
+
+Locked-upgrade96 прошёл, однако новый vm_session_transition выявил отсутствие
+sessionControl: CMake file(READ/WRITE) не регистрировал shell.qml как input,
+а package-only install взял старый build/qml/shell.qml. Это реальный пробел
+проверки артефакта, узкий source-level IPC тест его не покрывал. Заменено на
+configure_file(COPYONLY), повторно выполнена конфигурация. Пакет97 root QML
+побайтно совпал с исходником. Дополнительно выяснилось, что Quickshell CLI
+выдаёт Target not found с returncode0: helper теперь отличает capability
+failure от boolean false (locked), с регрессионной проверкой.
+
+В ручной подготовке пакета относительный путь применили из cached workspace;
+скрипт изменения revision завершился FileNotFoundError, последующая сборка
+ещё96 закончилась. Её не устанавливают как97. Пути исправлены на абсолютные,
+97 собран отдельно package97-final.log. Cache/private runtime тот же, свежей
+сборкой всех зависимостей это не является.
+
+Пакет97 SHA256 e71303f53211aca9baa6e11d8ccd5bbe19834d2676686e4f8661b8d4826cf998.
+locked-upgrade97.json: runner7324/shell7367/app2593/lockedtrue/207binds/empty
+configerrors одинаковы до/после; autoreload restored. После нормального PAM
+unlock загружены новый runner/QML, без выгрузки native plugins. Предыдущий
+fixture пытался проверять unlocked слишком рано после Enter: locked ещёtrue,
+preflight остановился без restart. Ожидание результата PAM исправлено.
+
+transition97-locked.json: настоящий lock, runner9800/shell9849; on и resume
+отвергнуты, журнал побайтно неизменен. После PAM unlock
+transition97-unlocked.json: три пары on/resume, все успешны, runner9800 и
+Kitty2593 сохранены, failures[], configerrors пуст, 207binds. Финальный
+shell12345 сообщает ready=true; NRestarts=0, app в hics-app-01ffe...scope.
+Это последовательная проверка lock и переходов, не ещё одновременная гонка.
+Журнал содержит ожидаемые VGA/SHM fallback и отсутствие Bluetooth/powerprofiles
+в ВМ; они не объявляются аппаратно проверенной функциональностью.
+Новые helper/CMake изменения не создают фоновых процессов или polling.

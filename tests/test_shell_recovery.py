@@ -136,6 +136,10 @@ class RecoveryTests(unittest.TestCase):
   with patch.object(r.subprocess,'run',return_value=subprocess.CompletedProcess([],1,'','missing')) as run:
    with self.assertRaisesRegex(ValueError,'coordinated'):r.command('on')
   self.assertEqual(run.call_count,2)
+  # Quickshell can report a missing IPC target on stdout with exit status 0.
+  with patch.object(r.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'Target not found.\n','')) as run:
+   with self.assertRaisesRegex(ValueError,'coordinated'):r.command('on')
+  self.assertEqual(run.call_count,2)
  def test_status_keeps_guard_actions_available_with_damaged_crash_journal(self):
   r=self.r;m=self.configuration_manager;r.STATE.mkdir(parents=True,exist_ok=True)
   original=b'{invalid\xff';r.RECORD.write_bytes(original)

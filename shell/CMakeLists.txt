@@ -85,9 +85,9 @@ if("shell" IN_LIST ENABLE_MODULES)
         DESTINATION "${INSTALL_QSCONFDIR}/assets")
     install(PROGRAMS assets/wrap_term_launch.sh DESTINATION "${INSTALL_QSCONFDIR}/assets")
 
-    file(READ shell.qml SHELL_QML)
-    string(REPLACE "settings.watchFiles: true" "settings.watchFiles: false" SHELL_QML "${SHELL_QML}")
-    file(WRITE "${CMAKE_BINARY_DIR}/qml/shell.qml" "${SHELL_QML}")
+    # configure_file registers this input for incremental reconfiguration.
+    # file(READ/WRITE) left an old root in cached builds after QML edits.
+    configure_file(shell.qml "${CMAKE_BINARY_DIR}/qml/shell.qml" COPYONLY)
     install(FILES "${CMAKE_BINARY_DIR}/qml/shell.qml" DESTINATION "${INSTALL_QSCONFDIR}")
 
     install(FILES LICENSE DESTINATION "${INSTALL_QSCONFDIR}")

@@ -121,8 +121,8 @@ def command(action):
             reply=subprocess.run([str(data/'qs/bin/hics-qs'),'ipc','-p',str(root),
                               'call','sessionControl','transition',action],
                              timeout=4,capture_output=True,text=True)
-            if reply.returncode==0:break
-        if reply.returncode:raise ValueError('The shell does not support a coordinated mode change. Log out and back in after updating HICS.')
+            if reply.returncode==0 and reply.stdout.strip() in ('true','false'):break
+        if reply.returncode or reply.stdout.strip() not in ('true','false'):raise ValueError('The shell does not support a coordinated mode change. Log out and back in after updating HICS.')
         if reply.stdout.strip()!='true':raise ValueError('Unlock the session before changing shell mode, or start the session service if it is stopped.')
         return {'restarting':True}
     from configuration_manager import request
