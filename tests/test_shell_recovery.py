@@ -162,3 +162,22 @@ class RecoveryTests(unittest.TestCase):
    return info
   with patch.object(r.os,'fstat',side_effect=grow):
    with self.assertRaisesRegex(ValueError,'too large'):r.candidate()
+
+ def test_exit_with_malformed_failure_entries_still_records_crash(self):
+  r=self.r
+  for failures in ([None,{},'bad',True,9,10,10**400],{'bad':1},'bad',None):
+   with self.subTest(failures=failures):
+    r.begin(10);record=r.read(r.RECORD);record['failures']=failures;record['safe']=False
+    self.feature_common.atomic_json(r.RECORD,record,private=True)
+    r.finish(1,11)
+    saved=r.read(r.RECORD)
+    self.assertFalse(saved['active']);self.assertEqual(saved['failures'][-1],11)
+    self.assertTrue(all(type(x) in (int,float) for x in saved['failures']))
+
+ def test_failure_window_handles_large_numbers_without_float_conversion(self):
+  r=self.r
+  self.assertEqual(r.recent_failures({'failures':[True,None,{},'x',-10**400,10**400,float('nan'),float('inf'),-float('inf'),-1,0,119,120,121]},120.0),[0,119,120])
+  self.assertEqual(r.recent_failures({'failures':list(range(20))},20),list(range(13,20)))
+  r.begin(10);record=r.read(r.RECORD);record['active']=False;record['failures']=[10**400,9,10]
+  self.feature_common.atomic_json(r.RECORD,record,private=True)
+  self.assertTrue(r.begin(11.0))

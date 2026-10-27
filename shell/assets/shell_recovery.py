@@ -1,6 +1,6 @@
 """Bounded crash-loop protection; idle sessions do not poll or spawn helpers."""
 from __future__ import annotations
-import errno, json, math, os, stat, subprocess, sys, time
+import errno, json, os, stat, subprocess, sys, time
 from pathlib import Path
 from feature_common import CONFIG, STATE, atomic_json
 
@@ -40,13 +40,18 @@ def boot():
     return Path('/proc/sys/kernel/random/boot_id').read_text().strip()
 
 
+def recent_failures(record, now):
+    stamps=record.get('failures',[])
+    if not isinstance(stamps,list):return []
+    return [stamp for stamp in stamps if type(stamp) in (int,float) and now-120 <= stamp <= now][-7:]
+
+
 def begin(now=None):
     now = time.monotonic() if now is None else now
     try: previous = read(RECORD)
     except (OSError, ValueError): previous = {}
     same = previous.get('boot') == boot() and previous.get('session') == os.environ.get('HYPRLAND_INSTANCE_SIGNATURE', '')
-    stamps=previous.get('failures',[])
-    failures = [stamp for stamp in stamps if type(stamp) in (int,float) and math.isfinite(stamp) and 0 <= now-stamp <= 120][-7:] if same and isinstance(stamps,list) else []
+    failures = recent_failures(previous,now) if same else []
     if same and previous.get('active'): failures.append(now)
     safe = bool(previous.get('requested')) or len(failures) >= 2 or os.environ.get('HICS_SAFE_MODE') == '1'
     record = dict(boot=boot(), session=os.environ.get('HYPRLAND_INSTANCE_SIGNATURE',''), active=True,
@@ -60,7 +65,7 @@ def finish(code, now=None):
     record = read(RECORD)
     record['active'] = False
     if code and not record.get('safe'):
-        record['failures'] = [stamp for stamp in record.get('failures', []) if 0 <= now-stamp <= 120][-7:] + [now]
+        record['failures'] = recent_failures(record,now) + [now]
     atomic_json(RECORD, record, private=True)
 
 
