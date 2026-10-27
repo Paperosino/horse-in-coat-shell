@@ -18,6 +18,23 @@ SUPPORTED_COMMONS={'Color','Style','I18n','Logger','Settings'}
 SUPPORTED_SERVICES={'PluginService','ToastService','WallpaperService','NoctaliaService'}
 SUPPORTED_WIDGETS={'NText','NIcon','NButton','NIconButton','NBox','NToggle','NSlider','NTextInput','NSpinBox','NLabel','NDivider'}
 
+class HttpsRedirects(urllib.request.HTTPRedirectHandler):
+    def __init__(self, hosts=None):self.hosts=hosts
+    def validate(self,url):
+        parsed=urllib.parse.urlsplit(url)
+        if parsed.scheme!='https' or not parsed.hostname or self.hosts and parsed.hostname not in self.hosts:
+            raise ValueError('Extension download redirected outside the allowed HTTPS origin')
+    def redirect_request(self,req,fp,code,msg,headers,newurl):
+        self.validate(newurl)
+        return super().redirect_request(req,fp,code,msg,headers,newurl)
+
+
+def https_open(request,timeout,hosts=None):
+    redirects=HttpsRedirects(hosts)
+    redirects.validate(request.full_url if isinstance(request,urllib.request.Request) else request)
+    return urllib.request.build_opener(redirects).open(request,timeout=timeout)
+
+
 def text(v):
     if isinstance(v,str):return v
     if isinstance(v,dict):return text(v.get('ru',v.get('en',next(iter(v.values()),''))))
@@ -194,7 +211,7 @@ def catalogue(source=''):
     if source:
         if urllib.parse.urlsplit(source).scheme!='https':raise ValueError('Catalogues require an HTTPS URL')
         request=urllib.request.Request(source,headers={'User-Agent':'hics-extension-catalogue/1'})
-        with urllib.request.urlopen(request,timeout=10) as response:
+        with https_open(request,timeout=10) as response:
             if urllib.parse.urlsplit(response.url).scheme!='https':raise ValueError('Catalogue redirected outside HTTPS')
             raw=response.read(2097153)
         if len(raw)>2097152:raise ValueError('Extension catalogue is too large')
@@ -238,22 +255,49 @@ def github_folder(source, destination):
     if u.hostname!='github.com' or len(parts)<2: return False
     owner,repo=parts[:2];branch=parts[3] if len(parts)>3 and parts[2]=='tree' else 'HEAD'
     sub='/'.join(parts[4:]) if len(parts)>3 and parts[2]=='tree' else ''
-    total=[0]
-    def fetch(path, dest):
-        url='https://api.github.com/repos/'+urllib.parse.quote(owner)+'/'+urllib.parse.quote(repo)+'/contents/'+urllib.parse.quote(path)+'?ref='+urllib.parse.quote(branch)
-        with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Hyprstack/1'}),timeout=20) as r: items=json.load(r)
+    total=0;entries=0
+    def fetch(path, dest, depth=0):
+        nonlocal total,entries
+        if depth>32:raise ValueError('GitHub plugin tree is too deep')
+        url='https://api.github.com/repos/'+urllib.parse.quote(owner)+'/'+urllib.parse.quote(repo)+'/contents/'+urllib.parse.quote(path)+'?ref='+urllib.parse.quote(branch,safe='')
+        with https_open(urllib.request.Request(url,headers={'User-Agent':'hics/1'}),timeout=20,hosts={'api.github.com'}) as response:
+            if urllib.parse.urlsplit(response.url).scheme!='https':raise ValueError('GitHub API redirected outside HTTPS')
+            document=response.read(2*1024*1024+1)
+        if len(document)>2*1024*1024:raise ValueError('GitHub directory response exceeds 2 MiB')
+        items=json.loads(document)
         if not isinstance(items,list):raise ValueError('Choose a GitHub plugin folder')
         dest.mkdir(parents=True,exist_ok=True)
+        names=set()
         for item in items:
+            entries+=1
+            if entries>4096:raise ValueError('GitHub plugin exceeds 4096 entries')
+            if not isinstance(item,dict):raise ValueError('Invalid GitHub directory entry')
             name=item.get('name','')
-            if not name or name in ('.','..') or '/' in name or '\\' in name:raise ValueError('Invalid GitHub path')
-            if item['type']=='dir':fetch(item['path'],dest/name)
-            elif item['type']=='file':
-                total[0]+=int(item.get('size',0))
-                if total[0]>32*1024*1024:raise ValueError('Plugin exceeds 32 MiB')
+            if not isinstance(name,str) or not name or name in ('.','..') or '/' in name or '\\' in name or '\0' in name or name in names:raise ValueError('Invalid GitHub path')
+            names.add(name)
+            expected=path+'/'+name if path else name
+            if item.get('path')!=expected:raise ValueError('Unexpected GitHub entry path')
+            if item.get('type')=='dir':fetch(expected,dest/name,depth+1)
+            elif item.get('type')=='file':
                 url=item.get('download_url','')
-                if urllib.parse.urlparse(url).hostname!='raw.githubusercontent.com':raise ValueError('Unexpected download origin')
-                with urllib.request.urlopen(url,timeout=20) as r:(dest/name).write_bytes(r.read(32*1024*1024+1))
+                origin=urllib.parse.urlsplit(url)
+                if origin.scheme!='https' or origin.hostname!='raw.githubusercontent.com':raise ValueError('Unexpected download origin')
+                target=dest/name;created=False
+                try:
+                    with https_open(url,timeout=20,hosts={'raw.githubusercontent.com'}) as response:
+                        final=urllib.parse.urlsplit(response.url)
+                        if final.scheme!='https' or final.hostname!='raw.githubusercontent.com':raise ValueError('Unexpected download redirect')
+                        with target.open('xb') as output:
+                            created=True
+                            while True:
+                                chunk=response.read(min(65536,32*1024*1024-total+1))
+                                if not chunk:break
+                                total+=len(chunk)
+                                if total>32*1024*1024:raise ValueError('Plugin exceeds 32 MiB')
+                                output.write(chunk)
+                except Exception:
+                    if created:target.unlink(missing_ok=True)
+                    raise
             else:raise ValueError('Plugin folder contains unsupported links')
     fetch(sub,destination)
     return True
@@ -270,7 +314,8 @@ def install(source, update=False):
             archive=root/'plugin.zip'
             if source.startswith('https://'):
                 req=urllib.request.Request(source,headers={'User-Agent':'Hyprstack/1'})
-                with urllib.request.urlopen(req,timeout=30) as r,archive.open('wb') as f:
+                with https_open(req,timeout=30) as r,archive.open('wb') as f:
+                    if urllib.parse.urlsplit(r.url).scheme!='https':raise ValueError('Plugin archive redirected outside HTTPS')
                     total=0
                     while chunk:=r.read(65536):
                         total+=len(chunk)

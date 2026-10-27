@@ -27,6 +27,61 @@ class Features(unittest.TestCase):
         backups=sorted((self.common.STATE/'plugin-backups/fixture').glob('*'));self.assertEqual(len(backups),1)
         p.remove('fixture');self.assertFalse((p.USER/'fixture').exists());self.assertTrue(any(p.TRASH.iterdir()))
         backups[-1].rename(p.USER/'fixture');self.assertEqual(p.find('fixture')['version'],'1')
+    def test_github_download_uses_actual_bytes_not_claimed_size(self):
+        p=self.plugins;dest=self.root/'download';requested=[]
+        entries=[{'name':'one','path':'one','type':'file','size':0,'download_url':'https://raw.githubusercontent.com/o/r/one'},
+                 {'name':'two','path':'two','type':'file','size':-100000,'download_url':'https://raw.githubusercontent.com/o/r/two'}]
+        class Response(io.BytesIO):
+            url='https://raw.githubusercontent.com/o/r/file'
+        class Huge:
+            url='https://raw.githubusercontent.com/o/r/file'
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+            def read(self,limit):requested.append(limit);return b'x'*limit
+        def opened(url,**kwargs):
+            if isinstance(url,p.urllib.request.Request):
+                response=Response(json.dumps(entries).encode());response.url='https://api.github.com/repos/o/r/contents/';return response
+            return Response(b'abc') if url.endswith('/one') else Huge()
+        with patch.object(p,'https_open',side_effect=opened):
+            with self.assertRaisesRegex(ValueError,'32 MiB'):p.github_folder('https://github.com/o/r',dest)
+        self.assertTrue(all(n<=65536 for n in requested));self.assertEqual(sum(requested),32*1024*1024-3+1);self.assertEqual((dest/'one').read_bytes(),b'abc');self.assertFalse((dest/'two').exists())
+    def test_download_redirect_rejected_before_following(self):
+        p=self.plugins;request=p.urllib.request.Request('https://raw.githubusercontent.com/o/r/file')
+        guard=p.HttpsRedirects({'raw.githubusercontent.com'})
+        for target in ('http://raw.githubusercontent.com/o/r/file','https://example.org/file','file:///etc/passwd'):
+            with self.subTest(target=target):
+                with self.assertRaises(ValueError):guard.redirect_request(request,None,302,'Found',{},target)
+        self.assertEqual(guard.redirect_request(request,None,302,'Found',{},'https://raw.githubusercontent.com/o/r/next').full_url,'https://raw.githubusercontent.com/o/r/next')
+    def test_github_duplicate_paths_do_not_replace_files(self):
+        p=self.plugins;dest=self.root/'duplicate'
+        rows=[{'name':'x','path':'x','type':'file','download_url':'https://raw.githubusercontent.com/o/r/x'}]*2
+        def opened(url,**kwargs):
+            response=io.BytesIO(json.dumps(rows).encode() if isinstance(url,p.urllib.request.Request) else b'first')
+            response.url='https://api.github.com/list' if isinstance(url,p.urllib.request.Request) else url
+            return response
+        with patch.object(p,'https_open',side_effect=opened):
+            with self.assertRaisesRegex(ValueError,'Invalid GitHub path'):p.github_folder('https://github.com/o/r',dest)
+        self.assertEqual((dest/'x').read_bytes(),b'first')
+    def test_failed_github_update_preserves_installed_version(self):
+        p=self.plugins;p.install(str(self.plugin('1')))
+        before=(p.USER/'fixture/manifest.json').read_bytes();reads=[]
+        class Response(io.BytesIO):
+            url='https://api.github.com/repos/o/r/contents/'
+            def read(self,limit):reads.append(limit);return super().read(limit)
+        with patch.object(p,'https_open',return_value=Response(b'x'*(2*1024*1024+2))):
+            with self.assertRaisesRegex(ValueError,'2 MiB'):p.install('https://github.com/o/r',True)
+        self.assertEqual(reads,[2*1024*1024+1]);self.assertEqual((p.USER/'fixture/manifest.json').read_bytes(),before)
+        self.assertFalse((self.common.STATE/'plugin-backups/fixture').exists())
+    def test_github_recursive_tree_is_bounded(self):
+        p=self.plugins;requests=[]
+        def opened(request,**kwargs):
+            requests.append(request.full_url)
+            path=p.urllib.parse.unquote(p.urllib.parse.urlsplit(request.full_url).path.split('/contents/',1)[1])
+            entry={'name':'d','path':path+'/d' if path else 'd','type':'dir'}
+            response=io.BytesIO(json.dumps([entry]).encode());response.url=request.full_url;return response
+        with patch.object(p,'https_open',side_effect=opened):
+            with self.assertRaisesRegex(ValueError,'too deep'):p.github_folder('https://github.com/o/r',self.root/'deep')
+        self.assertEqual(len(requests),33)
     def test_manifest_cannot_escape_plugin(self):
         source=self.plugin();d=json.loads((source/'manifest.json').read_text());d['entryPoints']['main']='../outside.qml';(source/'manifest.json').write_text(json.dumps(d));(source.parent/'outside.qml').write_text('import QtQuick; Item {}')
         with self.assertRaises(ValueError):self.plugins.install(str(source))
