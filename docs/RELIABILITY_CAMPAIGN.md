@@ -2716,3 +2716,76 @@ SCP и SSH не выполнились, нового worker не было. По�
 проверки SSH readiness и обычной PAM-разблокировки, под idle/sleep inhibitor,
 прошёл с финальными assertions. Не перезапускались compositor/lock owner и
 не перезаписывались результаты прежних прогонов.
+
+## SOAK109: новая находка отменяет готовность109 для хоста
+
+Продолжение после1c8d3d4. Первый повтор длительного lifecycle теста настроек
+на установленном109 завершился SIGSEGV после18полных циклов. UI499 погиб,
+runner автоматически восстановил оболочку: новый runner4271/UI4308,
+NRestarts1. Это реальный ненамеренный сбой внутри тестовой ВМ, не подставной
+SIGKILL. Kernel/coredump подтверждают QSGRenderThread4116, падение в libc
+malloc из libgallium26.2.4 → QGles2Buffer::create → QSGBatchRenderer →
+QSGRhiLayer. На GUI-потоке одновременно обрабатывался channelReadyRead и
+предупреждение QMetaType. Это место обнаружения повреждения, не доказанная
+его первопричина. Core78MB сохранён, GDB backtraces —
+`settings109-core-bt.log`/`settings109-core-main.log` внешнего qt109-source lab.
+
+Ожидающий polkit pkexec на хосте отменён **до pacman** после проверки comm,
+отсутствия дочернего процесса и db.lck. Exec завершился143. Host78 и
+runner1183724 сохранены, все5исходных приложений живы. Запись
+`host-install109-status.json` теперь имеет authorization-cancelled-before-pacman.
+Не считать прежнюю готовность/запрос установки успешным завершением приёмки.
+
+Повторный main-session soak120циклов прошёл за118s, PID4308 не менялся.
+RSS587600→1360356KiB, PSS478232→1236182KiB, PrivateDirty366572→1115516KiB,
+fds94→96, threads24→25. Это не подтверждение отсутствия утечки/редкого сбоя.
+Тест теперь сохраняет progress metrics каждые окно/цикл в отдельный0600 файл
+с UI pid/startTicks и worker pid: после падения незавершённые samples не теряются.
+Первый прогон до этой доработки таких samples не имел.
+
+Новый `vm_settings_profile.py` создаёт отдельный процесс с настоящими
+SettingsWindow, private HOME/XDG/bus/audio и реальным Wayland parent ВМ.
+Каждую страницу проверяет render grab именно QML PageContainer, не C++
+contentItem без QML engine. Ошибка первоначального fixture grab сохранена,
+исправление не продуктовая правка. Normal6циклов прошёл. Heaptrack24цикла
+запущен с начала процесса, без runtime injection в desktop/lock owner.
+Первый запуск heaptrack1.5 открыл GUI после записи; закрыто только его
+подтверждённое дочернее окно. Новый harness использует --record-only и
+собственную process group для ограниченной уборки fixture при таймауте.
+
+Heaptrack trace24MB:14,000,920allocations, peak tracked heap165.24MB,
+peakRSS including profiler1.13GB, live-at-exit6.39MB. Это поддерживает
+необходимость отличать retained RSS от живых malloc allocations; не доказывает
+причину всего роста. Default profiler report также отдельно помечает1.31KB
+suppressed leaks; это не ASan/LSan-приёмка без suppressions. Trace/полный отчёт
+сохранены, никаких allocator overrides или periodic trim в продукт не добавлено.
+
+Для sanitizer profile собраны отдельные ASan native Core/Components/Blobs
+QML libraries, overlay immutable, checksums, реально проверены maps.
+Уже этот fixture получил **ASan heap-use-after-free** в QtPrivate::equalStrings
+при Quickshell filterCategory → QLoggingRegistry::registerCategory:
+строка QQmlLoggingCategory была освобождена её деструктором, но Quickshell
+продолжал хранить QLatin1StringView ключи в кэшах. Реальный полный лог —
+`settings109-asan-full.log`. С исходным Qt108 (checksum проверенного пакета,
+только извлечён в отдельный runtime, без downgrade установленного109) этот
+же ASan UAF повторился после первого цикла: `settings108-asan-full.log`.
+Это подтверждённая прежняя ошибка зависимости, не доказательство, что она
+объясняет весь ненамеренный SIGSEGV/Mesa или GLib warning.
+
+Подготовлен private source patch Quickshell0.3.2: owned category strings для
+кэшей и queued messages; pointer identity заменена именем, доступ к shared
+filter maps сериализован без удержания lock при выводе/emit. Отдельный C++
+queued-copy/move lifetime probe: исходный LogMessage exit1 с ASan UAF,
+исправленный exit0 (`logmessage-before/fixed.log`). Полная пересборка QS и
+повтор реального fixture ещё идут; исправление пока не поставлено на хост.
+
+В процессе выявлена самостоятельная ошибка clean configure с
+HICS_BUILD_NATIVE=OFF: root pkg_check_modules(WebKit) зависел от локальных
+PkgConfig переменных дочерних каталогов. find_package(PkgConfig REQUIRED)
+перенесён также в root scope. Конфигурация и сборка sanitizer Components/Blobs
+после этого прошли. Прежний ошибочный configure log сохранён.
+
+Дополнительная открытая находка: при завершении isolated settings процесса
+два wl-paste QProcess уничтожаются работающими; ClipboardHistory::watchers
+также содержит waitForFinished(800) в GUI-потоке. Нужна отдельная безопасная
+асинхронная остановка/lifetime приёмка, без маскировки сообщения и без sleep.

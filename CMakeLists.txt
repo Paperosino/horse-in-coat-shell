@@ -24,6 +24,9 @@ if(DEFINED HYPRSTACK_QUICKSHELL_TAG AND NOT DEFINED HICS_QUICKSHELL_TAG)
 endif()
 set(HICS_QUICKSHELL_TAG "v0.3.2" CACHE STRING "Pinned quickshell version")
 find_package(Qt6 6.9 REQUIRED COMPONENTS Core Qml Quick ShaderTools)
+# Root targets (including the portal helper) also need PkgConfig when native
+# compositor extensions are disabled. Child-directory variables do not propagate.
+find_package(PkgConfig REQUIRED)
 set(M3SHAPES_INSTALL_DEVELOPMENT OFF CACHE BOOL "Install development files" FORCE)
 add_subdirectory(third_party/m3shapes)
 add_subdirectory(shell)

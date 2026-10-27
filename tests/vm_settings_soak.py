@@ -45,7 +45,12 @@ def sample(cycle):
  return {'cycle':cycle,'seconds':time.monotonic()-started,'memoryKiB':memory,'fds':len(list(Path(f'/proc/{pid}/fd').iterdir())),'threads':len(list(Path(f'/proc/{pid}/task').iterdir())),'cpuTicks':int(stats[11])+int(stats[12])}
 assert unlocked(),'Unlock the guest normally before running an interactive soak'
 assert not own(),'Close guest settings/recovery windows before starting the soak'
-started=time.monotonic();samples=[sample(0)];pages=['network','audio','storage','clipboard','display','configuration-history']
+started=time.monotonic();samples=[sample(0)];
+progress=Path('/var/tmp')/('hics-settings-soak-'+str(pid)+'-'+str(time.time_ns())+'.json')
+fd=os.open(progress,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600);os.close(fd)
+def save_progress():progress.write_text(json.dumps({'uiPid':pid,'uiStartTicks':identity,'workerPid':os.getpid(),'samples':samples},indent=2)+'\n')
+save_progress();print('Progress evidence: '+str(progress),file=sys.stderr,flush=True)
+pages=['network','audio','storage','clipboard','display','configuration-history']
 for index in range(int(sys.argv[1])):
  page=pages[index%len(pages)]
  if index%6==0:assert unlocked(),'Guest locked during the interactive soak; do not count hidden windows as rendered UI'
@@ -58,9 +63,9 @@ for index in range(int(sys.argv[1])):
  ctl('eval','hl.dispatch(hl.dsp.window.close({window=hl.get_window('+json.dumps('address:'+window['address'])+')}))')
  wait(lambda:not own());close_seconds=time.monotonic()-closed_at
  if (index+1)%len(pages)==0:time.sleep(.7)
- value=sample(index+1);value.update(page=page,openSeconds=open_seconds,closeSeconds=close_seconds);samples.append(value)
+ value=sample(index+1);value.update(page=page,openSeconds=open_seconds,closeSeconds=close_seconds);samples.append(value);save_progress()
  if (index+1)%6==0:print('Completed '+str(index+1)+' UI cycles',file=sys.stderr,flush=True)
-time.sleep(2);samples.append(sample(int(sys.argv[1])))
+time.sleep(2);samples.append(sample(int(sys.argv[1])));save_progress()
 assert not ctl('configerrors').strip()
 assert int(subprocess.check_output(user+['systemctl','--user','show','hic-session.service','-p','MainPID','--value'],text=True).strip())==runner
 raw=subprocess.check_output(['journalctl','-b','--after-cursor='+cursor,'_SYSTEMD_USER_UNIT=hic-session.service','_UID=1000','-o','json','--no-pager'],text=True,timeout=10)
