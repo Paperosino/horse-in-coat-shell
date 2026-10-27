@@ -16,9 +16,11 @@ import Quickshell
 import Quickshell.Io
 import Hyprstack.Services
 import qs.services
+import qs.modules.utilities.cards as UtilityCards
 ShellRoot {
  id:root
  property bool noWifi:Quickshell.env("NETWORK_TEST_NO_WIFI")==="1"
+ UtilityCards.Toggles {id:quickToggles;screenState:null;popouts:null;visible:false}
  property int phase:0
  property var original:null
  Component.onCompleted:{NetworkService;Nmcli;}
@@ -28,6 +30,7 @@ ShellRoot {
   if(root.phase===0){
    if(!Nmcli.activeEthernet)return;
    if(!root.check(Nmcli.hasWirelessHardware===!root.noWifi&&Nmcli.networks.length===(root.noWifi?0:1)&&Nmcli.networkIcon==="cable"&&Nmcli.ethernetDevices.length===1,"connected Ethernet was shown as missing Wi-Fi"))return;
+   if(!root.check(quickToggles.quickToggles.some(item=>item.id==="wifi")===!root.noWifi,"quick toggles offered Wi-Fi without hardware"))return;
    root.original=Nmcli.activeEthernet;
    for(let i=0;i<10;i++)Nmcli.syncState();
    if(!root.check(Nmcli.activeEthernet===root.original&&Nmcli.ethernetDevices.length===1,"refresh replaced or duplicated wired wrappers"))return;
@@ -46,6 +49,11 @@ ShellRoot {
 }''')
    bus=subprocess.Popen(['dbus-daemon','--session','--nofork','--print-address=1'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
    env=dict(os.environ,DBUS_SYSTEM_BUS_ADDRESS=bus.stdout.readline().strip(),NETWORK_TEST_LOG=str(base/'calls.jsonl'),NETWORK_TEST_NO_WIFI='1',HOME=str(base),XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),QT_QPA_PLATFORM='wayland',HICS_SHELL_DIR=str(shell),QML_IMPORT_PATH=str(ROOT/'build/qml'))
+   env['DBUS_SESSION_BUS_ADDRESS']=env['DBUS_SYSTEM_BUS_ADDRESS']
+   display=Path(os.environ['WAYLAND_DISPLAY'])
+   env['WAYLAND_DISPLAY']=str(display if display.is_absolute() else Path(os.environ['XDG_RUNTIME_DIR'])/display)
+   runtime=base/'run';runtime.mkdir(mode=0o700);env['XDG_RUNTIME_DIR']=str(runtime)
+   env['HYPRLAND_INSTANCE_SIGNATURE']='hics-network-qml-fixture'
    if not no_wifi:env.pop('NETWORK_TEST_NO_WIFI',None)
    mock=subprocess.Popen(['python3',str(ROOT/'tests/mock_network_bus.py')],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
    try:

@@ -1252,3 +1252,27 @@ locked-upgrade94-final.json: runner483, shell526, Kitty2593, locked=true,
 Font package был установлен перед этой транзакцией при визуальной диагностике,
 поэтому этот upgrade доказывает metadata/совместимость, но не сетевую загрузку
 новой зависимости при fresh install. Проверка последней остаётся отдельным gate.
+
+### NET-UI-002: phantom Wi-Fi в быстрых переключателях
+
+При подготовке новой записи panel-tools реальный guest94 показал включённый
+Wi-Fi toggle при единственном ens4:ethernet (lo:loopback); bar Network уже
+использовал hasWirelessHardware, Utilities/Toggles — только глобальный radio
+wifiEnabled NetworkManager. Panel94-check.png сохраняет это воспроизведение.
+Фильтр quickToggles теперь исключает wifi при отсутствии hardware; сохранённый
+список/настройка не изменяется. Это не выключение radio и не новый NM polling.
+
+test_network_qml расширен настоящей production UtilityCards.Toggles:
+wired-only case до исправления провалился с WIRED_FAIL, wired+inactive Wi-Fi
+прошёл. После исправления оба сценария проходят, как и2 native network tests.
+Из-за дополнительных singleton imports fixture теперь имеет отдельные session/
+system buses и private runtime, absolute Wayland socket, фиктивный Hyprland
+signature. Это предотвращает попытку регистрации notification service в host
+session и обращения к его compositor IPC. Hotplug USB Wi-Fi в реальной системе
+и вся матрица quick toggles ещё не проверены. Исправление пока не установлено.
+
+Для записи wf-recorder в guest без dmabuf успешно получил70 кадров1280×800 за
+пробные~3s (hics-capture94-probe.mkv); захват во время PAM ввода не выполнялся.
+Обнаруженный UI дефект означает, что новую публичную GIF пока не публикуем.
+Старый docs/media/panel-tools.gif не заменён и остаётся открытым branding gate.
+Нужна проверка установленного исправления и затем реальная запись сцены.

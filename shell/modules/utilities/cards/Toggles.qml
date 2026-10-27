@@ -30,6 +30,9 @@ StyledRect {
                 return false;
             }
 
+            if (item.id === "wifi" && !Nmcli.hasWirelessHardware)
+                return false;
+
             if (item.id === "vpn") {
                 return GlobalConfig.utilities.vpn.selectedProvider.length > 0;
             }
