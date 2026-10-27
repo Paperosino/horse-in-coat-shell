@@ -34,6 +34,7 @@ def state():
  return {'runner':runner,'ui':ui[0],'boot':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'locked':locked,
  'configerrors':subprocess.check_output(['hyprctl','-i','0','configerrors'],text=True).strip()}
 before=state();assert not before['locked'] and not before['configerrors'],before
+assert subprocess.check_output(['hyprctl','-i','0','submap'],text=True).strip()!='hics-onboarding','Finish or skip the first-run tour normally before nested compositor tests'
 progress=out/'worker.json';assert not progress.exists(),'Inspect prior evidence before starting another worker'
 record={'pid':os.getpid(),'before':before,'cases':[],'status':'running'}
 def save():progress.write_text(json.dumps(record,indent=2)+'\n')
@@ -74,12 +75,15 @@ def main():
     p.add_argument('--lab',required=True,type=Path)
     p.add_argument('--output',required=True,type=Path)
     p.add_argument('--payload-root',type=Path,default=Path('/var/tmp/hics-qt109'))
+    p.add_argument('--ssh-port', type=int, default=22280)
+    p.add_argument('--identity', type=Path)
+    p.add_argument('--known-hosts', type=Path)
     p.add_argument('--installed-runtime',action='store_true',help='Verify installed manifest and exercise installed Qt, without the private overlay')
     p.add_argument('--disposable-cachyos-vm',required=True,action='store_true')
     args=p.parse_args()
     if args.output.exists():p.error('Use a fresh evidence path')
     lab=args.lab
-    command=['ssh','-i',str(lab/'guest_ed25519'),'-p','22280','-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(lab/'known_hosts-installed'),
+    command=['ssh','-i',str(args.identity or lab/'guest_ed25519'),'-p',str(args.ssh_port),'-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(args.known_hosts or lab/'known_hosts-installed'),
         'root@127.0.0.1','systemd-inhibit --what=idle:sleep --mode=block --who=hics-tests --why=qt-runtime-regression runuser -u hics-test -- env XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus WAYLAND_DISPLAY=wayland-1 python3 -']
     if args.payload_root.parent!=Path('/var/tmp') or not args.payload_root.name.startswith('hics-qt'):p.error('Only a prepared disposable guest payload is supported')
     result=subprocess.run(command,input='PAYLOAD_ROOT='+repr(str(args.payload_root))+'\nINSTALLED_RUNTIME='+repr(args.installed_runtime)+'\n'+WORKER,capture_output=True,text=True,timeout=190)

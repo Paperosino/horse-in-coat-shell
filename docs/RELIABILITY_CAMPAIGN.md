@@ -2973,3 +2973,33 @@ inhibitor receives the same state. A private VM fixture tests setup entry,
 actual finish()/skip(), restoration of baseline policy and preservation of
 manual keep-awake (4.49s, exit0). This does not test physical suspend, PAM or
 claim compositor idle-inhibit protocol behaviour from a property assertion.
+
+
+### Package111 cold guest and nested-input preconditions
+
+Package111 SHA256051d9f91cfcec44bfde1d7ceabb98c8ec27705542b4f859d60f0c259c8ed7969
+was installed in the separate2GiB fresh guest while locked: runner719,
+UI761, Kitty2513,208bindings and empty configerrors remained unchanged.
+A normal reboot and console PAM login then started runner469/UI513 with
+NRestarts0 and empty configerrors. The first-run tour was rendered and its
+Skip button returned to the desktop and default shortcut submap.
+
+The first installed Qt worker failed to map text-input windows while the
+fullscreen first-run tour was still active; a later diagnostic found an empty
+nested-output list. IPC readiness alone does not prove output readiness.
+The input fixture now waits for positive monitor geometry and records clients/
+monitor data on mapping failure. The VM worker rejects an active first-run
+submap before testing, and accepts explicit VM SSH port/identity/known-hosts.
+After normal tour completion, installed111 passes all7 portal/input/audio/video
+cases with unchanged runner/UI and unlocked state. This does not prove the
+precise backend cause of the earlier intermittent missing output; failure
+evidence is retained separately, rather than counted as a successful run.
+
+Slow allocation unwinding reproduces the same827-byte report after6 settings
+cycles as after60. The587 fontconfig bytes are also reproducible in a native
+Qt font-loading/painting probe with Quickshell's WOFF/WOFF2 reject-pattern
+configuration, but not without that filter. An unmodified debug fontconfig
+build identifies FcParsePattern/FcPatternAppend as allocation sites. This
+isolates that finding from multimedia and QML page ownership; cleanup and
+relative-pointer reachability still require investigation. Debug dependency
+libraries remain private test overlays and are not installed in the package.

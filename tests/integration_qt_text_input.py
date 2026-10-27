@@ -93,6 +93,16 @@ def main():
                 time.sleep(.1)
             assert instance,'Nested compositor not ready'
             env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'])
+            # IPC is published before Aquamarine has configured its output.
+            # Wait for real usable geometry before creating maximizable Qt windows.
+            deadline=time.monotonic()+15
+            monitors=[]
+            while time.monotonic()<deadline:
+                assert compositor.poll() is None,(base/'compositor.log').read_text()[-3000:]
+                monitors=json.loads(subprocess.check_output(['hyprctl','-i',instance['instance'],'monitors','-j'],env=env,text=True,timeout=5))
+                if any(m.get('width',0)>0 and m.get('height',0)>0 for m in monitors):break
+                time.sleep(.1)
+            else:raise AssertionError(('Nested compositor has no usable output',monitors))
             if not args.without_ime:
                 profile=base/'config/fcitx5/profile';profile.parent.mkdir(parents=True)
                 profile.write_text('[Groups/0]\nName=Default\nDefault Layout=us\nDefaultIM=keyboard-us\n[Groups/0/Items/0]\nName=keyboard-us\nLayout=\n[GroupOrder]\n0=Default\n')
@@ -137,7 +147,7 @@ def main():
                 clients=json.loads(ctl('clients','-j'))
                 if len([c for c in clients if c.get('pid')==app.pid])==2:break
                 time.sleep(.1)
-            else:raise AssertionError('Text input windows not mapped')
+            else:raise AssertionError(('Text input windows not mapped',{'appPid':app.pid,'clients':clients,'monitors':ctl('monitors','-j')}))
             mappings=Path('/proc')/str(app.pid)/'maps';loaded=mappings.read_text()
             required=args.qt_overlay or args.runtime
             for library in ('libQt6Gui.so','libQt6WaylandClient.so'):
