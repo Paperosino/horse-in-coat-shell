@@ -8,6 +8,8 @@ import argparse,copy,ctypes,fcntl,gzip,hashlib,json,math,os,re,selectors,signal,
 from pathlib import Path
 from feature_common import CONFIG,STATE,DATA,read_json,atomic_json,output
 from application_environment import application_environment
+from shell_recovery import read_text as bounded_text, strict_object, read as bounded_object
+from plugin_preferences import load as load_plugin_preferences
 FILES={'shell-tokens.json','window-controls.json','shell.json','tokens.json','dock.json','layouts.json','effects.json','keyboard.lua','system.lua','system-controls.json','device-rules.json','application-rules.json','rules.lua','theme-automation.json','live-wallpapers.json','display-profiles.json','notification-rules.json','workspace.json'}
 APPEARANCE={'window-controls.json','shell.json','tokens.json','dock.json','layouts.json','effects.json','theme-automation.json','live-wallpapers.json','panels.json','state/scheme.json','state/wallpaper/path.txt','appearance.json','taskbar.json','workspaces.json','tiling.json','theme-schedule.json','widgets.json'}
 HISTORY=STATE/'configuration-history';PROFILES=DATA/'appearance-profiles';PREFS=CONFIG/'configuration-history.json';JOURNAL=STATE/'configuration-preview.json'
@@ -26,22 +28,21 @@ def gather(appearance=False):
  names.update(str(p.relative_to(CONFIG)) for p in (CONFIG/'monitors').glob('*/*.json') if allowed(str(p.relative_to(CONFIG))))
  files={};total=0
  for name in sorted(names):
-  p=target(name)
-  if not p.is_file() or p.is_symlink():continue
-  if not p.resolve().is_relative_to(STATE.resolve() if name.startswith('state/') else CONFIG.resolve()):continue
-  if p.stat().st_size>1048576:raise ValueError('Configuration is too large for a safe snapshot')
-  with p.open('rb') as stream:data=stream.read(1048577)
-  total+=len(data)
-  if len(data)>1048576 or total>MAX_BYTES:raise ValueError('Configuration is too large for a safe snapshot')
   if name=='widgets.json':continue
-  text=data.decode('utf-8')
-  if name.endswith('.json'):json.loads(text)
+  p=target(name)
+  if not p.resolve().is_relative_to(STATE.resolve() if name.startswith('state/') else CONFIG.resolve()):raise ValueError('Unsafe configuration path: '+name)
+  try:text=bounded_text(p,1048576)
+  except FileNotFoundError:continue
+  except (OSError,ValueError) as error:raise ValueError('Configuration is too large or unsafe for a safe snapshot: '+name) from error
+  total+=len(text.encode('utf-8'))
+  if total>MAX_BYTES:raise ValueError('Configuration is too large for a safe snapshot')
+  if name.endswith('.json'):strict_object(text)
   files[name]=text
  if 'state/scheme.json' not in files:files['state/scheme.json']=(ASSETS/'feature_data/default-palette.json').read_text()
  if 'appearance.json' not in files:
   from appearance_themes import current
   files['appearance.json']=json.dumps(current(),ensure_ascii=False)
- files['widgets.json']=json.dumps({'desktopLayout':read_json(CONFIG/'plugins.json').get('desktopLayout',{})},ensure_ascii=False,sort_keys=True)
+ files['widgets.json']=json.dumps({'desktopLayout':load_plugin_preferences(CONFIG/'plugins.json').get('desktopLayout',{})},ensure_ascii=False,sort_keys=True)
  if appearance:
   for name in APPEARANCE:
    if name not in files and name.endswith('.json'):files[name]='{}'
@@ -429,12 +430,30 @@ def watch():
    def arm():
     for path in [CONFIG,STATE,STATE/'wallpaper',CONFIG/'monitors',*(CONFIG/'monitors').glob('*')]:
      if path.is_dir() and not path.is_symlink():libc.inotify_add_watch(fd,os.fsencode(path),0x00000008|0x00000080|0x00000100|0x00000200)
-   arm();stopping=False;changed=0;last_hash=digest(gather())
+   arm();stopping=False;changed=0;last_hash=None;paused_warning=None
    def stop(*_):
     nonlocal stopping
     stopping=True
    signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
-   if preferences()['enabled'] and preferences()['captureOnLogin']:snapshot()
+   def observe(startup=False):
+    nonlocal last_hash,paused_warning
+    try:
+     repair_invalid_json();current=digest(gather());policy=preferences()
+     if policy['enabled'] and not JOURNAL.exists() and (policy['captureOnLogin'] if startup else current!=last_hash):snapshot()
+     last_hash=current
+     if paused_warning:
+      warning=STATE/'configuration-recovery-warning.json'
+      try:previous=bounded_object(warning)
+      except (OSError,ValueError):previous={}
+      if previous.get('warning')==paused_warning:warning.unlink(missing_ok=True)
+      paused_warning=None
+    except (OSError,ValueError,TypeError) as error:
+     message='Configuration history capture paused: '+str(error);paused_warning=message
+     warning=STATE/'configuration-recovery-warning.json'
+     try:previous=bounded_object(warning)
+     except (OSError,ValueError):previous={}
+     if previous.get('warning')!=message:atomic_json(warning,{'warning':message},private=True)
+   observe(True)
    def publish():atomic_json(root/'state.json',state(),private=True)
    publish()
    events=None
@@ -448,9 +467,7 @@ def watch():
      pending=read_json(JOURNAL)
      if pending and (pending['deadlineMonotonic']<=time.monotonic() or pending.get('shellPid') and process_start(pending['shellPid'])!=pending.get('shellStart')):rollback();publish()
      if changed and time.monotonic()>=changed:
-      changed=0;repair_invalid_json();current=digest(gather())
-      if current!=last_hash and preferences()['enabled'] and not JOURNAL.exists():snapshot();last_hash=current
-      publish()
+      changed=0;observe();publish()
      for key,_ in select.select(.5 if pending or changed else 1):
       if events and key.fileobj is events:
        if not events.recv(65536):rollback(False);os.close(fd);events.close();return
