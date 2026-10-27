@@ -14,7 +14,7 @@ StyledRect {
  function renderedFrames():real {return player.frames();}
  required property string demoId
  property bool playing:true
- readonly property bool animate:playing&&(Onboarding.data.settings.showDemos??true)&&!GlobalConfig.appearance.reducedMotion
+ readonly property bool animate:visible&&playing&&!PerformancePolicy.locked&&(Onboarding.data.settings.showDemos??true)&&!GlobalConfig.appearance.reducedMotion
  radius:Tokens.rounding.large
  color:Colours.palette.m3surfaceContainerHighest
  activeFocusOnTab:true

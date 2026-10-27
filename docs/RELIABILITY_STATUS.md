@@ -186,3 +186,11 @@ Tour step4: настоящий display preview125% в fresh98 автоматич
 падает без исправления и проходит с ним;13 display unit tests и6 интеграционных
 сценариев прошли. Installed98 ещё без этого изменения. Требуют проверки:
 стабилизированный layout125%/confirmation в туре и оставшиеся страницы тура.
+
+В fresh98 тур проверен до step7: UI Stacking применился; Light/Dark меняют
+scheme и GTK preferences;14 обоев скачаны, декодированы и проверены по
+attribution hashes, выбор сохраняет реальный wallpaper path. Это не полнота
+работы окон/внешних приложений. Открыты storage/features/ready и выход из тура.
+Найден скрытый decode демонстрации под lock screen; source fix паузит player
+по PerformancePolicy.locked/visible. Real-player regression падает без gate
+(frames4→40) и проходит с ним (pause/resume). В installed98 этого fix ещё нет.

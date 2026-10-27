@@ -1614,3 +1614,39 @@ scale-trial.png снят сразу после compositor scale change: соде
 устойчивого layout defect. Нужна отдельная съёмка стабилизированного состояния
 до истечения таймера. Остальные этапы тура ещё открыты. Installed98 остаётся
 со старой UI моделью; source fix нужно включить/проверить в следующем пакете.
+
+### TOUR-MODES/THEME/WALLPAPERS98 и скрытый decoder под lock screen
+
+После длительного отсутствия ввода guest штатно заблокировался. PAM unlock
+вернул прежний tour step4, без обхода авторизации/перезапуска. Затем Next,
+pointer Stacking: layouts IPC подтвердил mode=stacking,busy=false,error="".
+Step6 pointer Light реально сменил surface и scheme.json mode=light;
+GTK3 settings:Adwaita/prefer-dark0. Pointer Dark вернул mode=dark,
+Adwaita-dark/prefer-dark1. Это не проверка всех внешних GTK/Qt приложений.
+Screenshots tour-modes/tour-themes/tour-light сохраняются в закрытом fresh98lab.
+
+На step7 pointer Download запустил helper9377. Он наблюдался живым; повторно
+не запускался. Завершился:14 originals JXL,14JPEG, ATTRIBUTION.json/LICENSE.txt.
+PIL полностью декодировал все14JPEG, проверены3840×2160 bounds и SHA каждого
+original по attribution. Pointer first thumbnail сохранил
+wallpaper/path.txt=.../adwaita-d.jpg. Evidence tour-wallpapers98.json и
+wallpapers-ready.png. Guest98 оставлен на step7, storage/features/ready,
+завершение/пропуск и повторный login ещё открыты.
+
+Проверка DemoCard выявила отсутствие lock gate: за1.5s заблокированного состояния
+production player продолжал decode (frames4→40). Добавлены visible и
+!PerformancePolicy.locked в animate, без нового timer/process. Player сохраняет
+декодер на паузе и возвращается к видео после unlock; состояние showDemos и
+reducedMotion сохраняется. Это экономия лишних кадров, не измеренный процентCPU.
+
+Новый integration_onboarding_playback использует настоящий DemoCard/WallpaperPlayer,
+скопированные QML plugins и shared dependencies (run_snapshot_qml проверяет
+/proc/maps), частные HOME/XDG/session bus без activation directories и отсутствие
+system bus/audio. Проверены замершие frames во время lock и рост после unlock.
+Временная копия без lock gate падает с TOUR_PLAYBACK_FAIL locked decode4 40;
+с исправлением TOUR_PLAYBACK_OK. Lock state в этом playback test подставной,
+без заявлений о проверке PAM. Первый fixture ошибочно указал demoId welcome,
+которого нет среди media: исправлен на stacking. Также убрана активация
+стандартных portal services в private bus через явный busconfig.
+32 desktop tests прошли. Installed98 пока со старым DemoCard; source fix
+должен войти в следующий пакет и пройти установленную проверку.
