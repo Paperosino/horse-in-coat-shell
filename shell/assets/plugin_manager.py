@@ -27,7 +27,25 @@ def checked_path(root,name):
     if not p.is_relative_to(root.resolve()) or not p.is_file():raise ValueError('Plugin entry points must be files inside the plugin folder')
     return p
 
+def qml_files(folder):
+    # Bound directory enumeration as well as source bytes; never follow links.
+    pending=[(folder,0)];visited=0
+    while pending:
+        directory,depth=pending.pop()
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                visited+=1
+                if visited>4096:raise ValueError('Extension source tree exceeds 4096 entries')
+                if entry.is_symlink():raise ValueError('Extension source tree contains a symlink')
+                if entry.is_dir(follow_symlinks=False):
+                    if depth>=32:raise ValueError('Extension source tree is too deep')
+                    pending.append((Path(entry.path),depth+1))
+                elif entry.name.endswith('.qml'):
+                    yield Path(entry.path)
+
+
 def manifest(folder,bundled=False):
+    folder=Path(folder).resolve()
     try:document=bounded_text(folder/'manifest.json',2097152)
     except FileNotFoundError:
         try:raw=tomllib.loads(bounded_text(folder/'plugin.toml',2097152))
@@ -43,6 +61,15 @@ def manifest(folder,bundled=False):
     original=str(raw.get('id',folder.name));identifier=re.sub(r'[^A-Za-z0-9_.-]','-',original)
     if not ID.fullmatch(identifier):raise ValueError('Invalid plugin ID')
     entries={};issues=[];settings=[]
+    sources={};source_bytes=0
+    def source_text(path):
+        nonlocal source_bytes
+        if path not in sources:
+            code=bounded_text(path,2*1024*1024)
+            source_bytes+=len(code.encode('utf-8'))
+            if source_bytes>16*1024*1024:raise ValueError('Extension QML sources exceed 16 MiB')
+            sources[path]=code
+        return sources[path]
     isolated=raw.get('api')=='hics-2'
     if fmt=='native' and raw.get('api') not in ('hics-1','hyprstack-1','hics-2'):issues.append('Unsupported hics API version')
     worker=''
@@ -56,19 +83,19 @@ def manifest(folder,bundled=False):
     else:source={};issues.append('Noctalia 5 Luau API '+str(raw.get('plugin_api','?'))+' requires a Luau host; QML entry points cannot execute this format.')
     if fmt=='angelos':
         # The manifest can be imported; visual QML must use Hyprstack/compatibility tokens.
-        for file in folder.rglob('*.qml'):
-            if 'qs.config' in file.read_text(errors='replace'):issues.append('AngelOS-specific qs.config/Skin imports require a visual port.');break
+        for file in qml_files(folder):
+            if 'qs.config' in source_text(file):issues.append('AngelOS-specific qs.config/Skin imports require a visual port.');break
     for key,name in source.items():
         if key not in ('main','barWidget','desktopWidget','settings','panel') or not name:continue
         if isolated:
             entries[key]={'format':'declarative','url':'','property':'pluginApi','requiredProperties':[]}
             continue
-        p=checked_path(folder,name);code=p.read_text(errors='replace')
+        p=checked_path(folder,name);code=source_text(p)
         prop='pluginApi' if re.search(r'property\s+\w+\s+pluginApi\b',code) else 'plugin' if re.search(r'property\s+\w+\s+plugin\b',code) else ''
         entries[key]={'url':p.as_uri(),'property':prop,'requiredProperties':re.findall(r'required\s+property\s+\w+\s+(\w+)',code)}
     if fmt=='noctalia-qml':
-        for file in folder.rglob('*.qml'):
-            code=file.read_text(errors='replace')
+        for file in qml_files(folder):
+            code=source_text(file)
             for imp in re.findall(r'^\s*import\s+([\w.]+)',code,re.M):
                 if imp not in ALLOWED_IMPORTS:issues.append('Unsupported QML module: '+imp)
             for name in re.findall(r'\b([A-Z]\w*)\.',code):

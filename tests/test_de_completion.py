@@ -98,6 +98,39 @@ class DesktopCompletion(unittest.TestCase):
   (folder/'manifest.json').write_text('{"nested":'+'['*2000+'0'+']'*2000+'}')
   state=m.scan();self.assertEqual(len(state['errors']),1)
   self.assertIn('nesting limit',state['errors'][0]);self.assertTrue(state['plugins'])
+ def test_qml_scanner_rejects_fifo_and_oversize_sources(self):
+  m=self.plugin_manager;folder=self.base/'sources';folder.mkdir();path=folder/'Bad.qml'
+  (folder/'manifest.json').write_text('{"id":"sources","main":"Bad.qml"}')
+  os.mkfifo(path)
+  with self.assertRaises(ValueError):m.manifest(folder)
+  path.unlink()
+  with path.open('wb') as stream:stream.truncate(3*1024*1024)
+  with self.assertRaises(ValueError):m.manifest(folder)
+ def test_qml_scanner_bounds_tree_and_rejects_links(self):
+  m=self.plugin_manager;folder=self.base/'tree';folder.mkdir();target=folder/'link.qml'
+  target.symlink_to(self.base/'missing')
+  with self.assertRaisesRegex(ValueError,'symlink'):list(m.qml_files(folder))
+  target.unlink();nested=folder
+  for _ in range(34):nested=nested/'d';nested.mkdir()
+  with self.assertRaisesRegex(ValueError,'too deep'):list(m.qml_files(folder))
+ def test_qml_source_reused_between_entrypoints_and_compatibility_scan(self):
+  m=self.plugin_manager;folder=self.base/'reuse';folder.mkdir();path=folder/'Main.qml';path.write_text('import QtQuick\nItem {property var pluginApi}')
+  (folder/'manifest.json').write_text('{"id":"reuse","entryPoints":{"main":"Main.qml","barWidget":"Main.qml"}}')
+  with patch.object(m,'bounded_text',wraps=m.bounded_text) as read:
+   result=m.manifest(folder)
+  self.assertTrue(result['compatible']);self.assertEqual(sum(call.args[0]==path for call in read.call_args_list),1)
+ def test_qml_scanner_bounds_entry_count_even_without_qml(self):
+  import contextlib,types
+  m=self.plugin_manager;entry=types.SimpleNamespace(name='file.bin',is_symlink=lambda:False,is_dir=lambda **kwargs:False)
+  @contextlib.contextmanager
+  def many(_):yield (entry for _ in range(5000))
+  with patch.object(m.os,'scandir',side_effect=many):
+   with self.assertRaisesRegex(ValueError,'4096 entries'):list(m.qml_files(self.base))
+ def test_qml_scanner_caps_combined_source_bytes(self):
+  m=self.plugin_manager;folder=self.base/'large-tree';folder.mkdir()
+  (folder/'manifest.json').write_text('{"id":"large-tree"}')
+  for index in range(9):(folder/(str(index)+'.qml')).write_bytes(b' '*(2*1024*1024))
+  with self.assertRaisesRegex(ValueError,'16 MiB'):m.manifest(folder)
  def test_widget_placement_does_not_replace_settings(self):
   manager=self.plugin_manager;manager.atomic_json(manager.PREFS,{'settings':{'system-monitor':{'refresh':5}}})
   manager.desktop_layout('system-monitor',{'screen':'TEST-1','geometry':{'x':48,'y':64,'locked':True}})
