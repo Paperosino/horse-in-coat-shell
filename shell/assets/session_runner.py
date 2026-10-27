@@ -135,8 +135,12 @@ def run_session():
         readfd, writefd = os.pipe2(os.O_NONBLOCK | os.O_CLOEXEC)
         previous_fd = signal.set_wakeup_fd(writefd)
         previous = {}
+        termination_requested = False
+        def handle_signal(signum, frame):
+            nonlocal termination_requested
+            if signum in (signal.SIGTERM,signal.SIGINT):termination_requested=True
         for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGCHLD):
-            previous[sig] = signal.signal(sig, lambda signum, frame: None)
+            previous[sig] = signal.signal(sig, handle_signal)
         result = 0
         transition = 0
         session_disconnected = False
@@ -169,6 +173,7 @@ def run_session():
                 capture_loaded = safe_mode
                 health_at = time.monotonic() + 30 if startup_candidate is not None else None
                 while not done:
+                    if termination_requested:break
                     if shell.poll() is not None:
                         result = shell.returncode
                         if result in (75,76):
@@ -212,20 +217,26 @@ def run_session():
             result=1
             raise
         finally:
-            stop_child_groups(children, session_disconnected)
-            if 'shell_recovery' in locals():
-                try: shell_recovery.finish(result)
-                except (OSError,ValueError) as error: print('Unable to record shell exit:',error,file=sys.stderr)
-            if "finish_extensions" in locals():
-                finish_extensions(result)
-            if session_disconnected and shutil.which("hics-workspace"):
-                subprocess.run(["hics-workspace","cleanup"],timeout=5,check=False)
-            event.close()
-            signal.set_wakeup_fd(previous_fd)
-            for sig, handler in previous.items():
-                signal.signal(sig, handler)
-            os.close(readfd); os.close(writefd)
-        return transition or result
+            try:
+                stop_child_groups(children, session_disconnected)
+                if 'shell_recovery' in locals():
+                    try: shell_recovery.finish(result)
+                    except (OSError,ValueError) as error: print('Unable to record shell exit:',error,file=sys.stderr)
+                if "finish_extensions" in locals():
+                    try: finish_extensions(result)
+                    except (OSError,ValueError) as error: print('Unable to record extension exit:',error,file=sys.stderr)
+                if session_disconnected and shutil.which("hics-workspace"):
+                    try: subprocess.run(["hics-workspace","cleanup"],timeout=5,check=False)
+                    except (OSError,subprocess.SubprocessError) as error: print('Unable to clean workspace session:',error,file=sys.stderr)
+            finally:
+                # Teardown helpers and disk bookkeeping must never leave the
+                # process-wide wakeup FD or signal handlers owned by this run.
+                event.close()
+                signal.set_wakeup_fd(previous_fd)
+                for sig, handler in previous.items():
+                    signal.signal(sig, handler)
+                os.close(readfd); os.close(writefd)
+        return 0 if termination_requested else transition or result
 
 
 def stop_session(lockpath):

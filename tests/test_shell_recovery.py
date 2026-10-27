@@ -73,6 +73,41 @@ class RecoveryTests(unittest.TestCase):
     record=self.r.read(self.r.RECORD)
     self.assertEqual(record['requested'],code==75)
     self.assertFalse(record['active']);self.assertEqual(record['failures'],[])
+   # Storage failure during extension bookkeeping must not bypass signal/FD
+   # cleanup after an otherwise successful coordinated transition.
+   import signal
+   handlers={sig:signal.getsignal(sig) for sig in (signal.SIGTERM,signal.SIGINT,signal.SIGCHLD)}
+   wakeup=signal.set_wakeup_fd(-1);signal.set_wakeup_fd(wakeup)
+   descriptors=set(os.listdir('/proc/self/fd'))
+   try:
+    with patch.object(extension_recovery,'finish',side_effect=OSError('fixture ENOSPC')):
+     self.assertEqual(runner.run_session(),76)
+    self.assertEqual({sig:signal.getsignal(sig) for sig in handlers},handlers)
+    actual=signal.set_wakeup_fd(-1);signal.set_wakeup_fd(actual)
+    self.assertEqual(actual,wakeup)
+    self.assertEqual(set(os.listdir('/proc/self/fd')),descriptors)
+    executable.write_text('#!'+sys.executable+'\nimport sys\nsys.exit(75)\n')
+    write=self.feature_common.atomic_json
+    def fail_transition(path,value,**kwargs):
+     if path==self.r.RECORD and value.get('requested') and value.get('active') is False:
+      raise OSError('fixture transition commit ENOSPC')
+     return write(path,value,**kwargs)
+    with patch.object(self.feature_common,'atomic_json',side_effect=fail_transition):
+     with self.assertRaisesRegex(OSError,'transition commit'):runner.run_session()
+    self.assertFalse(self.r.read(self.r.RECORD)['requested'])
+    self.assertEqual({sig:signal.getsignal(sig) for sig in handlers},handlers)
+    actual=signal.set_wakeup_fd(-1);signal.set_wakeup_fd(actual)
+    self.assertEqual(actual,wakeup)
+    self.assertEqual(set(os.listdir('/proc/self/fd')),descriptors)
+    def stop_during_commit(path,value,**kwargs):
+     if path==self.r.RECORD and value.get('requested') and value.get('active') is False:
+      os.kill(os.getpid(),signal.SIGTERM)
+     return write(path,value,**kwargs)
+    with patch.object(self.feature_common,'atomic_json',side_effect=stop_during_commit):
+     self.assertEqual(runner.run_session(),0,'Explicit stop must override an accepted mode transition')
+   finally:
+    signal.set_wakeup_fd(wakeup)
+    for sig,handler in handlers.items():signal.signal(sig,handler)
   self.assertEqual(trace.read_text().splitlines(),['0','0','1'])
  def test_runner_mode_loop_restores_original_environment(self):
   import session_runner as runner

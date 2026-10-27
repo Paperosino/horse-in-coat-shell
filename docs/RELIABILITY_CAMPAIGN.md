@@ -1381,3 +1381,31 @@ shell12345 сообщает ready=true; NRestarts=0, app в hics-app-01ffe...sco
 Журнал содержит ожидаемые VGA/SHM fallback и отсутствие Bluetooth/powerprofiles
 в ВМ; они не объявляются аппаратно проверенной функциональностью.
 Новые helper/CMake изменения не создают фоновых процессов или polling.
+
+### RUNNER-CLEANUP: отказ маркера расширений и stop во время перехода
+
+Намеренный OSError ENOSPC в extension_recovery.finish воспроизвёл исключение
+из finally run_session: закрытие compositor socket, восстановление signal
+handlers/wakeup_fd и закрытие pipe не выполнялись. Unit до правки упал на
+finish_extensions(result). Очистка сигналов/FD теперь в отдельном finally;
+ошибки маркеров и ожидаемые ошибки workspace cleanup диагностируются и не
+маскируют успешный выход UI. Реальная ошибка сохранения выбранного режима
+по-прежнему возвращается как ошибка, без ложного transition success.
+
+Регрессия запускает настоящий runner и дочерний процесс, инъецирует отказ
+extension marker и отдельно commit режима; проверяет прежние SIGTERM/INT/CHLD
+handlers, wakeup_fd и точное множество /proc/self/fd до/после. Неудачный commit
+не записывает requested=true. Это fault injection, не настоящий полный диск ВМ.
+
+Дополнительно обработчик сигнала сохраняет termination_requested в памяти:
+SIGTERM/INT имеет приоритет над exit75/76. Раньше wakeup pipe читался только
+в selector, поэтому сигнал во время обработки уже завершившегося UI мог
+потеряться между выходом из цикла и повторным run_session. Тест посылает
+настоящий SIGTERM себе внутри commit и ожидает return0 вместо повторного
+запуска. В POSIX handler нет Qt API/ожиданий/файловых операций.
+
+29 recovery-тестов (расширены сценарии внутри реального runner fixture),
+2 session restart-теста, реальный IPC transition и recovery QML+guard прошли.
+В установленном пакете97 этих последних cleanup/signal исправлений ещё нет.
+Сценарии одновременных настоящих lock/transition в ВМ и отказа реального
+хранилища при commit остаются открытыми.
