@@ -1,4 +1,5 @@
 #pragma once
+#include "util/watchedprocess.hpp"
 #include <QFileSystemWatcher>
 #include <QFuture>
 #include <QObject>
@@ -29,8 +30,7 @@ public:
   QString error() const { return m_error; }
   bool busy() const { return m_importing; }
   bool capturing() const {
-    return m_text.state() != QProcess::NotRunning ||
-           m_image.state() != QProcess::NotRunning;
+    return m_text->running() || m_image->running();
   }
   Q_INVOKABLE void refresh();
   Q_INVOKABLE void configure(const QVariantMap &values);
@@ -53,9 +53,9 @@ private:
   QVariantMap m_settings;
   QVariantList m_entries;
   QString m_error;
-  bool m_locked = false, m_importing = false, m_restarting=false;
+  bool m_locked = false, m_importing = false;
   bool m_refreshing = false, m_refreshAgain = false;
-  QProcess m_text, m_image;
+  std::unique_ptr<hics::util::WatchedProcess> m_text, m_image;
   QFileSystemWatcher m_files;
   QTimer m_refresh;
 };

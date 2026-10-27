@@ -80,8 +80,12 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--disposable-cachyos-vm', action='store_true', required=True)
     p.add_argument('--cycles', type=int, default=60)
+    p.add_argument('--page', choices=['network', 'audio', 'storage', 'clipboard', 'display', 'configuration-history'], help='Repeat one real page to isolate its lifetime')
     p.add_argument('--mode', choices=['normal', 'heaptrack', 'asan'], default='normal')
     p.add_argument('--asan-overlay', type=Path)
+    p.add_argument('--shell-overlay', type=Path, help='Test-only QML overrides, copied into the private shell tree')
+    p.add_argument('--qml-fixture', type=Path, help='Minimal Qt lifetime fixture; use PROFILE_COMPLETE and CYCLES tokens')
+    p.add_argument('--extra-import', type=Path, help='Explicit test-only QML diagnostic module directory')
     p.add_argument('--runtime', type=Path, default=Path('/usr/share/hics/qs'))
     p.add_argument('--executable', type=Path, help='Immutable test QS binary; installed runtime is retained')
     p.add_argument('--output', type=Path, required=True)
@@ -92,8 +96,21 @@ def main():
         p.error('Use 1..500 cycles and a fresh output path')
     if Path('/var/lib/pacman/db.lck').exists():
         p.error('Finish the package transaction before profiling immutable modules')
-    if a.mode == 'asan' and not a.asan_overlay:
+    if a.mode == 'asan' and not a.asan_overlay and not a.qml_fixture:
         p.error('An instrumented module overlay is required')
+    overlay_manifest = {}
+    if a.asan_overlay:
+        a.asan_overlay = a.asan_overlay.resolve(strict=True)
+        manifest_path = a.asan_overlay / 'manifest.json'
+        if manifest_path.stat().st_size > 1024 * 1024: p.error('Overlay manifest is too large')
+        overlay_manifest = json.loads(manifest_path.read_text())
+        for name, digest in overlay_manifest.items():
+            relative = Path(name)
+            target = a.asan_overlay / relative
+            if relative.is_absolute() or '..' in relative.parts or target.is_symlink() or not target.is_file() or not target.resolve().is_relative_to(a.asan_overlay):
+                p.error('Invalid overlay file')
+            if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                p.error('Overlay checksum mismatch: ' + name)
     a.output.mkdir(parents=True, mode=0o700)
     display = Path(os.environ['WAYLAND_DISPLAY'])
     if not display.is_absolute():
@@ -104,10 +121,26 @@ def main():
         root = Path(directory)
         shell = root / 'shell'
         shell.mkdir()
-        for source in Path('/usr/share/hics/shell').iterdir():
-            if source.name != 'shell.qml':
-                (shell / source.name).symlink_to(source, target_is_directory=source.is_dir())
-        (shell / 'shell.qml').write_text(QML.replace('CYCLES', str(a.cycles)))
+        def link_tree(source, destination, overlay):
+            for entry in source.iterdir():
+                if destination == shell and entry.name == 'shell.qml': continue
+                override = overlay / entry.name if overlay else None
+                target = destination / entry.name
+                if override and override.is_symlink(): raise ValueError('QML overlay must contain regular files')
+                if override and override.is_dir():
+                    if not entry.is_dir(): raise ValueError('QML overlay directory mismatch')
+                    target.mkdir()
+                    link_tree(entry, target, override)
+                elif override and override.is_file():
+                    if entry.suffix != '.qml': raise ValueError('Only QML overrides are supported')
+                    target.write_bytes(override.read_bytes())
+                else: target.symlink_to(entry, target_is_directory=entry.is_dir())
+        link_tree(Path('/usr/share/hics/shell'), shell, a.shell_overlay)
+        fixture = a.qml_fixture.read_text() if a.qml_fixture else QML
+        if a.page:
+            if a.qml_fixture: p.error('--page is for the built-in settings fixture')
+            fixture = fixture.replace('["network","audio","storage","clipboard","display","configuration-history"]', json.dumps([a.page]))
+        (shell / 'shell.qml').write_text(fixture.replace('CYCLES', str(a.cycles)))
         (root / 'run').mkdir(mode=0o700)
         config = root / 'bus.conf'
         config.write_text('<busconfig><type>session</type><listen>unix:tmpdir=' + str(root) +
@@ -127,14 +160,18 @@ def main():
                 LD_LIBRARY_PATH=str(a.runtime / 'lib') + ':/usr/share/hics/qml/Hyprstack/lib:/usr/share/hics/lib',
                 QT_PLUGIN_PATH=str(a.runtime / 'lib/qt6/plugins'), QML_IMPORT_PATH='/usr/share/hics/qml:' + str(a.runtime / 'lib/qt6/qml'),
                 QML2_IMPORT_PATH='/usr/share/hics/qml:' + str(a.runtime / 'lib/qt6/qml'))
+            if a.extra_import:
+                env['QML_IMPORT_PATH'] = str(a.extra_import) + ':' + env['QML_IMPORT_PATH']
+                env['QML2_IMPORT_PATH'] = env['QML_IMPORT_PATH']
             for key in ('LD_PRELOAD', 'LSAN_OPTIONS', 'ASAN_OPTIONS'):
                 env.pop(key, None)
             if a.mode == 'asan':
                 env['LD_PRELOAD'] = '/usr/lib/libasan.so.8'
                 env['ASAN_OPTIONS'] = 'detect_leaks=1:halt_on_error=1'
-                env['LD_LIBRARY_PATH'] = str(a.asan_overlay / 'lib') + ':' + env['LD_LIBRARY_PATH']
-                env['QML_IMPORT_PATH'] = str(a.asan_overlay / 'qml') + ':' + env['QML_IMPORT_PATH']
-                env['QML2_IMPORT_PATH'] = env['QML_IMPORT_PATH']
+                if a.asan_overlay:
+                    env['LD_LIBRARY_PATH'] = str(a.asan_overlay / 'lib') + ':' + env['LD_LIBRARY_PATH']
+                    env['QML_IMPORT_PATH'] = str(a.asan_overlay / 'qml') + ':' + env['QML_IMPORT_PATH']
+                    env['QML2_IMPORT_PATH'] = env['QML_IMPORT_PATH']
             executable = a.executable or a.runtime / 'bin/hics-qs'
             command = [str(executable), '-p', str(shell), '--no-duplicate']
             if a.mode == 'heaptrack':
@@ -142,13 +179,16 @@ def main():
             with (a.output / 'process.log').open('w') as log:
                 process = subprocess.Popen(command, env=env, stdout=log, stderr=log, start_new_session=True)
                 asan_mapped = False
-                if a.mode == 'asan':
+                mapped_libraries = []
+                if a.mode == 'asan' and a.asan_overlay:
                     deadline = time.monotonic() + 15
                     while process.poll() is None and time.monotonic() < deadline:
                         maps = Path('/proc') / str(process.pid) / 'maps'
                         loaded = maps.read_text()
-                        asan_mapped = all(str(a.asan_overlay / 'lib' / name) in loaded
-                            for name in ('libhyprstack-blobs.so', 'libhyprstack-components.so'))
+                        mapped_libraries = [name for name in overlay_manifest
+                            if name.startswith('lib/') and str(a.asan_overlay / name) in loaded]
+                        expected_libraries = [name for name in overlay_manifest if name.startswith('lib/')]
+                        asan_mapped = bool(expected_libraries) and len(mapped_libraries) == len(expected_libraries)
                         if asan_mapped:
                             break
                         time.sleep(.1)
@@ -156,8 +196,11 @@ def main():
                 process.wait(timeout=30 + a.cycles * 5)
             text = (a.output / 'process.log').read_text()
             report = {'executableSha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'runtime': str(a.runtime), 'code': process.returncode, 'cycles': a.cycles, 'mode': a.mode,
-                'asanModulesMapped': asan_mapped, 'complete': 'PROFILE_COMPLETE ' + str(a.cycles) in text,
-                'scope': 'Isolated real settings windows with rendered grabs; not the whole desktop or every control'}
+                'asanModulesMapped': asan_mapped, 'asanLibrariesMapped': mapped_libraries, 'asanOverlayFiles': overlay_manifest, 'complete': 'PROFILE_COMPLETE ' + str(a.cycles) in text,
+                'extraImportFiles': {str(p.relative_to(a.extra_import)): hashlib.sha256(p.read_bytes()).hexdigest() for p in a.extra_import.rglob('*') if p.is_file()} if a.extra_import else {},
+                'qmlOverrides': {str(p.relative_to(a.shell_overlay)): hashlib.sha256(p.read_bytes()).hexdigest() for p in a.shell_overlay.rglob('*.qml')} if a.shell_overlay else {},
+                'page': a.page, 'fixtureSha256': hashlib.sha256(a.qml_fixture.read_bytes()).hexdigest() if a.qml_fixture else None,
+                'scope': 'Custom isolated Qt lifetime fixture' if a.qml_fixture else 'Isolated real settings windows with rendered grabs; not the whole desktop or every control'}
             (a.output / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
             print(json.dumps(report, indent=2))
             assert report['code'] == 0 and report['complete'], text[-5000:]

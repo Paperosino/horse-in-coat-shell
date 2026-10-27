@@ -2826,3 +2826,51 @@ patch hashes as the verified109 overlay; its builder fingerprint changed.
 QS runtime manifests bind audited source archive, patch set and executable SHA.
 Ten source/manifest tests and three package-payload tests pass. Package110 and
 host installation are still pending the remaining lifecycle/VM acceptance gates.
+
+### Clipboard capture shutdown and narrower render probes (110 candidate)
+
+ClipboardHistory no longer calls waitForFinished(800) twice in GUI operations.
+A bounded asynchronous capture owner retains at most one child for each MIME
+kind, coalesces unchanged requests, terminates/reaps the preceding child before
+starting the latest requested command, and escalates to SIGKILL after800ms.
+This is an event-driven stop deadline, not an idle polling loop or new thread.
+Late notifications are owner-bound and errors have request generations.
+QObject teardown hands running processes to an application-owned reaper without
+waiting in QML teardown. Only final application destruction has a bounded reap
+fallback, after rendering stops; this is not a wait during lock/configuration.
+Stderr retention is bounded4096bytes and unused stdout goes to nullDevice.
+
+`test_watched_process.py` compiles a real native ASan/LSan fixture: stubborn
+SIGTERM-ignoring children, rapid replacement/cancellation, no overlap, missing
+executable and explicit retry, receiver deleting its owner, final app shutdown.
+It passes without suppressions or running-QProcess warnings. Both ordinary
+replacement and owner teardown are asserted to return within50ms in this
+fixture; this is not a claimed production latency guarantee. The26 workspace
+store/privacy tests also pass. Release Services/Settings and separate ASan
+Services/Config modules build successfully. In the real VM six-page profile
+using immutable ASan overlay3 and Release QS, both previous wl-paste destructor
+warnings are gone. The full profile still has98592bytes/502allocations under
+LSan, including a128byte direct allocation in a dynamically unloaded module;
+therefore this is not overall clean acceptance and no host update was made.
+
+The settings profiler now supports one-page repetitions, private QML overrides,
+minimal fixtures and a diagnostic QML import, with hashes in reports. Overlay
+files are checksum-verified and the complete supplied native library set must
+be mapped. These options never modify installed QML or the running desktop.
+Minimal actual-VM effect, gradient-mask and VerticalFadeFlickable lifetimes each
+completed12 cycles with ASan/LSan exit0. NavLocations, NavPane and a basic
+PageBase completed6 cycles with only the already-fixed original codec-cache
+leaks (they deliberately used original installed modules, not the codec fix).
+The page-container fixture reproduces remaining effect leaks. Clearing the
+incubator callback or changing to synchronous creation did not remove them;
+these exploratory overrides are external test artifacts, not shipped changes.
+
+A private test-only QML ObjectLifetimeProbe now traverses QObject and visual
+children, retaining only QPointer references. The first actual six-page run
+tracked67 effects/proxies and found seven surviving QQuickShaderEffect objects
+with null QObject owners after all windows closed. Source/API inspection and
+finer ownership tracing continue. This evidence narrows the failure; it does
+not establish that asynchronous incubation is its cause, or justify removing
+masks, blur or animation. Failed early NavLocations probes attempted a grab
+before the component acquired a window; their bounded timeouts are fixture
+failures, not reported as shell regressions.

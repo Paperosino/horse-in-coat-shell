@@ -408,3 +408,12 @@
 - A green UAF regression is not a clean lifetime acceptance when LSan is red.
   Keep leak detection enabled and document scope, module hashes and remaining
   allocations. Do not suppress Qt/driver categories to make the report green.
+- Long-lived capture helpers must reconcile the latest command asynchronously,
+  without overlapping old/new children or waitForFinished in normal UI paths.
+  QML owner deletion needs an application-owned reap path; bounded waits belong
+  only to final application shutdown, after rendering has stopped. Test stubborn
+  children, rapid cancellation, FailedToStart, reentrant deletion and final exit.
+- A render leak trace does not prove a bad animation or incubator. Compare
+  minimal effects, containers and actual pages in the VM before changing their
+  implementation. Test observers use weak references and resource generations;
+  address reuse must not hide a newly created object.

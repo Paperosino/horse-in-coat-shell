@@ -307,13 +307,10 @@ ClipboardHistory::ClipboardHistory(QObject *parent) : QObject(parent) {
       m_refresh.start();
     }
   });
-  for(auto *process:{&m_text,&m_image}) {
-    connect(process,&QProcess::errorOccurred,this,[this](QProcess::ProcessError error){if(!m_restarting&&error==QProcess::FailedToStart){m_error="Clipboard capture could not start. Check wl-clipboard installation.";emit changed();}});
-    connect(process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this,process](int code,QProcess::ExitStatus){
-      if(!m_restarting&&code!=0){const auto detail=QString::fromUtf8(process->readAllStandardError()).trimmed();m_error=detail.isEmpty()?"Clipboard capture stopped unexpectedly":detail;emit changed();}
-    });
-    connect(process,&QProcess::stateChanged,this,[this]{emit changed();});
-  }
+  const auto changed = [this] { emit this->changed(); };
+  const auto error = [this](QString detail) { m_error = std::move(detail); emit this->changed(); };
+  m_text = std::make_unique<hics::util::WatchedProcess>(changed, error);
+  m_image = std::make_unique<hics::util::WatchedProcess>(changed, error);
   QTimer::singleShot(0, this, [this] {
     refresh();
     watchers();
@@ -384,23 +381,14 @@ void ClipboardHistory::watchers() {
       m_settings.value("enabled").toBool() &&
       !m_settings.value("paused").toBool() &&
       !(m_locked && m_settings.value("pauseWhenLocked").toBool());
-  m_restarting=true;
-  for (auto *p : {&m_text, &m_image}) {
-    if (p->state() != QProcess::NotRunning) {
-      p->terminate();
-      if (!p->waitForFinished(800))
-        p->kill();
-    }
-  }
-  m_restarting=false;
-  if (!wanted || qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY"))
-    return;
-  if (m_settings.value("text").toBool())
-    m_text.start("wl-paste", {"--type", "text", "--watch", helper(),
-                              "clipboard-store", "text/plain;charset=utf-8"});
-  if (m_settings.value("images").toBool())
-    m_image.start("wl-paste", {"--type", "image", "--watch", helper(),
-                               "clipboard-store", "image/auto"});
+  const auto command = [&](const QString &type, const QString &mime) -> QStringList {
+    if (!wanted || qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY")) return {};
+    return {"wl-paste", "--type", type, "--watch", helper(), "clipboard-store", mime};
+  };
+  m_text->request(m_settings.value("text").toBool()
+      ? command("text", "text/plain;charset=utf-8") : QStringList{});
+  m_image->request(m_settings.value("images").toBool()
+      ? command("image", "image/auto") : QStringList{});
 }
 void ClipboardHistory::configure(const QVariantMap &values) {
   perform([&] {
