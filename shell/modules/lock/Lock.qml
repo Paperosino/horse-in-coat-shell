@@ -7,7 +7,12 @@ import Quickshell.Wayland
 import qs.components.misc
 
 Scope {
+    id: root
     property alias lock: lock
+    property bool transitioning: false
+    function requestLock(): void {
+        if (!transitioning) lock.locked = true;
+    }
 
     WlSessionLock {
         id: lock
@@ -45,12 +50,12 @@ Scope {
         // qmllint enable unresolved-type
         name: "lock"
         description: "Lock the current session"
-        onPressed: lock.locked = true
+        onPressed: root.requestLock()
     }
 
     IpcHandler {
         function lock(): void {
-            lock.locked = true;
+            root.requestLock();
         }
 
         function isLocked(): bool {

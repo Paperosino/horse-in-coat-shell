@@ -138,6 +138,7 @@ def run_session():
         for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGCHLD):
             previous[sig] = signal.signal(sig, lambda signum, frame: None)
         result = 0
+        transition = 0
         session_disconnected = False
         try:
             import shell_recovery
@@ -170,6 +171,14 @@ def run_session():
                 while not done:
                     if shell.poll() is not None:
                         result = shell.returncode
+                        if result in (75,76):
+                            transition=result
+                            try:record=shell_recovery.read(shell_recovery.RECORD)
+                            except ValueError:record={}
+                            record.update(requested=result==75,active=False,failures=[])
+                            from feature_common import atomic_json
+                            atomic_json(shell_recovery.RECORD,record,private=True)
+                            result=0
                         break
                     if health_at is not None and time.monotonic() >= health_at:
                         health_at = None
@@ -216,7 +225,7 @@ def run_session():
             for sig, handler in previous.items():
                 signal.signal(sig, handler)
             os.close(readfd); os.close(writefd)
-        return result
+        return transition or result
 
 
 def stop_session(lockpath):
@@ -260,7 +269,17 @@ def main():
             subprocess.Popen([sys.executable, __file__, "run"], start_new_session=True,
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return 0
-        return run_session()
+        environment_keys=('HICS_SAFE_MODE','FONTCONFIG_FILE','QT_QUICK_CONTROLS_STYLE',
+                          'QT_QPA_PLATFORMTHEME','QT_QUICK_CONTROLS_CONF')
+        original_environment={key:os.environ.get(key) for key in environment_keys}
+        while True:
+            result=run_session()
+            if result not in (75,76):return result
+            # begin() reads the committed mode. Do not carry safe-only toolkit
+            # environment into a normal startup in this same runner process.
+            for key,value in original_environment.items():
+                if value is None:os.environ.pop(key,None)
+                else:os.environ[key]=value
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print("hics-session: " + str(error), file=sys.stderr)
         return 1

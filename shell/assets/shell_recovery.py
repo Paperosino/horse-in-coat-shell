@@ -112,15 +112,18 @@ def good(path=None):
 
 def command(action):
     if action in ('on','resume'):
-        # The crash journal is bookkeeping, not a prerequisite for recovery.
-        # Replace malformed/nonregular records atomically; real I/O failures
-        # still abort before requesting a service restart.
-        try: record = read(RECORD)
-        except ValueError: record = {}
-        record.update(requested=action=='on', active=False, failures=[])
-        atomic_json(RECORD,record,private=True)
-        subprocess.run(['systemctl','--user','reset-failed','hic-session.service'],check=True,timeout=8,capture_output=True)
-        subprocess.run(['systemctl','--user','--no-block','restart','hic-session.service'],check=True,timeout=8,capture_output=True)
+        # Only the process owning the lock can decide to exit safely. A remote
+        # isLocked check followed by systemctl restart has a TOCTOU window.
+        data=Path(os.environ.get('HICS_DATA_DIR',os.environ.get('HYPRSTACK_DATA_DIR','/usr/share/hics')))
+        reply=None
+        normal=Path(os.environ.get('HICS_SHELL_DIR',os.environ.get('HYPRSTACK_SHELL_DIR',str(data/'shell'))))
+        for root in (normal,data/'shell/recovery'):
+            reply=subprocess.run([str(data/'qs/bin/hics-qs'),'ipc','-p',str(root),
+                              'call','sessionControl','transition',action],
+                             timeout=4,capture_output=True,text=True)
+            if reply.returncode==0:break
+        if reply.returncode:raise ValueError('The shell does not support a coordinated mode change. Log out and back in after updating HICS.')
+        if reply.stdout.strip()!='true':raise ValueError('Unlock the session before changing shell mode, or start the session service if it is stopped.')
         return {'restarting':True}
     from configuration_manager import request
     if action == 'restore': return request('restore-startup',{})

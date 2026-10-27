@@ -28,6 +28,15 @@ ShellRoot {
 
     settings.watchFiles: false
     IpcHandler { target: "sessionHealth"; function ready(): bool { return StartupPerformance.firstFrame; } }
+    IpcHandler {
+        target: "sessionControl"
+        function transition(mode: string): bool {
+            if (lock.transitioning || lock.lock.locked || !["on", "resume"].includes(mode)) return false;
+            lock.transitioning = true;
+            Qt.exit(mode === "on" ? 75 : 76);
+            return true;
+        }
+    }
 
     Component.onCompleted: AnimationClock.activate()
 

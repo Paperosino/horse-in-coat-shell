@@ -1319,3 +1319,31 @@ recovery QML обязан показать оба предупреждения, 
 Добавление одиночного isLocked preflight не устраняет TOCTOU; безопасный
 протокол перехода остаётся задачей до объявления всех recovery путей готовыми.
 Эта проверка не перезапускала заблокированный рабочий сеанс.
+
+### RECOVERY-TRANSITION: переход решает владелец UI, а не внешний restart
+
+Ручные on/resume больше не запускают systemctl restart/reset-failed. Helper
+вызывает sessionControl.transition в конкретном normal/recovery QML root.
+Обычная оболочка в одном QML вызове проверяет locked/transitioning, закрывает
+новые запросы блокировки и вызывает Qt.exit(75/76). Все существующие входы
+lock (shortcut, IPC, idle, logind sleep/lock) используют requestLock, который
+не начинает новую блокировку во время завершения. Runner распознаёт эти коды,
+атомарно сохраняет режим, не записывает намеренный выход как падение и
+запускает следующий UI без systemd restart. Исходное toolkit environment
+восстанавливается перед новым запуском. Независимые приложения не завершаются.
+Старый shell без handler отказывает с просьбой нового входа после обновления;
+небезопасного fallback на systemctl нет. При false от normal owner fallback
+на recovery root не выполняется. IPC timeout/ошибки не дают внешнего kill.
+
+Проверен исходник закреплённой Quickshell0.3.2: EngineGeneration::exit(int)
+сохраняет exitCode и начинает destroy; это не выдуманный QML API.
+Новый integration_session_transition.py извлекает production IPC handler:
+в реальном вложенном Hyprland/Quickshell locked=true даёт false без выхода,
+invalid mode отвергается, unlocked on/resume дают IPC true и exit75/76.
+Состояние lock в этом узком тесте подставное: это ещё не протокольная
+проверка настоящего WlSessionLock в установленной ВМ.
+29 recovery unit tests прошли, включая реальный runner с child exit75/76,
+сохранение requested/active/failures и сброс safe-only environment между
+запусками. Настоящий recovery QML+guard integration по-прежнему проходит.
+Пакет95/рабочий хост этот новый протокол ещё не получили; нужны новая сборка
+и VM-проверка с настоящей PAM блокировкой, обоими переходами и живым app scope.

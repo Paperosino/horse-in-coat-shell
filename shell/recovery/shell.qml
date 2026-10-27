@@ -10,6 +10,14 @@ import Quickshell.Io
 ShellRoot {
  id: root
  property var data: ({})
+ IpcHandler {
+  target: "sessionControl"
+  function transition(mode: string): bool {
+   if (!["on", "resume"].includes(mode)) return false;
+   Qt.exit(mode === "on" ? 75 : 76);
+   return true;
+  }
+ }
  property list<string> helperCommand: ["python3", Quickshell.shellDir + "/../assets/shell_recovery.py"]
  property string error: ""
  property bool receivedReply: false

@@ -33,7 +33,7 @@ Scope {
             return;
 
         if (action === "lock")
-            lock.lock.locked = true;
+            lock.requestLock();
         else if (action === "unlock")
             lock.lock.locked = false;
         else if (typeof action === "string")
@@ -45,11 +45,11 @@ Scope {
     Connections {
         function onAboutToSleep(): void {
             if (GlobalConfig.general.idle.lockBeforeSleep)
-                root.lock.lock.locked = true;
+                root.lock.requestLock();
         }
 
         function onLockRequested(): void {
-            root.lock.lock.locked = true;
+            root.lock.requestLock();
         }
 
         function onUnlockRequested(): void {

@@ -67,7 +67,25 @@ class RecoveryTests(unittest.TestCase):
    self.assertEqual(runner.run_session(),1)
    self.assertEqual(runner.run_session(),1)
    self.assertEqual(runner.run_session(),0)
+   for code in (75,76):
+    executable.write_text('#!'+sys.executable+'\nimport sys\nsys.exit('+str(code)+')\n')
+    self.assertEqual(runner.run_session(),code)
+    record=self.r.read(self.r.RECORD)
+    self.assertEqual(record['requested'],code==75)
+    self.assertFalse(record['active']);self.assertEqual(record['failures'],[])
   self.assertEqual(trace.read_text().splitlines(),['0','0','1'])
+ def test_runner_mode_loop_restores_original_environment(self):
+  import session_runner as runner
+  seen=[]
+  def run():
+   seen.append(os.environ.get('FONTCONFIG_FILE'))
+   if len(seen)==1:
+    os.environ['FONTCONFIG_FILE']='safe-only';os.environ['HICS_SAFE_MODE']='1'
+    return 76
+   return 0
+  with patch.dict(os.environ,{'FONTCONFIG_FILE':'user-fonts'}),patch.object(sys,'argv',['runner','run']),patch.object(runner,'paths',return_value=(self.base/'lock',self.base/'event')),patch.object(runner,'run_session',side_effect=run):
+   self.assertEqual(runner.main(),0)
+   self.assertEqual(seen,['user-fonts','user-fonts'])
  def test_invalid_json_recovers_from_startup_checkpoint_instead_of_unproven_history(self):
   r=self.r;m=self.configuration_manager;r.begin(10);r.CONFIG.mkdir(parents=True,exist_ok=True)
   f=r.CONFIG/'shell.json';f.write_text('{"appearance":{"scale":1}}');r.healthy(r.candidate())
@@ -94,36 +112,30 @@ class RecoveryTests(unittest.TestCase):
   invalid={'version':1,'id':'x','files':{'shell.json':'{}'},'created':None}
   (m.HISTORY/'bad.json.gz').write_bytes(gzip.compress(json.dumps(invalid).encode()))
   self.assertEqual(m.history(),[])
- def test_manual_recovery_clears_only_its_own_systemd_start_limit(self):
+ def test_manual_recovery_uses_owner_ipc_without_systemctl(self):
+  import subprocess
   r=self.r
-  with patch.object(r.subprocess,'run') as run:
+  with patch.object(r.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'true','')) as run:
    self.assertTrue(r.command('on')['restarting'])
-  self.assertEqual(run.call_args_list[0].args[0],['systemctl','--user','reset-failed','hic-session.service'])
-  self.assertTrue(r.read(r.RECORD)['requested'])
-  self.assertEqual(run.call_args_list[1].args[0],['systemctl','--user','--no-block','restart','hic-session.service'])
- def test_manual_recovery_replaces_damaged_journal_without_following_links(self):
-  r=self.r;r.STATE.mkdir(parents=True,exist_ok=True)
-  external=self.base/'external';external.write_text('private external data')
-  for kind in ('json','utf8','fifo','symlink'):
-   for action in ('on','resume'):
-    with self.subTest(kind=kind,action=action):
-     if r.RECORD.exists() or r.RECORD.is_symlink():r.RECORD.unlink()
-     if kind=='json':r.RECORD.write_text('{invalid')
-     elif kind=='utf8':r.RECORD.write_bytes(b'\xff')
-     elif kind=='fifo':os.mkfifo(r.RECORD)
-     else:r.RECORD.symlink_to(external)
-     with patch.object(r.subprocess,'run') as run:
-      self.assertTrue(r.command(action)['restarting'])
-     self.assertEqual(run.call_count,2)
-     self.assertEqual(r.read(r.RECORD)['requested'],action=='on')
-     self.assertFalse(r.RECORD.is_symlink())
-     self.assertEqual(r.RECORD.stat().st_mode&0o777,0o600)
-     self.assertEqual(external.read_text(),'private external data')
- def test_manual_recovery_write_failure_never_restarts_service(self):
+  self.assertEqual(run.call_count,1)
+  self.assertEqual(run.call_args.args[0][-4:],['call','sessionControl','transition','on'])
+  self.assertFalse(r.RECORD.exists())
+ def test_locked_owner_denies_without_fallback_or_journal_mutation(self):
+  import subprocess
+  r=self.r;r.STATE.mkdir(parents=True,exist_ok=True);r.RECORD.write_bytes(b'{invalid\xff')
+  with patch.object(r.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'false','')) as run:
+   with self.assertRaisesRegex(ValueError,'Unlock'):r.command('on')
+  self.assertEqual(run.call_count,1)
+  self.assertEqual(r.RECORD.read_bytes(),b'{invalid\xff')
+ def test_safe_root_fallback_and_old_shell_fail_closed(self):
+  import subprocess
   r=self.r
-  with patch.object(r,'atomic_json',side_effect=OSError('fixture disk full')),patch.object(r.subprocess,'run') as run:
-   with self.assertRaises(OSError):r.command('on')
-  run.assert_not_called()
+  with patch.object(r.subprocess,'run',side_effect=[subprocess.CompletedProcess([],1,'','missing'),subprocess.CompletedProcess([],0,'true','')]) as run:
+   self.assertTrue(r.command('resume')['restarting'])
+  self.assertTrue(run.call_args_list[1].args[0][3].endswith('/shell/recovery'))
+  with patch.object(r.subprocess,'run',return_value=subprocess.CompletedProcess([],1,'','missing')) as run:
+   with self.assertRaisesRegex(ValueError,'coordinated'):r.command('on')
+  self.assertEqual(run.call_count,2)
  def test_status_keeps_guard_actions_available_with_damaged_crash_journal(self):
   r=self.r;m=self.configuration_manager;r.STATE.mkdir(parents=True,exist_ok=True)
   original=b'{invalid\xff';r.RECORD.write_bytes(original)
