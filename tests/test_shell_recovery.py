@@ -124,6 +124,16 @@ class RecoveryTests(unittest.TestCase):
   with patch.object(r,'atomic_json',side_effect=OSError('fixture disk full')),patch.object(r.subprocess,'run') as run:
    with self.assertRaises(OSError):r.command('on')
   run.assert_not_called()
+ def test_status_keeps_guard_actions_available_with_damaged_crash_journal(self):
+  r=self.r;m=self.configuration_manager;r.STATE.mkdir(parents=True,exist_ok=True)
+  original=b'{invalid\xff';r.RECORD.write_bytes(original)
+  guard={'startupCheckpoint':{'available':True},'pending':{'token':'fixture'},'recoveryWarning':'Existing warning'}
+  with patch.object(m,'request',return_value=guard):result=r.command('status')
+  self.assertEqual(result['startupCheckpoint'],guard['startupCheckpoint'])
+  self.assertEqual(result['pending'],guard['pending'])
+  self.assertIn('Existing warning',result['recoveryWarning'])
+  self.assertIn('state is unknown',result['recoveryWarning'])
+  self.assertEqual(r.RECORD.read_bytes(),original)
  def test_startup_ack_does_not_erase_recent_crashes(self):
   r=self.r;r.begin(10);r.finish(1,11);self.assertFalse(r.begin(12))
   r.healthy(r.candidate());r.finish(1,50)

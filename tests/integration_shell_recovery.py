@@ -15,6 +15,8 @@ with tempfile.TemporaryDirectory(prefix='hics real recovery ') as directory:
  subprocess.run([sys.executable,'-c','import sys;sys.path.insert(0,sys.argv[1]);import shell_recovery as r;assert r.healthy(r.candidate())',str(ROOT/'shell/assets')],env=env,check=True)
  (config/'shell.json').write_text('{"appearance":{"scale":1.5}}')
  warning=base/'state/hics/configuration-recovery-warning.json';warning.write_text(json.dumps({'warning':'dock.json: fixture unsafe section preserved'}))
+ damaged_crash_record=base/'state/hics/shell-recovery.json'
+ damaged_crash_record.write_bytes(b'{invalid\xff')
  fixture=(ROOT/'shell/recovery/shell.qml').read_text()
  checks='''
  property int phase:0
@@ -27,6 +29,7 @@ with tempfile.TemporaryDirectory(prefix='hics real recovery ') as directory:
   if(root.phase!==3&&root.error){root.fail(root.error);return;}
   if(root.phase===0){
    if(!recoveryWarningText.visible || !recoveryWarningText.text.includes("fixture unsafe section")){root.fail("Recovery warning is not visible");return;}
+   if(!recoveryWarningText.text.includes("state is unknown")){root.fail("Damaged crash journal warning is not visible");return;}
    if(!root.data.startupCheckpoint?.available){root.fail("Real checkpoint is not visible");return;}
    root.invoke("restore");root.phase=1;
   }else if(root.phase===1){
@@ -61,6 +64,7 @@ with tempfile.TemporaryDirectory(prefix='hics real recovery ') as directory:
   output=result.stdout+result.stderr
   Path('/tmp/hics-recovery-real.log').write_text(output)
   assert result.returncode==0 and 'RECOVERY_REAL_OK' in output and 'RECOVERY_REAL_FAILED' not in output,output[-6000:]
+  assert damaged_crash_record.read_bytes()==b'{invalid\xff','Status silently rewrote damaged crash evidence'
   assert json.loads((config/'shell.json').read_text())['appearance']['scale']==1
   journal=base/'state/hics/configuration-preview.json';pending=json.loads(journal.read_text())
   assert pending['shellPid'] is None,'Intentional UI restart must not cancel a startup restore'

@@ -127,7 +127,12 @@ def command(action):
     if action == 'mark': return request('mark-startup',{})
     if action == 'status':
         data = request('status',{})
-        return {**data, 'safeMode':read(RECORD).get('safe',False)}
+        try: record = read(RECORD)
+        except (OSError, ValueError):
+            # Keep the independent configuration guard usable even when the
+            # crash counter cannot be read. Do not repair storage on a read.
+            return {**data, 'safeMode':False, 'recoveryWarning':'; '.join(filter(None,[data.get('recoveryWarning',''), 'Shell crash journal is unreadable; safe-mode state is unknown.']))}
+        return {**data, 'safeMode':record.get('safe',False)}
     raise ValueError('Unknown recovery action')
 
 
