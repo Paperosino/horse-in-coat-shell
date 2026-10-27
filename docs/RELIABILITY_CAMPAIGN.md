@@ -2432,3 +2432,32 @@ that every frame is free of old branding; no assets were replaced during the
 unit run and the remaining visual/recording gate is still open. The72-module
 suite is not every DE action, hardware validation, long-duration leak proof,
 current fresh installation or completion of the full campaign.
+
+## IPC106: установленный пакет и повтор отказов recovery
+
+27.10.2026, исходники IPC b45d507. Пакет `hic-shell 1.1.1-106`, SHA256
+`4967b6c8f2b53278c96d4d694b6ac0c08132d6d1050ea74d95257862dafcf99c`.
+Сборка проекта успешна; частный Qt/Quickshell переиспользован, это не чистая
+пересборка зависимостей.
+
+`cachyos/locked-upgrade106.json`: до/после обновления под настоящим session
+lock совпадают runner455, UI497, Kitty2429, locked=true и 207 bindings;
+configerrors пуст, autoreload восстановлен. Затем штатная PAM-разблокировка
+и намеренная перезагрузка тестовой ВМ. Reboot не является обещанием сохранения
+приложений; они завершаются вместе с сеансом.
+
+`cachyos/ipc-boot106.json`: новый boot8938f6f2-280f-492c-9d00-014e5fcb5a02,
+compositor384, runner457, UI499, ready=true, safe=false, NRestarts=0,
+207 bindings, отсутствуют configerrors/failed units. Установленные bars/config/
+services совпадают по SHA256 и inode с реально загруженными библиотеками;
+services SHA256 b8fedc5e18cbdc68bce827c188f74edb9225253628a2ef5b0759e9cf514853f5.
+
+`cachyos/recovery-storage106.json`: установленный recovery UI остаётся mapped
+при настоящем ENOSPC tmpfs2MiB и EROFS. Startup/on/resume оставляют доступный
+безопасный интерфейс, runner штатно завершается и убирает ребёнка. Основной
+runner457 и отдельный Kitty2067 сохранены. Первый запуск стенда остановился
+на отсутствующем Kitty после reboot; тестовое приложение запущено, повтор
+прошёл. Это ошибка подготовки стенда, не ошибка recovery. Виртуальный Mesa
+по-прежнему сообщает ошибки недоступного аппаратного EGL/Vulkan; успешный
+софтверный рендер не выдаётся за исправление драйвера или аппаратную проверку.
+Хост остаётся пакетом78, не обновлялся. Полная кампания открыта.
