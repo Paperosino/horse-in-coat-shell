@@ -1,8 +1,9 @@
 """Detect an interrupted shell without executing third-party extension code."""
-import json,os,time
+import json,os,sys,time
 from pathlib import Path
-from feature_common import CONFIG,STATE,read_json,atomic_json
+from feature_common import CONFIG,STATE,atomic_json
 from shell_recovery import read as read_recovery
+from plugin_preferences import load as load_preferences
 MARKER=STATE/'extension-session.json'
 
 def marker():
@@ -23,10 +24,14 @@ def begin():
     except OSError:boot=''
     interrupted=previous and not previous.get('clean',True) and (previous.get('exitCode') is not None or previous.get('boot')==boot)
     if interrupted or os.environ.get('HICS_SAFE_MODE')=='1':
-        prefs=read_json(CONFIG/'plugins.json')
-        prefs['recoveryMode']=True;prefs['recoveryAllow']={}
-        prefs['recoveryReason']='The previous shell exited unexpectedly' if interrupted else 'Recovery mode requested'
-        atomic_json(CONFIG/'plugins.json',prefs)
+        try:prefs=load_preferences(CONFIG/'plugins.json')
+        except ValueError as error:
+            # The catalogue also fails closed; do not overwrite damaged settings.
+            print(str(error),file=sys.stderr)
+        else:
+            prefs['recoveryMode']=True;prefs['recoveryAllow']={}
+            prefs['recoveryReason']='The previous shell exited unexpectedly' if interrupted else 'Recovery mode requested'
+            atomic_json(CONFIG/'plugins.json',prefs)
     atomic_json(MARKER,{'clean':False,'boot':boot,'started':int(time.time()),'pid':os.getpid()})
 
 def finish(exit_code=0):

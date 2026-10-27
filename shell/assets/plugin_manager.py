@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse,hashlib,json,os,re,shutil,sys,tempfile,tomllib,urllib.request,urllib.parse,zipfile
 from pathlib import Path
 from feature_common import CONFIG,DATA,STATE,read_json,atomic_json,output
+from plugin_preferences import load as load_preferences
 ASSETS=Path(__file__).resolve().parent
 BUNDLED=ASSETS.parent/'plugins';USER=DATA/'plugins';PREFS=CONFIG/'plugins.json';TRASH=STATE/'plugin-trash'
 ID=re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$')
@@ -86,7 +87,11 @@ def manifest(folder,bundled=False):
     return dict(api=raw.get('api','legacy'),isolated=isolated,worker=worker,networkRequested=bool((raw.get('permissions') if isinstance(raw.get('permissions'),dict) else {}).get('network',False)),id=identifier,originalId=original,name=text(raw.get('name',identifier)),description=text(raw.get('description','')),version=str(raw.get('version','1.0.0')),author=text(raw.get('author','')),license=raw.get('license',''),format=fmt,bundled=bundled,path=str(folder.resolve()),entryPoints=entries,settingsSchema=settings,issues=sorted(set(issues)),compatible=not issues,adapter=adapter,icon=raw.get('icon','extension'),actions=raw.get('actions',raw.get('menu',[])),source=raw.get('source',''))
 
 def scan():
-    prefs=read_json(PREFS);found={};errors=[]
+    errors=[]
+    try:prefs=load_preferences(PREFS)
+    except ValueError as error:
+        prefs={'recoveryMode':True,'recoveryReason':str(error)};errors.append(str(error))
+    found={}
     for directory,bundled in [(BUNDLED,True),(USER,False)]:
         for folder in sorted(directory.glob('*')):
             if not folder.is_dir() or folder.is_symlink():continue
@@ -111,7 +116,7 @@ def find(identifier):
 def enable(identifier,value):
     plugin=find(identifier)
     if value and not plugin['compatible']:raise ValueError('; '.join(plugin['issues']))
-    p=read_json(PREFS);p.setdefault('enabled',{})[identifier]=value
+    p=load_preferences(PREFS);p.setdefault('enabled',{})[identifier]=value
     if p.get('recoveryMode'):p.setdefault('recoveryAllow',{})[identifier]=value
     atomic_json(PREFS,p);return scan()
 
@@ -125,14 +130,14 @@ def save_settings(identifier,values):
         if spec['type'] in ('int','number'):
             if isinstance(v,bool) or not isinstance(v,(int,float)):raise ValueError('Expected number: '+spec['key'])
             if spec.get('min') is not None and v<spec['min'] or spec.get('max') is not None and v>spec['max']:raise ValueError('Out of range: '+spec['key'])
-    p=read_json(PREFS);p.setdefault('settings',{})[identifier]=values;atomic_json(PREFS,p);return scan()
+    p=load_preferences(PREFS);p.setdefault('settings',{})[identifier]=values;atomic_json(PREFS,p);return scan()
 
 def fault(identifier, payload):
     import time
     find(identifier)
     message=payload.get('error','')
     if not isinstance(message,str) or not message or len(message)>16384:raise ValueError('Invalid extension error')
-    prefs=read_json(PREFS)
+    prefs=load_preferences(PREFS)
     history=prefs.setdefault('faults',{}).setdefault(identifier,[])
     history.append({'time':int(time.time()),'error':message})
     prefs['faults'][identifier]=history[-50:]
@@ -141,7 +146,7 @@ def fault(identifier, payload):
     return scan()
 
 def recovery(enabled):
-    prefs=read_json(PREFS);prefs['recoveryMode']=enabled;prefs['recoveryAllow']={}
+    prefs=load_preferences(PREFS);prefs['recoveryMode']=enabled;prefs['recoveryAllow']={}
     if not enabled:prefs['recoveryReason']=''
     atomic_json(PREFS,prefs)
     return scan()
@@ -182,7 +187,7 @@ def desktop_layout(identifier, payload):
         elif key in bounds:
             if value is not None and (isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or not bounds[key][0]<=value<=bounds[key][1]):raise ValueError('Invalid widget geometry: '+key)
         else:raise ValueError('Unknown widget geometry field')
-    prefs=read_json(PREFS)
+    prefs=load_preferences(PREFS)
     layouts=prefs.setdefault('desktopLayout',{}).setdefault(identifier,{})
     updated=dict(layouts.get(screen,{}))
     for key,value in geometry.items():
@@ -277,7 +282,7 @@ def main():
         elif a.command=='permissions':
             find(a.args[0]);value=json.load(sys.stdin)
             if not isinstance(value,dict) or set(value)!= {'network'} or not isinstance(value['network'],bool):raise ValueError('Invalid extension permissions')
-            prefs=read_json(PREFS);prefs.setdefault('permissions',{})[a.args[0]]=value;atomic_json(PREFS,prefs);v=scan()
+            prefs=load_preferences(PREFS);prefs.setdefault('permissions',{})[a.args[0]]=value;atomic_json(PREFS,prefs);v=scan()
         elif a.command=='catalogue':v=catalogue(a.args[0] if a.args else '')
         elif a.command=='fault':v=fault(a.args[0],json.load(sys.stdin))
         elif a.command=='recovery':v=recovery(a.args[0]=='on')

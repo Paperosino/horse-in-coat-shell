@@ -48,6 +48,33 @@ class DesktopCompletion(unittest.TestCase):
    with self.subTest(record=record):
     self.feature_common.atomic_json(r.MARKER,record)
     r.begin();self.assertTrue(self.feature_common.read_json(r.CONFIG/'plugins.json')['recoveryMode'])
+ def test_corrupt_preferences_are_preserved_and_extensions_fail_closed(self):
+  manager=self.plugin_manager;r=self.extension_recovery
+  for raw in (b'{invalid',b'[]',b'{"enabled":[]}',b'{"settings":{"x":null}}',b'{"enabled":{"x":"yes"}}'):
+   with self.subTest(raw=raw):
+    manager.PREFS.parent.mkdir(parents=True,exist_ok=True);manager.PREFS.write_bytes(raw)
+    result=manager.scan();self.assertTrue(result['recoveryMode']);self.assertTrue(result['errors'])
+    self.assertFalse(any(p['enabled'] for p in result['plugins']))
+    with self.assertRaisesRegex(ValueError,'file was preserved'):manager.recovery(False)
+    with patch.dict(os.environ,HICS_SAFE_MODE='1'):r.begin()
+    self.assertEqual(manager.PREFS.read_bytes(),raw)
+ def test_preferences_fifo_and_symlink_never_authorize_writes(self):
+  manager=self.plugin_manager;manager.PREFS.parent.mkdir(parents=True)
+  os.mkfifo(manager.PREFS)
+  self.assertTrue(manager.scan()['recoveryMode'])
+  with self.assertRaises(ValueError):manager.recovery(True)
+  self.assertTrue(__import__('stat').S_ISFIFO(manager.PREFS.lstat().st_mode))
+  manager.PREFS.unlink();external=self.base/'external';external.write_text('{"enabled":{}}')
+  manager.PREFS.symlink_to(external)
+  self.assertTrue(manager.scan()['recoveryMode'])
+  with self.assertRaises(ValueError):manager.recovery(True)
+  self.assertEqual(external.read_text(),'{"enabled":{}}');self.assertTrue(manager.PREFS.is_symlink())
+ def test_real_plugin_cli_rejects_oversize_without_overwriting(self):
+  manager=self.plugin_manager;manager.PREFS.parent.mkdir(parents=True)
+  with manager.PREFS.open('wb') as stream:stream.truncate(16*1024*1024)
+  result=subprocess.run([sys.executable,str(ROOT/'shell/assets/plugin_manager.py'),'recovery','off'],text=True,capture_output=True,timeout=5)
+  self.assertEqual(result.returncode,1);self.assertIn('file was preserved',json.loads(result.stdout)['error'])
+  self.assertEqual(manager.PREFS.stat().st_size,16*1024*1024)
  def test_widget_placement_does_not_replace_settings(self):
   manager=self.plugin_manager;manager.atomic_json(manager.PREFS,{'settings':{'system-monitor':{'refresh':5}}})
   manager.desktop_layout('system-monitor',{'screen':'TEST-1','geometry':{'x':48,'y':64,'locked':True}})
