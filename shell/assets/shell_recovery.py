@@ -112,7 +112,11 @@ def good(path=None):
 
 def command(action):
     if action in ('on','resume'):
-        record = read(RECORD)
+        # The crash journal is bookkeeping, not a prerequisite for recovery.
+        # Replace malformed/nonregular records atomically; real I/O failures
+        # still abort before requesting a service restart.
+        try: record = read(RECORD)
+        except ValueError: record = {}
         record.update(requested=action=='on', active=False, failures=[])
         atomic_json(RECORD,record,private=True)
         subprocess.run(['systemctl','--user','reset-failed','hic-session.service'],check=True,timeout=8,capture_output=True)

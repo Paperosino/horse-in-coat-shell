@@ -101,6 +101,29 @@ class RecoveryTests(unittest.TestCase):
   self.assertEqual(run.call_args_list[0].args[0],['systemctl','--user','reset-failed','hic-session.service'])
   self.assertTrue(r.read(r.RECORD)['requested'])
   self.assertEqual(run.call_args_list[1].args[0],['systemctl','--user','--no-block','restart','hic-session.service'])
+ def test_manual_recovery_replaces_damaged_journal_without_following_links(self):
+  r=self.r;r.STATE.mkdir(parents=True,exist_ok=True)
+  external=self.base/'external';external.write_text('private external data')
+  for kind in ('json','utf8','fifo','symlink'):
+   for action in ('on','resume'):
+    with self.subTest(kind=kind,action=action):
+     if r.RECORD.exists() or r.RECORD.is_symlink():r.RECORD.unlink()
+     if kind=='json':r.RECORD.write_text('{invalid')
+     elif kind=='utf8':r.RECORD.write_bytes(b'\xff')
+     elif kind=='fifo':os.mkfifo(r.RECORD)
+     else:r.RECORD.symlink_to(external)
+     with patch.object(r.subprocess,'run') as run:
+      self.assertTrue(r.command(action)['restarting'])
+     self.assertEqual(run.call_count,2)
+     self.assertEqual(r.read(r.RECORD)['requested'],action=='on')
+     self.assertFalse(r.RECORD.is_symlink())
+     self.assertEqual(r.RECORD.stat().st_mode&0o777,0o600)
+     self.assertEqual(external.read_text(),'private external data')
+ def test_manual_recovery_write_failure_never_restarts_service(self):
+  r=self.r
+  with patch.object(r,'atomic_json',side_effect=OSError('fixture disk full')),patch.object(r.subprocess,'run') as run:
+   with self.assertRaises(OSError):r.command('on')
+  run.assert_not_called()
  def test_startup_ack_does_not_erase_recent_crashes(self):
   r=self.r;r.begin(10);r.finish(1,11);self.assertFalse(r.begin(12))
   r.healthy(r.candidate());r.finish(1,50)
