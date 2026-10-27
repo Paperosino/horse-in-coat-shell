@@ -81,6 +81,21 @@ class DesktopCompletion(unittest.TestCase):
     self.assertEqual(bad.lstat().st_ino,inode);self.assertEqual(external.read_text(),'{}')
     self.assertEqual(json.loads(good.read_text()),{'original':True});self.assertFalse(config.JOURNAL.exists())
     self.assertIn('dock.json',config.read_json(self.state/'configuration-recovery-warning.json')['warning'])
+ def test_invalid_history_policy_never_writes_checkpoint_or_overwrites_policy(self):
+  raw=b'{invalid';config.PREFS.write_bytes(raw);inode=config.PREFS.stat().st_ino
+  with self.assertRaises(ValueError):config.dispatch('configure',{'keep':20})
+  with self.assertRaises(ValueError):config.snapshot('Must not be saved',False)
+  self.assertEqual(config.PREFS.read_bytes(),raw);self.assertEqual(config.PREFS.stat().st_ino,inode)
+  self.assertFalse(config.HISTORY.exists())
+  with patch.object(config,'runtime',return_value=self.root/'run'):
+   state=config.state();self.assertFalse(state['settingsValid']);self.assertFalse(state['settings']['enabled'])
+ def test_nonregular_history_policy_and_warning_remain_readable_as_diagnostics(self):
+  import os
+  os.mkfifo(config.PREFS)
+  warning=self.state/'configuration-recovery-warning.json';warning.write_text('{"warning":[]}')
+  with patch.object(config,'runtime',return_value=self.root/'run'):
+   state=config.state();self.assertFalse(state['settingsValid']);self.assertIsInstance(state['recoveryWarning'],str)
+  self.assertTrue(__import__('stat').S_ISFIFO(config.PREFS.lstat().st_mode))
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)

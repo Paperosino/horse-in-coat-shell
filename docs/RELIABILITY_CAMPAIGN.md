@@ -897,3 +897,33 @@ helper/rollback. Пока без установки нового пакета.
 смену inode родительского каталога и все ошибки записи/переполнения диска.
 Отдельные gates остаются открытыми; один жизненный цикл не считается полным
 прогоном всей службы или всех настроек.
+
+### CONFIG-WATCH-002: политика истории ломала status/publish
+
+Live fixture с configuration-history.json={"keep":0} воспроизвёл закрытие IPC
+при старте: observe ловил validation error, но следующий publish/state снова
+вызывал preferences вне защиты и завершал daemon. Read_json политики также
+следовал symlink/FIFO и подменял invalid JSON пустым объектом при configure.
+Кроме того, configure записывал новое значение до проверки, а snapshot проверял
+лимиты политики только после записи snapshot-файла.
+
+Теперь policy читается bounded (64KiB), nofollow/nonblock, strict JSON object.
+Чистая validate_preferences проверяет candidate до atomic write. State при
+ошибке возвращает settingsValid=false, capture disabled в диагностическом
+представлении и объяснение с именем configuration-history.json; файл не меняется.
+Исправление неверного числового значения через configure возможно, если новая
+политика целиком валидна. Повреждённый JSON/спецфайл не перезаписывается в попытке
+такого изменения. Snapshot проверяет policy до создания файлов. Warning state
+тоже читается bounded и проверяется на строку.
+
+23 test_desktop_completion проходят, включая неизменность bytes/inode invalid
+policy, отсутствие созданного checkpoint, FIFO policy и warning неверного типа.
+24 recovery tests и настоящий recovery QML/helper/rollback проходят. Live watch
+fixture расширен: неверный keep на старте, отвергнутый keep=-1 без записи,
+исправление keep=20, поздний FIFO policy, отказ configure и последующее
+восстановление файла без рестарта. Один полный lifecycle ~10s, IPC проверяется
+на каждом шаге; никакие product таймеры/процессы не добавлены. Пока без установки.
+
+Это не обещание автоматического ремонта произвольного повреждённого policy:
+невалидный JSON сохраняется для восстановления пользователем. Preview journal
+и отказ записи на заполненном диске остаются следующими отдельными gates.

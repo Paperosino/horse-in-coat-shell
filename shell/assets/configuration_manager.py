@@ -66,12 +66,20 @@ def write_text(path,text):
  finally:
   if os.path.exists(tmp):os.unlink(tmp)
 
-def preferences():
- p={'enabled':True,'keep':40,'maxMiB':64,'captureOnLogin':True,**read_json(PREFS)}
+DEFAULT_POLICY={'enabled':True,'keep':40,'maxMiB':64,'captureOnLogin':True}
+
+def read_preferences():
+ try:return strict_object(bounded_text(PREFS,65536))
+ except FileNotFoundError:return {}
+
+def validate_preferences(raw):
+ p={**DEFAULT_POLICY,**raw}
  if not isinstance(p['enabled'],bool) or not isinstance(p['captureOnLogin'],bool):raise ValueError('Invalid history setting')
  for k,lo,hi in (('keep',5,200),('maxMiB',8,256)):
   if isinstance(p[k],bool) or not isinstance(p[k],int) or not lo<=p[k]<=hi:raise ValueError('Invalid history limit')
  return p
+
+def preferences():return validate_preferences(read_preferences())
 
 def load_snapshot(path):
  if path.stat().st_size>MAX_BYTES:raise ValueError('Snapshot is too large')
@@ -124,6 +132,7 @@ def history():
  return sorted(result,key=lambda d:d['created'],reverse=True)
 
 def snapshot(name='Automatic checkpoint',automatic=True):
+ settings=preferences()
  HISTORY.mkdir(parents=True,exist_ok=True,mode=0o700);files=complete_snapshot(gather());entries=history();h=digest(files)
  if automatic and entries and entries[0]['hash']==h:return entries[0]['id']
  identifier=str(uuid.uuid4());d=dict(version=1,id=identifier,name=str(name)[:128],created=time.time(),automatic=automatic,hash=h,sections=sorted(files),files=files)
@@ -133,7 +142,7 @@ def snapshot(name='Automatic checkpoint',automatic=True):
   os.chmod(tmp,0o600);os.replace(tmp,path)
  finally:
   if os.path.exists(tmp):os.unlink(tmp)
- settings=preferences();paths=sorted(HISTORY.glob('*.json.gz'),key=lambda p:p.stat().st_mtime,reverse=True);size=0
+ paths=sorted(HISTORY.glob('*.json.gz'),key=lambda p:p.stat().st_mtime,reverse=True);size=0
  for i,p in enumerate(paths):
   size+=p.stat().st_size
   if i>=settings['keep'] or size>settings['maxMiB']*1048576:p.unlink()
@@ -308,15 +317,22 @@ def startup_checkpoint():
  except (OSError,ValueError):return {'available':False,'error':'Startup checkpoint is damaged'}
 
 def state():
- return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':preferences(),'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in read_json(JOURNAL).items() if k in ('token','deadline','name')},'directory':str(HISTORY),'recoveryWarning':read_json(STATE/'configuration-recovery-warning.json').get('warning','')}
+ try:settings=preferences();valid=True;policy_warning=''
+ except (OSError,ValueError):
+  settings={**DEFAULT_POLICY,'enabled':False};valid=False
+  policy_warning='Invalid configuration-history.json; automatic checkpoints paused. Original settings preserved.'
+ try:
+  warning=bounded_object(STATE/'configuration-recovery-warning.json').get('warning','')
+  if not isinstance(warning,str):raise ValueError('Invalid warning')
+ except (OSError,ValueError):warning='Configuration recovery warning could not be read safely.'
+ return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':settings,'settingsValid':valid,'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in read_json(JOURNAL).items() if k in ('token','deadline','name')},'directory':str(HISTORY),'recoveryWarning':'; '.join(filter(None,[policy_warning,warning]))}
 
 def dispatch(op,p,shell_pid=None):
  if op=='status':return state()
  if op=='configure':
   if not isinstance(p,dict) or set(p)-{'enabled','keep','maxMiB','captureOnLogin'}:raise ValueError('Unknown history setting')
-  previous=read_json(PREFS);old={**previous,**p};atomic_json(PREFS,old,private=True)
-  try:preferences()
-  except Exception:atomic_json(PREFS,previous,private=True);raise
+  previous=read_preferences();old={**previous,**p};validate_preferences(old)
+  atomic_json(PREFS,old,private=True)
  elif op=='mark-startup':
   from shell_recovery import candidate,healthy
   if not healthy(candidate()):raise ValueError('Configuration changed while recording checkpoint')
