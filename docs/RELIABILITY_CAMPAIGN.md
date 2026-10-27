@@ -1798,3 +1798,28 @@ writable. The real compositor mapping proves a live scene, not complete visual
 acceptance; VGA/Mesa software-path driver warnings remain in captured logs. No
 host service or native plugin was reloaded. Full runtime exhaustion, all-feature
 acceptance and the remaining media replacement gates are still open.
+
+### Installed candidate100: storage faults and locked upgrade
+
+Candidate100 was packaged from the configured existing build/private runtime;
+this is not a clean native rebuild. `makepkg -edf --noconfirm` completed, native
+payload verifier ran, and five tar members were compared byte-for-byte to source:
+runner, recovery QML, DisplayPage, DisplayProfiles and root shell.qml.
+Package SHA256: `2f6991c3664a2662fd5e671dcb03a2149013df5dbe636811bd414c6ec99420c6`.
+
+The original CachyOS guest was woken from QMP suspended state, not recreated.
+Actual98→100 pacman upgrade while locked preserved runner14832/UI17798/Kitty2593,
+207bindings, locked=true and empty configerrors. The old main UI deliberately
+remains running; this is not proof it has loaded the newly installed code.
+`cachyos/upgrade100.json` records before/after, and `/var/tmp/hics-upgrade100.log`
+is the guest pacman log.
+
+`tests/vm_recovery_storage.py --installed` then uses the actual installed runner,
+wrapper and recovery QML with isolated XDG paths. The installed runner SHA is
+verified against source, not assumed from package version. Both actual ENOSPC
+and actual EROFS cases passed startup→on→resume with three successive mapped
+safe children; final SIGTERM returns0 and reaps the final child. Main session
+and app remain unchanged. Evidence:
+`~/.local/state/hics-testing/cachyos/recovery-storage-installed100.json`.
+The same fixture/compositor/full-login limitations above still apply. Host
+remains package78; fresh guest22281 remains99. No push performed.

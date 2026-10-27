@@ -251,3 +251,9 @@ Evidence: cachyos/recovery-storage-transitions-source100.json во внешне�
 изменён только поясняющий текст safe QML (расширения отключены именно в safe
 mode, без обещания записи preferences на недоступный диск). Настоящая отдельная
 QML/helper/guard integration прошла: checkpoint→preview→возврат исходных файлов.
+
+Candidate100 установлен только в исходную CachyOS VM (98→100) под настоящим
+lock: runner/UI/app/bindings/lock/configerrors сохранены. Новый installed-only
+тест подтвердил runner hash и прошёл обе реальные tmpfs faults с IPC on/resume.
+Evidence upgrade100.json и recovery-storage-installed100.json. Главный UI
+продолжает старый код до штатного unlock/transition; fresh VM ещё99, хост78.

@@ -9,7 +9,7 @@ import argparse, hashlib, json, subprocess, tarfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 WORKER=r'''
-import errno,json,os,signal,socket,subprocess,sys,time
+import errno,hashlib,json,os,signal,socket,subprocess,sys,time
 from pathlib import Path
 assert os.getuid()==1000
 root=Path(sys.argv[1]);mode=sys.argv[2]
@@ -72,7 +72,7 @@ with (root/'runner.log').open('w') as log:
   assert not Path(f'/proc/{child}').exists(),'Recovery child leaked'
   assert main_pid()==before
   assert subprocess.check_output(['pgrep','-x','kitty'],text=True).strip()==apps
-  print(json.dumps({'mode':mode,'filledBytes':written,'mappedTitle':mapped['title'],'size':mapped['size'],'runnerExit':runner.returncode,'mainRunnerPreserved':before,'appsPreserved':apps,'safeModeEnvironment':True,'sourceMode':'snapshot','transitions':transitions,'log':output}))
+  print(json.dumps({'mode':mode,'filledBytes':written,'mappedTitle':mapped['title'],'size':mapped['size'],'runnerExit':runner.returncode,'mainRunnerPreserved':before,'appsPreserved':apps,'safeModeEnvironment':True,'runnerSha256':hashlib.sha256((root/'payload/shell/assets/session_runner.py').read_bytes()).hexdigest(),'transitions':transitions,'log':output}))
  finally:
   if runner.poll() is None:
    runner.terminate()
@@ -92,6 +92,10 @@ for mode in ('full','readonly'):
  mounted=False;preserve=False
  try:
   with tarfile.open('/var/tmp/hics-recovery-storage.tar.gz') as archive:archive.extractall(root,filter='data')
+  if USE_INSTALLED:
+   for name in ('assets','recovery'):
+    path=root/'payload/shell'/name;shutil.rmtree(path);path.symlink_to('/usr/share/hics/shell/'+name,target_is_directory=True)
+   shutil.copy2('/usr/bin/hics-shell',root/'bin/hics-shell')
   (root/'payload/qs').symlink_to('/usr/share/hics/qs',target_is_directory=True)
   (root/'payload/qml').symlink_to('/usr/share/hics/qml',target_is_directory=True)
   for name in ('home','state','config','data','cache'):(root/name).mkdir(mode=0o700)
@@ -114,7 +118,7 @@ for mode in ('full','readonly'):
    shutil.rmtree(root)
 print(json.dumps({'cases':reports,'package':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip()}))
 '''
-p=argparse.ArgumentParser();p.add_argument('--lab',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--disposable-cachyos-vm',action='store_true',required=True);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--lab',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--disposable-cachyos-vm',action='store_true',required=True);p.add_argument('--installed',action='store_true');a=p.parse_args()
 if a.output.exists():raise SystemExit('Use a fresh evidence path')
 archive=a.lab/(a.output.stem+'-sources.tar.gz')
 with tarfile.open(archive,'w:gz') as bundle:
@@ -124,6 +128,6 @@ with tarfile.open(archive,'w:gz') as bundle:
  bundle.add(ROOT/'distribution/bin/hics-shell',arcname='bin/hics-shell')
 key=['-i',str(a.lab/'guest_ed25519'),'-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(a.lab/'known_hosts-installed')]
 subprocess.run(['scp',*key,'-P','22280',str(archive),'root@127.0.0.1:/var/tmp/hics-recovery-storage.tar.gz'],check=True)
-result=subprocess.run(['ssh',*key,'-p','22280','root@127.0.0.1','python3 -'],input='WORKER='+repr(WORKER)+'\n'+REMOTE,capture_output=True,text=True,timeout=110)
+result=subprocess.run(['ssh',*key,'-p','22280','root@127.0.0.1','python3 -'],input='WORKER='+repr(WORKER)+'\nUSE_INSTALLED='+repr(a.installed)+'\n'+REMOTE,capture_output=True,text=True,timeout=110)
 if result.returncode:raise SystemExit(result.stdout+result.stderr)
-report=json.loads(result.stdout);report['archiveSha256']=hashlib.sha256(archive.read_bytes()).hexdigest();report['runnerSha256']=hashlib.sha256((ROOT/'shell/assets/session_runner.py').read_bytes()).hexdigest();a.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+report=json.loads(result.stdout);assert all(case['runnerSha256']==hashlib.sha256((ROOT/'shell/assets/session_runner.py').read_bytes()).hexdigest() for case in report['cases']);report['sourceMode']='installed' if a.installed else 'snapshot';report['archiveSha256']=hashlib.sha256(archive.read_bytes()).hexdigest();report['runnerSha256']=hashlib.sha256((ROOT/'shell/assets/session_runner.py').read_bytes()).hexdigest();a.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
