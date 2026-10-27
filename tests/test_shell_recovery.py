@@ -137,3 +137,28 @@ class RecoveryTests(unittest.TestCase):
   with path.open('wb') as stream:stream.truncate(64*1024*1024)
   with patch.object(Path,'open',side_effect=AssertionError('Oversized file must not be read')):
    with self.assertRaisesRegex(ValueError,'too large'):m.gather()
+
+ def test_candidate_rejects_fifo_without_blocking(self):
+  r=self.r;r.CONFIG.mkdir(parents=True);os.mkfifo(r.CONFIG/'shell.json')
+  with self.assertRaisesRegex(ValueError,'regular file'):r.candidate()
+ def test_candidate_rejects_replacement_symlink_at_open(self):
+  r=self.r;r.CONFIG.mkdir(parents=True);path=r.CONFIG/'shell.json';path.write_text('{}')
+  external=self.base/'private';external.write_text('{"private":true}')
+  original=os.open
+  def replaced(name,flags,*args,**kwargs):
+   if Path(name)==path:
+    path.unlink();path.symlink_to(external)
+   return original(name,flags,*args,**kwargs)
+  with patch.object(r.os,'open',side_effect=replaced):
+   with self.assertRaisesRegex(ValueError,"Symlinked"):r.candidate()
+  self.assertEqual(external.read_text(),'{"private":true}')
+ def test_candidate_caps_read_even_if_file_grows_after_fstat(self):
+  r=self.r;r.CONFIG.mkdir(parents=True);path=r.CONFIG/'shell.json';path.write_text('{}')
+  original=os.fstat
+  def grow(fd):
+   info=original(fd)
+   if info.st_ino==path.stat().st_ino:
+    with path.open('ab') as stream:stream.write(b' '*(1024*1024))
+   return info
+  with patch.object(r.os,'fstat',side_effect=grow):
+   with self.assertRaisesRegex(ValueError,'too large'):r.candidate()

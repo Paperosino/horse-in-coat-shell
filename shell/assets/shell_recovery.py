@@ -1,6 +1,6 @@
 """Bounded crash-loop protection; idle sessions do not poll or spawn helpers."""
 from __future__ import annotations
-import json, math, os, stat, subprocess, sys, time
+import errno, json, math, os, stat, subprocess, sys, time
 from pathlib import Path
 from feature_common import CONFIG, STATE, atomic_json
 
@@ -16,18 +16,24 @@ def strict_object(text):
     return value
 
 
-def read(path, default=None):
-    # Nonblocking open rejects FIFOs without waiting; no-follow also closes the
-    # symlink race between checking a record and opening it.
+def read_text(path, limit):
+    # Validate the opened inode, not a path that can change before read().
     try:descriptor=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
-    except FileNotFoundError:return {} if default is None else default
+    except OSError as error:
+        if error.errno==errno.ELOOP:raise ValueError("Symlinked recovery configuration") from error
+        raise
     with os.fdopen(descriptor,'rb') as stream:
         info=os.fstat(stream.fileno())
-        if not stat.S_ISREG(info.st_mode) or info.st_size>LIMIT:
+        if not stat.S_ISREG(info.st_mode) or info.st_size>limit:
             raise ValueError('Recovery record is not a bounded regular file')
-        text=stream.read(LIMIT+1)
-        if len(text)>LIMIT:raise ValueError('Recovery record is too large')
-    return strict_object(text)
+        text=stream.read(limit+1)
+        if len(text)>limit:raise ValueError('Recovery record is too large')
+    return text.decode('utf-8')
+
+
+def read(path, default=None):
+    try:return strict_object(read_text(path,LIMIT))
+    except FileNotFoundError:return {} if default is None else default
 
 
 def boot():
@@ -63,12 +69,11 @@ def candidate():
     total = 0
     for name in CORE:
         path = CONFIG/name
-        if path.is_symlink(): raise ValueError('Symlinked startup configuration: '+name)
-        if not path.exists(): files[name] = '{}'; continue
-        if path.is_symlink() or not path.is_file() or path.stat().st_size > 1024*1024:
-            raise ValueError('Unsupported startup configuration: '+name)
-        text = path.read_text(); total += len(text.encode())
-        if total > 2*1024*1024 or not isinstance(json.loads(text,parse_constant=lambda value: (_ for _ in ()).throw(ValueError('Non-finite configuration value'))),dict): raise ValueError('Invalid startup configuration: '+name)
+        try:text=read_text(path,1024*1024)
+        except FileNotFoundError:files[name]='{}';continue
+        total += len(text.encode())
+        if total > 2*1024*1024:raise ValueError('Startup configuration is too large')
+        strict_object(text)
         files[name] = text
     return files
 
