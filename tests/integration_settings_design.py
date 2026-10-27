@@ -317,7 +317,7 @@ ShellRoot {
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/gpu-sensor.qml').read_text())
         helpers=base/'sensor-helpers';helpers.mkdir()
         helper=helpers/'hics-gpu-monitor'
-        helper.write_text('#!'+sys.executable+'\nimport sys,json\ni=0\nfor line in sys.stdin:\n print(json.dumps({"available":True,"usage":25+min(i,3),"temperature":[43,0,-1,37][min(i,3)],"cpuTemperature":-1}),flush=True);i+=1\n')
+        helper.write_text('#!'+sys.executable+'\nimport sys,json\ni=0\nfor line in sys.stdin:\n print(json.dumps({"requestId":line.strip().rsplit(" ",1)[-1],"available":True,"usage":25+min(i,3),"temperature":[43,0,-1,37][min(i,3)],"cpuTemperature":-1}),flush=True);i+=1\n')
         helper.chmod(0o700)
         for executable,body in [('nvidia-smi','exit 1'),('glxinfo','echo "Device: Fixture graphics"'),('lspci','exit 1')]:
             path=helpers/executable;path.write_text('#!/bin/sh\n'+body+'\n');path.chmod(0o700)

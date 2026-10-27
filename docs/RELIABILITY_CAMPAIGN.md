@@ -2235,3 +2235,81 @@ validate disconnected/error cases or per-interface totals. CPU load in these
 software-rendered screenshots is not a physical-GPU performance benchmark.
 Host78 and fresh guest99 remain untouched. Portal dependency fixes, retained RAM,
 media audit, full fresh installation and physical hardware gates remain open.
+
+
+### GPU-IPC-001..003: frame limits, request identity and callback lifetime
+
+Auditing GpuMetricsSampler found an unbounded unterminated stdout buffer, no
+request identity, and a response loop which resumed after invoking arbitrary
+callbacks. A callback can destroy the sampler. A controlled two-row helper and
+the pre104 header reproducibly trigger an ASan heap-use-after-free in complete()
+after callback deletion (gpu-protocol-before104-asan.log). This is a synthetic
+fault reproduction, not a naturally observed shell crash or a new security
+boundary around user-selected executables.
+
+The sampler now accepts one frame of at most4096bytes per pending request,
+validates JSON object/types/finite metric ranges and availability consistency,
+and requires the matching string requestId. Multiple frames, mismatched/stale
+IDs, unsolicited data and oversized/invalid responses kill/reset the helper,
+finish the current callback once and use the existing30s backoff. Fragmented
+normal frames remain valid. Busy requests get an explicit unavailable reply;
+they no longer silently lose a caller's completion. Empty callbacks do nothing.
+Callbacks may delete/reset the sampler or owner; no response-loop member access
+continues after completion. Copying the owning sampler is disabled.
+
+The native helper supports tagged commands such as generic104 (wire syntax:
+"generic 104\n") and echoes the exact decimal ID as a JSON string, avoiding
+floating-point truncation. Legacy untagged commands retain their prior output.
+Malformed/noncanonical/zero/overflow IDs and oversized commands exit2 without a
+response. New callers require the matching helper; ship both in the same package,
+not an untagged compatibility fallback which reintroduces the race. Older live
+callers can still use a newly installed helper through the legacy commands.
+
+The first new LSan run also exposed QProcess objects stranded when a test quit
+the event loop before finished/deleteLater. Reset now gives retiring processes
+an application shutdown owner and retains nonblocking kill/finished cleanup at
+runtime. Final ASan+LSan tests pass without QProcess-destroyed-while-running
+warnings. This does not prove uninterruptible kernel-driver shutdown behavior
+or resolve the independent whole-shell retained-RSS finding.
+
+Validation (external lab logs):
+- gpu-protocol104-asan-lifetime.log:8tests, no sanitizer errors; deletion of
+  sampler/owner, overlapping/reentrant requests, reset/cancel, stale/unsolicited
+  frames, fragmented/malformed/type/range/consistency errors,100KB responses
+  with/without newline, extra frames and helper exit;
+- gpu-protocol104-exit.log: same8tests, no QProcess lifetime warnings;
+- gpu-protocol104-recovery.log: real30s backoff then fresh helper succeeds,
+  test elapsed32.583s, no shell restart (opt-in timing test);
+- gpu-native-protocol104.log:7tests, legacy/tagged/max64-bit IDs, invalid
+  commands, NVML reuse, generic/thermal sensors and driver hang/backoff;
+- performance-protocol104.log:4native controller/policy tests;
+- gpu-sensor-protocol104.log: actual GPU backend/ServiceRef/HeroCard fixture;
+- adaptive-protocol104.log: actual adaptive/thermal timers, recovery and stop
+  polling on disable. This fixture now uses private HOME/absent buses/audio and
+  copied QML libraries/dependencies instead of live build mappings/host services.
+Build completed before UI snapshots; no constant timer or extra sampling was
+added. Validation/tagging has not been presented as a measured CPU speedup.
+
+Package104 SHA5aa038d89a16f5994066989fa64e8e834261dee7551c39b1e1484958b6ff50eb
+installed on the genuinely locked guest; runner456/UI498/Kitty2492,207bindings
+and lock were identical before/after, configerrors empty, autoreload restored.
+Evidence upgrade104.json. Installed helper hash matched the package:
+20d406188a5059220ebda6d22f412f22a4f8ad13995ad16a515b71c9b29b35ce.
+Installed-only synthetic sysfs test read usage42, echoed104/max64-bit IDs,
+preserved legacy output and rejected ID0; gpu-protocol-installed104.json.
+No physical GPU or main-session hardware protocol acceptance is inferred.
+
+
+After normal PAM unlock and explicit reboot, gpu-protocol-boot104.json verifies
+new boot98c711d8-8c4e-4c52-9530-d3f12a19df0d, compositor382/runner455/UI497,
+services loaded inode/hash10c46419431c301f340dce995e3fabefb789fafddb8c2cfeac19c1dc9ec27e32
+matching the package, bars/config mappings, ready normal mode,207bindings,
+0restarts and no failed units/configerrors. Host78/fresh guest99 unchanged.
+No hot native plugin unload/reload was performed.
+
+
+Final combined ASan+LSan run enabled the real30s recovery case as well:
+gpu-protocol104-asan-complete.log,9tests/33.809s, all pass, no sanitizer findings
+or QProcess lifetime warnings. No suppression or disabled leak detector was used.
+This closes the controlled sampler regressions only, not whole-shell leak or
+physical driver/kernel acceptance.

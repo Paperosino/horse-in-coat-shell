@@ -80,24 +80,37 @@ int main(int argc, char **argv) {
   Sensors sensors;
   char command[32];
   while (std::cin.getline(command, sizeof(command))) {
-    const bool thermal = std::string_view(command) == "thermal";
-    const bool nvidia = std::string_view(command) == "nvidia",
-               generic = std::string_view(command) == "generic";
+    auto input = QByteArray(command);
+    QByteArray requestId;
+    const auto separator = input.indexOf(' ');
+    if (separator >= 0) {
+      requestId = input.mid(separator + 1);
+      bool valid = false;
+      const auto id = requestId.toULongLong(&valid);
+      if (!valid || requestId != QByteArray::number(id) || id == 0)
+        return 2;
+      input.truncate(separator);
+    }
+    const bool thermal = input == "thermal";
+    const bool nvidia = input == "nvidia", generic = input == "generic";
     if (!thermal && !nvidia && !generic &&
-        std::string_view(command) != "sample")
+        input != "sample")
       return 2;
     double usage = nvidia ? -1 : Sensors::maximum(sensors.busy, false),
            temperature = nvidia ? -1 : Sensors::maximum(sensors.gpu, true);
     if (!generic)
       metrics.sample(usage, temperature);
     const auto cpu = thermal ? Sensors::maximum(sensors.cpu, true) : -1;
-    const QJsonObject result{{QStringLiteral("available"),
+    QJsonObject result{{QStringLiteral("available"),
                               usage >= 0 || temperature >= 0 || cpu >= 0},
                              {QStringLiteral("usage"), usage},
                              {QStringLiteral("temperature"), temperature},
                              {QStringLiteral("cpuTemperature"), cpu}};
+    if (!requestId.isEmpty())
+      result.insert(QStringLiteral("requestId"), QString::fromLatin1(requestId));
     std::cout
         << QJsonDocument(result).toJson(QJsonDocument::Compact).constData()
         << std::endl;
   }
+  return std::cin.eof() ? 0 : 2;
 }

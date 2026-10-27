@@ -70,3 +70,14 @@ else{assert(available && gpu==43 && temp==71);sampler.request([&](double next,do
   log=self.base/'generic-only.log';env=self.env(HICS_NVML_LOG=str(log));env['HICS_GPU_SYSFS_ROOT']=str(root)
   run=subprocess.run([str(self.base/'hics-gpu-monitor')],input='generic\n',env=env,capture_output=True,text=True,check=True,timeout=4)
   self.assertEqual(json.loads(run.stdout)['usage'],12);self.assertFalse(log.exists())
+
+ def test_tagged_commands_echo_exact_ids_without_breaking_legacy(self):
+  run=subprocess.run([str(self.base/'hics-gpu-monitor')],input='sample 1\ngeneric 18446744073709551615\nsample\n',env=self.env(),capture_output=True,text=True,check=True,timeout=4)
+  rows=[json.loads(line) for line in run.stdout.splitlines()]
+  self.assertEqual([row.get('requestId') for row in rows],['1','18446744073709551615',None])
+
+ def test_invalid_command_and_id_fail_without_response(self):
+  for request in ('sample 0\n','sample +1\n','sample 01\n','sample 1junk\n','sample 18446744073709551616\n','x'*100+'\n'):
+   with self.subTest(request=request):
+    run=subprocess.run([str(self.base/'hics-gpu-monitor')],input=request,env=self.env(),capture_output=True,text=True,timeout=4)
+    self.assertEqual(run.returncode,2);self.assertEqual(run.stdout,'')
