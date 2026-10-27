@@ -10,6 +10,7 @@ import Hyprstack.Services
 import qs.components.misc
 import qs.utils
 import "KeyboardLayouts.js" as KeyboardLayouts
+import "KeyboardStateBindings.js" as KeyboardStateBindings
 
 Singleton {
     id: root
@@ -205,12 +206,11 @@ Singleton {
         return ipc.tags?.some(tag => ignoredTags.includes(tag.replace(/\*$/, ""))) ?? false;
     }
 
+    property var deviceBindingController
     function reloadDynamicConfs(): void {
-        if (usingLua) {
-            extras.batchMessage(['eval hl.bind("Caps_Lock", hl.dsp.global("hyprstack:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("Num_Lock", hl.dsp.global("hyprstack:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })']);
-        } else {
-            extras.batchMessage(["keyword bindlni ,Caps_Lock,global,hyprstack:refreshDevices", "keyword bindlni ,Num_Lock,global,hyprstack:refreshDevices"]);
-        }
+        if (!extras) return;
+        if (!deviceBindingController) deviceBindingController = KeyboardStateBindings.create();
+        deviceBindingController.update(extras, usingLua);
     }
 
     function refreshToplevels(): void {
