@@ -1753,3 +1753,48 @@ MouseEvent argument и получил Insufficient arguments; это ошибк�
 Эти2 новых source fix не входят в99. Требуются следующий пакет и installed UI
 проверка; прежний зелёный тест модели не доказывал обновление самого контрола.
 Остальные общие reliability/DE/media/hardware gates остаются открытыми.
+
+### Storage failure during recovery startup and mode commit
+
+The source runner previously required successful startup journal writes before
+launching any UI, and raised out of the mode loop if a coordinated transition
+could not be committed. These are actual gaps in the recovery path, not a claim
+that the user's physical disk was full.
+
+- Startup/extension journal `OSError` selects the independent recovery entrypoint.
+  It skips ordinary preparation, capture loading and extension-preference writes.
+- A transition whose UI has already exited but whose record cannot be written
+  returns a safe transition to the same runner. The mode loop carries this safe
+  request in memory; a failed resume cannot silently start the normal service graph.
+- Safe mode no longer promises that preferences have been persistently changed:
+  its explanatory text states that extensions do not run **in safe mode**.
+- There are no new periodic probes, resident helpers or stabilizer services.
+
+`tests/vm_recovery_storage.py` runs source snapshots in the disposable CachyOS
+VM with installed98 Qt/Quickshell and Hyprland. Private state is a real 2MiB tmpfs:
+case one fills exactly2097152bytes until ENOSPC; case two remounts read-only and
+gets EROFS. Each case maps the real recovery QML window, performs IPC `on`, then
+IPC `resume`, and confirms a new safe child each time. SIGTERM cleanly terminates
+its runner and child; the existing main runner14832 and Kitty2593 are preserved.
+The fake compositor-event endpoint has a bounded listen backlog sufficient for
+all three runs; an initial test with backlog2 blocked a reconnect and was fixed
+in the fixture, not in product code. A worker observation timeout now preserves
+its exact PID/mount for inspection rather than deleting a potentially live test.
+
+Evidence outside Git:
+`~/.local/state/hics-testing/cachyos/recovery-storage-final-source100.json`.
+Runner SHA256 `5e47ccbc42b30cb303830a39ddd586ca414d25243227808f877c35b39587bd47`;
+archive SHA256 `a5f96b2f532ae7c3a792bc62899a32960600548c98ce55a208ad2a36af829447`.
+The archive predates only the explanatory safe-QML text adjustment; the latter
+passed the real independent recovery/helper/guard integration afterward.
+31 recovery unit tests,6 startup and2 session-restart tests pass;3 configuration
+watcher tests passed for the startup fallback changes. The real recovery QML
+integration also restores a checkpoint through the independent guard and rolls
+it back to the original settings.
+
+Limits: this is a source snapshot, not an installed100 package or a full PAM
+login on a full physical root filesystem. Private XDG config/cache/runtime stay
+writable. The real compositor mapping proves a live scene, not complete visual
+acceptance; VGA/Mesa software-path driver warnings remain in captured logs. No
+host service or native plugin was reloaded. Full runtime exhaustion, all-feature
+acceptance and the remaining media replacement gates are still open.

@@ -146,7 +146,7 @@ def session_wait_timeout(safe_mode, theme_at, capture_at, health_at, now):
     return max(0, min(theme_at, capture_at, health_at if health_at is not None else theme_at) - now)
 
 
-def run_session():
+def run_session(force_safe=False):
     started = time.monotonic()
     lockpath, eventpath = paths()
     children = []
@@ -173,9 +173,26 @@ def run_session():
         result = 0
         transition = 0
         session_disconnected = False
+        extensions_started = False
         try:
             import shell_recovery
-            safe_mode = shell_recovery.begin()
+            if force_safe:
+                os.environ['HICS_SAFE_MODE']='1'
+            try:
+                safe_mode = shell_recovery.begin()
+            except OSError as error:
+                # Recovery must remain reachable with a full/read-only state
+                # filesystem. Do not start normal services without crash evidence.
+                print('Unable to record shell startup; using recovery:', error, file=sys.stderr)
+                safe_mode = True
+            from extension_recovery import begin as begin_extensions, finish as finish_extensions
+            if not safe_mode:
+                try:
+                    begin_extensions()
+                    extensions_started = True
+                except OSError as error:
+                    print('Unable to record extension startup; using recovery:', error, file=sys.stderr)
+                    safe_mode = True
             if safe_mode:
                 os.environ['HICS_SAFE_MODE'] = '1'
                 os.environ['QT_QPA_PLATFORMTHEME'] = ''
@@ -190,8 +207,8 @@ def run_session():
             except (OSError,ValueError): startup_candidate = None
             print(f"hics startup: preparation {time.monotonic()-started:.3f}s", flush=True)
             # The native shell service owns clipboard capture and its privacy policy.
-            from extension_recovery import begin as begin_extensions, finish as finish_extensions
-            begin_extensions()
+            # The independent safe entrypoint never loads extensions. Avoid
+            # mutating their preferences (or requiring writable storage) here.
             shell = subprocess.Popen(["hics-shell"], start_new_session=True)
             children.append(shell)
             with selectors.DefaultSelector() as selector:
@@ -209,10 +226,17 @@ def run_session():
                         if result in (75,76):
                             transition=result
                             try:record=shell_recovery.read(shell_recovery.RECORD)
-                            except ValueError:record={}
+                            except (OSError,ValueError):record={}
                             record.update(requested=result==75,active=False,failures=[])
                             from feature_common import atomic_json
-                            atomic_json(shell_recovery.RECORD,record,private=True)
+                            try:
+                                atomic_json(shell_recovery.RECORD,record,private=True)
+                            except OSError as error:
+                                # The UI has already exited after approving an
+                                # unlocked transition. Keep a safe replacement
+                                # reachable even if its request cannot persist.
+                                print('Unable to persist shell mode; using recovery:',error,file=sys.stderr)
+                                transition=75
                             result=0
                         break
                     if health_at is not None and time.monotonic() >= health_at:
@@ -252,7 +276,7 @@ def run_session():
                 if 'shell_recovery' in locals():
                     try: shell_recovery.finish(result)
                     except (OSError,ValueError) as error: print('Unable to record shell exit:',error,file=sys.stderr)
-                if "finish_extensions" in locals():
+                if extensions_started:
                     try: finish_extensions(result)
                     except (OSError,ValueError) as error: print('Unable to record extension exit:',error,file=sys.stderr)
                 if session_disconnected and shutil.which("hics-workspace"):
@@ -313,9 +337,11 @@ def main():
         environment_keys=('HICS_SAFE_MODE','FONTCONFIG_FILE','QT_QUICK_CONTROLS_STYLE',
                           'QT_QPA_PLATFORMTHEME','QT_QUICK_CONTROLS_CONF')
         original_environment={key:os.environ.get(key) for key in environment_keys}
+        force_safe=False
         while True:
-            result=run_session()
+            result=run_session(force_safe=force_safe)
             if result not in (75,76):return result
+            force_safe=result==75
             # begin() reads the committed mode. Do not carry safe-only toolkit
             # environment into a normal startup in this same runner process.
             for key,value in original_environment.items():

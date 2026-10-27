@@ -219,3 +219,35 @@ Main UI пакета99 загружен после PAM unlock (runner6340/UI1303
 падает без каждого fix отдельно и проходит с обоими;13 unit tests прошли.
 Эти изменения ещё не в99. При125% confirmation доступен, обычное settings window
 частично за правым краем: позиционирование при scale change требует проверки.
+
+Начат следующий этап устойчивости запуска: session_runner при OSError записи
+shell/extension startup journal выбирает независимый recovery entrypoint,
+не запускает обычную подготовку и capture plugins. Safe entrypoint не меняет
+настройки расширений и не требует записи extension marker. Проверка реального
+runner с подставным shell-child покрывает ENOSPC и EROFS отдельно для обоих
+журналов; это fault injection, не запуск QML на действительно заполненном диске.
+Прошли 30 recovery, 6 startup, 2 session restart и 3 configuration watcher tests.
+Изменения исходников не установлены. Открыты реальный VM disk-full запуск,
+ошибка записи coordinated transition и сохранность runtime при недоступном
+XDG_RUNTIME_DIR; текущий fallback их не решает. Новых таймеров/демонов нет.
+
+Дальнейшая проверка закрыла часть этого gate: настоящий source runner, штатный
+hics-shell wrapper и реальный recovery QML запускаются в CachyOS98 при tmpfs
+2MiB, заполненном до ENOSPC, и при remount read-only (EROFS). В каждом случае
+проверены первоначальный mapped window и две последовательные IPC-команды
+on/resume. Ошибка commit теперь сохраняет безопасный переход в памяти runner,
+а не завершает его; нормальный запуск при недоступном журнале не разрешается.
+Тест tests/vm_recovery_storage.py использует приватные XDG/отключённые D-Bus,
+fixture event socket и установленный compositor/runtime. Сохранились основной
+runner14832 и Kitty2593; пробные процессы завершены, tmpfs размонтированы.
+Evidence: cachyos/recovery-storage-transitions-source100.json во внешнем lab.
+Это snapshot, не установленный пакет100, не полный PAM login и не физический
+диск. Рендер Mesa в VGA VM имеет driver warnings; mapped window не доказывает
+полную визуальную приёмку. Начальная ошибка расширения покрыта unit injection.
+Прошли 31 recovery,6 startup,2 session restart tests;3 watcher ранее в этом
+наборе правок. Недоступный runtime и восстановление всей системы остаются gate.
+
+Итоговая evidence с SHA: recovery-storage-final-source100.json. После неё
+изменён только поясняющий текст safe QML (расширения отключены именно в safe
+mode, без обещания записи preferences на недоступный диск). Настоящая отдельная
+QML/helper/guard integration прошла: checkpoint→preview→возврат исходных файлов.

@@ -28,6 +28,23 @@ class RecoveryTests(unittest.TestCase):
   self.assertFalse(r.begin(10))
   r.RECORD.write_text(json.dumps({'boot':r.boot(),'session':'fixture','failures':{'invalid':1}}))
   self.assertFalse(r.begin(11))
+ def test_unwritable_startup_journals_still_launch_independent_recovery(self):
+  import errno, socket
+  import session_runner as runner
+  import extension_recovery
+  importlib.reload(extension_recovery)
+  runtime=self.base/'run';endpoint=runtime/'hypr/fixture/.socket2.sock';endpoint.parent.mkdir(parents=True)
+  server=socket.socket(socket.AF_UNIX);server.bind(str(endpoint));server.listen(8);self.addCleanup(server.close)
+  bindir=self.base/'bin';bindir.mkdir();trace=self.base/'safe-launch'
+  executable=bindir/'hics-shell'
+  executable.write_text('#!'+sys.executable+'\nimport os\nfrom pathlib import Path\nPath('+repr(str(trace))+').write_text(os.environ.get("HICS_SAFE_MODE","0"))\n')
+  executable.chmod(0o700)
+  for module in (self.r,extension_recovery):
+   for error in (errno.ENOSPC,errno.EROFS):
+    with self.subTest(module=module.__name__,error=error),patch.dict(os.environ,{'XDG_RUNTIME_DIR':str(runtime),'PATH':str(bindir)+':'+os.environ['PATH']}),patch.object(module,'atomic_json',side_effect=OSError(error,'fixture storage failure')),patch.object(runner,'prepare_session') as prepare,patch.object(runner,'load_capture_plugin') as capture:
+     self.assertEqual(runner.run_session(),0)
+     self.assertEqual(trace.read_text(),'1')
+     prepare.assert_not_called();capture.assert_not_called()
  def test_changed_candidate_is_never_promoted(self):
   r=self.r;r.begin(10);r.CONFIG.mkdir(parents=True,exist_ok=True)
   f=r.CONFIG/'shell.json';f.write_text('{"appearance":{"scale":1}}')
@@ -93,7 +110,7 @@ class RecoveryTests(unittest.TestCase):
       raise OSError('fixture transition commit ENOSPC')
      return write(path,value,**kwargs)
     with patch.object(self.feature_common,'atomic_json',side_effect=fail_transition):
-     with self.assertRaisesRegex(OSError,'transition commit'):runner.run_session()
+     self.assertEqual(runner.run_session(),75)
     self.assertFalse(self.r.read(self.r.RECORD)['requested'])
     self.assertEqual({sig:signal.getsignal(sig) for sig in handlers},handlers)
     actual=signal.set_wakeup_fd(-1);signal.set_wakeup_fd(actual)
@@ -112,7 +129,7 @@ class RecoveryTests(unittest.TestCase):
  def test_runner_mode_loop_restores_original_environment(self):
   import session_runner as runner
   seen=[]
-  def run():
+  def run(force_safe=False):
    seen.append(os.environ.get('FONTCONFIG_FILE'))
    if len(seen)==1:
     os.environ['FONTCONFIG_FILE']='safe-only';os.environ['HICS_SAFE_MODE']='1'
@@ -121,6 +138,15 @@ class RecoveryTests(unittest.TestCase):
   with patch.dict(os.environ,{'FONTCONFIG_FILE':'user-fonts'}),patch.object(sys,'argv',['runner','run']),patch.object(runner,'paths',return_value=(self.base/'lock',self.base/'event')),patch.object(runner,'run_session',side_effect=run):
    self.assertEqual(runner.main(),0)
    self.assertEqual(seen,['user-fonts','user-fonts'])
+ def test_mode_loop_keeps_unpersisted_safe_request_in_memory(self):
+  import session_runner as runner
+  modes=[]
+  def run(force_safe=False):
+   modes.append(force_safe)
+   return (75,76,0)[len(modes)-1]
+  with patch.object(sys,'argv',['runner','run']),patch.object(runner,'paths',return_value=(self.base/'lock',self.base/'event')),patch.object(runner,'run_session',side_effect=run):
+   self.assertEqual(runner.main(),0)
+  self.assertEqual(modes,[False,True,False])
  def test_invalid_json_recovers_from_startup_checkpoint_instead_of_unproven_history(self):
   r=self.r;m=self.configuration_manager;r.begin(10);r.CONFIG.mkdir(parents=True,exist_ok=True)
   f=r.CONFIG/'shell.json';f.write_text('{"appearance":{"scale":1}}');r.healthy(r.candidate())

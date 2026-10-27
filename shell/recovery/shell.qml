@@ -62,7 +62,7 @@ ShellRoot {
     width: parent.width; spacing: 18
     Text { text:"hics";color:"#d0bcff";font.pixelSize:20;renderType:Text.QtRendering }
     Text { Layout.fillWidth:true;text:root.tr("Your desktop can recover", "Рабочий стол можно восстановить");color:"#e6e1e5";font.pixelSize:30;wrapMode:Text.WordWrap;renderType:Text.QtRendering }
-    Text { Layout.fillWidth:true;text:root.tr("The shell is running with a minimal interface. Your applications and files are preserved. Extensions remain disabled until you enable them again.","Оболочка запущена с минимальным интерфейсом. Приложения и файлы сохранены. Расширения останутся отключены, пока вы не включите их снова.");color:"#cac4d0";font.pixelSize:16;wrapMode:Text.WordWrap;renderType:Text.QtRendering }
+    Text { Layout.fillWidth:true;text:root.tr("The shell is running with a minimal interface. Your applications and files are preserved. Extensions do not run in safe mode.","Оболочка запущена с минимальным интерфейсом. Приложения и файлы сохранены. В безопасном режиме расширения не запускаются.");color:"#cac4d0";font.pixelSize:16;wrapMode:Text.WordWrap;renderType:Text.QtRendering }
     Rectangle {
      Layout.fillWidth:true;implicitHeight:content.implicitHeight+36;radius:24;color:"#28252f";border.color:"#494451"
      ColumnLayout {
