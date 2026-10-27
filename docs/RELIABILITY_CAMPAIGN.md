@@ -1552,3 +1552,35 @@ screen-reader disabled (по умолчанию не включается). syst
 профиле, offline/обрыв установки и всё оставшееся покрытие DE остаются gates.
 Отказ хранилища при transition пока не проверен настоящим диском; unit fault
 injection не подменяет эту незавершённую задачу.
+
+### FIRST-LOGIN98: TTY/PAM, первый тур, системная локаль и раскладки
+
+На свежем госте22281 создан отдельный синтетический пароль hics-test; файл
+только в закрытом lab0600, в исходники/argv/журналы значение не помещалось.
+Через QMP выполнен обычный TTY/PAM login, loginctl подтвердил seat0/tty1,
+затем руками набрано hics-start. Hyprland6265 запускается через watchdog с
+частным пользовательским Lua, runner6340/shell6437, NRestarts=0. First-frame
+ready=true, configerrors пуст. Это первый запуск чистого профиля, но не замер
+холодного старта с очищенным host disk cache.
+
+first-login.png: fullscreen Russian tour step1/10, панели скрыты, видны
+пропуск/next; визуальная проверка не доказывает работу всех hotkey blocks.
+Pointer Next открыл step2. Поиск en_US действительно оставил American English.
+Выбор, wheel scroll и Next вызвали настоящий встроенный polkit dialog.
+Введён только синтетический пароль гостя, затем /etc/locale.conf реально
+сменился ru_RU.UTF-8→en_US.UTF-8. UI перешёл к step3; язык оболочки остался
+русским, как выбран отдельно. Screenshots locale-search/selected/apply и
+first-login98.json сохраняют проверку (password screenshot не делался).
+
+Step3: поиск Russian → pointer add → English(US)+Russian. Выбран Alt+Shift.
+Hyprland getoption подтвердил input:kb_layout=us,ru и
+input:kb_options=grp:alt_shift_toggle. QMP Alt+Shift переключил главный keyboard
+index0→1(Russian)→0(EnglishUS), first-tour-keyboard98.json. Не только изменение
+написанного файла: работало во время активного тура. Прокрутка страницы
+двигалась, поиск/выбор сохранялись. Guest оставлен на step3, ещё7 страниц
+тура, завершение/пропуск и последующий login не проверены.
+
+Найден малый дефект: None в выборе сочетания не переведён (общая строка не
+имеет gettext entry без context). В Wizard label заменён на уже переведённый
+Disabled; остальные настройки/контекстные None не меняются.32 desktop tests
+прошли. Эта label-правка пока не в установленном98.

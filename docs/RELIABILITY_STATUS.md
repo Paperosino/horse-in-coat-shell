@@ -169,3 +169,13 @@ Hyprland, Python и emoji font. Pacman загрузил зависимости, 
 0 за50s;3105package files/0missing, system services enabled+active, mandatory
 user units globally enabled, failed units нет. Первый графический вход и тур
 на чистом профиле ещё не проверены. Исходная ВМ22280 продолжает существовать.
+
+В чистом госте98 выполнен первый TTY/PAM login и hics-start: ready=true,
+NRestarts=0, configerrors пуст, тур автоматически fullscreen на русском.
+Проверены реальные поиск en_US, выбор и применение через встроенный polkit:
+/etc/locale.conf стал en_US.UTF-8, тур перешёл к раскладкам. Через UI добавлена
+Russian, применены us,ru/Alt+Shift; реальная клавиатура переключилась туда и
+обратно во время тура. Evidence: first-login98.json, first-tour-keyboard98.json
+и screenshots закрытого cachyos-fresh98 lab. Остальные7 страниц, завершение,
+пропуск и повторный вход ещё требуют проверки. Убрана непереведённая None в
+исходнике выбора сочетания; installed98 ещё со старой надписью.
