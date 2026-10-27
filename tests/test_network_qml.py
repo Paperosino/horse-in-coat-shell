@@ -1,8 +1,9 @@
 """The real QML facade must expose wired devices without Wi-Fi hardware."""
-import os,subprocess,tempfile,unittest
+import os,select,subprocess,tempfile,unittest
 from pathlib import Path
+from integration_support import snapshot_qml_runtime,run_snapshot_qml
 ROOT=Path(__file__).resolve().parents[1]
-@unittest.skipUnless(os.environ.get("WAYLAND_DISPLAY") and Path("/usr/bin/hics-shell").exists(),"requires a Wayland session and hics runtime")
+@unittest.skipUnless(os.environ.get("WAYLAND_DISPLAY") and Path("/usr/share/hics/qs/bin/hics-qs").exists(),"requires a Wayland session and hics runtime")
 class NetworkQml(unittest.TestCase):
  def test_wired_only_state_and_object_lifecycle(self):self.exercise(True)
  def test_wired_with_inactive_wifi_and_object_lifecycle(self):self.exercise(False)
@@ -47,21 +48,36 @@ ShellRoot {
  }}
  Timer {interval:6000;running:true;onTriggered:{console.error("WIRED_TIMEOUT",JSON.stringify(NetworkService.state));Qt.exit(1);}}
 }''')
-   bus=subprocess.Popen(['dbus-daemon','--session','--nofork','--print-address=1'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+   runtime_env=snapshot_qml_runtime(ROOT,base)
+   bus_config=base/'bus.conf'
+   bus_config.write_text('<busconfig><type>session</type><listen>unix:tmpdir='+str(base)+'</listen><auth>EXTERNAL</auth><policy context="default"><allow own="*"/><allow send_destination="*"/><allow receive_sender="*"/></policy></busconfig>')
+   bus=subprocess.Popen(['dbus-daemon','--nofork','--print-address=1','--config-file='+str(bus_config)],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+   self.addCleanup(self.stop_process,bus)
+   self.assertTrue(select.select([bus.stdout],[],[],3)[0],'Private bus did not start')
    env=dict(os.environ,DBUS_SYSTEM_BUS_ADDRESS=bus.stdout.readline().strip(),NETWORK_TEST_LOG=str(base/'calls.jsonl'),NETWORK_TEST_NO_WIFI='1',HOME=str(base),XDG_CONFIG_HOME=str(base/'config'),XDG_STATE_HOME=str(base/'state'),XDG_DATA_HOME=str(base/'data'),QT_QPA_PLATFORM='wayland',HICS_SHELL_DIR=str(shell),QML_IMPORT_PATH=str(ROOT/'build/qml'))
    env['DBUS_SESSION_BUS_ADDRESS']=env['DBUS_SYSTEM_BUS_ADDRESS']
+   env.update(runtime_env,PIPEWIRE_REMOTE='hics-network-fixture-absent',PULSE_SERVER='unix:'+str(base/'absent-pulse'))
    display=Path(os.environ['WAYLAND_DISPLAY'])
    env['WAYLAND_DISPLAY']=str(display if display.is_absolute() else Path(os.environ['XDG_RUNTIME_DIR'])/display)
    runtime=base/'run';runtime.mkdir(mode=0o700);env['XDG_RUNTIME_DIR']=str(runtime)
    env['HYPRLAND_INSTANCE_SIGNATURE']='hics-network-qml-fixture'
    if not no_wifi:env.pop('NETWORK_TEST_NO_WIFI',None)
    mock=subprocess.Popen(['python3',str(ROOT/'tests/mock_network_bus.py')],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+   self.addCleanup(self.stop_process,mock)
    try:
+    self.assertTrue(select.select([mock.stdout],[],[],5)[0],'Private network mock did not start')
     self.assertEqual(mock.stdout.readline().strip(),'ready')
-    result=subprocess.run(['/usr/bin/hics-shell'],env=env,capture_output=True,text=True,timeout=15)
+    result=run_snapshot_qml(['/usr/share/hics/qs/bin/hics-qs','-p',str(shell)],env,ROOT/'build',15)
     output=result.stdout+result.stderr
     self.assertEqual(result.returncode,0,output[-6000:]);self.assertIn('WIRED_QML_OK',output)
     self.assertNotIn('TypeError:',output);self.assertNotIn('ReferenceError:',output)
    finally:
-    mock.terminate();mock.wait(timeout=3);bus.terminate();bus.wait(timeout=3)
-    mock.stdout.close();mock.stderr.close();bus.stdout.close()
+    self.stop_process(mock);self.stop_process(bus)
+ @staticmethod
+ def stop_process(process):
+  if process.poll() is None:
+   process.terminate()
+   try:process.wait(timeout=3)
+   except subprocess.TimeoutExpired:process.kill();process.wait(timeout=3)
+  for stream in (process.stdin,process.stdout,process.stderr):
+   if stream and not stream.closed:stream.close()

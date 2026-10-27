@@ -344,3 +344,10 @@
   состояния, одним queued notification; getters остаются синхронными. Не вернуть
   emit внутри цикла ответов/промежуточной смены lease. После синхронного gameChanged
   проверять lifetime перед дальнейшим обращением к controller.
+
+
+- Source QML/backend test не должен случайно проверять installed module:
+  hics-shell prepends installed QML imports. Для facade-теста вызывать QS прямо
+  с copied current plugins/shared dependencies и проверять maps; wrapper и его
+  path/migration behavior проверять отдельно. Private bus без servicedir не
+  должен активировать настоящие пользовательские службы даже на отдельной шине.

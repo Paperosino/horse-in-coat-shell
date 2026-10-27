@@ -2391,3 +2391,44 @@ Evidence lease-protocol-boot105.json. PIDs may repeat across boots; boot identit
 is explicitly checked, not inferred from the numerical PID. No host installation
 or hot native plugin reload. Full isolated unit run after this series is next;
 the earlier clean-context92 results are not presented as current-source coverage.
+
+
+### Full unit context105 after the callback/protocol series
+
+unit-context105/manifest.json records clean revision
+b94a733c4349c381e3d443b6645d22cdead207e4,72modules,433test cases, no failing
+modules or timeouts,6context skips; summed module time347.145s. All modules used
+private HOME/XDG, absent host buses, per-module process isolation/timeouts and
+lower CPU priority. No source/library edits occurred while this run was live.
+The harness does not impose a global RAM/cgroup limit; its description now says
+per-module timeout rather than claiming general resource bounds.
+
+Skipped contexts are separately evidenced:
+- scopes-context105.log:2/2real temporary user-systemd scope tests passed,
+  including launcher crash survival, literal argv/env and launch-error feedback;
+- broker-context105.log:8/8tests passed with a real temporary user-systemd
+  watchdog fixture; includes the1case skipped without a user manager in the
+  isolated suite. Only fixture units/processes were stopped/restarted;
+- network-context105-snapshot.log:2/2actual current-source NetworkService/Nmcli
+  QML wired-only/inactive-Wi-Fi and wrapper identity cases passed on private
+  mock buses with a real Wayland connection;
+- opt-in GPU30s backoff remains covered by gpu-protocol104-asan-complete.log.
+  git diff c7cf028..b94a733 for gpumetricssampler.hpp, gpu_monitor.cpp and its
+  protocol test is empty; this coverage was not silently assumed after changes.
+
+The network context exposed a QA isolation gap, not a new product network bug:
+calling installed hics-shell prepends installed QML imports, so an intended
+current-build test can load an older installed module. The facade fixture now
+launches the private QS runtime directly with copied current module plugins and
+shared dependencies; run_snapshot_qml rejects mutable build mappings. Its private
+D-Bus has no activation directories, audio is isolated, readiness waits are
+bounded, and fixture processes are cleaned even after failed setup. The current
+production code remains the candidate105 code tested by the clean full run;
+these subsequent edits affect the test fixture/documentation only.
+
+Read-only media audit sampled four remaining historical documentation GIFs into
+external media-audit105/docs-contact.png/corners-full.png. It does not establish
+that every frame is free of old branding; no assets were replaced during the
+unit run and the remaining visual/recording gate is still open. The72-module
+suite is not every DE action, hardware validation, long-duration leak proof,
+current fresh installation or completion of the full campaign.

@@ -378,4 +378,16 @@ controller до late HoldProfile и явный ReleaseProfile(cookie0)),4policy 
 Под lock установлен105с сохранениемUI/app/207bindings/lock; новый boot подтвердил
 services inode/SHA пакета, normal/ready,0restarts/failed units/configerrors.
 Рабочий хост78и fresh guest99не менялись. Остальные IPC readers/prefetch, Qt portal,
-retained RAM, полный unit прогон после серии и прочие gates остаются открыты.
+retained RAM и прочие gates остаются открыты. Общий unit прогон после серии описан ниже.
+
+
+## Общий unit-прогон105
+
+Чистый commit b94a733:72модуля,433теста, ни ошибок, ни тайм-аутов,6контекстных
+пропусков. Manifest unit-context105/manifest.json во внешнем lab. Отдельно прошли
+scopes2/2, broker8/8(включая user-systemd watchdog) и current-source network QML2/2.
+Долгий GPU backoff подтверждён прежним ASan-прогоном; соответствующий source/test
+между c7cf028и b94a733не менялся (diff проверен). Шесть пропусков основного прогона
+не изображаются его выполненными тестами. Сетевой fixture дополнительно исправлен
+для запуска именно copied current modules без activation/host service side effects.
+Это широкая unit-регрессия, не приёмка всех функций DE или завершение кампании.
