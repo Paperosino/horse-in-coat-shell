@@ -1232,3 +1232,23 @@ font package1:2.057-1. Хост не менялся. Существующие te
 test_system_installer11, test_package_payload2 проходят. Сборка/проверка пакета94
 и fresh install ещё впереди. Не заявляется поддержка всех emoji всеми тулкитами
 или ускорение boot на основании этого одиночного наблюдения.
+
+### Пакет94: emoji dependency и повторный locked upgrade после reboot
+
+hic-shell1.1.1-94, SHA256
+`3a74e3ca2845e23b00e758f842ed4d2031417827e17879cf0b6f3b91e517747c`.
+В настоящем .PKGINFO проверено depend=noto-fonts-emoji. Package-only сборка
+использует тот же private runtime; fonts не добавляют resident service.
+Новый guest Kitty2593 запущен через настоящий launcher (pointer logo → ввод
+kitty → Enter), /proc/cgroup подтверждает отдельный hics-app scope.
+
+После PAM unlock первая ручная IPC команда lock не имела WAYLAND_DISPLAY;
+она завершилась255, а locked-upgrade preflight увидел locked=false и остановился
+до транзакции. Исправлена команда теста, product code не менялся. Последующий
+locked-upgrade94-final.json: runner483, shell526, Kitty2593, locked=true,
+207binds и пустой configerrors совпали до/после install.sh. Autoreload восстановлен,
+в ВМ установлен package94; хост78 не трогался. ВМ оставлена заблокированной.
+
+Font package был установлен перед этой транзакцией при визуальной диагностике,
+поэтому этот upgrade доказывает metadata/совместимость, но не сетевую загрузку
+новой зависимости при fresh install. Проверка последней остаётся отдельным gate.
