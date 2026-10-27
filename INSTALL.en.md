@@ -79,6 +79,11 @@ Hyprland session. Already running services are preserved, including the session
 lock owner and pending rollback operations. Log out and back in to apply their
 update. Inactive user sessions do not start a shell.
 
+During a package upgrade, a temporary user service suspends automatic Hyprland
+configuration watching until the pacman transaction finishes. A previously
+disabled watcher stays disabled. Do not explicitly reload the configuration
+while package files are being replaced. A guard startup failure is reported.
+
 If the shell was previously installed into `$HOME/.local`, remove
 `~/.local/share/hics` so the packaged install takes priority
 (`HICS_DATA_DIR` still overrides the selection).

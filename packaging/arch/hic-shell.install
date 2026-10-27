@@ -82,3 +82,62 @@ post_install() {
 post_upgrade() {
     post_install
 }
+
+# Kept inline: pre_upgrade runs before the new package's helper files exist.
+hics_config_guard_program() {
+    cat <<'PY'
+import json, os, pathlib, socket, subprocess, sys, time
+runtime = pathlib.Path(os.environ['RUNTIME_DIRECTORY'])
+marker = runtime / 'restore'
+def command(*arguments):
+    return subprocess.check_output(['/usr/bin/hyprctl', *arguments], text=True, timeout=5).strip()
+try:
+    state = json.loads(command('-j', 'getoption', 'misc:disable_autoreload'))
+    if type(state.get('bool')) is not bool:
+        raise ValueError('Hyprland did not return a boolean autoreload option')
+    if not state['bool']:
+        # ExecStopPost restores even after SIGKILL; publish intent first.
+        marker.touch(mode=0o600)
+        if command('eval', 'hl.config({misc={disable_autoreload=true}})') != 'ok':
+            raise ValueError('Hyprland refused to suspend configuration watching')
+    address = os.environ['NOTIFY_SOCKET']
+    if address.startswith('@'): address = '\0' + address[1:]
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as notify:
+        notify.connect(address)
+        notify.sendall(b'READY=1\nSTATUS=Waiting for the package transaction to finish')
+    if marker.exists():
+        while pathlib.Path('/var/lib/pacman/db.lck').exists():
+            time.sleep(.5)
+except (OSError, ValueError, subprocess.SubprocessError) as error:
+    print('hics: configuration update guard: ' + str(error), file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
+hics_pause_user_config() {
+    systemctl list-units --type=service --state=running --no-legend --plain --no-pager 'user@*.service' |
+        while read -r hics_unit hics_details; do
+            case "$hics_unit" in user@*.service) ;; *) continue ;; esac
+            hics_uid=${hics_unit#user@}; hics_uid=${hics_uid%.service}
+            case "$hics_uid" in ''|*[!0-9]*) continue ;; esac
+            hics_environment=$(systemctl --user --machine="$hics_uid@.host" show-environment) || continue
+            hics_hyprland_environment_ready "$hics_uid" "$hics_environment" || continue
+            # Type=notify waits for READY after the watcher has been removed.
+            # The process survives an interrupted pacman, and ExecStopPost also
+            # restores watching if the guard itself is terminated or killed.
+            if ! systemd-run --user --machine="$hics_uid@.host" --quiet --collect \
+                --unit=hics-package-config-guard --expand-environment=no \
+                --property=Type=notify --property=NotifyAccess=all \
+                --property=TimeoutStartSec=15 --property=TimeoutStopSec=8 \
+                --property=RuntimeDirectory=hics-package-config-guard \
+                --property=RuntimeDirectoryMode=0700 \
+                --property="ExecStopPost=/bin/bash -c 'test ! -f \"\${RUNTIME_DIRECTORY}/restore\" || exec /usr/bin/hyprctl eval \"hl.config({misc={disable_autoreload=false}})\"'" \
+                /usr/bin/python3 -c "$(hics_config_guard_program)"; then
+                printf 'hics: could not protect configuration watching for user %s during this update.\n' "$hics_uid" >&2
+            fi
+        done
+}
+
+pre_upgrade() {
+    if hics_systemd_running; then hics_pause_user_config; fi
+}
