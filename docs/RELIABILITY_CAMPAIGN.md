@@ -1154,3 +1154,26 @@ truncated trailer и неверный CRC. 25 recovery tests, 3 watcher lifecycl
 настоящий recovery QML/helper/rollback проходят. Штатные single-member snapshots
 продолжают читаться и проверяться по payload SHA. Установка ещё не выполнялась;
 общий unit-context92 является baseline до HISTORY-001..003, не итоговой проверкой.
+
+### Пакет 93: совместимость старой истории и установленный reader
+
+hic-shell1.1.1-93, SHA256
+`a8933e86cf4f3ce731471eb328612065276cfa2369da799a38a10c08699bd62e`.
+Package-only сборка с тем же проверенным private runtime; упакованный helper
+побайтно сверяется с source. Safe install сохранил runner32439, recovery UI32445,
+Kitty6637, 207binds, отсутствие configerrors и восстановил autoreload
+(safe-upgrade93.json). Хост не обновлялся.
+
+Новый vm_history_archives.py запускает установленный helper обычным guest user.
+Все17 существовавших архивов реального guest profile прочитаны без изменения;
+в отдельном временном XDG profile создаётся новый штатный snapshot, проверяются
+его checksum и concat rejection, затем нормальная история снова читается.
+Source SHA256 aa909348553439cd0c271b156af2285a84aab4682a8dfe7b42fa46d5e2bcd13e
+сверяется с worktree. Evidence history-installed93-final.json. Это совместимость
+конкретных17 архивов, не всех возможных legacy форматов.
+
+После проверки отсутствия preview перезапущена только hics-configuration.service,
+новый PID35113 active; Kitty сохранился. Остальной shell/lock owner не трогался.
+Краткий статус обновлён до кандидата93 и явно сохраняет границу unit-context92
+как baseline до архивных исправлений. Полная кампания, чистая переустановка
+итогового кандидата и замена старых демонстраций остаются открытыми.
