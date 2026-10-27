@@ -79,6 +79,6 @@ private:
     QAudioSource *m_audio = nullptr;
     qreal m_level = 0;
     QTimer m_micTimeout;
-    QMediaDevices m_mediaDevices;
+    QMediaDevices *m_mediaDevices = nullptr;
 };
 }

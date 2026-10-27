@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLoggingCategory>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QUuid>
@@ -29,6 +30,7 @@ Q_DECLARE_METATYPE(ManagedObjects)
 namespace hyprstack::services {
 using namespace Qt::StringLiterals;
 namespace {
+Q_LOGGING_CATEGORY(lcDesktopOperations, "hics.services.desktop")
 const auto NM = u"org.freedesktop.NetworkManager"_s;
 const auto NP = u"/org/freedesktop/NetworkManager"_s;
 const auto UD = u"org.freedesktop.UDisks2"_s;
@@ -68,7 +70,6 @@ DesktopIntegration::DesktopIntegration(QObject *parent) : QObject(parent) {
     m_micTimeout.setSingleShot(true);
     m_micTimeout.setInterval(15000);
     connect(&m_micTimeout, &QTimer::timeout, this, &DesktopIntegration::stopMicrophoneTest);
-    connect(&m_mediaDevices, &QMediaDevices::audioInputsChanged, this, &DesktopIntegration::stopMicrophoneTest);
 }
 QUrl DesktopIntegration::wallpaperVideo(const QString &path) const { return WallpaperPlayer::resolveVideo(path); }
 void DesktopIntegration::fail(const QString &message) { m_error = message; emit changed(); }
@@ -85,26 +86,63 @@ void DesktopIntegration::process(const QString &program, const QStringList &args
     ++m_pending; emit changed();
     auto *timeout = new QTimer(p);
     timeout->setSingleShot(true);
-    connect(timeout, &QTimer::timeout, p, &QProcess::kill);
-    connect(p, &QProcess::errorOccurred, this, [this, p, result, reportError](QProcess::ProcessError error) {
-        if (error == QProcess::FailedToStart) {
-            --m_pending;
-            if (reportError) fail(p->errorString());
-            else result({});
-            emit changed(); p->deleteLater();
+    struct Output {
+        QByteArray standard, diagnostic;
+        bool complete = false, overflow = false, timedOut = false;
+    };
+    auto output = std::make_shared<Output>();
+    // Bound both pipes while they are being drained. A timeout alone allows a
+    // fast or broken helper to allocate arbitrary memory before it expires.
+    const auto drain = [p, output] {
+        for (const auto channel : {QProcess::StandardOutput, QProcess::StandardError}) {
+            p->setReadChannel(channel);
+            auto &buffer = channel == QProcess::StandardOutput ? output->standard : output->diagnostic;
+            const qsizetype limit = channel == QProcess::StandardOutput ? 16 * 1024 * 1024 : 64 * 1024;
+            while (p->bytesAvailable() > 0) {
+                const auto chunk = p->read(64 * 1024);
+                if (chunk.isEmpty()) break;
+                if (output->overflow) continue;
+                if (chunk.size() > limit - buffer.size()) {
+                    output->overflow = true;
+                    output->standard.clear(); output->diagnostic.clear();
+                    p->kill();
+                } else buffer.append(chunk);
+            }
         }
+    };
+    connect(p, &QProcess::readyReadStandardOutput, this, drain);
+    connect(p, &QProcess::readyReadStandardError, this, drain);
+    connect(timeout, &QTimer::timeout, p, [p, output] {
+        output->timedOut = true;
+        p->kill();
+    });
+    const auto finish = [this, p, timeout, output, drain, result, reportError, program](bool failedToStart, int code, QProcess::ExitStatus status) {
+        if (output->complete) return;
+        drain();
+        output->complete = true;
+        timeout->stop();
+        --m_pending;
+        if (output->overflow || output->timedOut)
+            qCWarning(lcDesktopOperations) << program << (output->overflow ? "response size limit exceeded" : "operation timed out");
+        // Do not log argv or raw stderr: helpers can return private user data.
+        if (!failedToStart && !output->overflow && !output->timedOut && code == 0 && status == QProcess::NormalExit)
+            result(output->standard);
+        else if (reportError) {
+            if (output->overflow) fail(tr("The system component returned too much data. Refresh the page and check the system journal."));
+            else if (output->timedOut) fail(tr("The system component did not respond in time. Check that its service is running and try again."));
+            else if (failedToStart) fail(p->errorString());
+            else {
+                const auto detail = QString::fromUtf8(output->diagnostic.left(4096)).trimmed();
+                fail(detail.isEmpty() ? tr("Operation failed or timed out") : detail);
+            }
+        } else result({});
+        emit changed(); p->deleteLater();
+    };
+    connect(p, &QProcess::errorOccurred, this, [finish](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) finish(true, -1, QProcess::CrashExit);
     });
     connect(p, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
-            [this, p, result, reportError](int code, QProcess::ExitStatus status) {
-        --m_pending;
-        if (code == 0 && status == QProcess::NormalExit) result(p->readAllStandardOutput());
-        else if (reportError) {
-            auto detail = QString::fromUtf8(p->readAllStandardError()).trimmed();
-            fail(detail.isEmpty() ? tr("Operation failed or timed out") : detail);
-        }
-        if ((code != 0 || status != QProcess::NormalExit) && !reportError) result({});
-        emit changed(); p->deleteLater();
-    });
+            [finish](int code, QProcess::ExitStatus status) { finish(false, code, status); });
     p->start(executable, args); timeout->start(15000);
 }
 void DesktopIntegration::refresh() {
@@ -204,6 +242,10 @@ void DesktopIntegration::startMicrophoneTest() {
     stopMicrophoneTest(); m_error.clear();
     auto device = QMediaDevices::defaultAudioInput();
     if (device.isNull()) { fail(tr("No microphone is available")); return; }
+    // Connecting this signal initializes Qt's multimedia integration, including
+    // codec/hardware probing. Network/storage status must not pay that cost.
+    m_mediaDevices = new QMediaDevices(this);
+    connect(m_mediaDevices, &QMediaDevices::audioInputsChanged, this, &DesktopIntegration::stopMicrophoneTest);
     auto format = device.preferredFormat();
     m_audio = new QAudioSource(device, format, this);
     connect(m_audio, &QAudioSource::stateChanged, this, [this](QtAudio::State) {
@@ -235,6 +277,11 @@ void DesktopIntegration::startMicrophoneTest() {
 }
 void DesktopIntegration::stopMicrophoneTest() {
     m_micTimeout.stop();
+    if (m_mediaDevices) {
+        auto *devices = m_mediaDevices; m_mediaDevices = nullptr;
+        disconnect(devices, nullptr, this, nullptr);
+        devices->deleteLater();
+    }
     if (m_audio) { auto *audio = m_audio; m_audio = nullptr; audio->stop(); audio->deleteLater(); }
     m_level = 0; emit microphoneChanged();
 }

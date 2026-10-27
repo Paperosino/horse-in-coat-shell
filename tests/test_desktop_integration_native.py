@@ -1,5 +1,9 @@
 """Run new C++ session services against fake tools and a private system bus."""
+import contextlib
 import json
+import select
+import shutil
+import time
 import os
 from pathlib import Path
 import shlex
@@ -23,19 +27,28 @@ class DesktopIntegrationTests(unittest.TestCase):
             moc = cls.base / (name + '-moc.cpp')
             subprocess.run([str(Path(subprocess.check_output(['pkg-config', '--variable=libexecdir', 'Qt6Core'], text=True).strip()) / 'moc'), str(SERVICES / (name + '.hpp')), '-o', str(moc), *shlex.split(subprocess.check_output(['pkg-config', '--cflags', 'Qt6Qml', 'Qt6Multimedia'], text=True))], check=True)
             sources.extend([SERVICES / (name + '.cpp'), moc])
-        subprocess.run(['c++', '-std=c++20', '-fPIC', *map(str, sources), '-I', str(SERVICES),
+        sanitizers=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-g'] if os.environ.get('HICS_TEST_SANITIZERS') else []
+        subprocess.run(['c++', '-std=c++20', '-fPIC', *sanitizers, *map(str, sources), '-I', str(SERVICES),
             *flags, '-o', str(cls.binary)], check=True)
+        if os.environ.get('HICS_TEST_ARTIFACT_DIR'):
+            artifact=Path(os.environ['HICS_TEST_ARTIFACT_DIR']);artifact.mkdir(parents=True,exist_ok=True,mode=0o700)
+            shutil.copy2(cls.binary,artifact/'desktop-probe')
         cls.bus = subprocess.Popen(['dbus-daemon', '--session', '--nofork', '--print-address=1'], stdout=subprocess.PIPE, text=True)
         cls.env = dict(os.environ, DBUS_SYSTEM_BUS_ADDRESS=cls.bus.stdout.readline().strip(),
-            DESKTOP_BUS_LOG=str(cls.base / 'bus.log'), XDG_CONFIG_HOME=str(cls.base / 'config'))
+            DESKTOP_BUS_LOG=str(cls.base / 'bus.log'), XDG_CONFIG_HOME=str(cls.base / 'config'),
+            DESKTOP_PORTAL_FAULT_FILE=str(cls.base/'portal-fault'))
         cls.mock = subprocess.Popen(['python3', str(ROOT / 'tests/mock_desktop_bus.py')], env=cls.env, stdout=subprocess.PIPE, text=True)
         if cls.mock.stdout.readline().strip() != 'ready':
             raise RuntimeError('Private desktop D-Bus fixture failed to start')
         tools = cls.base / 'tools'
         tools.mkdir()
         tool = '''#!/usr/bin/python3
-import json, os, sys
+import json, os, sys, time
 name=os.path.basename(sys.argv[0])
+mode=os.environ.get('HICS_TEST_TOOL_MODE','')
+if name==os.environ.get('HICS_TEST_TOOL_TARGET','pactl') and mode=='hang':time.sleep(60)
+if name==os.environ.get('HICS_TEST_TOOL_TARGET','pactl') and mode in ('stdout-overflow','stderr-overflow'):
+ os.write(1 if mode=='stdout-overflow' else 2,b'x'*(32*1024*1024));sys.exit(0 if mode=='stdout-overflow' else 1)
 if name=='pactl':
  if 'set-card-profile' in sys.argv:
   open(os.environ['PROFILE_LOG'],'w').write(json.dumps(sys.argv[1:]));sys.exit(0)
@@ -50,7 +63,9 @@ elif name=='hyprctl':
             path = tools / name
             path.write_text(tool)
             path.chmod(0o700)
-        cls.env.update(PATH=str(tools) + ':' + os.environ['PATH'], PROFILE_LOG=str(cls.base / 'profile.json'))
+        cls.env.update(PATH=str(tools) + ':' + os.environ['PATH'], PROFILE_LOG=str(cls.base / 'profile.json'),
+            DBUS_SESSION_BUS_ADDRESS=cls.env['DBUS_SYSTEM_BUS_ADDRESS'],
+            PIPEWIRE_REMOTE='hics-desktop-test-absent', PULSE_SERVER='unix:'+str(cls.base/'absent-pulse'),QT_FORCE_STDERR_LOGGING='1')
 
     @classmethod
     def tearDownClass(cls):
@@ -61,9 +76,110 @@ elif name=='hyprctl':
         cls.temp.cleanup()
 
     def probe(self, operation, environment=None, **options):
+        started=time.monotonic()
         run = subprocess.run([str(self.binary)], input=json.dumps(dict(operation=operation, **options)),
-            env=environment or self.env, capture_output=True, text=True, check=True, timeout=10)
+            env=environment or self.env, capture_output=True, text=True, check=False, timeout=options.get('waitMs',5000)/1000+8)
+        self.assertEqual(run.returncode,0,run.stderr[-16000:])
+        self.last_stderr=run.stderr;self.last_seconds=time.monotonic()-started
         return json.loads(run.stdout)
+
+    def test_network_refresh_does_not_load_multimedia_backend(self):
+        data=self.probe('refresh')
+        self.assertFalse(data['multimediaBackendLoaded'])
+
+    def test_stdout_overflow_is_bounded_and_releases_busy(self):
+        data=self.probe('refresh',environment=dict(self.env,HICS_TEST_TOOL_MODE='stdout-overflow'))
+        self.assertFalse(data['busy'])
+        self.assertEqual(data['pendingProcesses'],[])
+        self.assertEqual(data['pendingCalls'],0)
+        self.assertIn('too much data',data['error'][:512])
+        self.assertIn('pactl',self.last_stderr)
+        self.assertNotIn('x'*128,self.last_stderr)
+
+    def test_stderr_overflow_keeps_diagnostics_bounded(self):
+        data=self.probe('refresh',environment=dict(self.env,HICS_TEST_TOOL_MODE='stderr-overflow'))
+        self.assertFalse(data['busy'])
+        self.assertLessEqual(len(data['error']),4096)
+        self.assertIn('too much data',data['error'][:512])
+
+    def test_silent_capture_overflow_marks_monitor_unavailable(self):
+        data=self.probe('monitor',environment=dict(self.env,HICS_TEST_TOOL_MODE='stdout-overflow',HICS_TEST_TOOL_TARGET='pw-dump'))
+        self.assertFalse(data['busy'])
+        self.assertFalse(data['captureAvailable'])
+        self.assertEqual(data['captures'],[])
+        self.assertEqual(data['pendingProcesses'],[])
+        self.assertIn('pw-dump',self.last_stderr)
+
+    def test_helper_timeout_kills_process_and_releases_busy(self):
+        data=self.probe('refresh',environment=dict(self.env,HICS_TEST_TOOL_MODE='hang'),waitMs=18000)
+        self.assertFalse(data['busy'])
+        self.assertEqual(data['pendingProcesses'],[])
+        self.assertIn('did not respond in time',data['error'])
+        self.assertIn('operation timed out',self.last_stderr)
+        self.assertGreater(self.last_seconds,14)
+
+    def test_failed_exec_does_not_strand_busy(self):
+        tool=self.base/'tools/pactl';original=tool.read_bytes()
+        tool.write_text('#!/nonexistent/hics-test-interpreter\n')
+        try:data=self.probe('refresh')
+        finally:tool.write_bytes(original)
+        self.assertFalse(data['busy'],data)
+        self.assertEqual(data['pendingProcesses'],[])
+        self.assertTrue(data['error'])
+
+    @contextlib.contextmanager
+    def portal_fault(self, mode):
+        file=Path(self.env['DESKTOP_PORTAL_FAULT_FILE']);file.write_text(mode)
+        try:yield
+        finally:
+            file.unlink(missing_ok=True)
+            if self.mock.poll() is not None:self.restart_mock()
+
+    def restart_mock(self):
+        self.mock.wait(timeout=5);self.mock.stdout.close()
+        self.__class__.mock=subprocess.Popen(['python3',str(ROOT/'tests/mock_desktop_bus.py')],env=self.env,stdout=subprocess.PIPE,text=True)
+        self.assertEqual(self.mock.stdout.readline().strip(),'ready')
+
+    def test_portal_timeout_and_late_reply_do_not_keep_busy_or_publish_stale_capabilities(self):
+        for mode in ('hang','late'):
+            with self.subTest(mode=mode),self.portal_fault(mode):
+                data=self.probe('refresh',settleMs=1200)
+                self.assertFalse(data['busy'],data)
+                self.assertEqual(data['pendingCalls'],0)
+                self.assertEqual(data['portalSourceTypes'],0)
+
+    def test_backend_destroyed_before_late_portal_reply(self):
+        with self.portal_fault('late'):
+            self.assertTrue(self.probe('destroy-active')['destroyed'])
+
+    def test_malformed_portal_capabilities_are_unavailable(self):
+        with self.portal_fault('malformed'):
+            data=self.probe('refresh')
+        self.assertFalse(data['busy'],data)
+        self.assertEqual(data['portalSourceTypes'],0)
+
+    def test_portal_owner_death_and_retry_use_the_replacement_service(self):
+        resume=self.base/'portal-resume';resume.unlink(missing_ok=True)
+        with self.portal_fault('drop'):
+            child=subprocess.Popen([str(self.binary)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,env=self.env)
+            try:
+                child.stdin.write(json.dumps({'operation':'portal-retry','resumeFile':str(resume)}));child.stdin.close()
+                self.assertTrue(select.select([child.stdout],[],[],8)[0],'Probe did not settle after service death')
+                first=json.loads(child.stdout.readline())
+                self.assertTrue(first['readyForRetry']);self.assertFalse(first['busy'])
+                self.assertEqual(first['portalSourceTypes'],0)
+                self.mock.wait(timeout=5)
+                Path(self.env['DESKTOP_PORTAL_FAULT_FILE']).unlink()
+                self.restart_mock();resume.touch()
+                self.assertTrue(select.select([child.stdout],[],[],8)[0],'Probe did not settle after replacement service')
+                data=json.loads(child.stdout.readline());child.wait(timeout=5)
+                self.assertEqual(child.returncode,0,child.stderr.read())
+                self.assertFalse(data['busy'],data)
+                self.assertEqual(data['pendingCalls'],0)
+                self.assertEqual(data['portalSourceTypes'],3)
+            finally:
+                if child.poll() is None:child.kill();child.wait(timeout=5)
+                child.stdout.close();child.stderr.close();resume.unlink(missing_ok=True)
 
     def test_normal_portal_reply_preserves_screen_and_window_capabilities(self):
         env=dict(self.env,DBUS_SESSION_BUS_ADDRESS=self.env['DBUS_SYSTEM_BUS_ADDRESS'])

@@ -418,3 +418,85 @@ unit-package-guard86/ в приватной лаборатории; исходн
 Пять пропусков общего runner не объявляются выполненными этим прогоном;
 предыдущие отдельные контекстные прогоны описаны выше. Полная приёмка всех
 функций рабочего стола и физического оборудования остаётся незавершённой.
+
+### STAB-003: ограничение ответов системных команд и отказы портала
+
+Fault-case перед исправлением: фиктивный pactl выводил 32 MiB stderr,
+DesktopIntegration передавал все 33 554 432 символа в error/UI. Большой stdout
+также целиком накапливался, а ошибка выглядела как обычный Invalid audio device
+response. Новые тесты действительно падали на исходном поведении.
+
+Теперь оба канала дренируются блоками до 64 KiB: бюджет полезного stdout —
+16 MiB, stderr — 64 KiB. Превышение завершает процесс; результат не разбирается
+и не выдаётся за успех. Для отображения обычной диагностики берутся максимум
+4096 байт stderr. Общий finish защищён от повторного вызова; FailedToStart,
+нормальное завершение, timeout и overflow освобождают pending. Таймаут отличим
+от прочих ошибок. Для тихого capture-monitor отказ очищает данные и устанавливает
+unavailable. В journal пишется компонент и категория отказа, без argv и сырого
+stderr. Добавлены русские переводы новых объяснений; общий FeatureError сохраняет
+существующее оформление. Это лимиты payload, не измерение полного RSS процесса.
+
+tests/test_desktop_integration_native.py расширен до 23 случаев: stdout/stderr
+flood, тихий capture flood, зависание команды до штатного 15-секундного timeout,
+ошибка exec, portal malformed/hang/late, уничтожение backend до позднего ответа,
+смерть D-Bus owner и повтор к новому процессу-владельцу. Последний сценарий
+использует один живой экземпляр C++ backend на обе фазы. Для portal hang/late
+проверяется возврат busy=false и отсутствие публикации запоздавших capabilities.
+Это тест ScreenCast AvailableSourceTypes и lifetime, а не реальная выдача
+разрешения/передача PipeWire stream внешнему приложению.
+
+Системная и session D-Bus шины, аудио endpoints и tools теперь изолированы
+явно. Qt 6.12 направлял logging в journal, поэтому прежнее ожидание warning
+в захваченном stderr было неверным. Fixture использует QT_FORCE_STDERR_LOGGING,
+сохраняя проверку контекстной диагностики без персональных данных.
+Источник API: [QProcess](https://doc.qt.io/qt-6/qprocess.html),
+[QDBusPendingCallWatcher](https://doc.qt.io/qt-6/qdbuspendingcallwatcher.html).
+
+### PERF-003: ненужная загрузка мультимедийного backend
+
+Обнаружено при ASan/LeakSanitizer: простой refresh сети создавал подписку
+QMediaDevices::audioInputsChanged, что загружало FFmpeg plugin и запускало
+NVIDIA/VAAPI probing. Qt прямо выполняет lazy initialization в connectNotify;
+[исходник Qt v6.12.0](https://code.qt.io/cgit/qt/qtmultimedia.git/tree/src/multimedia/qmediadevices.cpp?h=v6.12.0).
+Контрольный тест /proc/self/maps до исправления показывал multimedia plugin
+при обычном refresh и падал. Теперь QMediaDevices создаётся/подписывается только
+после явного старта теста микрофона; stop уничтожает наблюдателя с disconnect
+и deleteLater. Сеть, накопители и фоновый capture status не инициируют этот
+codec/hardware probe. Новых постоянно работающих процессов/таймеров нет.
+Проценты ускорения запуска и снижения RSS этим тестом не измерялись.
+
+Первый LeakSanitizer-отчёт показал 1989 байт / 28 аллокаций в цепочках
+libcuda/libnvidia/VAAPI при завершении probe. Это не доказательство роста памяти
+при длительной работе и не исправление проприетарного драйвера. После устранения
+ненужной инициализации все пять portal/lifetime тестов проходят с ASan+UBSan и
+включённым leak detection, без suppressions. Звук/видео с намеренно используемым
+мультимедийным backend требуют отдельного функционального и ресурсного прогона.
+
+Артефакты в приватной лаборатории: desktop-faults87-final/ (23/23, 43.39s),
+desktop-asan87-final.log (5/5), build-desktop87-final.log. Предыдущие упавшие
+прогоны сохранены отдельно и не объявляются зелёными. CMake services/i18n
+собраны; msgfmt --check --check-format проходит.
+
+Кандидат 87 установлен в CachyOS ВМ публичным installer при удерживаемом
+session lock: runner/shell/Kitty и 213 binds сохранились, configerrors пуст,
+autoreload вернулся. После обычного ввода пароля PAM (без обхода блокировки)
+в контролируемом госте перезапущен только hic-session для загрузки нового C++.
+Kitty сохранил PID и независимый app.slice scope. На основном хосте по-прежнему
+hic-shell 1.1.1-78; обновление/горячая замена его нативных библиотек не делались.
+
+Новый guest process прошёл 60 read-only циклов шести страниц за ~63 секунды.
+FD 95 → 95, threads 25 → 25; новых TypeError/ReferenceError в journal нет.
+RSS 613704 → 1394160 KiB, PSS 493209 → 1262374 KiB: это первый прогрев страниц,
+а не доказательство утечки/её отсутствия или измеренный выигрыш над прошлой
+версией. Набор включает network/audio/storage/clipboard/display/configuration
+history; реальные изменения настроек этими циклами не выполняются. Артефакты:
+locked-upgrade87.json, install87-locked.log, settings-soak87.json,
+shell87-startup.log, shell87-soak.log. UI regression с приватным native desktop
+fixture также проходит (включая hardware-unavailable Bluetooth и teardown дисков).
+
+Открыто по свежему journal: повторные обращения к отсутствующему ~/.face;
+Tokens.screen отсутствует у некоторых ранних StyledWindow/ToolTip;
+PowerProfilesDaemon отсутствует (необязательная зависимость), BlueZ без адаптера.
+Предупреждения программного EGL/SHM на bochs-drm не приписываются физическим GPU.
+Проверка настоящих portal sessions/permissions, microphone input, GPU paths,
+всех UI-действий и полного медиабрендинга остаётся в общей матрице.

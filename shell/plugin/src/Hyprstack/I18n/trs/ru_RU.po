@@ -13089,3 +13089,9 @@ msgstr "Адаптер Bluetooth недоступен"
 
 msgid "Check that a Bluetooth adapter is connected and the Bluetooth service is running."
 msgstr "Проверьте подключение адаптера и работу системной службы Bluetooth."
+
+msgid "The system component returned too much data. Refresh the page and check the system journal."
+msgstr "Системный компонент вернул слишком большой ответ. Обновите страницу и проверьте системный журнал."
+
+msgid "The system component did not respond in time. Check that its service is running and try again."
+msgstr "Системный компонент не ответил вовремя. Проверьте, запущена ли его служба, и повторите попытку."

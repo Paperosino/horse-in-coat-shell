@@ -1,6 +1,7 @@
 """Private NetworkManager/UDisks bus. All devices are fictitious."""
 import json
 import os
+from pathlib import Path
 import dbus
 import dbus.service
 import dbus.mainloop.glib
@@ -74,11 +75,18 @@ class Drive(dbus.service.Object):
         log('power-off', True)
 
 class Portal(dbus.service.Object):
-    @dbus.service.method('org.freedesktop.DBus.Properties', in_signature='ss', out_signature='v')
-    def Get(self, interface, property):
+    @dbus.service.method('org.freedesktop.DBus.Properties', in_signature='ss', out_signature='v', async_callbacks=('reply','error'))
+    def Get(self, interface, property, reply, error):
         if interface != 'org.freedesktop.portal.ScreenCast' or property != 'AvailableSourceTypes':
             raise dbus.exceptions.DBusException('Unknown portal property', name='org.freedesktop.DBus.Error.InvalidArgs')
-        return dbus.UInt32(3, variant_level=1)
+        path=os.environ.get('DESKTOP_PORTAL_FAULT_FILE')
+        mode=Path(path).read_text().strip() if path and Path(path).exists() else ''
+        if mode=='drop': os._exit(17)
+        if mode=='hang': return
+        if mode=='late':
+            GLib.timeout_add(3700,lambda: (reply(dbus.UInt32(3,variant_level=1)),False)[1]);return
+        if mode=='malformed': reply(dbus.String('invalid-capabilities',variant_level=1));return
+        reply(dbus.UInt32(3, variant_level=1))
 
 portal = Portal(bus, '/org/freedesktop/portal/desktop')
 active = Active(bus, NP + '/ActiveConnection/1')
