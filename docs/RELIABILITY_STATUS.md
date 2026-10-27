@@ -257,3 +257,10 @@ lock: runner/UI/app/bindings/lock/configerrors сохранены. Новый in
 тест подтвердил runner hash и прошёл обе реальные tmpfs faults с IPC on/resume.
 Evidence upgrade100.json и recovery-storage-installed100.json. Главный UI
 продолжает старый код до штатного unlock/transition; fresh VM ещё99, хост78.
+
+Source stacking исправляет положение обычных floats при уменьшении/переносе
+logical output. Real integration падает на старом Lua и проходит на новом;
+намеренно offscreen окна сохраняются, fullscreen/maximized late reservations
+с четырёх сторон и output position200x100 проверены. Нет polling. Actual Nexus
+с min-size constraints, snapped reflow и multi-monitor removal ещё не закрыты.
+Source fix пока не установлен; пакет100 остаётся предыдущим кандидатом.

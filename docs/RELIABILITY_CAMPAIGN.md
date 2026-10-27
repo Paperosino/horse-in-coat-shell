@@ -1823,3 +1823,39 @@ and app remain unchanged. Evidence:
 `~/.local/state/hics-testing/cachyos/recovery-storage-installed100.json`.
 The same fixture/compositor/full-login limitations above still apply. Host
 remains package78; fresh guest22281 remains99. No push performed.
+
+### Normal stacking floats after output geometry changes
+
+The monitor-layout callback previously resized only maximized stacking windows.
+A normal float at180,150 sized920x650 remained outside the logical work area
+when1280x900 changed fromscale1 to1.25. The expanded real nested-compositor
+integration fails at `Normal float escaped resized work area` against the
+pre-fix Lua snapshot. It passes with event-driven containment of floats that
+were contained in the old viewport. No periodic timer or mouse-path work was
+added. Monitor snapshots store numeric rectangles and discard removed names.
+
+Containment excludes fullscreen, minimized, snapped, pinned, hidden and special
+workspace windows. Deliberately offscreen floats stay put; repeated layout
+notifications with the same geometry do not undo a drag. Maximized handling
+and the saved normal rectangle retain their previous policy. The existing
+native geometry operation is reused, including its animation.
+
+`integration_stacking_workarea.py` now reads actual titlebar height from the
+native policy instead of assuming that an app class namedcode has no header.
+That stale test assumption was exposed by the second fixture, not a new product
+CSD regression. The attempted1.5 scale on1280px was rejected by the compositor;
+the valid1.25 test reaches and verifies the actual containment failure.
+
+Evidence under external hics-testing lab:
+- stacking-float-scale-before.log: pre-fix failure at the normal float assertion.
+- stacking-float-scale-source.log: default-scale real integration passes for
+  both fixture app IDs, late panels on four edges, fullscreen/maximize,
+  normal-float scaling and intentional offscreen positions.
+- stacking-float-scale-hidpi.log: expanded integration starting at1.25 also
+  passes translated output containment (position200x100) for both app IDs.
+
+Not installed yet. This proves real external Kitty/Wayland float handling, not
+all client size constraints or a complete Nexus acceptance. The actual settings
+window minimum dimensions may exceed a heavily reserved logical screen; that
+requires a separate real-QML check. Snapped-window reflow and multi-monitor
+removal remain open. Host native plugins were not hot-reloaded.

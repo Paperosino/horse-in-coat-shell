@@ -5,6 +5,7 @@ from pathlib import Path
 from integration_support import require_wayland_session,resize_nested_compositor
 require_wayland_session()
 ROOT=Path(__file__).resolve().parents[1]
+LAYOUTS=Path(os.environ.get('HICS_TEST_LAYOUTS',ROOT/'shell/assets/hyprland/layouts.lua'))
 OUTPUT_SCALE=float(os.environ.get('HICS_TEST_OUTPUT_SCALE','1'));assert 1<=OUTPUT_SCALE<=2
 with tempfile.TemporaryDirectory(prefix='hics-workarea-') as directory:
  base=Path(directory);(base/'config/hics').mkdir(parents=True);(base/'native').mkdir()
@@ -12,7 +13,7 @@ with tempfile.TemporaryDirectory(prefix='hics-workarea-') as directory:
   source=Path(os.environ['HICS_TEST_NATIVE_DIR'])/name if os.environ.get('HICS_TEST_NATIVE_DIR') else next(p for p in (ROOT/'build'/name,ROOT/'build/third_party/phantomat'/name) if p.exists())
   shutil.copy2(source,base/'native'/name)
  (base/'config/hics/layouts.json').write_text('{"mode":"stacking"}')
- lua=base/'test.lua';lua.write_text('package.path='+json.dumps(str(ROOT/'shell/assets/hyprland/config/?.lua')+';')+'..package.path\npackage.preload["scheme.current"]=function()return require("scheme.default")end\nhl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale='+str(OUTPUT_SCALE)+'})\ndofile('+json.dumps(str(ROOT/'shell/assets/hyprland/config/hyprland/animations.lua'))+')\ndofile('+json.dumps(str(ROOT/'shell/assets/hyprland/config/hyprland/gestures.lua'))+')\ndofile('+json.dumps(str(ROOT/'shell/assets/hyprland/layouts.lua'))+')\n')
+ lua=base/'test.lua';lua.write_text('package.path='+json.dumps(str(ROOT/'shell/assets/hyprland/config/?.lua')+';')+'..package.path\npackage.preload["scheme.current"]=function()return require("scheme.default")end\nhl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale='+str(OUTPUT_SCALE)+'})\ndofile('+json.dumps(str(ROOT/'shell/assets/hyprland/config/hyprland/animations.lua'))+')\ndofile('+json.dumps(str(ROOT/'shell/assets/hyprland/config/hyprland/gestures.lua'))+')\ndofile('+json.dumps(str(LAYOUTS))+')\n')
  control=base/'panels.json';control.write_text('{"edge":"bottom","depth":72,"visible":true}')
  (base/'panels.qml').write_text('''import QtQuick
 import Quickshell
@@ -81,7 +82,7 @@ ShellRoot {
    action(w,'maximize-unset')
    command(w,'hl.dispatch(hl.dsp.window.resize({window=w,x=500,y=280,relative=false}));hl.dispatch(hl.dsp.window.move({window=w,x=180,y=180,relative=false}));hl.dispatch(hl.dsp.focus({window=w}))');time.sleep(.5)
    action(w,'remember-stacking')
-   bar=0 if klass=='code' else 32
+   bar=float(ctl('repl','return hl.plugin.hyprbars.titlebar_height('+json.dumps(w['address'])+','+json.dumps(w['stableId'])+')'))
    def fits():
     win=window(app.pid);m=monitor();left,top,right,bottom=m['reserved'];width=m['width']/m['scale'];height=m['height']/m['scale']
     expected=[m['x']+left,m['y']+top+bar,width-left-right,height-top-bottom-bar]
@@ -112,6 +113,36 @@ ShellRoot {
    command(w,'hl.dispatch(hl.dsp.window.fullscreen_state({window=w,internal=0,client=1,action="set"}))')
    wait(fits,'Direct fullscreen to client maximize does not fit work area')
    print('PASS:',klass,'rapid fullscreen round trip and direct maximize',flush=True)
+   action(w,'maximize-unset')
+   reserve('bottom',72,True)
+   ctl('eval','hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})')
+   wait(lambda:abs(monitor()['scale']-1)<.01,'Cannot reset output scale')
+   time.sleep(.5)
+   command(w,'hl.dispatch(hl.dsp.window.resize({window=w,x=920,y=650,relative=false}));hl.dispatch(hl.dsp.window.move({window=w,x=180,y=150,relative=false}))')
+   time.sleep(.5)
+   def float_fits():
+    win=window(app.pid);m=monitor();left,top,right,bottom=m['reserved']
+    return win['at'][0]>=m['x']+left-1 and win['at'][1]-bar>=m['y']+top-1 and win['at'][0]+win['size'][0]<=m['x']+m['width']/m['scale']-right+1 and win['at'][1]+win['size'][1]<=m['y']+m['height']/m['scale']-bottom+1
+   assert float_fits(),window(app.pid)
+   ctl('eval','hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1.25})')
+   wait(lambda:abs(monitor()['scale']-1.25)<.01,'Scale change did not apply')
+   wait(float_fits,'Normal float escaped resized work area: '+str(window(app.pid)))
+   print('PASS:',klass,'normal floating window fits scale-shrunken work area',flush=True)
+   # A repeated layout event without a geometry change must not undo a drag.
+   command(w,'hl.dispatch(hl.dsp.window.move({window=w,x=-80,y=150,relative=false}))');time.sleep(.3)
+   offscreen=window(app.pid)['at']
+   ctl('eval','hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1.25})');time.sleep(.3)
+   assert window(app.pid)['at']==offscreen,window(app.pid)
+   # Growing back also preserves an intentional partially offscreen position.
+   ctl('eval','hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})');time.sleep(.4)
+   assert window(app.pid)['at']==offscreen,window(app.pid)
+   print('PASS:',klass,'intentional offscreen placement preserved',flush=True)
+   command(w,'hl.dispatch(hl.dsp.window.resize({window=w,x=920,y=650,relative=false}));hl.dispatch(hl.dsp.window.move({window=w,x=180,y=150,relative=false}))');time.sleep(.4)
+   ctl('eval','hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="200x100",scale=1.25})')
+   wait(lambda:monitor()['x']==200 and monitor()['y']==100,'Output position did not apply')
+   wait(float_fits,'Float escaped translated and scaled output')
+   print('PASS:',klass,'translated output containment',flush=True)
+   ctl('eval','hl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})');time.sleep(.4)
    app.terminate();app.wait(timeout=3)
   assert not ctl('configerrors'),ctl('configerrors')
  except Exception:

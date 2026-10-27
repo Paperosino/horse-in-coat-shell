@@ -2396,10 +2396,57 @@ function layouts.refresh_maximized_windows()
         end
     end
 end
+local function monitor_rectangles()
+    local rectangles = {}
+    for _, monitor in ipairs(hl.get_monitors()) do
+        local width, height = monitor_size(monitor)
+        rectangles[monitor.name] = { x = monitor.x, y = monitor.y, width = width, height = height }
+    end
+    return rectangles
+end
+local monitor_rects = monitor_rectangles()
+local function keep_visible_floats(previous)
+    if layouts.mode() ~= "stacking" then return end
+    for _, window in ipairs(hl.get_windows()) do
+        local monitor = window.monitor
+        local old = monitor and previous[monitor.name]
+        local current = monitor and monitor_rects[monitor.name]
+        local record = record_for(window)
+        if old and current and eligible(window) and window.floating and not window.hidden
+            and window.fullscreen == 0 and not (record and (record.maximized or record.minimized or record.snapped))
+            and (old.x ~= current.x or old.y ~= current.y or old.width ~= current.width or old.height ~= current.height) then
+            local box = geometry(window)
+            local header = header_height(window)
+            local function contained(x, y)
+                return box.x >= x - 1 and box.y - header >= y - 1
+                    and box.x + box.width <= x + old.width + 1
+                    and box.y + box.height <= y + old.height + 1
+            end
+            -- Hyprland may already translate floats when moving an output.
+            -- Preserve deliberately offscreen windows; only recover rectangles
+            -- that fit the old viewport (before or after that translation).
+            if contained(old.x, old.y) or contained(current.x, current.y) then
+                local bounds = maximized_geometry(window)
+                if bounds.width > 0 and bounds.height > 0 then
+                    local width, height = math.min(box.width, bounds.width), math.min(box.height, bounds.height)
+                    local x = math.max(bounds.x, math.min(box.x, bounds.x + bounds.width - width))
+                    local y = math.max(bounds.y, math.min(box.y, bounds.y + bounds.height - height))
+                    if math.abs(x - box.x) > .5 or math.abs(y - box.y) > .5
+                        or math.abs(width - box.width) > .5 or math.abs(height - box.height) > .5 then
+                        set_geometry(window, {x=x, y=y, width=width, height=height})
+                    end
+                end
+            end
+        end
+    end
+end
 hl.on("monitor.layout_changed", function()
+    local previous = monitor_rects
+    monitor_rects = monitor_rectangles()
     layouts.monitor_directions()
     if changing then return end
     layouts.refresh_maximized_windows()
+    keep_visible_floats(previous)
     for _, window in ipairs(hl.get_windows()) do sync_window(window) end
 end)
 hl.on("window.close", function(window)
