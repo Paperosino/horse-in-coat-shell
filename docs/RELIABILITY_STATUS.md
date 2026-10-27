@@ -162,3 +162,10 @@ preflight, simultaneous lock/transition и fresh install98.
 
 Это закрывает указанные узкие сценарии; массовый race stress, реальный отказ
 хранилища и чистая установка итогового кандидата всё ещё требуются.
+
+Новая независимая CachyOS ВМ cachyos-fresh98 (SSH22281,2GiB) подтвердила
+чистую пакетную установку98 через install.sh: до неё отсутствовали HICS,
+Hyprland, Python и emoji font. Pacman загрузил зависимости, installer завершился
+0 за50s;3105package files/0missing, system services enabled+active, mandatory
+user units globally enabled, failed units нет. Первый графический вход и тур
+на чистом профиле ещё не проверены. Исходная ВМ22280 продолжает существовать.

@@ -1517,3 +1517,38 @@ on завершился75. В повторном прогоне оба transitio
 не доказывают исчерпывающий стресс всех гонок/оборудования. Ошибки реального
 хранилища при commit, свежая установка98, весь DE и оставшаяся медиатека
 по-прежнему открыты. На этом шаге production code не менялся.
+
+### FRESH98: независимая чистая база, установка пакета и зависимостей
+
+Создан cachyos-fresh98: отдельный qcow2 overlay поверх base-cachyos.qcow2,
+своя UEFI vars, QMP и SSH22281. Исходная ВМ22280 не остановлена и её диск
+не изменён. vm_cachyos.py получил --ssh-port и --memory-mib с проверкой диапазона;
+новому гостю выделены2GiB/2vCPU. Base checksum, package checksum и источник
+зафиксированы в закрытом lab/origin.json; vm.json хранит точный argv.
+
+Гость загрузился в tty CachyOS. Первая SSH попытка истекла во время boot;
+QMP running и screenshot подтвердили живой tty, повторная попытка успешна.
+До установки pacman -Q hic-shell/hyprland/noto-fonts-emoji сообщал отсутствие,
+python3 отсутствовал. Это чистая база, а не копия профиля после upgrade98.
+Начальный Python harness поэтому не исполнился; запуск installer адаптирован
+на Bash без добавления Python вручную. Штатная зависимость установит Python.
+
+install.sh и точный package98 eff1e8aa... скопированы в /var/tmp. Обычный
+hics-test вызвал install.sh --package; только в этой одноразовой ВМ sudoers
+позволяет pacman без пароля (это fixture, не установка правила продуктом).
+Транзакция запущена hics-fresh-install98.service, не прерывалась. Pacman
+разрешил585.07MiB downloads/2667.08MiB installed. Одно зеркало вернуло404 для
+трёх пакетов, штатный fallback получил их, integrity/keyring проверки прошли.
+
+hics-fresh-install98.json: returncode0, elapsed50s. postinstall98.log:
+hic-shell1.1.1-98, Hyprland0.56.2-4, Python3.14.8-1, noto-fonts-emoji2.057-1;
+pacman -Qk:3105files/0missing. hics-system и hics-memory enabled+active.
+User hic-session/configuration/desktop/displays глобально enabled;
+screen-reader disabled (по умолчанию не включается). systemctl --failed пуст.
+Это проверка пакетной установки с сетью и зависимостями, не прохождение
+первого графического входа/тура и не offline/interrupted install.
+
+Первый графический сеанс/тур, локаль/раскладки, secret-service/PAM в новом
+профиле, offline/обрыв установки и всё оставшееся покрытие DE остаются gates.
+Отказ хранилища при transition пока не проверен настоящим диском; unit fault
+injection не подменяет эту незавершённую задачу.
