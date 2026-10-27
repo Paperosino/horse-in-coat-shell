@@ -35,7 +35,7 @@ in the settings.
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/media/dashboard.gif" width="100%" alt="Opening the dashboard with calendar, media player and widgets"><br>Dashboard · calendar, media and widgets</td>
+    <td align="center" width="50%"><img src="docs/media/dashboard.gif" width="100%" alt="HICS dashboard: calendar and performance tab"><br>Dashboard · calendar and performance</td>
     <td align="center" width="50%"><img src="docs/media/panel-tools.gif" width="100%" alt="Close-ups of the notification centre and panel quick actions"><br>Taskbar · notifications and quick actions</td>
   </tr>
   <tr>

@@ -1,0 +1,34 @@
+{
+  "capture": "wf-recorder, real CachyOS guest UI",
+  "package": "hic-shell 1.1.1-102",
+  "locale": "ru_RU.UTF-8",
+  "hyprland": "0.56.2",
+  "sourceSize": [
+    1280,
+    800
+  ],
+  "gifSize": [
+    960,
+    600
+  ],
+  "sourceFps": 24,
+  "gifFps": 20,
+  "frames": 188,
+  "durationSeconds": 9.4,
+  "trimStartSeconds": 0,
+  "actions": [
+    "open dashboard via its real IPC",
+    "calendar next month and previous month by pointer",
+    "open Performance tab by pointer"
+  ],
+  "audio": false,
+  "authenticationRecorded": false,
+  "rawSha256": "d86e4ab6e0eace76602086d81038fd72a62417017a27f3143feda2bddee8f35f",
+  "gifSha256": "61fa578041560d1f2a31af113395c05604a66bb5c53e49ece394c11631622d1a",
+  "limitations": [
+    "software-rendered disposable VM; not a hardware performance measurement",
+    "no media playback or weather service configured in guest",
+    "recording timeout wrapper returned137 after finalized stream; complete raw and GIF decode passed",
+    "other historical media and tour recordings remain under audit"
+  ]
+}

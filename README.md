@@ -34,7 +34,7 @@ hics — оболочка для Hyprland с четырьмя режимами �
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/media/dashboard.gif" width="100%" alt="Открытие дашборда с календарём, медиаплеером и виджетами"><br>Дашборд · календарь, медиа и виджеты</td>
+    <td align="center" width="50%"><img src="docs/media/dashboard.gif" width="100%" alt="Дашборд hics: календарь и вкладка производительности"><br>Дашборд · календарь и производительность</td>
     <td align="center" width="50%"><img src="docs/media/panel-tools.gif" width="100%" alt="Крупные планы центра уведомлений и быстрых действий панели"><br>Панель задач · уведомления и быстрые действия</td>
   </tr>
   <tr>

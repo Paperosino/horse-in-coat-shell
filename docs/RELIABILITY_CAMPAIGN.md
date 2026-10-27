@@ -2096,3 +2096,71 @@ preview и SIGKILL guard с восстановлением durable journal, по
 возврат по таймеру, slow/trickling IPC, quarantine malformed JSON, завершение
 shell-child и реальные per-device/window Lua rules. Прошли3watcher unit tests.
 Это приватные профили/nested compositor, рабочие настройки хоста не менялись.
+
+
+### PORTAL-REGISTRY-001: duplicate registration during portal activation
+
+The main102 Quickshell log still contains a Registry registration warning.
+A minimal C++ process using QDesktopUnixServices (no HICS/QML) reproduces it
+with the actual bundled Qt6.12 runtime on a private D-Bus and mock registry:
+
+- portal initially running: one Register(org.hics.PortalFixture), accepted;
+- portal initially absent, D-Bus activated: two Register calls from the same
+  unique sender; first accepted, second rejected as already associated.
+
+Executable diagnostic: tests/diagnose_qt_portal_registration.py. It intentionally
+exits2 when this dependency bug is present; it is not a passing regression or a
+claim to test all portals. The mock registry uses the same duplicate rejection
+as xdg-desktop-portal1.20.3 registry.c/xdp-app-info.c. No host portal/service or
+settings are used. Evidence: external portal-registration-bundled102.json/.log.
+The fixture compiles against installed matching private headers, then loads the
+selected bundle via its library/plugin directories; report records both inputs.
+
+Upstream Qt's QDesktopUnixServices registers initially (possibly queued until
+application desktop ID exists) and also on serviceRegistered. Its success flag
+is only set after asynchronous reply, so activation can queue a second request
+before that reply. This is a dependency finding, not evidence of two HICS UI
+processes. The first successful registration disproves the previous suggestion
+that this warning necessarily means a missing/wrong application identity.
+Sources inspected: Qt qdesktopunixservices.cpp (registerWithHostPortal and
+constructor), and xdg-desktop-portal1.20.3 source registry.c/xdp-app-info.c:
+https://github.com/qt/qtbase/blob/dev/src/gui/platform/unix/qdesktopunixservices.cpp
+https://github.com/flatpak/xdg-desktop-portal/tree/1.20.3/src
+
+No warning suppression, portal disable variable, binary hook or speculative
+Quickshell identity-order patch was introduced. Correct lifecycle handling must
+serialize in-flight registration and reconsider identity after portal restart;
+changing only a success boolean could itself break reconnect. A verified source
+patch and rebuilt bundled dependency remain open. The separate textinput warning
+and real file chooser/screencast integration gates are unchanged.
+
+
+The extended diagnostic also replaces a previously registered mock owner while
+the same Qt process and bus remain alive. Qt does not send Register to the new
+owner after its earlier success. Evidence portal-registration-reconnect102.json:
+missingReregistration=true. This confirms that an in-flight guard alone would be
+an incomplete dependency fix; portal owner generation must also reset state.
+The test exits2 for either observed problem, not only duplicate registration.
+
+### Branding: real dashboard102 capture
+
+Replaced docs/media/dashboard.gif with a real wf-recorder recording from the
+main installed102 guest, ru_RU.UTF-8,1280x800 source,960x600 GIF,20fps,188frames,
+9.4seconds. Actual calendar next/previous and Performance tab pointer actions
+were observed; opening used the existing drawers IPC. No auth, audio, credentials
+or retrospective logo editing. hics-mascot.png SHA matches the supplied image.
+PIL fully decoded188frames and ffmpeg -xerror decoded raw MP4 and final GIF.
+Contact sheet and final Performance frame were visually inspected. Provenance,
+SHA and limits are in dashboard.recording.json; README captions now describe
+what this recording actually shows. No media/weather fixture was configured.
+
+The first capture merely toggled an already open dashboard closed and was
+rejected. The second records the intended interactions, but the timeout/runuser
+recording wrapper returned137 after the stream was already finalized. The file
+passes complete decoding; this is disclosed in provenance rather than called a
+clean recorder-exit test. Recorder termination/lifetime needs a separate audit.
+Main shell survival and an intact recording do not prove this helper bug fixed.
+The recorded VM also shows0°C without a physical CPU sensor and a transient
+Collecting data network graph: sensor-unavailable display and graph readiness
+need focused checks. The clip is not a CPU/GPU performance benchmark.
+Other historical recordings/tour media remain open; host78 unchanged.
