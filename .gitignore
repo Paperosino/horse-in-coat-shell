@@ -37,6 +37,11 @@
 /distribution/*
 !/distribution/bin/
 !/distribution/bundle-qt.sh
+!/distribution/build_qt_runtime_patches.py
+!/distribution/apply_qt_runtime_patches.py
+!/distribution/patches/
+/distribution/patches/*
+!/distribution/patches/*.patch
 !/distribution/profile_shell.py
 !/distribution/check_headers.py
 !/distribution/native_plugins.py
@@ -123,6 +128,7 @@
 
 !/docs/
 /docs/*
+!/docs/QT_RUNTIME_PATCHES.md
 !/docs/STABILITY_AUDIT.md
 !/docs/RELIABILITY_CAMPAIGN.md
 !/docs/media/

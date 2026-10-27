@@ -1,21 +1,26 @@
 """The real Arch package() refuses an incomplete private runtime."""
-import os, shutil, subprocess, tempfile, unittest
+import os, shutil, subprocess, tempfile, unittest, hashlib, json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 class PackagePayload(unittest.TestCase):
  def setUp(self):
   tmp=tempfile.TemporaryDirectory(prefix='hics package payload ');self.addCleanup(tmp.cleanup);self.base=Path(tmp.name)
   self.source=self.base/'fixture';self.package=self.base/'pkg';self.start=self.base/'build';(self.start/'src/hics').mkdir(parents=True)
-  self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','shell/shell.qml','shell/recovery/shell.qml')
+  self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','qs/hics-qt-patches.json','shell/shell.qml','shell/recovery/shell.qml')
   for name in self.payload:
    p=self.source/'usr/share/hics'/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('fixture');p.chmod(0o755 if name.endswith('hics-qs') else 0o644)
+  helper=self.start/'src/hics/distribution';helper.mkdir()
+  shutil.copy2(ROOT/'distribution/apply_qt_runtime_patches.py',helper/'apply_qt_runtime_patches.py')
+  root=self.source/'usr/share/hics/qs'
+  (root/'hics-qt-patches.json').write_text(json.dumps({'qtVersion':'6.12.0','files':{
+   'lib/libQt6Core.so.6':hashlib.sha256((root/'lib/libQt6Core.so.6').read_bytes()).hexdigest()},'symlinks':{}}))
  def run_package(self):
   if self.package.exists():shutil.rmtree(self.package)
   self.package.mkdir()
   env=dict(os.environ,startdir=str(self.start),pkgdir=str(self.package),HICS_PAYLOAD_FIXTURE=str(self.source),HICS_VALIDATED=str(self.base/'validated'))
   script='''source "$1"
 cmake() { cp -a "$HICS_PAYLOAD_FIXTURE/." "$pkgdir/"; }
-python() { touch "$HICS_VALIDATED"; }
+python() { if [[ $1 == distribution/apply_qt_runtime_patches.py ]]; then command python "$@"; else touch "$HICS_VALIDATED"; fi; }
 error() { printf '%s\\n' "$*" >&2; }
 package
 '''
@@ -30,4 +35,7 @@ package
   result=self.run_package();self.assertEqual(result.returncode,0,result.stderr);(self.base/'validated').unlink()
   (self.source/'usr/share/hics/qs/bin/hics-qs').chmod(0o644)
   result=self.run_package();self.assertNotEqual(result.returncode,0);self.assertIn('not executable',result.stderr);self.assertFalse((self.base/'validated').exists())
-if __name__=='__main__':unittest.main()
+ def test_corrupt_qt_payload_stops_before_native_validation(self):
+  (self.source/'usr/share/hics/qs/lib/libQt6Core.so.6').write_text('corrupt')
+  result=self.run_package();self.assertNotEqual(result.returncode,0);self.assertIn('checksum mismatch',result.stderr);self.assertFalse((self.base/'validated').exists())
+if __name__=='__main__' :unittest.main()

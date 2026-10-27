@@ -379,3 +379,19 @@
   внешний viewport немедленно ограничивается availableHeight при движении
   соседнего popout, внутренняя анимация сохраняется. Проверять каждый кадр,
   а не только один снимок через фиксированные 500мс.
+
+- Qt host portal Register имеет pending-состояние и привязан к владельцу
+  сервиса, а не одному process-wide boolean. Проверять activation, owner loss
+  до первого ответа и поздний reply; настоящий policy denial не прятать.
+  Mock дополнять настоящим frontend на private bus и desktop metadata fixture.
+- Text input проверять с реально работающим private IME: без text-input enter
+  отсутствие предупреждения ещё не доказывает enable/disable. Уничтожение
+  окна с фокусом и Compose входят в приёмку; отключать старую поверхность.
+- Debug-stream arguments вычисляются до фильтрации категории: дорогой обход
+  аппаратных кодеков внутри qCDebug требует явной проверки isDebugEnabled.
+  Audio-only LSan и video/GPU lifetime — разные сценарии. Не отключать HW
+  decode глобально ради зелёного sanitizer результата.
+- Локальные Qt runtime patches закреплены на проверенной версии и checksum
+  исходников, входят в штатную сборку и manifest. Сохранять feature flags,
+  плагины и относительный RPATH; не подменять системный Qt. Обновление staged
+  библиотек через новый inode, без записи поверх файла работающего процесса.

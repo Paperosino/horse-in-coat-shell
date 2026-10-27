@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,18 +20,29 @@ import time
 PROBE = r'''
 #include <QGuiApplication>
 #include <QTimer>
+#include <QFile>
 #include <QtGui/private/qdesktopunixservices_p.h>
 int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     QGuiApplication::setDesktopFileName("org.hics.PortalFixture");
     QDesktopUnixServices services;
+    QDesktopUnixServices secondServices;
+    QDesktopUnixServices thirdServices;
+    QFile maps("/proc/self/maps");
+    if (!maps.open(QIODevice::ReadOnly)) return 3;
+    const auto loaded = maps.readAll();
+    const auto required = qgetenv("HICS_QT_REQUIRED_PREFIX");
+    if (!required.isEmpty() && (!loaded.contains(required + "/lib/libQt6Gui.so")
+            || !loaded.contains(required + "/lib/libQt6Core.so"))) return 4;
+    const auto forbidden = qgetenv("HICS_QT_FORBID_MAPS");
+    if (!forbidden.isEmpty() && loaded.contains(forbidden)) return 5;
     QTimer::singleShot(2000, &app, &QCoreApplication::quit);
     return app.exec();
 }
 '''
 
 
-def mock(trace, ready):
+def mock(trace, ready, delay=0, denied=False):
     import dbus
     import dbus.service
     import dbus.mainloop.glib
@@ -48,17 +60,24 @@ def mock(trace, ready):
             return dbus.UInt32(2)
 
         @dbus.service.method('org.freedesktop.host.portal.Registry',
-                             in_signature='sa{sv}', sender_keyword='sender')
-        def Register(self, app, options, sender=None):
+                             in_signature='sa{sv}', sender_keyword='sender', async_callbacks=('reply','error'))
+        def Register(self, app, options, reply, error, sender=None):
             duplicate = sender in self.seen
             with trace.open('a') as stream:
                 stream.write(json.dumps({'sender': sender, 'app': str(app), 'serverPid': os.getpid(),
                                          'duplicate': duplicate}) + '\n')
             if duplicate:
-                raise dbus.exceptions.DBusException(
+                error(dbus.exceptions.DBusException(
                     'Connection already associated with an application ID',
-                    name='org.freedesktop.portal.Error.Failed')
+                    name='org.freedesktop.portal.Error.Failed'))
+                return
+            if denied:
+                error(dbus.exceptions.DBusException('Fixture denies registration',name='org.freedesktop.portal.Error.NotAllowed'))
+                return
             self.seen.add(sender)
+            if delay:
+                GLib.timeout_add(delay,lambda: (reply(), False)[1])
+            else:reply()
 
     portal = Portal(bus, '/org/freedesktop/portal/desktop')
     ready.write_text('ready')
@@ -75,7 +94,7 @@ def stop(process):
             process.wait(timeout=3)
 
 
-def run_case(base, probe, active, runtime, restart=False):
+def run_case(base, probe, active, runtime, restart=False, pending=False, denied=False):
     base.mkdir()
     services = base / 'services'
     services.mkdir()
@@ -108,8 +127,9 @@ def run_case(base, probe, active, runtime, restart=False):
             if runtime:
                 env['LD_LIBRARY_PATH'] = str(runtime / 'lib')
                 env['QT_PLUGIN_PATH'] = str(runtime / 'lib/qt6/plugins')
+                env['HICS_QT_REQUIRED_PREFIX'] = str(runtime)
             if active:
-                server = subprocess.Popen(command, env=env, stdout=log, stderr=log)
+                server = subprocess.Popen(command+[str(700 if pending else 0),'deny' if denied else 'allow'], env=env, stdout=log, stderr=log)
                 deadline = time.monotonic() + 5
                 while not ready.exists():
                     assert server.poll() is None and time.monotonic() < deadline, 'Mock did not start'
@@ -122,8 +142,8 @@ def run_case(base, probe, active, runtime, restart=False):
                     while not trace.exists():
                         assert client.poll() is None and time.monotonic() < deadline, 'No initial registration'
                         time.sleep(.01)
-                    # Allow the successful asynchronous reply to reach Qt before
-                    # replacing the mock owner. Same bus and same client survive.
+                    # Normal restart follows a successful reply. Pending restart
+                    # replaces the owner before its deliberately delayed reply.
                     time.sleep(.15)
                     assert client.poll() is None
                     stop(server)
@@ -144,7 +164,8 @@ def run_case(base, probe, active, runtime, restart=False):
             calls = [json.loads(line) for line in trace.read_text().splitlines()]
             assert calls and calls[0]['app'] == 'org.hics.PortalFixture', calls
             assert not calls[0]['duplicate'], calls
-            return {'portalInitiallyActive': active, 'portalRestarted': restart,
+            if denied:assert 'Fixture denies registration' in result.stderr,'Actual service rejection was hidden'
+            return {'portalInitiallyActive': active, 'portalRestarted': restart,'restartDuringPendingReply':pending,'expectedPolicyDenial':denied,
                     'missingReregistration': restart and not any(call['serverPid'] == server.pid for call in calls),
                     'calls': calls, 'stderr': result.stderr,
                     'duplicate': any(call['duplicate'] for call in calls)}
@@ -154,12 +175,14 @@ def run_case(base, probe, active, runtime, restart=False):
 
 
 def main():
-    if len(sys.argv) == 4 and sys.argv[1] == '--mock':
-        mock(Path(sys.argv[2]), Path(sys.argv[3]))
+    if len(sys.argv) in (4,5,6) and sys.argv[1] == '--mock':
+        mock(Path(sys.argv[2]), Path(sys.argv[3]),int(sys.argv[4]) if len(sys.argv)>=5 else 0,len(sys.argv)==6 and sys.argv[5]=='deny')
         return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', type=Path, help='Optional bundled qs directory (same Qt ABI)')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--probe-binary', type=Path, help='Run the same cross-built probe in the disposable VM')
+    parser.add_argument('--export-probe', type=Path)
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Use a fresh evidence path')
@@ -173,12 +196,17 @@ def main():
         for module in ('QtGui', 'QtCore'):
             root = headers / module / version
             includes.extend(['-I' + str(root), '-I' + str(root / module)])
-        flags = shlex.split(subprocess.check_output(['pkg-config', '--cflags', '--libs', 'Qt6Gui', 'Qt6DBus'], text=True))
-        subprocess.run(['c++', '-fPIC', '-std=c++20', str(source), *includes, *flags,
-                        '-o', str(probe)], check=True, capture_output=True, text=True, timeout=30)
+        if args.probe_binary:shutil.copy2(args.probe_binary,probe)
+        else:
+            flags = shlex.split(subprocess.check_output(['pkg-config', '--cflags', '--libs', 'Qt6Gui', 'Qt6DBus'], text=True))
+            subprocess.run(['c++', '-fPIC', '-std=c++20', str(source), *includes, *flags,
+                            '-o', str(probe)], check=True, capture_output=True, text=True, timeout=30)
+        if args.export_probe:shutil.copy2(probe,args.export_probe)
         cases = [run_case(base / name, probe, active, args.runtime)
                  for name, active in [('active', True), ('activated', False)]]
         cases.append(run_case(base / 'restarted', probe, True, args.runtime, restart=True))
+        cases.append(run_case(base / 'pending-restart', probe, True, args.runtime, restart=True,pending=True))
+        cases.append(run_case(base / 'policy-denial', probe, True, args.runtime, denied=True))
         report = {'qtHeadersVersion': version, 'runtime': str(args.runtime) if args.runtime else 'system',
                   'scope': 'Real Qt services, mock portal registry, private D-Bus; not all portal functions',
                   'cases': cases}

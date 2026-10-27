@@ -1,0 +1,28 @@
+--- a/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp
++++ b/src/plugins/multimedia/ffmpeg/qffmpegmediaintegration.cpp
+@@ -171,13 +171,18 @@
+     qCInfo(qLcFFmpeg) << "Using Qt multimedia with FFmpeg version" << av_version_info()
+                       << avutil_license();
+ 
+-    qCDebug(qLcFFmpeg) << "Available HW decoding frameworks:";
+-    for (auto type : QFFmpeg::HWAccel::decodingDeviceTypes())
+-        qCDebug(qLcFFmpeg) << "    " << type;
+-
+-    qCDebug(qLcFFmpeg) << "Available HW encoding frameworks:";
+-    for (auto type : QFFmpeg::HWAccel::encodingDeviceTypes())
+-        qCDebug(qLcFFmpeg) << "    " << type;
++    // Hardware discovery can load GPU drivers. Do not initialize them merely
++    // to print a disabled debug message (for example during audio enumeration).
++    // Actual codec selection still discovers/caches devices on first use.
++    if (qLcFFmpeg().isDebugEnabled()) {
++        qCDebug(qLcFFmpeg) << "Available HW decoding frameworks:";
++        for (auto type : QFFmpeg::HWAccel::decodingDeviceTypes())
++            qCDebug(qLcFFmpeg) << "    " << type;
++
++        qCDebug(qLcFFmpeg) << "Available HW encoding frameworks:";
++        for (auto type : QFFmpeg::HWAccel::encodingDeviceTypes())
++            qCDebug(qLcFFmpeg) << "    " << type;
++    }
+ }
+ 
+ q23::expected<QPlatformAudioDecoder *, QString>

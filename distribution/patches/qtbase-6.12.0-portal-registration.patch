@@ -1,0 +1,141 @@
+--- a/src/gui/platform/unix/qdesktopunixservices.cpp
++++ b/src/gui/platform/unix/qdesktopunixservices.cpp
+@@ -13,6 +13,7 @@
+ #include <QtCore/QDebug>
+ #include <QtCore/QFile>
+ #include <QtCore/QFileInfo>
++#include <QtCore/QPointer>
+ #if QT_CONFIG(process)
+ # include <QtCore/QProcess>
+ #endif
+@@ -42,6 +43,8 @@
+ #endif // QT_CONFIG(dbus)
+ 
+ #include <stdlib.h>
++#include <memory>
++#include <utility>
+ 
+ QT_BEGIN_NAMESPACE
+ 
+@@ -382,33 +385,96 @@
+     const QString m_parentWindowId;
+ };
+ 
++// Registration belongs to a D-Bus connection and a particular portal owner,
++// not to the lifetime of one platform-services instance or the whole process.
++class HostPortalRegistration final : public QObject
++{
++public:
++    explicit HostPortalRegistration(QObject *parent) : QObject(parent),
++        m_watcher("org.freedesktop.portal.Desktop"_L1, QDBusConnection::sessionBus(),
++                  QDBusServiceWatcher::WatchForOwnerChange, this)
++    {
++        QObject::connect(&m_watcher, &QDBusServiceWatcher::serviceOwnerChanged, this,
++                         [this](const QString &, const QString &oldOwner, const QString &newOwner) {
++            // An initially active owner may disappear before its first reply,
++            // while m_owner is still unknown. Its loss must cancel that request.
++            if (newOwner == m_owner && !newOwner.isEmpty())
++                return;
++            // The initial Register call can activate the portal. Associate the
++            // pending call with that owner instead of issuing a second call.
++            const bool activating = m_pending && m_owner.isEmpty() && oldOwner.isEmpty()
++                    && !newOwner.isEmpty();
++            m_owner = newOwner;
++            if (activating)
++                return;
++            ++m_generation;
++            m_pending = m_registered = false;
++            if (!newOwner.isEmpty())
++                request();
++        });
++    }
++
++    void request()
++    {
++        if (m_pending || m_registered || QGuiApplication::desktopFileName().isEmpty())
++            return;
++        m_pending = true;
++        const auto generation = m_generation;
++        auto message = QDBusMessage::createMethodCall(
++                "org.freedesktop.portal.Desktop"_L1, "/org/freedesktop/portal/desktop"_L1,
++                "org.freedesktop.host.portal.Registry"_L1, "Register"_L1);
++        message.setArguments({QGuiApplication::desktopFileName(), QVariantMap()});
++        auto *watcher = new QDBusPendingCallWatcher(
++                QDBusConnection::sessionBus().asyncCall(message), this);
++        auto consumed = std::make_shared<bool>(false);
++        const auto finish = [this, watcher, generation, consumed] {
++            if (std::exchange(*consumed, true))
++                return;
++            watcher->deleteLater();
++            if (generation != m_generation)
++                return; // A reply from the previous portal must not update its replacement.
++            m_pending = false;
++            if (watcher->isError()) {
++                // Expected error when running against an older portal.
++                if (watcher->error().type() == QDBusError::UnknownInterface
++                        || watcher->error().type() == QDBusError::UnknownMethod)
++                    qCInfo(lcQpaServices) << "Failed to register with host portal" << watcher->error();
++                else
++                    qCWarning(lcQpaServices) << "Failed to register with host portal" << watcher->error();
++            } else {
++                m_registered = true;
++                if (m_owner.isEmpty())
++                    m_owner = watcher->reply().service();
++                qCDebug(lcQpaServices) << "Successfully registered with host portal as"
++                                     << QGuiApplication::desktopFileName();
++            }
++        };
++        QObject::connect(watcher, &QDBusPendingCallWatcher::finished, watcher,
++                         [watcher, finish] {
++            // Let queued owner-change events invalidate an old service's reply
++            // before reporting it as a failure of the current portal.
++            QMetaObject::invokeMethod(watcher, finish, Qt::QueuedConnection);
++        });
++        if (watcher->isFinished())
++            QMetaObject::invokeMethod(watcher, finish, Qt::QueuedConnection);
++    }
++
++private:
++    QDBusServiceWatcher m_watcher;
++    QString m_owner;
++    quint64 m_generation = 0;
++    bool m_pending = false;
++    bool m_registered = false;
++};
++
+ void registerWithHostPortal()
+ {
+-    static bool registered = false;
+-    if (registered) {
+-        return;
+-    }
+-
+-    auto message = QDBusMessage::createMethodCall(
+-            "org.freedesktop.portal.Desktop"_L1, "/org/freedesktop/portal/desktop"_L1,
+-            "org.freedesktop.host.portal.Registry"_L1, "Register"_L1);
+-    message.setArguments({ QGuiApplication::desktopFileName(), QVariantMap() });
+-    auto watcher =
+-            new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(message), qGuiApp);
+-    QObject::connect(watcher, &QDBusPendingCallWatcher::finished, watcher, [watcher] {
+-        watcher->deleteLater();
+-        if (watcher->isError()) {
+-            // Expected error when running against an older portal
+-            if (watcher->error().type() == QDBusError::UnknownInterface || watcher->error().type() == QDBusError::UnknownMethod)
+-                qCInfo(lcQpaServices) << "Failed to register with host portal" << watcher->error();
+-            else
+-                qCWarning(lcQpaServices) << "Failed to register with host portal" << watcher->error();
+-        } else {
+-            qCDebug(lcQpaServices) << "Successfully registered with host portal as" << QGuiApplication::desktopFileName();
+-            registered = true;
+-        }
+-    });
+-}
++    static QPointer<HostPortalRegistration> registration;
++    if (!registration)
++        registration = new HostPortalRegistration(qGuiApp);
++    registration->request();
++}
++
+ } // namespace
+ 
+ #endif // QT_CONFIG(dbus)

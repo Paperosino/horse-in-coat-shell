@@ -1,0 +1,50 @@
+--- a/src/plugins/platforms/wayland/qwaylandinputcontext.cpp
++++ b/src/plugins/platforms/wayland/qwaylandinputcontext.cpp
+@@ -189,31 +189,24 @@
+         return;
+ 
+     QWindow *window = QGuiApplication::focusWindow();
+-
+-    if (window && window->handle()) {
+-        if (mCurrentWindow.data() != window) {
+-            if (!inputMethodAccepted()) {
+-                auto *surface = static_cast<QWaylandWindow *>(window->handle())->wlSurface();
+-                if (surface)
+-                    inputInterface->disableSurface(surface);
+-                mCurrentWindow.clear();
+-            } else {
+-                auto *surface = static_cast<QWaylandWindow *>(window->handle())->wlSurface();
+-                if (surface) {
+-                    inputInterface->enableSurface(surface);
+-                    mCurrentWindow = window;
+-                } else {
+-                    mCurrentWindow.clear();
+-                }
+-            }
++    auto *currentSurface = surfaceForWindow(mCurrentWindow);
++    auto *focusSurface = inputMethodAccepted() ? surfaceForWindow(window) : nullptr;
++
++    // Disable only the surface that this context actually enabled. A new
++    // window with a non-input focus object never had an enabled surface; trying
++    // to disable it leaves the old window enabled and breaks text-input-v3.
++    if (currentSurface != focusSurface || !focusSurface) {
++        if (currentSurface)
++            inputInterface->disableSurface(currentSurface);
++        mCurrentWindow.clear();
++        if (focusSurface) {
++            inputInterface->enableSurface(focusSurface);
++            mCurrentWindow = window;
+         }
+-        if (mCurrentWindow)
+-            inputInterface->updateState(Qt::ImQueryAll, QWaylandTextInputInterface::update_state_enter);
+-        return;
+-    }
+-
++    }
+     if (mCurrentWindow)
+-        mCurrentWindow.clear();
++        inputInterface->updateState(Qt::ImQueryAll, QWaylandTextInputInterface::update_state_enter);
++
+ }
+ 
+ QWaylandTextInputInterface *QWaylandInputContext::textInput() const

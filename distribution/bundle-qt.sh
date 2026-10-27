@@ -10,6 +10,7 @@ qt_plugins=$3
 qt_qml=$4
 qt_libs=$5
 qs_source=$6
+qt_overlay=${7:-}
 
 lib_dir=$root/lib
 
@@ -135,6 +136,12 @@ for dir in platforms wayland-shell-integration wayland-decoration-client \
         -exec cp -a -t "$plugins_dest/$dir" {} +
 done
 
+# Apply source-built Qt fixes before the final dependency closure. Keep QML,
+# graphics integrations and other unmodified plugins from the original bundle.
+if [[ -n $qt_overlay ]]; then
+    python3 "$(dirname "$0")/apply_qt_runtime_patches.py" --overlay "$qt_overlay" --root "$root"
+fi
+
 # 3. Second closure over everything now under lib/ (catches plugin-only
 #    dependencies such as QtSvg, QuickControls2, QuickShapes, QuickEffects).
 fixpoint
@@ -165,7 +172,7 @@ else
     printf 'warn: quickshell LICENSE not found in %s\n' "$qs_source" >&2
 fi
 
-# 6. Use a Hyprstack-specific binary name (qt.conf lookup is app-dir based).
+# 6. Use the HICS runtime binary name (qt.conf lookup is app-dir based).
 if [[ -e $root/bin/quickshell || -L $root/bin/quickshell ]]; then
     mv -f "$root/bin/quickshell" "$root/bin/hics-qs"
 fi

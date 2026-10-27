@@ -2573,3 +2573,78 @@ services совпадают с установленным пакетом; servic
 `notification-wrapper108.json` отдельно сверяет исходный и установленный QML.
 Хост78 и fresh-ВМ99 не обновлялись. Полный fresh install108 и аппаратная приёмка
 этим не подтверждены; кампания остаётся открытой.
+
+## Qt runtime109: порталы, text input и multimedia
+
+Продолжение кампании, 27 октября2026. Исходники Qt6.12.0 сверены с upstream;
+правила регистрации — с официальной документацией Registry. Реализованы три
+локальных source patches; устройство сборки и ограничения описаны в
+[QT_RUNTIME_PATCHES.md](QT_RUNTIME_PATCHES.md).
+
+Внешний lab `qt109-source` содержит исходники/checksums, build logs и доказательства.
+Системный Qt хоста не изменялся. Builder собирает отдельный immutable overlay;
+для пакета использован `overlay-integrated-v2`, с относительным RPATH.
+Сверены public/private feature flags Core/Gui/WaylandClient; единственная
+допущенная разница — bundled md4c вместо несовместимых системных headers,
+поддержка Markdown сохранена. Оригинальные Multimedia/Quick/Qml и остальные
+plugins сохранены. Это пересборка выбранных Qt компонентов и проекта с
+переиспользованием QS/прочих модулей, **не полная clean-сборка всех зависимостей**.
+
+Baseline подтвердил повторные Register и отсутствие регистрации после restart.
+Проверены active/activated frontend, рестарт после ответа и до delayed reply,
+явный policy denial. Только последние настоящие отказы остаются предупреждением.
+`portal-candidate.json` —5 mock cases; `real-portal109-host.json` — настоящий
+frontend на отдельном bus с desktop fixture. Настоящий frontend проверен также
+в ВМ. Отсутствие backend services в private bus даёт ожидаемые диагностические
+сообщения; это не тест всех portal dialogs, ScreenCast или FileChooser.
+
+Text-input baseline воспроизводил попытку disable чужой/пустой поверхности.
+После исправления прошли nested Hyprland+private Fcitx5,5 переключений двух
+полей, Compose é,6 уничтожений окна с активным полем, возврат ввода в первое
+окно; отдельно without-ime. Проверены фактические enable/disable и mappings
+QtGui/WaylandClient, а не только отсутствие сообщений в журнале.
+
+Multimedia audio baseline:1906байт/28allocation в LSan, CUDA/VDPAU загружались
+при перечислении аудиоустройств. Убрано eager HW discovery из выключенного
+debug logging. `multimedia-full-mapped.json`: реальный FFmpeg backend,
+200 перечислений, CUDA/VDPAU не загружены, ASan/LSan exit0 без suppressions и
+без запрета HW codecs. Это не доказательство исправления всех GPU driver leaks.
+
+Видео сохраняет цветные реальные кадры, loop/pause/resume/restart. Watchdog
+fixture теперь разрывает sink после первого кадра+200мс: прежний800мс от старта
+иногда отключал sink ещё до холодной готовности декодера и давал frames0.
+Это исправление теста, не скрытый product fix. `wallpaper-causal.log`2/2 pass;
+`settings-visual.log` — текущий интерфейс с narrow/high contrast/reduced motion,
+rapid navigation; снимок Audio просмотрен. Это software-rendered проверка.
+
+### Установленный Qt109 в ВМ
+
+Пакет SHA256 `ef33cb155ebbb6aa7f49245508f7329a4b7213306703fe1d96e4e1ad12606d85`.
+`cachyos/upgrade109-locked.json`: runner453/UI495/Kitty4660, locked=true,
+207bindings сохранены, autoreload восстановлен. Затем обычная PAM-разблокировка
+и один намеренный reboot. `qt-boot109.json`: boot
+b80b7110-7282-4a0f-b191-f0bc18966fd6, compositor384/runner457/UI499,
+health=true, safe=false, NRestarts0, configerrors/failed units пусты;
+нативные/config/services inode и SHA совпадают с установленными.
+
+`qt109-installed-runtime2.json`:7/7 — mock Registry, настоящий frontend,
+audio ASan/LSan, text-input с IME и без него, video и потеря sink. Manifest
+и реальные installed mappings проверены. Runner/UI/boot/lock/configerrors
+не менялись. Первый installed wrapper ошибочно ожидал plugin по overlay-пути
+`plugins/` вместо packaged `lib/qt6/plugins/` и остановился на проверке maps
+(exit5); передача overlay теперь применяется только к частному overlay.
+Повтор в новом evidence directory прошёл; первый результат не перезаписан.
+
+`video-asan-installed109.json`: ещё2 прогона реального player, normal и
+watchdog, оба exit0, ASan/LSan без suppressions/HW-disable. Binary SHA256
+`ec475c46e2b4b6883822464e7cd8a0dbde5638e394092591fb4eb60cbc2fab07`.
+
+Тесты публикации7, payload3, Arch installer7, system installer11 и portal
+permissions1 прошли. Payload fixture обновлён под обязательный Qt manifest;
+добавлена реальная проверка checksum до native validation. Python compile,
+bash syntax, git diff check прошли. Новый частый polling не добавлялся.
+
+Хост остаётся на78, fresh-ВМ —99. Установка на хост разрешена пользователем
+после окончания приёмки; clean/fresh latest install, долгий retained-RAM,
+физические GPU/аппаратное декодирование и остальная кампания остаются открыты.
+Все71 прежних коммита отправлены в origin/main до этого этапа.

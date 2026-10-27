@@ -3,6 +3,45 @@
 # assembles a self-contained runtime under ${DATADIR}/hics/qs.
 
 include(ExternalProject)
+find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
+option(HICS_PATCH_QT_RUNTIME "Apply audited source fixes to the private Qt runtime" ON)
+set(HICS_QT_RUNTIME_JOBS 2 CACHE STRING "Parallel jobs for the private Qt build")
+set(HICS_QT_PATCH_OVERLAY "")
+if(HICS_PATCH_QT_RUNTIME)
+    if(NOT Qt6_VERSION VERSION_EQUAL "6.12.0")
+        message(FATAL_ERROR "The patched binary runtime requires audited Qt 6.12.0. HICS_PATCH_QT_RUNTIME=OFF is for development with other Qt versions, not a patched release.")
+    endif()
+    find_package(Qt6 6.12.0 EXACT REQUIRED COMPONENTS WaylandClient Multimedia)
+    set(qt_patch_inputs
+        "${CMAKE_CURRENT_SOURCE_DIR}/distribution/build_qt_runtime_patches.py"
+        "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtbase-6.12.0-portal-registration.patch"
+        "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtbase-6.12.0-text-input-focus.patch"
+        "${CMAKE_CURRENT_SOURCE_DIR}/distribution/patches/qtmultimedia-6.12.0-lazy-hw-diagnostics.patch")
+    set(qt_patch_signature "${Qt6_VERSION}")
+    foreach(input IN LISTS qt_patch_inputs)
+        file(SHA256 "${input}" input_sha)
+        string(APPEND qt_patch_signature "${input_sha}")
+    endforeach()
+    foreach(module Core Gui WaylandClient Multimedia)
+        get_target_property(qt_module_library Qt6::${module} IMPORTED_LOCATION_RELEASE)
+        if(NOT EXISTS "${qt_module_library}")
+            get_target_property(qt_module_library Qt6::${module} IMPORTED_LOCATION)
+        endif()
+        file(SHA256 "${qt_module_library}" qt_module_sha)
+        string(APPEND qt_patch_signature "${qt_module_sha}")
+    endforeach()
+    string(SHA256 qt_patch_hash "${qt_patch_signature}")
+    string(SUBSTRING "${qt_patch_hash}" 0 16 qt_patch_id)
+    set(qt_patch_work "${CMAKE_BINARY_DIR}/runtime/qt-patches-${qt_patch_id}")
+    set(HICS_QT_PATCH_OVERLAY "${qt_patch_work}/overlay")
+    add_custom_command(OUTPUT "${HICS_QT_PATCH_OVERLAY}/hics-qt-patches.json"
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/distribution/build_qt_runtime_patches.py"
+            --work "${qt_patch_work}" --stage "${HICS_QT_PATCH_OVERLAY}" --jobs "${HICS_QT_RUNTIME_JOBS}"
+        DEPENDS ${qt_patch_inputs}
+        COMMENT "Building audited private Qt runtime fixes"
+        VERBATIM)
+    add_custom_target(hics-qt-runtime-patches DEPENDS "${HICS_QT_PATCH_OVERLAY}/hics-qt-patches.json")
+endif()
 
 find_program(QMAKE6 qmake6 REQUIRED)
 execute_process(COMMAND "${QMAKE6}" -query QT_INSTALL_PLUGINS
@@ -49,7 +88,7 @@ ExternalProject_Add(quickshell-runtime
         "-DCMAKE_BUILD_TYPE=Release"
         "-DCMAKE_INSTALL_PREFIX=${HYPRSTACK_QS_STAGE}"
         "-DCMAKE_PREFIX_PATH=${HICS_BUNDLE_PREFIX_PATH}"
-        "-DDISTRIBUTOR=Hyprstack bundle"
+        "-DDISTRIBUTOR=hics bundle"
         "-DUSE_JEMALLOC=OFF"
         "-DCRASH_HANDLER=OFF"
         "-DSOCKETS=ON"
@@ -63,6 +102,11 @@ ExternalProject_Add(quickshell-runtime
         "-DSERVICE_PIPEWIRE=ON"
     BUILD_BYPRODUCTS "${HYPRSTACK_QS_STAGE}/bin/quickshell"
 )
+if(HICS_PATCH_QT_RUNTIME)
+    # Avoid multiplying nested compiler pools and finish the immutable overlay
+    # before assembling the executable's private runtime.
+    add_dependencies(quickshell-runtime hics-qt-runtime-patches)
+endif()
 
 # Staged quickshell tree (bin/quickshell, bin/qs symlink, share/) plus the
 # assembled private Qt runtime, DESTDIR-safe via $ENV{DESTDIR} at install time.
@@ -81,6 +125,7 @@ install(CODE "
             \"${HYPRSTACK_QT_QML}\"
             \"${HYPRSTACK_QT_LIBS}\"
             \"${HYPRSTACK_QS_SOURCE}\"
+            \"${HICS_QT_PATCH_OVERLAY}\"
         RESULT_VARIABLE bundle_result
         OUTPUT_VARIABLE bundle_output
         ERROR_VARIABLE bundle_error)
