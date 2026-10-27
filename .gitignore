@@ -206,3 +206,5 @@
 !/distribution/bin/hics-start
 
 !/distribution/sessions/org.hics.Shell.desktop.in
+
+!/docs/RELIABILITY_STATUS.md
