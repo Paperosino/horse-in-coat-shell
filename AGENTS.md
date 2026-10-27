@@ -408,6 +408,15 @@
 - A green UAF regression is not a clean lifetime acceptance when LSan is red.
   Keep leak detection enabled and document scope, module hashes and remaining
   allocations. Do not suppress Qt/driver categories to make the report green.
+- ASan preload and the release QS linked to jemalloc conflict during early
+  GLib initialization. Use an explicit USE_JEMALLOC=OFF diagnostic executable
+  for sanitizer module lifetimes; verify its SHA and report that scope. Test
+  the release allocator separately. Reject incompatible profiler inputs before
+  spawning QML; never call that startup failure a successful sanitizer gate.
+- A linked allocator can reduce retained memory after settings use while
+  increasing cold startup RSS. Measure both, plus PSS/private dirty and process
+  CPU, before promoting it. Keep startup policy process-local, respect user
+  overrides, and do not enable jemalloc startup background threads blindly.
 - Long-lived capture helpers must reconcile the latest command asynchronously,
   without overlapping old/new children or waitForFinished in normal UI paths.
   QML owner deletion needs an application-owned reap path; bounded waits belong

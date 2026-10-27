@@ -17,6 +17,13 @@ import subprocess
 import tempfile
 import time
 
+def validate_sanitizer_allocator(executable, mode):
+    if mode != 'asan':
+        return
+    dynamic = subprocess.check_output(['readelf', '-d', str(executable)], text=True, timeout=10)
+    if '[libjemalloc.so.2]' in dynamic:
+        raise ValueError('ASan requires an explicit USE_JEMALLOC=OFF diagnostic executable via --executable; the release allocator is tested separately')
+
 QML = '''//@ pragma AppId org.hics.Shell
 //@ pragma DefaultEnv QS_NO_RELOAD_POPUP=1
 //@ pragma DefaultEnv QS_DROP_EXPENSIVE_FONTS=1
@@ -123,6 +130,10 @@ def main():
     if a.mode == 'asan' and not a.asan_overlay and not a.qml_fixture:
         p.error('An instrumented module overlay is required')
     if a.slow_unwind and a.mode != 'asan': p.error('--slow-unwind requires ASan mode')
+    try:
+        validate_sanitizer_allocator(a.executable or a.runtime / 'bin/hics-qs', a.mode)
+    except ValueError as error:
+        p.error(str(error))
     effects_image = (a.runtime / 'lib/libQt6QuickEffects.so.6').resolve() if a.expect_effects_sha256 else None
     if effects_image and hashlib.sha256(effects_image.read_bytes()).hexdigest() != a.expect_effects_sha256:
         p.error('QuickEffects checksum mismatch')

@@ -3174,3 +3174,62 @@ the exported policy symbol or configuration; the separate existing manifest
 still verifies complete executable and allocator image checksums. All29
 source/provenance/payload/closure/overlay/native-policy tests pass. This is a
 candidate implementation; installed VM/visual acceptance is still required.
+
+
+### Installed candidate113 acceptance
+
+Canonical QS source build and Arch package finish successfully. Package SHA256:
+6c01e8852a32565c568966c9dac5c780887742142f67dddfc0d7ed54a00a74be;
+QS29a1efef57f5212ae413658b5a7294f56ddacad49fd77ea451b2ddce0de74545.
+Both disposable VMs upgrade while normally locked through the existing
+installer test, retaining the runner/UI PID and start identity, an actual Kitty
+process,207 bindings and lock state. Configerrors stays empty and the package
+autoreload guard finishes. The test now optionally checks the expected package
+SHA/version before accepting the transaction and refuses symlink/FIFO archives.
+
+After a normal reboot, main guest boot62c33289-0d1f-4af5-b08a-790e9eff2c23
+runs the actual new UI498/runner456 with no allocator environment and no trial
+drop-in.120 actual settings windows complete with no restart/config/QML errors,
+95→94FDs and28→25threads. Start/end RSS896056/984920KiB, end PSS861861KiB,
+private dirty740108KiB, sampled peak1180464KiB; CPU83.20s and wall117.604s.
+The earlier110 cold comparison used82.32s CPU and ended1410052KiB RSS, but
+started572620KiB. Therefore this is a lower retained-memory result after the
+page workload, not proof of a cold-RAM or CPU improvement in every scenario.
+The higher startup resident memory remains open for investigation.
+
+The fresh2GiB guest boots normally and logs in through console PAM, then starts
+hics-start. Boot02b74c2d-aab3-40e2-886c-c8d02d0f7438 retains UI524/runner482
+through all eight installed Qt gates. SQL plugins load without external database
+connections and SQLite FTS5 succeeds. Portal registration/owner tests, actual
+frontend, ASan audio enumeration, Fcitx input, input without IME, video frames and
+sink recovery all return0. This does not exercise every portal or physical GPU.
+
+All six actual shadow-render PNGs match the pre-fix baseline byte-for-byte,
+including blur/radius/spread/alpha/cache variants. The first profiler launch
+omitted explicit WAYLAND_DISPLAY and failed before spawning its private UI;
+the corrected invocation and separate evidence preserve that harness failure.
+
+Preloading ASan into release QS linked to jemalloc instead crashes in early
+GLib initialization, before QML/native overlays load: incompatible allocator
+interposition, not a successful memory gate. The profiler now rejects that
+combination with an explicit USE_JEMALLOC=OFF diagnostic requirement; native
+ELF tests verify the guard for ON and OFF executables. No sanitizer suppression
+or production allocator disablement is introduced. The separate established
+111 QS image78c248e5cd2fc434436adf9d28ba9cb905a722d8aacfeee435a711c7e9b5e6f0
+(with the same three lifetime source fixes and system allocator) runs current
+113 Qt/QML and all six ASan module images. It completes all six real settings
+grabs with production fonts and no UAF, but exits1 for587bytes/6Fontconfig
+allocations. This is still a red LSan report. The earlier240Mesa bytes are not
+observed in this particular run; their absence is not evidence of a Mesa fix.
+The release allocator is assessed by ordinary installed soaks/native options,
+not by claiming the diagnostic executable is the release image.
+
+Host113 installation completed after these scoped gates, preserving all5
+pre-existing window identities and runner1183724/start17100252/NRestarts0.
+Both system services and all four session services are active, configerrors is
+empty, autoreload restored and installed runtime manifests/ELF policy verified.
+Pacman upgraded only HICS111→113; existing snapshot hooks created503/504.
+Normal logout/login is required to load updated running user/native images;
+no compositor plugin was hot-unloaded and no application was killed. The
+remaining Fontconfig LSan finding, unreproduced portal warning, hardware-GPU
+coverage and higher cold RSS are still open, not marked complete by deployment.

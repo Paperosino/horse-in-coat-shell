@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from tests.vm_settings_profile import validate_sanitizer_allocator
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -27,6 +28,7 @@ add_executable(quickshell main.cpp)
             self.assertNotIn('malloc_conf', symbols)
             dynamic = subprocess.check_output(['readelf', '-d', str(root / 'build/quickshell')], text=True, timeout=5)
             self.assertNotIn('libjemalloc', dynamic)
+            validate_sanitizer_allocator(root / 'build/quickshell', 'asan')
             result = subprocess.run(['python3', str(ROOT / 'distribution/quickshell_allocator/verify.py'),
                                      str(root / 'build/quickshell')], capture_output=True, text=True, timeout=5)
             self.assertNotEqual(result.returncode, 0)
@@ -69,6 +71,9 @@ int main() {
             subprocess.run(['cmake', '--build', str(root / 'build')], check=True,
                            capture_output=True, timeout=20, env=env)
             command = [str(root / 'build/quickshell')]
+            with self.assertRaisesRegex(ValueError, 'USE_JEMALLOC=OFF'):
+                validate_sanitizer_allocator(root / 'build/quickshell', 'asan')
+            validate_sanitizer_allocator(root / 'build/quickshell', 'normal')
             subprocess.run(['python3', str(ROOT / 'distribution/quickshell_allocator/verify.py'),
                             command[0]], check=True, capture_output=True, timeout=5)
             result = subprocess.check_output(command, text=True, env=env, timeout=5)

@@ -9,7 +9,8 @@ arch=(x86_64)
 options=(!strip !debug)
 install=hic-shell.install
 url="https://github.com/Paperosino/horse-in-coat-shell"
-license=(GPL-3.0-only BSD-2-Clause BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US)
+license=(GPL-3.0-only BSD-2-Clause BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US
+    MPL-1.1 Interbase-1.0 PostgreSQL GPL-2.0-only GPL-2.0-or-later LGPL-2.1-or-later Unlicense)
 depends=(gnome-keyring 'ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman libdrm libinput systemd
     hyprland-guiutils wayland libxkbcommon pango cairo libcups cups accountsservice fprintd fwupd colord gamemode flatpak apparmor restic seahorse fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt squeekboard poppler icu python python-pillow kitty firefox fuzzel
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy

@@ -47,6 +47,11 @@ def run(name,argv,env=None,timeout=40):
  save();assert p.returncode==0,(name,(out/(name+'-command.log')).read_text()[-3000:])
 try:
  tests=root/'tests';runtime=Path('/usr/share/hics/qs');overlay=runtime if INSTALLED_RUNTIME else root/'overlay';binary=root/'bin';overlay_args=[] if INSTALLED_RUNTIME else ['--qt-overlay',str(overlay)]
+ if 'sql-drivers-probe' in m['files']:
+  sqlenv=dict(os.environ,LD_LIBRARY_PATH=str(overlay/'lib')+':'+str(runtime/'lib'))
+  run('sql-drivers',[str(binary/'sql-drivers-probe'),str(runtime/'lib/qt6/plugins')],env=sqlenv)
+  sql=json.loads((out/'sql-drivers-command.log').read_text())
+  assert sql['loaded']==['QIBASE','QMYSQL','QODBC','QPSQL','QSQLITE'] and sql['sqliteFts5'] and not sql['externalConnections'],sql
  run('portal',['python3',str(tests/'diagnose_qt_portal_registration.py'),'--runtime',str(overlay),'--probe-binary',str(binary/'portal-probe'),'--output',str(out/'portal.json')])
  run('portal-frontend',['python3',str(tests/'integration_qt_portal_frontend.py'),'--runtime',str(overlay),'--probe-binary',str(binary/'portal-probe'),'--output',str(out/'portal-frontend.json')])
  run('audio',['python3',str(tests/'diagnose_qt_multimedia.py'),'--runtime',str(runtime),*overlay_args,'--asan','--probe-binary',str(binary/'multimedia-probe'),'--output',str(out/'audio.json')])
