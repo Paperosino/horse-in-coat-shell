@@ -99,3 +99,35 @@ class Watcher(unittest.TestCase):
      config.chmod(0o755);process.terminate()
      try:process.wait(timeout=5)
      except subprocess.TimeoutExpired:process.kill();process.wait()
+ def test_failed_diagnostic_and_state_writes_do_not_close_ipc(self):
+  with tempfile.TemporaryDirectory(prefix='hics-warning-write-') as directory:
+   root=Path(directory);config=root/'config/hics';config.mkdir(parents=True);runtime=root/'run';runtime.mkdir(mode=0o700)
+   (config/'configuration-history.json').write_text('{"keep":0}')
+   failure=root/'fail-writes';failure.touch()
+   wrapper=root/'daemon.py';wrapper.write_text('import sys\nfrom pathlib import Path\nsys.path.insert(0,'+repr(str(ROOT/'shell/assets'))+')\nimport configuration_manager as m\noriginal=m.atomic_json\ndef write(path,*args,**kwargs):\n if Path('+repr(str(failure))+').exists() and Path(path).name in ("configuration-recovery-warning.json","state.json"):\n  raise OSError(28,"No space left on device")\n return original(path,*args,**kwargs)\nm.atomic_json=write\nm.watch()\n')
+   env=dict(os.environ,XDG_CONFIG_HOME=str(root/'config'),XDG_STATE_HOME=str(root/'state'),XDG_DATA_HOME=str(root/'data'),XDG_CACHE_HOME=str(root/'cache'),XDG_RUNTIME_DIR=str(runtime),HICS_CONFIG_NO_SYSTEMD='1');env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
+   with (root/'log').open('w') as log:
+    process=subprocess.Popen([sys.executable,str(wrapper)],env=env,stdout=log,stderr=subprocess.STDOUT)
+    try:
+     def call():
+      endpoints=[]
+      for _ in range(80):
+       self.assertIsNone(process.poll(),(root/'log').read_text());endpoints=list(runtime.glob('hics-configuration-*/control.sock'))
+       if endpoints:break
+       time.sleep(.05)
+      self.assertTrue(endpoints)
+      with socket.socket(socket.AF_UNIX) as client:
+       client.settimeout(3);client.connect(str(endpoints[0]));client.sendall(b'{"operation":"status"}\n');raw=b''
+       while b'\n' not in raw:
+        part=client.recv(65536);self.assertTrue(part);raw+=part
+       return json.loads(raw)
+     result=call();self.assertNotIn('error',result);self.assertIn('No space left',result['recoveryWarning'])
+     for _ in range(3):self.assertNotIn('error',call())
+     self.assertLessEqual((root/'log').read_text().count('No space left'),2)
+     failure.unlink();(config/'configuration-history.json').write_text('{}');time.sleep(1.2)
+     call();result=call();self.assertTrue(result['settingsValid']);self.assertNotIn('No space left',result['recoveryWarning']);self.assertIsNone(process.poll())
+     published=next(runtime.glob('hics-configuration-*/state.json'));self.assertNotIn('No space left',json.loads(published.read_text())['recoveryWarning'])
+    finally:
+     process.terminate()
+     try:process.wait(timeout=5)
+     except subprocess.TimeoutExpired:process.kill();process.wait()

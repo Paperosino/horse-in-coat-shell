@@ -130,6 +130,18 @@ class DesktopCompletion(unittest.TestCase):
   self.assertEqual(config.JOURNAL.read_bytes(),saved);self.assertEqual(dock.read_text(),'{}')
   config.rollback(False)
   self.assertFalse(dock.exists());self.assertEqual(json.loads(shell.read_text()),{'original':True});self.assertFalse(config.JOURNAL.exists())
+ def test_failed_warning_file_and_stderr_keep_diagnostic_in_memory(self):
+  class BrokenLog:
+   def write(self,*args):raise OSError(28,'No space left on device')
+   def flush(self):pass
+  source='Fixture diagnostics write failed'
+  self.addCleanup(lambda:config.WARNING_IO_FAILURES.pop(source,None));self.addCleanup(lambda:config.PENDING_WARNINGS.pop(source,None))
+  with patch.object(config,'atomic_json',side_effect=OSError(28,'No space left on device')),patch.object(config.sys,'stderr',BrokenLog()):
+   config.persist_warning('Fixture section preserved',source)
+  self.assertIn('No space left',config.WARNING_IO_FAILURES[source]);self.assertEqual(config.PENDING_WARNINGS[source],'Fixture section preserved')
+  config.persist_warning('Fixture section preserved',source)
+  self.assertNotIn(source,config.WARNING_IO_FAILURES);self.assertNotIn(source,config.PENDING_WARNINGS)
+  self.assertEqual(config.read_json(self.state/'configuration-recovery-warning.json')['warning'],'Fixture section preserved')
  def test_rules_escape_application_names_and_validate_effects(self):
   rule=rules.validate_rule({'id':'fixture','application':'app.name','name':'App','floating':True,'opacity':.8,'idleInhibit':'focus'});text=rules.rule_lua(rule)
   self.assertIn('app\\\\.name',text);self.assertIn('idle_inhibit',text)

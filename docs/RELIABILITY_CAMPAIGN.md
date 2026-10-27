@@ -987,3 +987,29 @@ Permission injection не является проверкой настоящег
 Одновременный отказ записи STATE diagnostics и runtime state пока не закрыт:
 если запись самого warning/publish не удаётся, это отдельный следующий gate.
 Намеренно не заявляется полная устойчивость к ENOSPC всех файловых систем.
+
+### CONFIG-WATCH-005: не записывались diagnostics и runtime state
+
+Новый настоящий daemon lifecycle с wrapper, подставляющим ENOSPC в atomic_json
+для configuration-recovery-warning.json и state.json, воспроизвёл reset IPC:
+observe пытался записать warning и исключение завершало службу. persist_warning
+теперь хранит не записанные сообщения по фиксированным источникам в памяти;
+повтор публикации пробует сохранить их без отдельного таймера. Runtime publish
+перехватывает I/O error и оставляет status socket доступным. Причина доступна
+в status/recoveryWarning даже при невозможности её записи.
+
+Одинаковая ошибка источника не дублируется в stderr при каждом запросе.
+Сам stderr — best effort: OSError при его записи не ломает обработчик ошибки.
+После восстановления записи pending messages сохраняются, временная I/O причина
+снимается и не остаётся в новом state.json. Словари ограничены фиксированными
+источниками (capture/preview/rollback/runtime), не индексируются пользовательскими
+путями и не создают постоянного polling.
+
+3 test_configuration_watcher проходят: corruption pipeline, read-only rollback
+и новый ENOSPC lifecycle с несколькими status запросами/проверкой числа сообщений
+и восстановления опубликованного state. 28 test_desktop_completion включают
+одновременные ошибки warning-файла и stderr, последующий flush в обычный файл.
+25 recovery tests и настоящий recovery QML/helper/revert также прошли.
+Это fault injection на уровне helper atomic write, не тест реально заполненного
+block device или tmpfs. Следующий gate — ограниченный ENOSPC filesystem в ВМ,
+затем пакетная проверка накопленных изменений. Хост и пакет ВМ пока не обновлены.

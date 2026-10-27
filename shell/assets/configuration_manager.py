@@ -281,11 +281,31 @@ def read_preview():
 
 def preview_present():return JOURNAL.exists() or JOURNAL.is_symlink()
 
-def warn_preview():
+WARNING_IO_FAILURES={}
+PENDING_WARNINGS={}
+
+def diagnostic_stderr(message):
+ try:print(message,file=sys.stderr,flush=True)
+ except OSError:pass
+
+def io_warning(source,error):
+ reason=(error.strerror or 'I/O error') if isinstance(error,OSError) else 'I/O error'
+ message=source+': '+reason
+ if WARNING_IO_FAILURES.get(source)!=message:diagnostic_stderr(message)
+ WARNING_IO_FAILURES[source]=message
+
+def persist_warning(message,source):
  path=STATE/'configuration-recovery-warning.json'
  try:previous=bounded_object(path)
  except (OSError,ValueError):previous={}
- if previous.get('warning')!=PREVIEW_WARNING:atomic_json(path,{'warning':PREVIEW_WARNING},private=True)
+ try:
+  if previous.get('warning')!=message:atomic_json(path,{'warning':message},private=True)
+ except OSError as error:
+  PENDING_WARNINGS[source]=message;io_warning(source,error)
+ else:
+  PENDING_WARNINGS.pop(source,None);WARNING_IO_FAILURES.pop(source,None)
+
+def warn_preview():persist_warning(PREVIEW_WARNING,'Preview diagnostics write failed')
 
 
 ROLLBACK_FAILURE=''
@@ -294,7 +314,7 @@ def report_rollback_failure(error):
  global ROLLBACK_FAILURE
  detail=error.strerror if isinstance(error,OSError) else str(error)[:256]
  message='Automatic rollback failed: '+str(detail)+'. Original journal preserved for retry.'
- if message!=ROLLBACK_FAILURE:print(message,file=sys.stderr,flush=True)
+ if message!=ROLLBACK_FAILURE:diagnostic_stderr(message)
  ROLLBACK_FAILURE=message
 
 
@@ -336,7 +356,7 @@ def rollback(runtime_apply=True):
  try:
   if runtime_apply:apply_files(restored,True,False)
  except (OSError,subprocess.SubprocessError,ValueError) as error:warnings.append(str(error))
- if warnings:atomic_json(STATE/'configuration-recovery-warning.json',{'warning':'; '.join(warnings)},private=True)
+ if warnings:persist_warning('; '.join(warnings),'Rollback diagnostics write failed')
  # Runtime application needs defaults, but an abandoned trial must also
  # restore the original absence of files. Keep edits made during rollback.
  for name in remove_defaults:
@@ -383,7 +403,7 @@ def state():
   warning=bounded_object(STATE/'configuration-recovery-warning.json').get('warning','')
   if not isinstance(warning,str):raise ValueError('Invalid warning')
  except (OSError,ValueError):warning='Configuration recovery warning could not be read safely.'
- return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':settings,'settingsValid':valid,'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in pending.items() if k in ('token','deadline','name')},'pendingValid':pending_valid,'directory':str(HISTORY),'recoveryWarning':'; '.join(filter(None,[policy_warning,preview_warning,ROLLBACK_FAILURE,warning]))}
+ return {'startupCheckpoint':startup_checkpoint(),'statePath':str(runtime()/'state.json'),'settings':settings,'settingsValid':valid,'history':history(),'profiles':profiles(),'presets':[{k:v for k,v in p.items() if k!='files'} for p in presets()], 'pending':{k:v for k,v in pending.items() if k in ('token','deadline','name')},'pendingValid':pending_valid,'directory':str(HISTORY),'recoveryWarning':'; '.join(filter(None,[policy_warning,preview_warning,ROLLBACK_FAILURE,warning,*WARNING_IO_FAILURES.values()]))}
 
 def dispatch(op,p,shell_pid=None):
  if op=='status':return state()
@@ -529,14 +549,18 @@ def watch():
       except (OSError,ValueError):previous={}
       if previous.get('warning')==paused_warning:warning.unlink(missing_ok=True)
       paused_warning=None
+      PENDING_WARNINGS.pop('Capture diagnostics write failed',None);WARNING_IO_FAILURES.pop('Capture diagnostics write failed',None)
     except (OSError,ValueError,TypeError) as error:
      message='Configuration history capture paused: '+str(error);paused_warning=message
-     warning=STATE/'configuration-recovery-warning.json'
-     try:previous=bounded_object(warning)
-     except (OSError,ValueError):previous={}
-     if previous.get('warning')!=message:atomic_json(warning,{'warning':message},private=True)
+     persist_warning(message,'Capture diagnostics write failed')
    observe(True)
-   def publish():atomic_json(root/'state.json',state(),private=True)
+   def publish():
+    for source,message in list(PENDING_WARNINGS.items()):persist_warning(message,source)
+    previous=WARNING_IO_FAILURES.pop('Runtime state write failed',None)
+    try:atomic_json(root/'state.json',state(),private=True)
+    except OSError as error:
+     if previous:WARNING_IO_FAILURES['Runtime state write failed']=previous
+     io_warning('Runtime state write failed',error)
    publish()
    events=None
    signature=os.environ.get('HYPRLAND_INSTANCE_SIGNATURE','')
@@ -554,6 +578,7 @@ def watch():
        except (OSError,ValueError):warning={}
        if warning.get('warning')==PREVIEW_WARNING:path.unlink(missing_ok=True)
        preview_broken=False
+       PENDING_WARNINGS.pop('Preview diagnostics write failed',None);WARNING_IO_FAILURES.pop('Preview diagnostics write failed',None)
      except (OSError,ValueError):
       pending={}
       if not preview_broken:warn_preview()
