@@ -28,6 +28,10 @@ qreal Cpu::temperature() const {
     return m_temperature;
 }
 
+bool Cpu::temperatureAvailable() const {
+    return m_temperatureAvailable;
+}
+
 void Cpu::tick() {
     if (!m_nameLoaded) {
         readNameOnce();
@@ -87,8 +91,10 @@ void Cpu::refreshPercentage() {
 
 void Cpu::refreshTemperature() {
     const auto t = sensorslib::cpuPackageTemp();
-    const qreal newTemp = t.value_or(0.0);
-    if (std::abs(newTemp - m_temperature) > 0.05) {
+    const bool available = t && std::isfinite(*t);
+    const qreal newTemp = available ? *t : 0.0;
+    if (available != m_temperatureAvailable || std::abs(newTemp - m_temperature) > 0.05) {
+        m_temperatureAvailable = available;
         m_temperature = newTemp;
         emit temperatureChanged();
     }

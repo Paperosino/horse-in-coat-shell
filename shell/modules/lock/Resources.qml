@@ -120,7 +120,7 @@ StyledRect {
                             anchors.centerIn: parent
                             anchors.verticalCenterOffset: Math.round(fontInfo.pointSize * 0.04)
 
-                            text: Units.formatSensorTemp(Cpu.temperature)
+                            text: Cpu.temperatureAvailable ? Units.formatSensorTemp(Cpu.temperature) : "—"
                             color: Cpu.temperature > 90 ? Colours.palette.m3onErrorContainer : Colours.palette.m3secondary
                             font: Tokens.font.title.builders.medium.scale(cpu.width / 112).width(50).build()
                         }

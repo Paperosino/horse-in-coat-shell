@@ -2164,3 +2164,27 @@ The recorded VM also shows0°C without a physical CPU sensor and a transient
 Collecting data network graph: sensor-unavailable display and graph readiness
 need focused checks. The clip is not a CPU/GPU performance benchmark.
 Other historical recordings/tour media remain open; host78 unchanged.
+
+
+### CPU-SENSOR-001: absent sensor presented as measured0°C
+
+The actual dashboard102 recording showed0°C in a VM with no physical CPU sensor.
+Source Cpu::refreshTemperature() discarded optional availability with value_or0;
+UI could not distinguish no sample from a real zero. Added a boolean
+Cpu.temperatureAvailable sharing the existing temperatureChanged notification.
+Unavailable/non-finite samples clear availability; real0remains available and
+thresholded ordinary updates retain their existing behavior. Dashboard CPU card
+and lock resources show an em dash for missing samples. The generic hero card
+keeps a determinate empty temperature bar while unavailable; no perpetual
+indeterminate animation, extra timer or service is introduced. GPU sensor
+availability is a separate remaining audit, not inferred from this CPU change.
+
+Real cpu.cpp test with deterministic sensors and an isolated timer-policy fixture
+passed: absent→valid0→43°C→near-identical sample→absent→NaN/infinity→39°C,
+including change notifications and restoration. Production services target rebuilt.
+The actual HeroCard in private nested QML passed absent/zero/valid/lost display
+checks and indeterminate=false, using production fonts and immutable runtime
+snapshot. Evidence cpu-sensor-availability.log, cpu-availability-build.log and
+cpu-sensor-ui.log outside Git. The backend test isolates the sampler from tick
+policy; this is not physical sensor hardware validation. The new source has
+not yet been packaged/installed; guest remains102, host78.

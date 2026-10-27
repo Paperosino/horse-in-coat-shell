@@ -17,6 +17,7 @@ StyledRect {
     required property color accent
     required property real usage
     required property real temperature
+    property bool temperatureAvailable: true
 
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.extraLarge
@@ -100,16 +101,18 @@ StyledRect {
             }
 
             StyledText {
-                text: Units.formatSensorTemp(root.temperature)
+                objectName: "sensorTemperature"
+                text: root.temperatureAvailable ? Units.formatSensorTemp(root.temperature) : "—"
                 font: Tokens.font.body.builders.medium.build()
             }
         }
 
         StyledProgressBar {
-            value: root.temperature / 100
+            objectName: "sensorTemperatureProgress"
+            value: root.temperatureAvailable ? root.temperature / 100 : 0
             implicitHeight: Tokens.padding.small
             fgColour: root.accent
-            indeterminate: isNaN(root.usage) || isNaN(root.temperature)
+            indeterminate: root.temperatureAvailable && (isNaN(root.usage) || isNaN(root.temperature))
         }
     }
 

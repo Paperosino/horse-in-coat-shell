@@ -311,6 +311,8 @@ ShellRoot {
         if os.environ['HICS_TEST_FONT_RENDERING']=='narrow':fixture=fixture.replace('implicitWidth: 1000','implicitWidth: 560')
         fixture=fixture.replace('/tmp/hics-icon-policy-',str(base/'icon-policy-'))
         (base/'shell/shell.qml').write_text(fixture)
+    if os.environ.get('HICS_TEST_CPU_SENSOR'):
+        (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/cpu-sensor.qml').read_text())
     if os.environ.get('HICS_TEST_SCALING'):
         (base/'config/hics/shell.json').write_text('{"appearance":{"reducedMotion":true,"font":{"hinting":"none"}}}')
         (base/'shell/shell.qml').write_text((ROOT/'tests/fixtures/scaling-quality.qml').read_text())
@@ -370,7 +372,10 @@ ShellRoot {
         live=output.split('SETTINGS_DESIGN_OK')[0]
         assert not any('accessed without a screen set on ToolTip' in line for line in live.splitlines()),live[:7000]
         assert not any(s in live for s in ('TypeError:','ReferenceError:','Binding loop','Cannot assign','Unable to assign')),live[-7000:]
-        print('PASS: live settings screenshots, searchable disclosure, narrow forms, reduced motion, high contrast and rapid navigation')
+        if os.environ.get('HICS_TEST_CPU_SENSOR'):
+            print('PASS: real dashboard card distinguishes absent, zero and valid temperature without an indefinite progress animation')
+        else:
+            print('PASS: live settings screenshots, searchable disclosure, narrow forms, reduced motion, high contrast and rapid navigation')
     finally:
         if desktop_daemon:
             desktop_daemon.terminate()
