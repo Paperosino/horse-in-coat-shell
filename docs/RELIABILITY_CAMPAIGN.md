@@ -1177,3 +1177,27 @@ Source SHA256 aa909348553439cd0c271b156af2285a84aab4682a8dfe7b42fa46d5e2bcd13e
 Краткий статус обновлён до кандидата93 и явно сохраняет границу unit-context92
 как baseline до архивных исправлений. Полная кампания, чистая переустановка
 итогового кандидата и замена старых демонстраций остаются открытыми.
+
+### Обычный UI пакета93 после safe mode
+
+QMP screenshot подтвердил safe UI и кнопку «Попробовать обычный запуск».
+До клика проверены compositor locked=false, safe=true, отсутствие preview.
+Кнопка нажата обычным pointer press/release (не прямым вызовом resume CLI).
+Новый runner35196/shell35239 сообщает sessionHealth.ready=true, safe/requested
+сброшены. Kitty6637 остался в прежнем app scope. Наблюдаемый интервал всей
+последовательности ~2.97s включает SSH/QMP; это не холодный запуск и не benchmark.
+
+Панель открывает launcher через HICS logo; ввод kitty отфильтровал список до
+установленного приложения, Escape закрыл меню и вернул ввод прежнему окну.
+Это проверка поиска/закрытия, не запуск второго приложения. Screenshots:
+resume93-before/after.png, launcher93.png, launcher93-search.png,
+launcher93-closed.png в приватном VM lab. Видимый mascot панели — HICS.
+
+После166s наблюдения новый startup checkpoint version1 создан после начала
+перехода. В журнале нового shell выбранные категории TypeError/ReferenceError/
+Binding loop/Unable to/No screen context/failed to load имеют count0;
+configerrors Hyprland пуст. Это не отсутствие всех возможных warning и не
+доказательство длительной стабильности. Evidence resume93-result.json.
+Нативные плагины на хосте не трогались; в ВМ оставлен обычный рабочий shell93
+вместо safe UI. Проверка первого запуска с чистым профилем и cold cache остаётся
+отдельной незавершённой задачей.
