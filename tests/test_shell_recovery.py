@@ -181,3 +181,9 @@ class RecoveryTests(unittest.TestCase):
   r.begin(10);record=r.read(r.RECORD);record['active']=False;record['failures']=[10**400,9,10]
   self.feature_common.atomic_json(r.RECORD,record,private=True)
   self.assertTrue(r.begin(11.0))
+
+ def test_strict_object_depth_limit_checks_after_null_leaves(self):
+  r=self.r
+  self.assertEqual(r.strict_object('{"a":null,"b":[null,{"c":1}]}'),{'a':None,'b':[None,{'c':1}]})
+  with self.assertRaisesRegex(ValueError,'nesting limit'):
+   r.strict_object('{"a":null,"deep":'+'['*200+'0'+']'*200+'}')

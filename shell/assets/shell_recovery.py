@@ -11,8 +11,16 @@ LIMIT = 8 * 1024 * 1024
 
 
 def strict_object(text):
-    value=json.loads(text,parse_constant=lambda value: (_ for _ in ()).throw(ValueError('Non-finite recovery value')))
+    try:value=json.loads(text,parse_constant=lambda value: (_ for _ in ()).throw(ValueError('Non-finite recovery value')))
+    except RecursionError as error:raise ValueError('JSON nesting limit exceeded') from error
     if not isinstance(value,dict):raise ValueError('Invalid recovery record')
+    stack=[iter(value.values())]
+    while stack:
+        try:child=next(stack[-1])
+        except StopIteration:stack.pop();continue
+        if isinstance(child,(dict,list)):
+            if len(stack)>=128:raise ValueError('JSON nesting limit exceeded')
+            stack.append(iter(child.values()) if isinstance(child,dict) else iter(child))
     return value
 
 

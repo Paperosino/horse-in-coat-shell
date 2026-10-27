@@ -75,6 +75,29 @@ class DesktopCompletion(unittest.TestCase):
   result=subprocess.run([sys.executable,str(ROOT/'shell/assets/plugin_manager.py'),'recovery','off'],text=True,capture_output=True,timeout=5)
   self.assertEqual(result.returncode,1);self.assertIn('file was preserved',json.loads(result.stdout)['error'])
   self.assertEqual(manager.PREFS.stat().st_size,16*1024*1024)
+ def test_malformed_manifest_does_not_break_catalogue(self):
+  m=self.plugin_manager;m.USER.mkdir(parents=True)
+  for index,fields in enumerate(({'metadata':None},{'entryPoints':[]},{'settingsSchema':{}},{'dependencies':None})):
+   folder=m.USER/('bad-'+str(index));folder.mkdir()
+   (folder/'manifest.json').write_text(json.dumps({'id':folder.name,'api':'hics-1',**fields}))
+  state=m.scan();self.assertEqual(len(state['errors']),4)
+  self.assertTrue(any(p['id']=='quick-actions' for p in state['plugins']))
+ def test_nonregular_manifest_rejected_without_following_links(self):
+  m=self.plugin_manager;folder=self.base/'bad-plugin';folder.mkdir();path=folder/'manifest.json'
+  os.mkfifo(path)
+  with self.assertRaises(ValueError):m.manifest(folder)
+  path.unlink();outside=self.base/'outside';outside.write_text('{"id":"external","api":"hics-1"}')
+  path.symlink_to(outside)
+  with self.assertRaises(ValueError):m.manifest(folder)
+  self.assertEqual(json.loads(outside.read_text())['id'],'external')
+ def test_invalid_manifest_json_is_not_treated_as_legacy_plugin(self):
+  m=self.plugin_manager;folder=self.base/'invalid';folder.mkdir();(folder/'manifest.json').write_text('{invalid')
+  with self.assertRaises(ValueError):m.manifest(folder)
+ def test_deep_manifest_does_not_abort_catalogue(self):
+  m=self.plugin_manager;m.USER.mkdir(parents=True);folder=m.USER/'deep';folder.mkdir()
+  (folder/'manifest.json').write_text('{"nested":'+'['*2000+'0'+']'*2000+'}')
+  state=m.scan();self.assertEqual(len(state['errors']),1)
+  self.assertIn('nesting limit',state['errors'][0]);self.assertTrue(state['plugins'])
  def test_widget_placement_does_not_replace_settings(self):
   manager=self.plugin_manager;manager.atomic_json(manager.PREFS,{'settings':{'system-monitor':{'refresh':5}}})
   manager.desktop_layout('system-monitor',{'screen':'TEST-1','geometry':{'x':48,'y':64,'locked':True}})

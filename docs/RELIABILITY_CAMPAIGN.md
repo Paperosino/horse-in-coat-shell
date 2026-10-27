@@ -673,3 +673,26 @@ CLI отвергает sparse 16MiB файл с JSON ошибкой и сохр�
 Новый helper включается существующим CMake glob assets/*.py. Пока не установлено.
 Проверки прочих manifest/network/import путей plugin_manager остаются отдельными
 открытыми пунктами; это не общее утверждение о безопасности произвольного QML.
+
+### EXTENSION-003: один манифест обрывал весь каталог
+
+Новый fault-case с metadata=null воспроизвёл AttributeError вне списка
+обрабатываемых ошибок scan(). В результате один пользовательский плагин
+скрывал весь каталог, включая рабочие bundled entries. Перед интерпретацией
+проверяются map поля entryPoints/metadata/permissions и list поля
+setting/settingsSchema/dependencies. Ошибки остаются привязанными к папке;
+остальные плагины продолжают перечисляться.
+
+JSON/TOML манифесты читаются через bounded open (2MiB, fstat, nofollow/nonblock),
+а invalid JSON больше не превращается в пустой legacy manifest. Для общего
+strict_object добавлен итеративный предел вложенности 128 контейнеров и
+преобразование RecursionError parser в ValueError. Python текущего стенда
+принимал вложенность 2000 без RecursionError, поэтому полагаться только на
+исключение parser было недостаточно. Проверка не использует рекурсивный обход.
+
+16 test_de_completion и 24 test_shell_recovery проходят: четыре невалидных
+schema случая в одном каталоге, сохранение рабочего quick-actions, FIFO,
+symlink, invalid JSON, глубина 2000, null листья перед глубоким контейнером.
+Настоящий recovery QML/helper/guarded rollback повторно проверен. Изменение
+пока не установлено. Рекурсивное чтение QML источников и сетевой импорт остаются
+открытыми пунктами аудита, а не покрытыми этим исправлением.

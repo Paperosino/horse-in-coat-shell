@@ -9,6 +9,7 @@ import argparse,hashlib,json,os,re,shutil,sys,tempfile,tomllib,urllib.request,ur
 from pathlib import Path
 from feature_common import CONFIG,DATA,STATE,read_json,atomic_json,output
 from plugin_preferences import load as load_preferences
+from shell_recovery import read_text as bounded_text, strict_object
 ASSETS=Path(__file__).resolve().parent
 BUNDLED=ASSETS.parent/'plugins';USER=DATA/'plugins';PREFS=CONFIG/'plugins.json';TRASH=STATE/'plugin-trash'
 ID=re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$')
@@ -27,11 +28,18 @@ def checked_path(root,name):
     return p
 
 def manifest(folder,bundled=False):
-    for name in ('manifest.json','plugin.toml'):
-        if (folder/name).exists() and (folder/name).stat().st_size>2097152:raise ValueError('Extension manifest is too large')
-    if (folder/'manifest.json').exists():raw=read_json(folder/'manifest.json');fmt='native' if (str(raw.get('api','')).startswith('hics-') or raw.get('api')=='hyprstack-1') else 'noctalia-qml' if 'entryPoints' in raw else 'angelos'
-    elif (folder/'plugin.toml').exists():raw=tomllib.loads((folder/'plugin.toml').read_text());fmt='noctalia-luau'
-    else:raise ValueError('No manifest.json or plugin.toml')
+    try:document=bounded_text(folder/'manifest.json',2097152)
+    except FileNotFoundError:
+        try:raw=tomllib.loads(bounded_text(folder/'plugin.toml',2097152))
+        except FileNotFoundError:raise ValueError('No manifest.json or plugin.toml')
+        fmt='noctalia-luau'
+    else:
+        raw=strict_object(document)
+        fmt='native' if (str(raw.get('api','')).startswith('hics-') or raw.get('api')=='hyprstack-1') else 'noctalia-qml' if 'entryPoints' in raw else 'angelos'
+    for key in ('entryPoints','metadata','permissions'):
+        if key in raw and not isinstance(raw[key],dict):raise ValueError('Invalid manifest object: '+key)
+    for key in ('setting','settingsSchema','dependencies'):
+        if key in raw and not isinstance(raw[key],list):raise ValueError('Invalid manifest list: '+key)
     original=str(raw.get('id',folder.name));identifier=re.sub(r'[^A-Za-z0-9_.-]','-',original)
     if not ID.fullmatch(identifier):raise ValueError('Invalid plugin ID')
     entries={};issues=[];settings=[]
