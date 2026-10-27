@@ -264,3 +264,13 @@ logical output. Real integration падает на старом Lua и прох�
 с четырёх сторон и output position200x100 проверены. Нет polling. Actual Nexus
 с min-size constraints, snapped reflow и multi-monitor removal ещё не закрыты.
 Source fix пока не установлен; пакет100 остаётся предыдущим кандидатом.
+
+Source: actual SettingsWindow теперь учитывает layer reservations в minimum/
+maximum size; native hics_workarea обновляет QML model после late panel commits.
+Одноразовая коррекция resize ждёт конца транзакции и допустимого client size,
+не вмешивается в drag/fullscreen/lock/offscreen. Компактный заголовок оставляет
+scroll viewport; tall SelectRow раскрывает в поиске реальный control. Новая real
+integration7 checks проходит, native100 counterfactual падает на late reservation.
+Также прошли16 workarea checks,5 drag rounds и settings design integration.
+Снимок settings-workarea-compact.png проверен. Ещё не упаковано/не установлено;
+ASan/VM/multi-monitor/прочие hardware/functionality gates остаются открыты.

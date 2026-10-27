@@ -21,6 +21,7 @@ ColumnLayout {
     property bool isSubPage: nState.subPageIdxStack.length > 0
     readonly property int cappedWidth: Math.min(Tokens.sizes.nexus.maxContentWidth, width)
     readonly property alias flickable: flickable
+    readonly property bool compactHeader: height < 420 * Tokens.scale
 
     default property Item contentChild
     property bool explicitWheelScrolling: Onboarding.running
@@ -130,9 +131,12 @@ ColumnLayout {
                 expanded = ancestor.expandForSearch() || expanded;
         if (expanded || item.height <= 0 || flickable.height <= 0)
             return false;
-        const point = item.mapToItem(flickable.contentItem, 0, 0);
+        // A translated description can make a row taller than the viewport.
+        // In that case reveal its actual control instead of clipping its end.
+        const focusItem = item.height > flickable.height && item.searchFocusItem ? item.searchFocusItem : item;
+        const point = focusItem.mapToItem(flickable.contentItem, 0, 0);
         flickable.cancelFlick();
-        flickable.contentY = Math.max(-flickable.topMargin, Math.min(Math.max(-flickable.topMargin, flickable.contentHeight - flickable.height + flickable.bottomMargin), point.y - (flickable.height - item.height) / 2));
+        flickable.contentY = Math.max(-flickable.topMargin, Math.min(Math.max(-flickable.topMargin, flickable.contentHeight - flickable.height + flickable.bottomMargin), point.y - (flickable.height - focusItem.height) / 2));
         searchHighlight = item;
         highlightExpiry.restart();
         return true;
@@ -161,6 +165,7 @@ ColumnLayout {
     spacing: Tokens.spacing.large
 
     SettingsBreadcrumbs {
+        visible: !root.compactHeader
         Layout.fillWidth: true
         nState: root.nState
         title: root.title
@@ -169,7 +174,7 @@ ColumnLayout {
 
     StyledRect {
         Layout.fillWidth: true
-        implicitHeight: header.implicitHeight + Tokens.padding.large * 2
+        implicitHeight: header.implicitHeight + (root.compactHeader ? Tokens.padding.small : Tokens.padding.large) * 2
         radius: Tokens.rounding.extraLarge
         color: Colours.tPalette.m3surfaceContainerLow
         RowLayout {
@@ -177,7 +182,7 @@ ColumnLayout {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: Tokens.padding.large
+            anchors.margins: root.compactHeader ? Tokens.padding.small : Tokens.padding.large
             spacing: Tokens.spacing.medium
             IconButton {
                 visible: root.isSubPage || root.nState.canGoBack
@@ -188,6 +193,7 @@ ColumnLayout {
                 onClicked: root.nState.goBack()
             }
             StyledRect {
+                visible: !root.compactHeader
                 implicitWidth: 52 * Tokens.scale
                 implicitHeight: implicitWidth
                 radius: Tokens.rounding.extraLarge
@@ -206,13 +212,14 @@ ColumnLayout {
                 StyledText {
                     Layout.fillWidth: true
                     text: root.title
-                    font: Tokens.font.headline.small
-                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    font: root.compactHeader ? Tokens.font.title.medium : Tokens.font.headline.small
+                    wrapMode: root.compactHeader ? Text.NoWrap : Text.WrapAtWordBoundaryOrAnywhere
+                    elide: root.compactHeader ? Text.ElideRight : Text.ElideNone
                     Accessible.role: Accessible.Heading
                 }
                 StyledText {
                     Layout.fillWidth: true
-                    visible: !!root.pageDescription
+                    visible: !root.compactHeader && !!root.pageDescription
                     text: root.pageDescription
                     font: Tokens.font.body.small
                     color: Colours.palette.m3onSurfaceVariant

@@ -16,6 +16,7 @@
 #include <hyprland/src/layout/supplementary/DragController.hpp>
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/EventManager.hpp>
 #include <hyprland/src/render/decorations/DecorationPositioner.hpp>
 
 class CStackingInput {
@@ -163,7 +164,6 @@ class CStackingInput {
 
   private:
     void syncReservedAreas() {
-        if (!enabled()) { m_reservedAreas.clear(); return; }
         const auto& monitors = State::monitorState()->monitors();
         bool changed = monitors.size() != m_reservedAreas.size();
         for (const auto& monitor : monitors) {
@@ -187,6 +187,10 @@ class CStackingInput {
         if (m_workAreaTimer) g_pEventLoopManager->removeTimer(m_workAreaTimer);
         m_workAreaTimer = makeShared<CEventLoopTimer>(std::chrono::milliseconds(1),
             [this](SP<CEventLoopTimer>, void*) {
+                // QScreen does not expose layer-shell exclusive zones, and
+                // Hyprland's standard monitor events do not cover their commits.
+                // Publish once per changed snapshot so clients can refresh IPC.
+                if (g_pEventManager) g_pEventManager->postEvent({"hics_workarea", ""});
                 if (!enabled()) return;
                 const auto manager = dynamic_cast<Config::Lua::CConfigManager*>(Config::mgr().get());
                 if (manager) manager->eval("if hyprstack_layouts and hyprstack_layouts.refresh_maximized_windows then hyprstack_layouts.refresh_maximized_windows() end", true);

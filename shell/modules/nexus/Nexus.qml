@@ -25,9 +25,14 @@ Item {
 
     signal close
 
-    // Keep settings inside the output, including portrait screens and large UI scales.
-    readonly property real availableWidth: Math.max(1, (nState.screen?.width ?? 1280) - Tokens.padding.extraLarge * 2)
-    readonly property real availableHeight: Math.max(1, (nState.screen?.height ?? 720) - Tokens.padding.extraLarge * 2)
+    // Layer-shell reservations are logical pixels, just like QScreen geometry.
+    // Do not impose a client minimum larger than the remaining work area.
+    readonly property var output: Hypr.monitors.values.find(m => m.name === nState.screen?.name)?.lastIpcObject
+    readonly property var reserved: output?.reserved ?? [0, 0, 0, 0]
+    readonly property real availableWidth: Math.max(1, Math.floor((nState.screen?.width ?? 1280)
+        - (reserved[0] ?? 0) - (reserved[2] ?? 0) - Tokens.padding.extraLarge * 2))
+    readonly property real availableHeight: Math.max(1, Math.floor((nState.screen?.height ?? 720)
+        - (reserved[1] ?? 0) - (reserved[3] ?? 0) - Tokens.padding.extraLarge * 2))
     implicitWidth: Math.min(availableWidth, Math.max(Tokens.sizes.nexus.minWidth, Math.round(implicitHeight * Tokens.sizes.nexus.ratio)))
     implicitHeight: Math.round(Math.min(840 * Tokens.scale, availableHeight,
         Math.max(Tokens.sizes.nexus.minHeight, (nState.screen?.height ?? 720) * Tokens.sizes.nexus.heightMult * 0.95)))
@@ -136,6 +141,8 @@ Item {
         anchors.bottom: parent.bottom
         anchors.leftMargin: navPane.anchors.margins + anchors.margins
         anchors.margins: Tokens.padding.extraLarge
+        anchors.topMargin: root.height < 480 * Tokens.scale ? Tokens.padding.small : Tokens.padding.extraLarge
+        anchors.bottomMargin: root.height < 480 * Tokens.scale ? Tokens.padding.small : Tokens.padding.extraLarge
 
         nState: nState
     }

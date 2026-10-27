@@ -25,6 +25,9 @@
 #include <hyprland/src/protocols/LayerShell.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/layout/LayoutManager.hpp>
+#include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
+#include <hyprland/src/layout/target/Target.hpp>
+#include <hyprland/src/layout/supplementary/DragController.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/state/MonitorState.hpp>
 
@@ -110,6 +113,10 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
 }
 
 CHyprBar::~CHyprBar() {
+    if (m_fitResizeTimer) {
+        m_fitResizeTimer->cancel();
+        if (g_pEventLoopManager) g_pEventLoopManager->removeTimer(m_fitResizeTimer);
+    }
     if (m_ownsMaximizePolicy && m_pWindow) m_pWindow->m_suppressedEvents &= ~Desktop::View::SUPPRESS_MAXIMIZE;
     std::erase(g_pGlobalState->bars, m_self);
 }
@@ -729,6 +736,71 @@ eDecorationType CHyprBar::getDecorationType() {
 
 void CHyprBar::updateWindow(PHLWINDOW pWindow) {
     damageEntire();
+    if (!pWindow || m_fittingResize) return;
+    const CBox goal{pWindow->position(Desktop::View::IGeometric::GEOMETRIC_GOAL),
+                    pWindow->size(Desktop::View::IGeometric::GEOMETRIC_GOAL)};
+    const auto previous = std::exchange(m_lastResizeGoal, goal);
+    const auto monitor = pWindow->m_monitor.lock();
+    if (!monitor) return;
+    const CBox viewport{monitor->m_position, monitor->m_size};
+    if (!previous || !m_resizeViewport) {m_resizeViewport=viewport;return;}
+    if (previous->size() == goal.size()) return;
+    const CBox oldViewport=*m_resizeViewport;
+    m_resizeViewport=viewport;
+    if (!g_pGlobalState->config.enabled->value() || g_layoutManager->dragController()->target()
+        || g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) return;
+    // Client size handling finishes its position update after decoration
+    // callbacks. Reconcile once after that transaction, not inside setBox().
+    if (m_fitResizeTimer) {
+        m_fitResizeTimer->cancel();
+        g_pEventLoopManager->removeTimer(m_fitResizeTimer);
+    }
+    m_fitResizeTimer=makeShared<CEventLoopTimer>(std::chrono::milliseconds(1),
+        [this, previous=*previous, oldViewport](SP<CEventLoopTimer> timer,void*) {
+            g_pEventLoopManager->removeTimer(timer);
+            m_fitResizeTimer.reset();
+            fitAfterResize(previous,oldViewport);
+        },nullptr);
+    g_pEventLoopManager->addTimer(m_fitResizeTimer);
+}
+
+void CHyprBar::fitAfterResize(const CBox& previous, const CBox& oldViewport) {
+    const auto pWindow=m_pWindow.lock();
+    if (!pWindow || !g_pGlobalState->config.enabled->value() || !pWindow->m_isMapped || !pWindow->m_isFloating
+        || pWindow->m_pinned || pWindow->isHidden() || !pWindow->m_workspace || pWindow->m_workspace->m_isSpecialWorkspace
+        || Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_NONE
+        || g_layoutManager->dragController()->target() || g_pInputManager->isConstrained()
+        || g_pSessionLockManager->isSessionLocked()) return;
+    const CBox goal{pWindow->position(Desktop::View::IGeometric::GEOMETRIC_GOAL),pWindow->size(Desktop::View::IGeometric::GEOMETRIC_GOAL)};
+    const auto monitor = pWindow->m_monitor.lock();
+    const auto target = pWindow->layoutTarget();
+    if (!monitor || !target) return;
+    const CBox viewport{monitor->m_position, monitor->m_size};
+    // Preserve a deliberately offscreen float when it is subsequently resized.
+    const auto contained = [&](const Vector2D& origin) {
+        return previous.x >= origin.x - 1 && previous.y >= origin.y - 1
+            && previous.x + previous.w <= origin.x + oldViewport.w + 1
+            && previous.y + previous.h <= origin.y + oldViewport.h + 1;
+    };
+    if (!contained(oldViewport.pos()) && !contained(viewport.pos())) return;
+    auto work = viewport;
+    monitor->m_reservedArea.applyip(work);
+    // Match stacking's client-box convention. Input extents include invisible
+    // resize handles and are not extra visible titlebars or panel reservations.
+    const auto minimum = work.pos() + Vector2D{0.0, visibleHeight()};
+    // An intermediate configure can still carry the old, now impossible
+    // minimum. Do not push that oversized box below the panel: let the next
+    // client configure settle before attempting full containment.
+    const auto available=work.pos()+work.size()-minimum;
+    if (goal.w>available.x+.5 || goal.h>available.y+.5) return;
+    const auto end = work.pos() + work.size() - goal.size();
+    const Vector2D maximum{std::max(minimum.x, end.x), std::max(minimum.y, end.y)};
+    const auto position = goal.pos().clamp(minimum, maximum).floor();
+    if ((position - goal.pos()).size() < 1) return;
+    m_fittingResize = true;
+    m_lastResizeGoal = CBox{position, goal.size()};
+    target->setPositionGlobal(CBox{position, goal.size()});
+    m_fittingResize = false;
 }
 
 // HYPRSTACK_ATOMIC_STACKING: reserve title extents before restoring geometry.

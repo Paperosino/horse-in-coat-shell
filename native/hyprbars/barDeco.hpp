@@ -13,6 +13,7 @@
 #include <hyprland/src/helpers/signal/Signal.hpp>
 #include "globals.hpp"
 #include "decoration-policy.hpp"
+#include <hyprland/src/managers/eventLoop/EventLoopTimer.hpp>
 #include <map>
 
 #include <hyprland/src/managers/input/InputManager.hpp>
@@ -65,6 +66,11 @@ class CHyprBar : public IHyprWindowDecoration {
     PHLWINDOWREF               m_pWindow;
 
     CBox                       m_bAssignedBox;
+    std::optional<CBox>         m_lastResizeGoal;
+    std::optional<CBox>         m_resizeViewport;
+    SP<CEventLoopTimer>         m_fitResizeTimer;
+    void fitAfterResize(const CBox& previous, const CBox& viewport);
+    bool                       m_fittingResize = false;
 
     SP<Render::ITexture>       m_pTextTex;
     std::map<std::string, SP<Render::ITexture>> m_controlIcons;

@@ -26,6 +26,10 @@ FloatingWindow {
 
     minimumSize.width: Math.min(contentItem.Tokens.sizes.nexus.minWidth, nexus.availableWidth)
     minimumSize.height: Math.min(contentItem.Tokens.sizes.nexus.minHeight, nexus.availableHeight)
+    // FloatingWindow implicit sizes only apply before mapping. Keep a live
+    // ceiling so output changes can also resize an already visible window.
+    maximumSize.width: nexus.availableWidth
+    maximumSize.height: nexus.availableHeight
 
     contentItem.Config.screen: screen.name
     contentItem.Tokens.screen: screen.name

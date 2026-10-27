@@ -293,3 +293,17 @@
   размещение по каждому событию панелей и не менять saved normal rectangle
   maximized окна. Проверять реальные resize/move, scale1.25 и перенос output,
   а высоту SSD брать из decoration policy, не угадывать по имени класса теста.
+
+- FloatingWindow implicitWidth/Height действуют до map. Для SettingsWindow
+  live minimum/maximum должны учитывать реальные layer reservations и QScreen
+  geometry. Изменение exclusive zone не гарантирует стандартного monitor IPC:
+  hics_workarea публикуется по изменённому snapshot на существующем кадре.
+- Resize клиента может пройти через старый, уже не помещающийся minimum.
+  Не размещать такую промежуточную геометрию как окончательную и не менять
+  target внутри незаконченного setBox. Одноразовую коррекцию отменять вместе
+  с владельцем; не делать из неё polling. INPUT_EXTENTS включают невидимые
+  resize handles и не равны высоте видимой SSD рамки.
+- Проверять не только границы окна, но и реальный scroll viewport при крупных
+  шрифтах/низком окне. Компактный header сохраняет управление и навигацию;
+  tall SelectRow раскрывает searchFocusItem, если вся строка не помещается.
+  grabToImage вызывать у QML Nexus, а не у C++ contentItem без QML engine.

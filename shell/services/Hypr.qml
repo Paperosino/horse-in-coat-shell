@@ -249,7 +249,7 @@ Singleton {
             } else if (["openwindow", "closewindow", "movewindow"].includes(n)) {
                 root.refreshToplevels();
                 Hyprland.refreshWorkspaces();
-            } else if (n.includes("mon")) {
+            } else if (n === "hics_workarea" || n.includes("mon")) {
                 Hyprland.refreshMonitors();
             } else if (n.includes("workspace")) {
                 Hyprland.refreshWorkspaces();

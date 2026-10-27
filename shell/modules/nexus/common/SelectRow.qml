@@ -17,6 +17,7 @@ ConnectedRect {
     property alias fallbackIcon: splitButton.fallbackIcon
     property alias menuOnTop: splitButton.menuOnTop
     property alias updateActiveOnSelection: splitButton.menu.updateActiveOnSelection
+    readonly property alias searchFocusItem: splitButton
 
     signal selected(MenuItem item)
 

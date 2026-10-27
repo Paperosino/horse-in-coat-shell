@@ -1859,3 +1859,64 @@ all client size constraints or a complete Nexus acceptance. The actual settings
 window minimum dimensions may exceed a heavily reserved logical screen; that
 requires a separate real-QML check. Snapped-window reflow and multi-monitor
 removal remain open. Host native plugins were not hot-reloaded.
+
+### Actual SettingsWindow: live constraints, late panels and compact content
+
+The previous external-Kitty test did not cover the actual client's minimum
+constraints. New `tests/integration_settings_workarea.py` loads production
+SettingsWindow/Nexus/DisplayPage with private HOME/XDG, a non-activating D-Bus,
+absent system/audio services, copied QML libraries and copied native modules.
+The parent and host native plugins are not reloaded. The real nested output is
+1280x800, then scale1.25; real layer surfaces reserve top44 and bottom96,
+followed by bottom160 and a left160 panel. The compositor's own extra top
+notification reservation is included as reported, not assumed away.
+
+Findings and changes:
+- Nexus used raw screen height for its minimum and initial dimensions. It now
+  subtracts actual layer reservations. SettingsWindow has live maximum dimensions:
+  Quickshell's implicit dimensions only affect an unmapped floating window.
+- Standard monitor IPC did not refresh when a layer resized. The existing native
+  reserved-area snapshot emits `hics_workarea` only on a change; Hypr refreshes
+  its monitor model on that event. The existing render-stage observation also
+  covers non-stacking mode, without requesting additional frames. This adds a
+  monitor comparison on already scheduled non-stacking frames; no numerical CPU
+  improvement is claimed for it, and no periodic process/poll timer was added.
+- The client can temporarily submit its previous, oversized minimum during the
+  configure exchange. Repositioning that impossible rectangle caused another
+  offset after the apparently successful frame. Bar decoration now coalesces a
+  changed size into a one-shot callback after the current transaction. It fits
+  a subsequently admissible client box using actual reservations/title height,
+  skips active drags/fullscreen/hidden/pinned/constrained/locked cases, and
+  preserves a previously offscreen float. Timer cancellation and destruction
+  follow the window lifetime; a fired callback releases its timer. Invisible
+  resize handles and floating gaps are not counted as visible titlebars.
+- Geometry alone was insufficient: at a large UI scale the page header filled
+  the window. Low pages now use a compact heading and vertical padding, while
+  keeping normal-height styling. A translated SelectRow can still be taller
+  than its viewport; search reveals its actual split control in that case.
+
+Final real test checks stable geometry after configure, client/compositor size
+agreement, late bottom/left reservations, UI scale1.5, scrollability, a fully
+visible real scale control, one second without duplicate workarea events and
+close during resize. The compact viewport is175 logical pixels; its224px row
+contains a60px control fully visible at57.5px. It is not a claim that the entire
+translated row fits, nor a physical-pointer activation test. A screenshot of
+the production Nexus child was inspected; grabbing the C++-created contentItem
+itself fails because it has no QML engine (a fixture error, corrected).
+
+Evidence under `~/.local/state/hics-testing/`:
+- settings-workarea-before.log: original live minimum/geometry failure.
+- settings-workarea-native100-before.log: current UI plus actual packaged100
+  native modules fails `Actual SettingsWindow ignores late reservation`.
+- settings-workarea-final.log: all7 final checks pass.
+- settings-workarea-compact.png: real compact page with visible125% control.
+- stacking-workarea-resize-final.log: all16 existing/expanded work-area checks pass.
+- stacking-drag-resize-final.log:5 real maximized drag rounds pass.
+- settings-design-workarea-final.log: design/real screenshots/disclosure/search,
+  narrow forms, reduced motion, high contrast and navigation pass.
+- workarea-native-build.log: hics-bars rebuilt against the pinned API.
+
+Not packaged or installed yet. Full VM acceptance of this native change,
+ASan/leak soak, snapped/multi-monitor removal reflow, privacy lock transitions
+and other remaining features are still open gates. The tests do not prove full
+screen-reader compatibility or all settings actions.
