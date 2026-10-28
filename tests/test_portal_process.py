@@ -31,3 +31,4 @@ class PortalProcessTests(unittest.TestCase):
     def test_hundred_lifetimes_do_not_leak_descriptors_or_children(self):self.probe('cleanup')
     def test_concurrent_children_have_bounded_capacity_and_cancel(self):self.probe('capacity')
     def test_missing_inherited_stdin_does_not_corrupt_pipes(self):self.probe('closed-stdin')
+    def test_shutdown_releases_captured_results_before_dependencies(self):self.probe('shutdown')

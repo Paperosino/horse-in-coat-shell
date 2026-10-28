@@ -19,10 +19,10 @@ cmake --build build/portal-loop
 ```
 
 Требуются C++23, libsystemd, sdbus-c++ и dbus-daemon для тестов. Тесты создают
-отдельную D-Bus шину и не меняют пользовательские/system службы. Тринадцать
+отдельную D-Bus шину и не меняют пользовательские/system службы. Четырнадцать
 сценариев покрывают lifetime, повторный вход в callbacks, 2000 таймеров,
 повторное использование fd, исключения на C boundary, запрет смены потока,
-очистку 100 экземпляров и настоящий отложенный D-Bus ответ.
+очистку 100 экземпляров настоящий отложенный D-Bus ответ и lifetime удержанного sdbus::Result.
 
 ## Воспроизводимость backend-прототипа
 
@@ -61,7 +61,7 @@ stdout/stderr на процесс. Завершение по deadline/отмен
 и не обещание контроля произвольно демонизирующего custom picker. Финальный
 waitpid не имеет гарантированного срока при uninterruptible kernel sleep.
 
-Дополнительные12 tests (`test_portal_process.py`) покрывают FailedToStart,
+Дополнительные13 tests (`test_portal_process.py`) покрывают FailedToStart,
 stdout/stderr/exit, TERM resistance, повторную отмену, закрытый stdin, лимит вывода, descriptor
 inheritance, уничтожение из callback,8 параллельных детей с отказом9-му,
 потомка с открытыми pipes и100 lifetimes без ростаfd/прямых zombie детей.
@@ -144,3 +144,36 @@ https://cgit.freedesktop.org/drm/libdrm/tree/xf86drm.c
 D-Bus-соединение приложения; наблюдатель использует другую connection и проверяет
 cleanup исходного namespace. Это проверка исчезновения D-Bus peer, не имитация
 SIGKILL полноценного приложения.
+
+### Выход с ожидающим picker и открытой сессией трансляции
+
+`integration_portal_backend_exit.py --with-picker` создаёт настоящую сессию,
+ждёт mapped окно picker и запрашивает тестовый Exit без выбора источника. Он
+проверяет исчезновение picker, но всё равно требует отдельного изучения ASan
+journal. Так обнаружен дефект нового async-прототипа: captured sdbus::Result
+уничтожался после IConnection. `Processes::shutdown()` теперь явно освобождает
+детей, watches и closures до teardown D-Bus. Остановка идемпотентна, новые start
+после неё запрещены. Вызывать её надо до разрушения внешних зависимостей callback;
+одного автоматического деструктора supervisor недостаточно.
+
+Для второго сценария используется `integration_screencast_frames.py
+--backend-exit-after-frames /path/to/instrumented-backend`. Рядом со скриптом
+должен лежать `integration_portal_backend_exit.py`. После12 реальных кадров и
+проверки существования stream serial он вызывает Exit **до Session.Close**.
+Consumer к этому моменту уже завершён; это открытая сессия/узел после кадров,
+а не одновременно работающий бесконечный consumer. Такая проверка обнаружила
+use-after-free в pwStreamStateChange: SSession уничтожался раньше PW streams.
+Portal destructor теперь сначала завершает PW connection/streams, пока sessions
+живы. Listener снимается до disconnect/destroy, Wayland frame callbacks и buffers
+освобождаются явно. Частично созданный null stream тоже удаляется из списка.
+Контракт listener проверен по https://docs.pipewire.org/group__pw__stream.html
+и https://pipewire.pages.freedesktop.org/pipewire/page_spa_plugins.html.
+
+Diagnostic frame run завершается статусом `backend-exited-awaiting-sanitizer-review`,
+а не `passed`. PID/startticks фиксируются до получения кадров; helper обязан
+завершить именно этот producer. InvocationID фиксируется отдельно: после выхода
+frontend может активировать новый backend через D-Bus даже при Restart=no.
+Статус нового процесса нельзя использовать как доказательство чистоты старого.
+Во время проверки исправленного случая был получен LSan3685bytes/34allocs;
+обычный Close+последующий Exit дал3677/34, без прежних SEGV/UAF в этих сценариях.
+Это всё ещё не полная sanitizer acceptance.

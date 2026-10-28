@@ -67,8 +67,14 @@ struct Processes::Job {
   }
 };
 Processes::Processes(EventLoop &value) : loop(value) {}
-Processes::~Processes() {
-  for (auto &[id, job] : jobs) {
+Processes::~Processes() { shutdown(); }
+void Processes::shutdown() {
+  (void)loop.nativeHandle();
+  if (stopped)
+    return;
+  stopped = true;
+  auto retired = std::move(jobs);
+  for (auto &[id, job] : retired) {
     (void)id;
     loop.removeFd(job->identity.value);
     if (job->output.value >= 0)
@@ -87,6 +93,8 @@ Processes::start(const std::vector<std::string> &argv,
                  const std::map<std::string, std::string> &environment,
                  std::chrono::milliseconds timeout, Callback callback) {
   (void)loop.nativeHandle();
+  if (stopped)
+    throw std::logic_error("Portal process supervisor is shut down");
   if (sequence == UINT64_MAX)
     throw std::overflow_error("Portal process ids exhausted");
   if (argv.empty() || argv.front().empty() || !callback ||

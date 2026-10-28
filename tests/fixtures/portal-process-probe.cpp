@@ -110,7 +110,25 @@ int main(int argc, char **argv) {
       processes.reset();
     loop.exit();
   };
-  if (mode == "capacity") {
+  if (mode == "shutdown") {
+    auto captured = std::make_shared<int>(1);
+    std::weak_ptr<int> weak = captured;
+    processes->start(child("child-slow"), {}, 1s,
+                     [captured](auto) { assert(false); });
+    captured.reset();
+    assert(!weak.expired());
+    processes->shutdown();
+    assert(weak.expired());
+    processes->shutdown();
+    bool rejected = false;
+    try {
+      processes->start(child("child-slow"), {}, 1s, done);
+    } catch (const std::logic_error &) {
+      rejected = true;
+    }
+    assert(rejected);
+    loop.exit();
+  } else if (mode == "capacity") {
     std::vector<Processes::Id> ids;
     for (int i = 0; i < 8; ++i)
       ids.push_back(
@@ -163,9 +181,10 @@ int main(int argc, char **argv) {
   }
   loop.removeTimer(guard);
   processes.reset();
-  assert(completions == (mode == "capacity"                        ? 8
-                         : (mode == "failed" || mode == "destroy") ? 0
-                                                                   : 1));
+  assert(completions ==
+         (mode == "capacity"                                              ? 8
+          : (mode == "failed" || mode == "destroy" || mode == "shutdown") ? 0
+                                                                          : 1));
   int status;
   assert(waitpid(-1, &status, WNOHANG) == -1 && errno == ECHILD);
   std::cout << "PASS " << mode << '\n';

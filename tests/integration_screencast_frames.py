@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 import uuid
 from gi.repository import Gio, GLib
@@ -27,8 +28,10 @@ def main():
     parser.add_argument('--trace-maps', action='store_true', help='Diagnostic-only bounded consumer mappings before module teardown')
     parser.add_argument('--source', choices=('monitor', 'window'), default='monitor')
     parser.add_argument('--expect-cancel', action='store_true')
+    parser.add_argument('--backend-exit-after-frames',type=Path,help='Diagnostic-only instrumented backend executable; normal teardown while the sharing session remains open')
     parser.add_argument('--disposable-cachyos-vm', required=True, action='store_true')
     args = parser.parse_args()
+    if args.backend_exit_after_frames and args.expect_cancel:parser.error('Exit requires a successful stream')
     if not 15<=args.picker_timeout<=600:parser.error('Picker timeout must be 15..600 seconds')
     assert os.getuid() == 1000 and Path('/etc/hostname').read_text().strip() == 'hics-test'
     assert subprocess.check_output(['systemd-detect-virt'], text=True).strip() in ('kvm', 'qemu')
@@ -51,6 +54,17 @@ def main():
     destination = 'org.freedesktop.portal.Desktop'
     path = '/org/freedesktop/portal/desktop'
     interface = 'org.freedesktop.portal.ScreenCast'
+    if args.backend_exit_after_frames:
+        backend='org.freedesktop.impl.portal.desktop.hyprland'
+        owner,=bus.call_sync('org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','GetNameOwner',
+            GLib.Variant('(s)',(backend,)),None,Gio.DBusCallFlags.NONE,3000,None).unpack()
+        backend_pid,=bus.call_sync('org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','GetConnectionUnixProcessID',
+            GLib.Variant('(s)',(owner,)),None,Gio.DBusCallFlags.NONE,3000,None).unpack()
+        backend_process=Path('/proc')/str(backend_pid)
+        assert (backend_process/'exe').resolve()==args.backend_exit_after_frames.resolve()
+        backend_start=(backend_process/'stat').read_text().rsplit(')',1)[1].split()[19]
+        report['backendBeforeFrames']={'pid':backend_pid,'startTicks':backend_start}
+        save()
     responses = {}
     pending = set()
     def response(connection, sender, object_path, iface, signal, parameters):
@@ -136,6 +150,23 @@ def main():
             save()
             assert run.returncode==0, 'PipeWire consumer failed; inspect result and stderr'
             assert report['frames']['frames']>=12 and report['frames']['changingFrames']>0
+            if args.backend_exit_after_frames:
+                assert serial, 'This diagnostic case requires stable stream identity'
+                dump=subprocess.check_output(['pw-dump'],text=True,timeout=3);assert len(dump)<4*1024*1024
+                assert any(str(item.get('info',{}).get('props',{}).get('object.serial'))==str(serial)
+                           and item.get('type')=='PipeWire:Interface:Node' for item in json.loads(dump)), 'Sharing stream already disappeared'
+                assert (backend_process/'stat').read_text().rsplit(')',1)[1].split()[19]==backend_start,'Backend changed before exit'
+                report['streamPresentBeforeBackendExit']=True
+                report['backendExitRequested']=True;save()
+                controller=Path(__file__).with_name('integration_portal_backend_exit.py')
+                with (root/'backend-exit-controller.log').open('w') as log:
+                    stopped=subprocess.run([sys.executable,str(controller),'--expected-executable',str(args.backend_exit_after_frames),
+                        '--output',str(root/'backend-exit.json'),'--disposable-cachyos-vm'],stdout=log,stderr=subprocess.STDOUT,timeout=20)
+                assert stopped.returncode==0, 'Inspect backend exit controller evidence'
+                report['backendExit']=json.loads((root/'backend-exit.json').read_text())
+                assert report['backendExit']['status']=='exited-awaiting-sanitizer-review'
+                assert report['backendExit']['backendPid']==backend_pid,'Exited a reactivated backend rather than the original producer'
+                save()
         report['status'] = 'closing-session'
         save()
     except UserCancelled:
@@ -152,7 +183,7 @@ def main():
                     None,None,Gio.DBusCallFlags.NONE,3000,None)
             except GLib.Error:
                 pass
-        if session:
+        if session and not report.get('backendExitRequested'):
             try:
                 bus.call_sync(destination,session,'org.freedesktop.portal.Session','Close',
                     None,None,Gio.DBusCallFlags.NONE,5000,None)
@@ -164,7 +195,7 @@ def main():
         bus.signal_unsubscribe(subscription)
         save()
     try:
-        if not report.get('cancelled'):
+        if not report.get('cancelled') and not report.get('backendExitRequested'):
             assert report.get('sessionCloseReturned'), 'Successful sharing session did not close'
         if report.get('stream',{}).get('serial'):
             serial = report['stream']['serial']
@@ -178,13 +209,13 @@ def main():
                 if not remaining: break
                 assert time.monotonic()<deadline, 'Portal stream survives Session.Close'
                 time.sleep(.1)
-            report['streamNodeRemovedAfterClose'] = True
+            report['streamNodeRemovedAfterBackendExit' if report.get('backendExitRequested') else 'streamNodeRemovedAfterClose'] = True
     except BaseException:
         report['failedPhase'] = 'verify-session-cleanup'
         report['status'] = 'failed'
         save()
         raise
-    report['status'] = 'passed'
+    report['status'] = 'backend-exited-awaiting-sanitizer-review' if report.get('backendExitRequested') else 'passed'
     save()
     print(json.dumps(report,indent=2))
 

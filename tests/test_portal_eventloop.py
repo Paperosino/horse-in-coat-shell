@@ -19,7 +19,7 @@ class PortalEventLoopTests(unittest.TestCase):
         flags = shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','libsystemd','sdbus-c++'],text=True))
         sanitizer = ['-fsanitize=address,undefined','-fno-omit-frame-pointer','-g'] if os.environ.get('HICS_TEST_SANITIZERS') else []
         subprocess.run(['c++','-std=c++23','-Wall','-Wextra','-Werror','-pthread',*sanitizer,
-                        '-I'+str(ROOT/'native/portal-runtime'),str(ROOT/'native/portal-runtime/eventloop.cpp'),
+                        '-I'+str(ROOT/'native/portal-runtime'),str(ROOT/'native/portal-runtime/eventloop.cpp'),str(ROOT/'native/portal-runtime/process.cpp'),
                         str(ROOT/'tests/fixtures/portal-eventloop-probe.cpp'),*flags,'-o',str(cls.binary)],check=True)
         config=cls.base/'bus.conf'
         config.write_text('<busconfig><type>session</type><listen>unix:tmpdir='+str(cls.base)+'</listen><policy context="default"><allow send_destination="*"/><allow receive_sender="*"/><allow own="*"/></policy></busconfig>')
@@ -55,3 +55,4 @@ class PortalEventLoopTests(unittest.TestCase):
     def test_repeated_loop_lifetimes_release_fds(self):self.probe('cleanup')
     def test_invalid_replacement_retains_original_watch(self):self.probe('invalid')
     def test_actual_delayed_dbus_reply(self):self.probe('dbus')
+    def test_pending_process_result_dies_before_dbus_connection(self):self.probe('dbus-process-teardown')

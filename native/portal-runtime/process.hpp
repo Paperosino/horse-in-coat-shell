@@ -26,11 +26,15 @@ public:
            const std::map<std::string, std::string> &environment,
            std::chrono::milliseconds timeout, Callback callback);
   void cancel(Id id);
+  // Drop callbacks/results before their external D-Bus connection is destroyed.
+  // Idempotent, no completions, rejects subsequent starts.
+  void shutdown();
 
 private:
   struct Job;
   EventLoop &loop;
   Id sequence = 0;
+  bool stopped = false;
   std::map<Id, std::unique_ptr<Job>> jobs;
   void read(Id id, bool error);
   void finish(Id id);

@@ -1,4 +1,6 @@
 #include "eventloop.hpp"
+#include "process.hpp"
+#include <csignal>
 #include <sdbus-c++/sdbus-c++.h>
 #include <sys/eventfd.h>
 #include <sys/epoll.h>
@@ -21,6 +23,7 @@ static size_t fdCount() { size_t n=0; for ([[maybe_unused]] auto &entry:std::fil
 int main(int argc,char **argv) {
     try {
         require(argc==2,"mode required"); const std::string mode=argv[1];
+        if(mode=="process-child"){for(;;)pause();}
         if (mode=="delete-timer" || mode=="delete-io") {
             auto loop=std::make_unique<EventLoop>(); auto *raw=loop.get();
             int fd=-1;
@@ -41,6 +44,24 @@ int main(int argc,char **argv) {
             const int fd=eventfd(0,EFD_NONBLOCK|EFD_CLOEXEC);require(fd>=0,"caller fd");
             { EventLoop loop;loop.addFd(fd,EPOLLIN,[](uint32_t) {}); }
             require(fcntl(fd,F_GETFD)>=0,"loop closed caller-owned fd");close(fd);
+        } else if(mode=="dbus-process-teardown") {
+            EventLoop loop;hics::portal::Processes processes(loop);
+            auto server=sdbus::createSessionBusConnection(sdbus::ServiceName{"org.hics.LoopProbe"});
+            auto client=sdbus::createSessionBusConnection();
+            server->attachSdEventLoop(loop.nativeHandle());client->attachSdEventLoop(loop.nativeHandle());
+            auto object=sdbus::createObject(*server,sdbus::ObjectPath{"/org/hics/LoopProbe"});
+            std::weak_ptr<sdbus::Result<>> held;bool received=false;
+            object->addVTable(sdbus::registerMethod("Hold").implementedAs([&](sdbus::Result<>&& result) {
+                auto reply=std::make_shared<sdbus::Result<>>(std::move(result));held=reply;
+                processes.start({"/proc/self/exe","process-child"},{},2s,[reply](auto){throw std::runtime_error("Unexpected completion during shutdown");});
+                received=true;loop.exit();
+            })).forInterface(sdbus::InterfaceName{"org.hics.LoopProbe"});
+            auto proxy=sdbus::createProxy(*client,sdbus::ServiceName{"org.hics.LoopProbe"},sdbus::ObjectPath{"/org/hics/LoopProbe"});
+            const auto pending=proxy->callMethodAsync("Hold").onInterface("org.hics.LoopProbe").uponReplyInvoke([](std::optional<sdbus::Error>){});
+            loop.addTimer(1s,[&]{loop.exit(2);});
+            require(loop.run()==0 && received && !held.expired(),"Missing actual pending D-Bus result");
+            processes.shutdown();require(held.expired(),"D-Bus result outlives connection teardown");
+            object.reset();server->detachSdEventLoop();server.reset();client->detachSdEventLoop();
         } else if (mode=="dbus") {
             EventLoop loop;
             auto server=sdbus::createSessionBusConnection(sdbus::ServiceName{"org.hics.LoopProbe"});

@@ -3654,3 +3654,69 @@ VM PID6918,Type=dbus,Result=success,NRestarts0: monitor capture12кадров128
 11изменяющихся,consumer0,serial91 удалён послеClose. configerrors пуст.
 Evidence `async-v3-monitor`. Повтор26 portal unit tests также прошёл; это не
 замена оставшихся backend ASan сценариев и не полная приёмка оболочки.
+
+### 2026-10-28: pending и открытая ScreenCast session при teardown
+
+Предыдущий шаг продолжен с теми же VM/source. SSH таймаут сначала проверен QMP:
+VM была suspended, разбужена без перезапуска. Сценарий до этого не запускался.
+
+`integration_portal_backend_exit.py --with-picker` ждёт mapped picker и вызывает
+диагностический Exit. Instrumented a6fb762a81d2208a758452249c00e778f8bc9b6e4214bd136e2fc36a51147bb6,
+PID7513: ASanSEGV в sdbus::Message destructor через captured Result в process job.
+Это дефект нового async-прототипа, не утверждение о такой ошибке в установленном117.
+Processes уничтожался после соединения. Исправлен явный shutdown до закрытия D-Bus:
+дети reaped, watches сняты, closures/results освобождены; повторная остановка
+безопасна, start после остановки запрещён. Unit проверяет release captured resources;
+добавлен настоящий pending sdbus::Result на приватной D-Bus шине с child process.
+13process tests и14event-loop tests проходят ASan/UBSan/LSan без suppressions.
+Первая новая fixture проверяла старое ожидаемое число completions; этот harness
+assert исправлен, продуктовая логика при этом не менялась, первый fail сохранён.
+
+Instrumented91d639a831cb34edad51ef94d413626685f32f78df9e37a2aba25324bbf1a420,
+PID7660: тот же pending scenario не воспроизвёл SEGV, picker gone, LSan3677/34.
+Полностью чистым результат не объявлен. Raw `asan-pending-exit-v1` (red) и
+`asan-pending-exit-fixed-v1` с полными journals сохранены.
+
+Расширен настоящий frame test: после12кадров producer node должен ещё существовать,
+потом тестовый Exit вызывается доSession.Close. Consumer уже завершил чтение:
+это не проверка одновременно работающего непрерывного consumer. На PID7764
+(тот же instrumented91d639...) получены12кадров1280×800,11изменяющихся,exit0,
+затем ASan heap-use-after-free в pwStreamStateChange: запись в уже освобождённый
+SSession при pw_core_disconnect. Новый автоматически активированный backend7874
+имел Result=success; его статус не скрывает ASan старого7764. Harness теперь
+фиксирует PID/startticks producer до кадров, проверяет его же в Exit helper,
+сохраняет InvocationID и явно показывает возможную последующую активацию.
+
+Исправление: CScreencopyPortal destructor сбрасывает PW connection до уничтожения
+sessions. Connection сначала уничтожает streams; destroyStream снимает listener
+до disconnect/destroy и освобождает frame callbacks/buffers, убирает также запись
+частично созданного null stream. Session cleanup не зависит только от active flag.
+Контракты сверены с PipeWire stream/listener docs, ссылки в runtime README.
+
+Instrumented7127e28cce3077f3a91faf864ce29731f3c734d1f4919da8fcd40eb8947d3dd8,
+PID7968/start1131463:12кадров1280×800,11изменяющихся,тот же producer Exit,
+serial111 удалён после выхода. Прежний UAF не воспроизведён, LSan3685/34 остаётся,
+код95, без suppressions. Первая попытка этой версии остановлена guard locked до
+сценария; после нормальной PAM разблокировки запущен новый evidence directory,
+backend не перезапускался по такому preflight отказу.
+
+Штатный Session.Close на той же instrumented версии (PID8244) тоже прошёл:
+12кадров1280×800,11изменяющихся,serial121 удалён, backend продолжил работу.
+Последующий Exit не воспроизвёл SEGV/UAF; LSan3677/34,код95. Не заявлена чистота
+всех потоковых/аппаратных сценариев: постоянный consumer, внешние GTK/X11 sources,
+повреждённые ответы и аппаратный GBM остаются открыты. Остаточная утечка в пути
+загрузки модулей PipeWire не подавлена и не объявлена устранённой.
+
+Raw evidence в private `xdph118-source/evidence`: pending JSON/journals,
+`asan-active-red`, `asan-active-fixed`, `asan-active-exit-v1-journal.log`,
+`asan-active-exit-fixed-v2-journal.log`, `asan-normal-close` и
+`asan-normal-close-exit-v1` JSON/journal. Содержимое кадров на диск не сохранялось.
+Повтор обычных `test_portal_*.py`:28tests,0fail. Патчи проходят dry-run на pristine
+v1.4.1 и отдельный test-only patch на candidate source. Хост остаётся117.
+
+Обычная сборка44b45c91f6fad33942355ada156fff89004010ab16a8ab8a3bd560fce8008ce2
+возвращена в fresh VM,PID8452,Type=dbus,Result=success,NRestarts0. Настоящий mapped
+picker закрывается черезRequest.Close, ребёнок reaped,requests0/sessions0;
+`async-v4-request-close` сохранён. Интроспекция подтвердила отсутствие тестового
+Exit интерфейса, configerrors пуст. Это локальная приёмка текущих исправлений,
+не выпуск пакета и не заявление о завершении общей кампании.

@@ -142,7 +142,7 @@
  
      try {
          m_pConnection = sdbus::createSessionBusConnection(sdbus::ServiceName{"org.freedesktop.impl.portal.desktop.hyprland"});
-@@ -337,161 +350,82 @@
+@@ -337,161 +350,84 @@
      startEventLoop();
  }
  
@@ -333,6 +333,8 @@
 +    if (result<0) throw std::system_error(-result,std::generic_category());
 +    std::unique_ptr<sd_event_source,decltype(&sd_event_source_unref)> post(rawPost,sd_event_source_unref);
 +    m_exitCode=m_eventLoop.run();
++    // Pending replies keep references to this connection. Release them first.
++    m_processes.shutdown();
 +    post.reset();
 +    m_eventLoop.removeFd(wl_display_get_fd(m_sWaylandConnection.display));
 +    m_eventLoop.removeFd(pw_loop_get_fd(m_sPipewire.loop));
@@ -370,7 +372,7 @@
  }
  
  sdbus::IConnection* CPortalManager::getConnection() {
-@@ -553,39 +487,21 @@
+@@ -553,39 +489,21 @@
  }
  
  void CPortalManager::addTimer(const CTimer& timer) {
@@ -657,7 +659,12 @@
  wl_shm_format wlSHMFromDrmFourcc(uint32_t format) {
 --- a/src/portals/Screencopy.hpp
 +++ b/src/portals/Screencopy.hpp
-@@ -60,7 +60,8 @@
+@@ -56,11 +56,13 @@
+ class CScreencopyPortal {
+   public:
+     CScreencopyPortal(SP<CCZwlrScreencopyManagerV1>);
++    ~CScreencopyPortal();
+ 
      void   appendToplevelExport(SP<CCHyprlandToplevelExportManagerV1>);
  
      dbUasv onCreateSession(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID, std::unordered_map<std::string, sdbus::Variant> opts);
@@ -667,7 +674,7 @@
      dbUasv onStart(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID, std::string parentWindow,
                     std::unordered_map<std::string, sdbus::Variant> opts);
  
-@@ -69,6 +70,8 @@
+@@ -69,6 +71,8 @@
          sdbus::ObjectPath                         requestHandle, sessionHandle;
          uint32_t                                  cursorMode  = HIDDEN;
          uint32_t                                  persistMode = 0;
@@ -676,6 +683,16 @@
  
          std::unique_ptr<SDBusRequest>             request;
          std::unique_ptr<SDBusSession>             session;
+@@ -153,7 +157,8 @@
+         CScreencopyPortal::SSession*          pSession    = nullptr;
+         pw_stream*                            stream      = nullptr;
+         bool                                  streamState = false;
+-        spa_hook                              streamListener;
++        spa_hook                              streamListener{};
++        bool listenerAttached=false;
+         SBuffer*                              currentPWBuffer = nullptr;
+         spa_video_info_raw                    pwVideoInfo;
+         uint32_t                              seq           = 0;
 --- a/src/portals/Screencopy.cpp
 +++ b/src/portals/Screencopy.cpp
 @@ -40,36 +40,33 @@
@@ -712,7 +729,7 @@
 -        // deactivate toplevel so it doesn't listen and waste battery
 +        if (!PSESSION) return;
 +        if (PSESSION->picker)g_pPortalManager->processes().cancel(PSESSION->picker);
-+        if (PSESSION->sharingData.active) m_pPipewire->destroyStream(PSESSION.get());
++        m_pPipewire->destroyStream(PSESSION.get());
 +        const auto retired = PSESSION.get();
 +        // The session factory invokes this callback after unregistering its
 +        // object and returning from the Close vtable dispatch.
@@ -866,3 +883,66 @@
                          }),
                      sdbus::registerMethod("Start").implementedAs([this](sdbus::ObjectPath o1, sdbus::ObjectPath o2, std::string s1, std::string s2,
                                                                          std::unordered_map<std::string, sdbus::Variant> m1) { return onStart(o1, o2, s1, s2, m1); }),
+@@ -719,7 +732,14 @@
+     pSession->sharingData.status = FRAME_NONE;
+ }
+ 
++CScreencopyPortal::~CScreencopyPortal() {
++    // Stream listeners reference SSession. Stop them while sessions still exist,
++    // rather than relying on the reverse order of member destruction.
++    m_pPipewire.reset();
++}
++
+ CPipewireConnection::~CPipewireConnection() {
++    while(!m_vStreams.empty())destroyStream(m_vStreams.back()->pSession);
+     if (m_pCore)
+         pw_core_disconnect(m_pCore);
+     if (m_pContext)
+@@ -1032,6 +1052,7 @@
+     spa_pod_dynamic_builder_clean(&dynBuilder[1]);
+ 
+     pw_stream_add_listener(PSTREAM->stream, &PSTREAM->streamListener, &pwStreamEvents, PSTREAM);
++    PSTREAM->listenerAttached=true;
+ 
+     pw_stream_connect(PSTREAM->stream, PW_DIRECTION_OUTPUT, PW_ID_ANY, (pw_stream_flags)(PW_STREAM_FLAG_DRIVER | PW_STREAM_FLAG_ALLOC_BUFFERS), params, PARAMCOUNT);
+ 
+@@ -1042,15 +1063,16 @@
+ }
+ 
+ void CPipewireConnection::destroyStream(CScreencopyPortal::SSession* pSession) {
+-    // Disconnecting the stream can cause reentrance to this function.
+-    if (pSession->sharingData.active == false)
+-        return;
+     pSession->sharingData.active = false;
+-
++    removeSessionFrameCallbacks(pSession);
+     const auto PSTREAM = streamFromSession(pSession);
+-
+-    if (!PSTREAM || !PSTREAM->stream)
+-        return;
++    if (!PSTREAM) return;
++    // Disconnect/destroy may synchronously change state. Do not reenter through
++    // a callback whose session or portal is being dismantled.
++    if(PSTREAM->listenerAttached) {
++        spa_hook_remove(&PSTREAM->streamListener);
++        PSTREAM->listenerAttached=false;
++    }
+ 
+     if (!PSTREAM->buffers.empty()) {
+         std::vector<SBuffer*> bufs;
+@@ -1064,9 +1086,12 @@
+         }
+     }
+ 
+-    pw_stream_flush(PSTREAM->stream, false);
+-    pw_stream_disconnect(PSTREAM->stream);
+-    pw_stream_destroy(PSTREAM->stream);
++    if(PSTREAM->stream) {
++        pw_stream_flush(PSTREAM->stream, false);
++        pw_stream_disconnect(PSTREAM->stream);
++        pw_stream_destroy(PSTREAM->stream);
++        PSTREAM->stream=nullptr;
++    }
+ 
+     std::erase_if(m_vStreams, [&](const auto& other) { return other.get() == PSTREAM; });
+ }
