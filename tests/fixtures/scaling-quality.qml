@@ -43,7 +43,7 @@ ShellRoot {
    }else{
     const expected=GlobalConfig.appearance.font.body.small.size*GlobalConfig.appearance.scale;
     if(!root.check(Math.abs(sample.font.pointSize-expected)<.001,"fractional font size was rounded"))return;
-    if(!root.check(sample.renderType===Text.QtRendering&&sample.antialiasing,"scalable antialiased rendering missing"))return;
+    if(!root.check(sample.renderType===Text.CurveRendering&&sample.antialiasing,"scalable antialiased rendering missing"))return;
     if(!root.check(Math.abs(glyph.font.pointSize-Tokens.font.icon.large.pointSize)<.001,"icon font lost fractional size"))return;
     if(!root.check(icon.backer.sourceSize.width>=Math.ceil(icon.actualSize*Math.max(1,bar.panelScale)),"panel icon texture undersampled"))return;
     if(!root.check(tinted.layer.textureSize.width>=tinted.width*bar.panelScale,"recolour layer texture undersampled"))return;

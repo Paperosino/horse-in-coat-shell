@@ -194,12 +194,12 @@
 - Quickshell при динамической загрузке QML по URL требует регистрации локальных зависимостей: отложенный тур сохраняет импорт каталога onboarding, иначе DemoCard недоступен. Проверять первое открытие, а не только отсутствие ошибок при старте. Type=simple/systemd blame не измеряет появление панели; подготовку, QML load и первый кадр измерять раздельно.
 - Корневой shell.qml копируется CMake в build/qml/shell.qml при конфигурации: перед упаковкой изменения корня требуют повторной конфигурации, а не только cmake --install. Проверять совпадение источника, сгенерированного и установленного файлов. После изменения схемы C++ Config пересобирать все зависимые модули; не перезаписывать библиотеки запущенного QML-теста.
 - Счётчики дока: использовать LauncherEntry с desktop id и временем жизни D-Bus-отправителя; история уведомлений — только явно обозначенный fallback. Портальные разрешения не являются общим sandbox обычных приложений. Визуальные ограничения AppArmor допустимы через поддержанный local-include, без угадывания структуры произвольной политики.
-- Для текста Qt Quick без хинтинга под трансформациями использовать QtRendering с antialiasing: NativeRendering масштабирует готовую растровую надпись и даёт размытие. Размеры QFont сохранять через pointSizeF/setPointSizeF без округления в FontBuilder. Для масштабируемых иконок использовать ScalableIcon, заранее рассчитанный предел увеличения и mipmap; не менять sourceSize каждый кадр hover. У recolour-layer также должна быть подходящая textureSize с учётом DPR. Размер плашки и текста счётчика связан с размером иконки дока. Превью и его блоб раскрываются вместе, input/dismissal следуют видимой геометрии.
+- Для текста Qt Quick без хинтинга под трансформациями использовать CurveRendering с antialiasing: NativeRendering масштабирует готовую растровую надпись и даёт размытие. Размеры QFont сохранять через pointSizeF/setPointSizeF без округления в FontBuilder. Для масштабируемых иконок использовать ScalableIcon, заранее рассчитанный предел увеличения и mipmap; не менять sourceSize каждый кадр hover. У recolour-layer также должна быть подходящая textureSize с учётом DPR. Размер плашки и текста счётчика связан с размером иконки дока. Превью и его блоб раскрываются вместе, input/dismissal следуют видимой геометрии.
 - При новых найденных особенностях обновлять этот файл: конкретный инвариант, причина и способ проверки. Не превращать его в журнал временных PID, паролей, локальных команд упаковки или неподтверждённых диагнозов.
 
 - Сглаживание внешних приложений задаётся через управляемый Fontconfig-файл, GTK Settings/GSettings и Xft resources; не менять DPI или семейства шрифтов. Flatpak получает приватную копию без новых filesystem grants; проверять symlink границы. Не обещать принуждение собственного растеризатора приложения.
 
-- Политика шрифтов управляется appearance.font.antialias/hinting; FontBuilder сохраняет стратегию исходного QFont. QtRendering не применяет хинтинг: при его запросе или отключении AA использовать NativeRendering. Изменения публикуются общим FontRendering с debounce и повтором последнего запроса, без фонового polling. Проверка: HICS_TEST_FONT_RENDERING=1 python3 tests/integration_settings_design.py и тесты FontBuilder/GTK.
+- Политика шрифтов управляется appearance.font.antialias/hinting; FontBuilder сохраняет стратегию исходного QFont. CurveRendering не применяет хинтинг: при его запросе или отключении AA использовать NativeRendering. Изменения публикуются общим FontRendering с debounce и повтором последнего запроса, без фонового polling. Проверка: HICS_TEST_FONT_RENDERING=1 python3 tests/integration_settings_design.py и тесты FontBuilder/GTK.
 
 - GTK4 >= 4.16 требует gtk-font-rendering=manual для явных параметров AA/хинтинга; GTK4 предпочитает портал файлу settings.ini. Проверять GTK на приватном D-Bus без activation directories, чтобы тест не читал настройки портала реального пользователя. GSettings font-rgba-order не принимает none: grayscale задаётся font-antialiasing отдельно.
 
@@ -433,3 +433,9 @@
 - Check all exported symbol definitions when comparing runtime images: weak
   RTTI/vtable definitions are present symbols, not automatically missing ABI.
   Symbol-name parity still does not prove complete private ABI compatibility.
+
+- MaterialIcon использует CurveRendering для контуров variable Material Symbols;
+  не возвращать distance-field атлас для мелких символов без визуальной проверки.
+  В NIcon размер задавать через fontStyle/FontBuilder: font.pixelSize в наследнике
+  сбрасывает привязку полного QFont и может заменить семейство на Sans Serif.
+  Проверять семейство и размер в реальном QML, не только существование глифа.

@@ -3,10 +3,10 @@ import Hyprstack.Config
 import qs.services
 
 StyledText {
-    // Symbols are artwork, independent of text grid fitting preferences.
-    renderType: Text.QtRendering
+    // Render variable symbol outlines directly: distance-field atlases distort
+    // small strokes and counters at fractional panel/animation scales.
+    renderType: Text.CurveRendering
     antialiasing: true
-    renderTypeQuality: Text.HighRenderTypeQuality
     property real fill
     property int grade: Colours.light ? 0 : -25
     property font fontStyle: Tokens.font.icon.small

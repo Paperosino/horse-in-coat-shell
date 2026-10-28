@@ -20,7 +20,7 @@ ColumnLayout {
         implicitHeight:Math.max(100,Math.min(220,area.contentHeight+24))
         TextArea {
             font: Tokens.font.body.medium
-            renderType: FontRendering.nativeRendering ? TextEdit.NativeRendering : TextEdit.QtRendering
+            renderType: FontRendering.nativeRendering ? TextEdit.NativeRendering : TextEdit.CurveRendering
             id:area
             Component.onCompleted:text=root.value
             Connections { target:root; function onValueChanged():void { if(!area.activeFocus)area.text=root.value } }

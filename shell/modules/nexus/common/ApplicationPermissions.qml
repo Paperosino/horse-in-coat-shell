@@ -98,7 +98,7 @@ ColumnLayout {
   SettingsCard {
    visible:!!root.policy.sha256;title:Tr.tr("Advanced policy editor");icon:"code";collapsible:true;expanded:false
    description:Tr.tr("For policy syntax that cannot be represented by the visual controls. A backup and syntax validation are required before replacement.")
-   TextArea {font:Tokens.font.mono.small;renderType:FontRendering.nativeRendering?TextEdit.NativeRendering:TextEdit.QtRendering;Layout.fillWidth:true;Layout.preferredHeight:240*Tokens.scale;wrapMode:TextEdit.Wrap;selectByMouse:true;text:root.policyText;color:Colours.palette.m3onSurface;onTextChanged:if(activeFocus)root.policyText=text;background:Rectangle {color:Colours.palette.m3surfaceContainerHigh;radius:Tokens.rounding.medium}}
+   TextArea {font:Tokens.font.mono.small;renderType:FontRendering.nativeRendering?TextEdit.NativeRendering:TextEdit.CurveRendering;Layout.fillWidth:true;Layout.preferredHeight:240*Tokens.scale;wrapMode:TextEdit.Wrap;selectByMouse:true;text:root.policyText;color:Colours.palette.m3onSurface;onTextChanged:if(activeFocus)root.policyText=text;background:Rectangle {color:Colours.palette.m3surfaceContainerHigh;radius:Tokens.rounding.medium}}
    RowButton {text:Tr.tr("Validate and save policy");icon:"save";disabled:root.backend.busy;onClicked:root.backend.call("apps.apparmor-save",{profile:root.policy.profile,sha256:root.policy.sha256,content:root.policyText},()=>root.loadArmorProfile(root.selectedProfile))}
   }
   FeatureError {error:root.backend.error}

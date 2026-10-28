@@ -394,7 +394,7 @@ Item {
                 }
 
                 TextEdit {
-                    renderType: FontRendering.nativeRendering ? TextEdit.NativeRendering : TextEdit.QtRendering
+                    renderType: FontRendering.nativeRendering ? TextEdit.NativeRendering : TextEdit.CurveRendering
                     id: editTextEdit
                     width: editFlickable.width - Tokens.padding.large * 2
                     anchors.horizontalCenter: parent.horizontalCenter

@@ -9,7 +9,7 @@ Text {
 
     property bool animate: false
 
-    renderType: FontRendering.nativeRendering ? Text.NativeRendering : Text.QtRendering
+    renderType: FontRendering.nativeRendering ? Text.NativeRendering : Text.CurveRendering
     antialiasing: FontRendering.antialias
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
