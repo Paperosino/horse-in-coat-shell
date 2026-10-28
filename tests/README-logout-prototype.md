@@ -5,13 +5,13 @@ existing SessionManager still calls logind Terminate directly. Neither the
 prototype inhibitor registry nor the dialog is connected to that path, and
 no package release should claim safe logout based on these tests.
 
-The isolated backend in `tests/fixtures/logout_inhibit_backend.py` implements
-only logout inhibition. The real GTK portal installed on the test system
+The isolated backend in `tests/fixtures/logout_inhibit_backend.py` tracks
+logout inhibition and forwards other flags to a test-selected delegate. The real GTK portal installed on the test system
 rejects logout inhibition with “Inhibiting other than idle not supported”.
 The fixture demonstrates the XDG monitor query, replies, inhibitor lifetime,
 client disconnect and cancellation, including with a GTK4 application. It is
-not a replacement for the installed backend: idle, sleep and other inhibitor
-flags, lock state, desktop compatibility and integration are still needed.
+not a replacement for the installed backend: forwarding in the live desktop,
+lock state, desktop compatibility and integration are still needed.
 
 `LogoutBlockersWindow.qml` is an unconnected non-modal view. Its model contains
 objects with `name` and `reason`; cancellation and force emit separate signals.

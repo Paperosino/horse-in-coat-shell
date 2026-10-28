@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Private-bus-only prototype of the XDG logout inhibitor backend.
 
-Not installed or used by the desktop. Non-logout inhibition flags are
-deliberately rejected until their contracts are implemented.
+Not installed or used by the desktop. Other inhibition flags are forwarded
+to an explicitly configured test delegate; failures roll back the request.
 """
 import json
 import os
@@ -24,7 +24,7 @@ SESSION='org.freedesktop.impl.portal.Session'
 
 class Request(dbus.service.Object):
     def __init__(self, broker, path, owner):
-        self.broker=broker;self.path=path;self.owner=owner
+        self.broker=broker;self.path=path;self.owner=owner;self.delegate_name=None
         super().__init__(broker.bus,path)
 
     @dbus.service.method(REQUEST,in_signature='',out_signature='',sender_keyword='sender')
@@ -48,6 +48,7 @@ class Broker(dbus.service.Object):
     def __init__(self,bus):
         self.bus=bus;self.registry=InhibitorRegistry();self.requests={};self.monitors={}
         self.pending=set();self.stale=set();self.state=1
+        self.delegate_name=os.environ.get('HICS_TEST_DELEGATE','')
         super().__init__(bus,'/org/freedesktop/portal/desktop')
         bus.add_signal_receiver(self.owner_changed,signal_name='NameOwnerChanged',
             dbus_interface='org.freedesktop.DBus',bus_name='org.freedesktop.DBus')
@@ -55,6 +56,9 @@ class Broker(dbus.service.Object):
     def remove(self,path,owner):
         if self.registry.close(path,owner):
             request=self.requests.pop(path)
+            if request.delegate_name:
+                self.bus.call_async(request.delegate_name,path,REQUEST,'Close','',(),
+                    lambda:None,lambda error:print('delegate close failed:',error,file=sys.stderr))
             # Defer unregistering the object until its Close handler returns.
             GLib.idle_add(lambda:(request.remove_from_connection(),False)[1])
             return True
@@ -81,23 +85,40 @@ class Broker(dbus.service.Object):
         self.StateChanged(dbus.ObjectPath(path),{'session-state':dbus.UInt32(self.state,variant_level=1),
                                                 'screensaver-active':dbus.Boolean(False,variant_level=1)})
 
-    @dbus.service.method(INHIBIT,in_signature='ossua{sv}',out_signature='',sender_keyword='sender')
-    def Inhibit(self,handle,app_id,window,flags,options,sender=None):
-        del window
-        # Never report success for sleep/idle/switch while they are unsupported.
-        if int(flags)!=LOGOUT:
-            raise dbus.exceptions.DBusException('Only logout is implemented by this test backend',name='org.freedesktop.portal.Error.Failed')
+    @dbus.service.method(INHIBIT,in_signature='ossua{sv}',out_signature='',sender_keyword='sender',
+                         async_callbacks=('reply','error'))
+    def Inhibit(self,handle,app_id,window,flags,options,reply,error,sender=None):
+        flags=int(flags)
+        if not flags or flags & ~15:
+            error(dbus.exceptions.DBusException('Invalid inhibition flags',name='org.freedesktop.portal.Error.Failed'));return
         if self.state==3:
-            raise dbus.exceptions.DBusException('Session is ending',name='org.freedesktop.portal.Error.Failed')
+            error(dbus.exceptions.DBusException('Session is ending',name='org.freedesktop.portal.Error.Failed'));return
         path=str(handle);owner=str(sender);reason=str(options.get('reason',''))
+        other=flags & ~LOGOUT
+        if other and not self.delegate_name:
+            error(dbus.exceptions.DBusException('No delegate for non-logout flags',name='org.freedesktop.portal.Error.Failed'));return
         try:
-            self.registry.add(path,owner,str(app_id),reason,int(flags))
+            self.registry.add(path,owner,str(app_id),reason,flags)
             try:self.requests[path]=Request(self,path,owner)
             except Exception:
                 self.registry.close(path,owner)
                 raise
-        except (ValueError,OverflowError) as error:
-            raise dbus.exceptions.DBusException(str(error),name='org.freedesktop.portal.Error.Failed')
+        except (ValueError,OverflowError) as exc:
+            error(dbus.exceptions.DBusException(str(exc),name='org.freedesktop.portal.Error.Failed'));return
+        if not other:
+            reply();return
+        request=self.requests[path]
+        delegate_name=self.delegate_name
+        def delegated():
+            if self.requests.get(path) is not request:
+                self.bus.call_async(delegate_name,path,REQUEST,'Close','',(),lambda:None,lambda exc:None)
+                error(dbus.exceptions.DBusException('Request closed during delegation',name='org.freedesktop.portal.Error.Failed'))
+                return
+            request.delegate_name=delegate_name;reply()
+        def failed(exc):
+            self.remove(path,owner);error(exc)
+        self.bus.call_async(delegate_name,'/org/freedesktop/portal/desktop',INHIBIT,'Inhibit',
+                            'ossua{sv}',(handle,app_id,window,dbus.UInt32(other),options),delegated,failed)
 
     @dbus.service.method(INHIBIT,in_signature='ooss',out_signature='u',sender_keyword='sender')
     def CreateMonitor(self,handle,session_handle,app_id,window,sender=None):
@@ -148,6 +169,9 @@ class Broker(dbus.service.Object):
     def List(self):
         return json.dumps([{'path':entry.path,'app_id':entry.app_id,'reason':entry.reason,'flags':entry.flags}
                            for entry in self.registry.matching(LOGOUT)])
+
+    @dbus.service.method('org.hics.TestInhibitors',in_signature='s',out_signature='')
+    def SetDelegate(self,name):self.delegate_name=str(name)
 
     @dbus.service.method('org.hics.TestInhibitors',in_signature='',out_signature='u')
     def MonitorCount(self):

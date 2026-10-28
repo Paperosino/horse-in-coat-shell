@@ -28,8 +28,12 @@ class PrototypeBus(unittest.TestCase):
         self.bus=subprocess.Popen(['dbus-daemon','--nofork','--print-address=1','--config-file='+str(config)],stdout=subprocess.PIPE,text=True)
         self.addCleanup(self.stop,self.bus)
         self.address=self.bus.stdout.readline().strip();self.assertTrue(self.address)
-        env=dict(os.environ,DBUS_SESSION_BUS_ADDRESS=self.address,HICS_TEST_PRIVATE_BUS='1',HOME=str(root),XDG_RUNTIME_DIR=str(root))
+        env=dict(os.environ,DBUS_SESSION_BUS_ADDRESS=self.address,HICS_TEST_PRIVATE_BUS='1',HOME=str(root),XDG_RUNTIME_DIR=str(root),
+                 HICS_TEST_DELEGATE='org.freedesktop.impl.portal.desktop.hicsDelegateTest')
         self.env=env
+        self.delegate=subprocess.Popen(['python3',str(ROOT/'tests/fixtures/logout_inhibit_delegate.py')],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        self.addCleanup(self.stop,self.delegate)
+        self.assertEqual(self.delegate.stdout.readline().strip(),'ready')
         self.backend=subprocess.Popen(['python3',str(ROOT/'tests/fixtures/logout_inhibit_backend.py')],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
         self.addCleanup(self.stop,self.backend)
         self.assertEqual(self.backend.stdout.readline().strip(),'ready')
@@ -67,10 +71,75 @@ class PrototypeBus(unittest.TestCase):
             self.assertLess(time.monotonic(),deadline,'inhibitor survived owner disconnect')
             time.sleep(.02)
 
-    def test_unsupported_flags_fail_without_registering(self):
+    def test_invalid_flags_fail_without_registering(self):
         with self.assertRaises(dbus.DBusException):
-            self.portal(self.owner).Inhibit(dbus.ObjectPath(self.path),'org.example.Editor','',dbus.UInt32(9),{})
+            self.portal(self.owner).Inhibit(dbus.ObjectPath(self.path),'org.example.Editor','',dbus.UInt32(16),{})
         self.assertEqual(self.entries(),[])
+
+    def test_mixed_flags_are_delegated_and_released(self):
+        delegate=dbus.Interface(self.observer.get_object('org.freedesktop.impl.portal.desktop.hicsDelegateTest',PATH),'org.hics.TestDelegate')
+        self.portal(self.owner).Inhibit(dbus.ObjectPath(self.path),'org.example.Editor','',dbus.UInt32(9),{'reason':dbus.String('Saving',variant_level=1)})
+        self.assertEqual(int(delegate.Flags(dbus.ObjectPath(self.path))),8)
+        self.assertEqual(len(self.entries()),1)
+        dbus.Interface(self.owner.get_object(SERVICE,self.path),REQ).Close()
+        deadline=time.monotonic()+3
+        while int(delegate.Count()):
+            self.assertLess(time.monotonic(),deadline,'Delegated inhibition was not closed')
+            time.sleep(.02)
+        self.assertEqual(self.entries(),[])
+
+    def test_release_uses_original_delegate_after_selection_changes(self):
+        delegate=dbus.Interface(self.observer.get_object('org.freedesktop.impl.portal.desktop.hicsDelegateTest',PATH),'org.hics.TestDelegate')
+        control=dbus.Interface(self.observer.get_object(SERVICE,PATH),'org.hics.TestInhibitors')
+        self.portal(self.owner).Inhibit(dbus.ObjectPath(self.path),'org.example.Editor','',dbus.UInt32(9),{})
+        control.SetDelegate('org.example.Unavailable')
+        dbus.Interface(self.owner.get_object(SERVICE,self.path),REQ).Close()
+        deadline=time.monotonic()+3
+        while int(delegate.Count()):
+            self.assertLess(time.monotonic(),deadline,'Original delegate retained its inhibition')
+            time.sleep(.02)
+
+    def test_real_gtk_delegate_handles_idle_and_cleanup(self):
+        display=os.environ.get('HICS_TEST_GTK_DISPLAY')
+        if not display:self.skipTest('Requires the explicit nested Wayland GTK fixture')
+        env=dict(self.env,WAYLAND_DISPLAY=display,DBUS_SYSTEM_BUS_ADDRESS='unix:path='+str(Path(self.tmp.name)/'absent'))
+        env.pop('LD_LIBRARY_PATH',None)
+        gtk=subprocess.Popen(['/usr/lib/xdg-desktop-portal-gtk'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True)
+        self.addCleanup(self.stop,gtk)
+        deadline=time.monotonic()+8
+        while not self.observer.name_has_owner('org.freedesktop.impl.portal.desktop.gtk'):
+            self.assertIsNone(gtk.poll(),'GTK portal exited')
+            self.assertLess(time.monotonic(),deadline,'GTK portal did not start')
+            time.sleep(.05)
+        control=dbus.Interface(self.observer.get_object(SERVICE,PATH),'org.hics.TestInhibitors')
+        control.SetDelegate('org.freedesktop.impl.portal.desktop.gtk')
+        screensaver=dbus.Interface(self.observer.get_object('org.freedesktop.ScreenSaver','/org/freedesktop/ScreenSaver'),'org.hics.TestScreensaver')
+        self.portal(self.owner).Inhibit(dbus.ObjectPath(self.path),'org.example.Editor','',dbus.UInt32(9),{})
+        deadline=time.monotonic()+5
+        while int(screensaver.Count())!=1:
+            self.assertLess(time.monotonic(),deadline,'GTK did not register idle inhibition')
+            time.sleep(.02)
+        self.assertEqual(len(self.entries()),1)
+        dbus.Interface(self.owner.get_object(SERVICE,self.path),REQ).Close()
+        deadline=time.monotonic()+5
+        while int(screensaver.Count()):
+            self.assertLess(time.monotonic(),deadline,'GTK idle inhibition was not released')
+            time.sleep(.02)
+        self.assertEqual(self.entries(),[])
+
+    def test_delegation_failure_rolls_back_logout_inhibition(self):
+        with self.assertRaises(dbus.DBusException):
+            self.portal(self.owner).Inhibit(dbus.ObjectPath(self.path),'org.example.Editor','',dbus.UInt32(3),{})
+        self.assertEqual(self.entries(),[])
+
+    def test_delegate_is_closed_after_owner_disconnect(self):
+        delegate=dbus.Interface(self.observer.get_object('org.freedesktop.impl.portal.desktop.hicsDelegateTest',PATH),'org.hics.TestDelegate')
+        self.portal(self.owner).Inhibit(dbus.ObjectPath(self.path),'org.example.Editor','',dbus.UInt32(9),{})
+        self.owner.close()
+        deadline=time.monotonic()+3
+        while self.entries() or int(delegate.Count()):
+            self.assertLess(time.monotonic(),deadline,'Owner loss did not clear both inhibitors')
+            time.sleep(.02)
 
     def test_query_waits_for_monitors_and_new_inhibitors(self):
         monitor='/org/freedesktop/portal/desktop/session/1_123/test'
