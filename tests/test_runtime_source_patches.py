@@ -59,6 +59,32 @@ class SourcePatchTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '0.3.2'):
             QS.source_check(self.source, apply=True)
 
+class QtOverlayPlaceholderTests(unittest.TestCase):
+    def test_only_empty_ninja_placeholder_is_removed(self):
+        with tempfile.TemporaryDirectory(prefix='hics Qt placeholder ') as directory:
+            root = Path(directory)
+            stage = root / 'overlay'
+            stage.mkdir()
+            argv = ['builder', '--work', str(root/'work'), '--stage', str(stage)]
+            with patch('sys.argv', argv), patch.object(QT, 'PATCHES', {}), \
+                    patch.object(QT, 'sha', return_value='0'*64), \
+                    patch.object(QT, 'header_digest', return_value='1'*64), \
+                    patch.object(QT.subprocess, 'check_output', side_effect=['6.12.0\n', str(root/'headers')+'\n']), \
+                    patch.object(QT, 'fetch', side_effect=RuntimeError('reached source fetch')):
+                with self.assertRaisesRegex(RuntimeError, 'reached source fetch'):
+                    QT.main()
+            self.assertFalse(stage.exists())
+            stage.mkdir()
+            marker = stage/'preserve.txt'
+            marker.write_text('existing incomplete output')
+            with patch('sys.argv', argv), patch.object(QT, 'PATCHES', {}), \
+                    patch.object(QT, 'sha', return_value='0'*64), \
+                    patch.object(QT, 'header_digest', return_value='1'*64), \
+                    patch.object(QT.subprocess, 'check_output', side_effect=['6.12.0\n', str(root/'headers')+'\n']):
+                with self.assertRaises(FileNotFoundError):
+                    QT.main()
+            self.assertEqual(marker.read_text(), 'existing incomplete output')
+
 class RuntimeProvenanceTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix='hics QS provenance ')

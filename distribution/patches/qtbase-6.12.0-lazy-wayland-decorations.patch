@@ -1,0 +1,131 @@
+--- a/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandglcontext.cpp
++++ b/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandglcontext.cpp
+@@ -338,50 +338,63 @@
+ void QWaylandGLContext::initialize()
+ {
+     QEGLPlatformContext::initialize();
+-
+-    if (m_display->supportsWindowDecoration()) {
+-        // Create an EGL context for the decorations blitter. By using a dedicated context we don't need to make sure to not
+-        // change the context state and we also use OpenGL ES 2 API independently to what the app is using to draw.
+-        QList<EGLint> eglDecorationsContextAttrs = { EGL_CONTEXT_CLIENT_VERSION, 2 };
+-        EGLint flags = 0;
+-
+-        if (format().testOption(QSurfaceFormat::ResetNotification)) {
+-            const bool haveResetOnVideoMemoryPurge = q_hasEglExtension(eglDisplay(), "EGL_NV_robustness_video_memory_purge");
+-
+-            if (format().renderableType() == QSurfaceFormat::OpenGL) {
+-                flags |= EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR;
+-                eglDecorationsContextAttrs.append(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR);
+-                eglDecorationsContextAttrs.append(EGL_LOSE_CONTEXT_ON_RESET_KHR);
++}
++
++bool QWaylandGLContext::ensureDecorationsContext()
++{
++    if (m_decorationsContextInitialized)
++        return m_decorationsContext != EGL_NO_CONTEXT;
++    m_decorationsContextInitialized = true;
++    if (!m_display || !m_display->supportsWindowDecoration())
++        return false;
++    // Create an EGL context for the decorations blitter. By using a dedicated context we don't need to make sure to not
++    // change the context state and we also use OpenGL ES 2 API independently to what the app is using to draw.
++    QList<EGLint> eglDecorationsContextAttrs = { EGL_CONTEXT_CLIENT_VERSION, 2 };
++    EGLint flags = 0;
++
++    if (format().testOption(QSurfaceFormat::ResetNotification)) {
++        const bool haveResetOnVideoMemoryPurge = q_hasEglExtension(eglDisplay(), "EGL_NV_robustness_video_memory_purge");
++
++        if (format().renderableType() == QSurfaceFormat::OpenGL) {
++            flags |= EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR;
++            eglDecorationsContextAttrs.append(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR);
++            eglDecorationsContextAttrs.append(EGL_LOSE_CONTEXT_ON_RESET_KHR);
++            if (haveResetOnVideoMemoryPurge) {
++                eglDecorationsContextAttrs.append(EGL_GENERATE_RESET_ON_VIDEO_MEMORY_PURGE_NV);
++                eglDecorationsContextAttrs.append(EGL_TRUE);
++            }
++        } else if (format().renderableType() == QSurfaceFormat::OpenGLES) {
++            if (q_hasEglExtension(eglDisplay(), "EGL_EXT_create_context_robustness")) {
++                eglDecorationsContextAttrs.append(EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT);
++                eglDecorationsContextAttrs.append(EGL_TRUE);
++                eglDecorationsContextAttrs.append(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT);
++                eglDecorationsContextAttrs.append(EGL_LOSE_CONTEXT_ON_RESET_EXT);
+                 if (haveResetOnVideoMemoryPurge) {
+                     eglDecorationsContextAttrs.append(EGL_GENERATE_RESET_ON_VIDEO_MEMORY_PURGE_NV);
+                     eglDecorationsContextAttrs.append(EGL_TRUE);
+                 }
+-            } else if (format().renderableType() == QSurfaceFormat::OpenGLES) {
+-                if (q_hasEglExtension(eglDisplay(), "EGL_EXT_create_context_robustness")) {
+-                    eglDecorationsContextAttrs.append(EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT);
+-                    eglDecorationsContextAttrs.append(EGL_TRUE);
+-                    eglDecorationsContextAttrs.append(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT);
+-                    eglDecorationsContextAttrs.append(EGL_LOSE_CONTEXT_ON_RESET_EXT);
+-                    if (haveResetOnVideoMemoryPurge) {
+-                        eglDecorationsContextAttrs.append(EGL_GENERATE_RESET_ON_VIDEO_MEMORY_PURGE_NV);
+-                        eglDecorationsContextAttrs.append(EGL_TRUE);
+-                    }
+-                }
+             }
+         }
+-
+-        if (flags) {
+-            eglDecorationsContextAttrs.append(EGL_CONTEXT_FLAGS_KHR);
+-            eglDecorationsContextAttrs.append(flags);
+-        }
+-
+-        eglDecorationsContextAttrs << EGL_NONE;
+-
+-        m_decorationsContext = eglCreateContext(eglDisplay(), eglConfig(), eglContext(),
+-                                                eglDecorationsContextAttrs.constData());
+-        if (m_decorationsContext == EGL_NO_CONTEXT)
+-            qWarning("QWaylandGLContext: Failed to create the decorations EGLContext. Decorations will not be drawn.");
+-    }
++    }
++
++    if (flags) {
++        eglDecorationsContextAttrs.append(EGL_CONTEXT_FLAGS_KHR);
++        eglDecorationsContextAttrs.append(flags);
++    }
++
++    eglDecorationsContextAttrs << EGL_NONE;
++
++    const EGLenum previousApi = eglQueryAPI();
++    if (previousApi != m_api)
++        eglBindAPI(m_api);
++    m_decorationsContext = eglCreateContext(eglDisplay(), eglConfig(), eglContext(),
++                                            eglDecorationsContextAttrs.constData());
++    if (previousApi != m_api)
++        eglBindAPI(previousApi);
++    if (m_decorationsContext == EGL_NO_CONTEXT)
++        qWarning("QWaylandGLContext: Failed to create the decorations EGLContext. Decorations will not be drawn.");
++
++    return m_decorationsContext != EGL_NO_CONTEXT;
+ }
+ 
+ void QWaylandGLContext::beginFrame()
+@@ -478,7 +491,7 @@
+ 
+     EGLSurface eglSurface = window->eglSurface();
+ 
+-    if (window->decoration()) {
++    if (window->decoration() && ensureDecorationsContext()) {
+         if (m_api != EGL_OPENGL_ES_API)
+             eglBindAPI(EGL_OPENGL_ES_API);
+ 
+--- a/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandglcontext_p.h
++++ b/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandglcontext_p.h
+@@ -45,6 +45,7 @@
+     void runGLChecks() override;
+ 
+ private:
++    bool ensureDecorationsContext();
+     QWaylandDisplay *m_display = nullptr;
+     EGLContext m_decorationsContext = EGL_NO_CONTEXT;
+     DecorationsBlitter *m_blitter = nullptr;
+@@ -55,6 +56,7 @@
+     QWaylandEglWindow *m_currentWindow = nullptr;
+     QMetaObject::Connection m_reconnectionWatcher;
+     bool m_doneCurrentWorkAround = false;
++    bool m_decorationsContextInitialized = false;
+ };
+ 
+ }

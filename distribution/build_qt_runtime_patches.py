@@ -24,7 +24,9 @@ SOURCES={
  'qtmultimedia':('https://github.com/qt/qtmultimedia/archive/refs/tags/v6.12.0.tar.gz','896543478b9dcdc1811e2960f74d926572cf5d97ce9ad7a53b6ea335cafe8561'),
  'renderdoc':('https://raw.githubusercontent.com/baldurk/renderdoc/v1.43/renderdoc/api/app/renderdoc_app.h','b7005e7dc34c3635046868bbd76d81b9b055aede0f56daa0bd39fedee0639ffb'),
 }
-PATCHES={'qtbase':['qtbase-6.12.0-portal-registration.patch','qtbase-6.12.0-text-input-focus.patch'],
+PATCHES={'qtbase':['qtbase-6.12.0-portal-registration.patch','qtbase-6.12.0-text-input-focus.patch',
+    'qtbase-6.12.0-maximized-decoration-geometry.patch','qtbase-6.12.0-lazy-wayland-decorations.patch',
+    'qtbase-6.12.0-egl-context-adoption.patch'],
  'qtmultimedia':['qtmultimedia-6.12.0-lazy-hw-diagnostics.patch'],
  'qtdeclarative':['qtdeclarative-6.12.0-shadow-ownership.patch']}
 
@@ -83,7 +85,11 @@ def main():
     headers=Path(subprocess.check_output(['qmake6','-query','QT_INSTALL_HEADERS'],text=True).strip())
     patch_hashes={name:sha(ROOT/'distribution/patches'/name) for names in PATCHES.values() for name in names}
     fingerprint={'quickEffectsBuild':sha(ROOT/'distribution/qtquickeffects/CMakeLists.txt'),'builder':sha(__file__),'patches':patch_hashes,'qtVersion':version,
-        'headers':{module:header_digest(headers/module) for module in ('QtCore','QtGui','QtWaylandClient','QtMultimedia','QtQuickEffects','QtQml','QtQuick')}}
+        'headers':{module:header_digest(headers/module) for module in ('QtCore','QtGui','QtOpenGL','QtWaylandClient','QtMultimedia','QtQuickEffects','QtQml','QtQuick')}}
+    # Ninja creates the output parent before invoking this command. Only an
+    # empty placeholder may be removed; populated overlays stay immutable.
+    if stage.is_dir() and not any(stage.iterdir()):
+        stage.rmdir()
     if stage.exists():
         metadata=json.loads((stage/'hics-qt-patches.json').read_text())
         if metadata.get('fingerprint')!=fingerprint:raise SystemExit('Existing overlay is immutable; choose a new stage path')
@@ -116,9 +122,9 @@ def main():
         '-DINPUT_openssl=linked','-DFEATURE_openssl_linked=ON','-DFEATURE_openssl_hash='+enabled(expected_core,'openssl_hash'),
         '-DFEATURE_graphicsframecapture='+enabled(expected_gui,'graphicsframecapture'),'-DRenderDoc_INCLUDE_DIR='+str(renderdoc),
         '-DFEATURE_system_xcb_xinput='+enabled(expected_gui,'system_xcb_xinput')])
-    run(work,'hics-qtbase-build',['cmake','--build',str(base),'--target','Gui','WaylandClient','QOffscreenIntegrationPlugin','QWaylandIntegrationPlugin','-j'+str(a.jobs)])
+    run(work,'hics-qtbase-build',['cmake','--build',str(base),'--target','Gui','WaylandClient','QOffscreenIntegrationPlugin','QWaylandIntegrationPlugin','QWaylandEglClientBufferPlugin','-j'+str(a.jobs)])
     comparison={}
-    for module,sub in [('QtCore','corelib'),('QtGui','gui'),('QtWaylandClient','plugins/platforms/wayland')]:
+    for module,sub in [('QtCore','corelib'),('QtGui','gui'),('QtOpenGL','opengl'),('QtWaylandClient','plugins/platforms/wayland')]:
         for private in (False,True):
             installed=header(headers,module,private);name=installed.name;built=base/'src'/sub/name
             if not installed.exists() or not built.exists():continue
@@ -149,6 +155,7 @@ def main():
             raise RuntimeError('Missing rebuilt Qt QuickEffects library')
         for name,source in [('platforms/libqoffscreen.so',base/'lib/qt6/plugins/platforms/libqoffscreen.so'),
                             ('platforms/libqwayland.so',base/'lib/qt6/plugins/platforms/libqwayland.so'),
+                            ('wayland-graphics-integration-client/libqt-plugin-wayland-egl.so',base/'lib/qt6/plugins/wayland-graphics-integration-client/libqt-plugin-wayland-egl.so'),
                             ('multimedia/libffmpegmediaplugin.so',media/'lib/qt6/plugins/multimedia/libffmpegmediaplugin.so')]:
             destination=temporary/'plugins'/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,destination)
         (temporary/'lib/qt6').mkdir();(temporary/'lib/qt6/plugins').symlink_to('../../plugins',target_is_directory=True)

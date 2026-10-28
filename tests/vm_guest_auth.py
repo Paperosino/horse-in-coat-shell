@@ -8,15 +8,26 @@ import json,os,shlex,stat,string,subprocess,time
 from pathlib import Path
 from vm_cachyos import qmp
 
-def unlock_guest(lab):
+def unlock_guest(lab, *, ssh_port=22280, identity=None, known_hosts=None):
  lab=Path(lab).resolve()
  def remote(args):
-  command=['ssh','-i',str(lab/'guest_ed25519'),'-p','22280','-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(lab/'known_hosts-installed'),'root@127.0.0.1',shlex.join(args)]
+  command=['ssh','-i',str(identity or lab/'guest_ed25519'),'-p',str(ssh_port),'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(known_hosts or lab/'known_hosts-installed'),'root@127.0.0.1',shlex.join(args)]
   return subprocess.check_output(command,text=True,timeout=10).strip()
  state=qmp(lab,'query-status')
  if state.get('status')=='suspended':qmp(lab,'system_wakeup')
  elif not state.get('running'):raise RuntimeError('Inspect the current VM state before authenticating')
- assert remote(['cat','/etc/hostname'])=='hics-test'
+ # QMP wake acknowledgement precedes guest SSH readiness. Retry read-only
+ # identity probes, never credential input or an unexpected machine identity.
+ deadline=time.monotonic()+20
+ while True:
+  try:
+   hostname=remote(['cat','/etc/hostname']);break
+  except subprocess.CalledProcessError as error:
+   if error.returncode!=255 or time.monotonic()>=deadline:raise
+  except subprocess.TimeoutExpired:
+   if time.monotonic()>=deadline:raise
+  time.sleep(.2)
+ assert hostname=='hics-test'
  assert remote(['systemd-detect-virt']) in ('qemu','kvm')
  user=['runuser','-u','hics-test','--','env','XDG_RUNTIME_DIR=/run/user/1000','LANG=ru_RU.UTF-8']
  def ctl(*args):return remote(user+['hyprctl','-i','0',*args])

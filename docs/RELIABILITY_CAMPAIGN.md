@@ -3253,3 +3253,62 @@ set. A first manually written hunk had an incorrect context length and failed
 the dry-run; it was regenerated from the actual source diff before acceptance.
 Full Qt/VM acceptance of a rebuilt114 image is still pending; installed113 is
 unchanged by this source-only follow-up.
+
+
+### Follow-up114/115: measured EGL allocations, real CSD transitions, native adoption
+
+Candidate114 (QS fontconfig XML escaping) is built and installed in both
+CachyOS VMs, **not on the host**, which remains113. Package SHA256:
+`2ff8f276fe885dd77d9249928d0ac1b286f9dd42ab20f88483e7903781ed8f64`.
+The real custom-fontconfig path containing `&` and `<локаль>` produces valid
+escaped XML with both WOFF filters retained. The old executable returns0 too
+because Fontconfig falls back: exit status alone does not detect this bug.
+The main VM reaches `sessionHealth.ready` after a normal reboot;60 rendered
+settings cycles pass with unchanged UI PID and no binding errors. RSS starts
+897236KiB and ends1015796KiB; this is not a cold-RAM improvement claim.
+Fresh VM114 passes all8 installed-runtime gates (SQL, portal registration,
+portal frontend, audio ASan, text input with/without IME, video, video watchdog).
+Runner482/UI524 and boot02b74c2d-aab3-40e2-886c-c8d02d0f7438 remain unchanged.
+
+A diagnostic-only jemalloc snapshot after120 settings openings measured
+719809992 allocated bytes and816857088 resident bytes. Startup sampling on
+package113 measured560640840 allocated bytes; most sampled stacks lead through
+Mesa software GL context creation. Nearest symbols in stripped `libgallium`
+are **not** evidence of VAAPI ownership. Driver BuildID is verified, but its
+internal debug symbols were unavailable. The trial environment/drop-in was
+removed and a normal reboot verified before114 acceptance. No profiling helper,
+GDB attachment, explicit allocator purge or background observer is shipped.
+
+Qt6.12 eagerly creates an extra EGL context for CSD even for frameless surfaces.
+Prototype115 defers it to the first actual decorated swap and preserves the
+current EGL API when creating it. A decoration-disable control is diagnostic
+only; production retains CSD. Six shadow PNGs remain byte-identical. This is
+not yet a full-shell/cold-start memory comparison or a physical-GPU result.
+
+Strict private Weston15 headless GL exposed a separate **original Qt** defect:
+frameless→CSD while maximized commits646x513 for a640x480 configure and receives
+xdg_wm_base error4. The geometry patch keeps the compositor-configured outer
+size when margins change outside configure application. Original static CSD
+and frameless cases are retained as references. With the geometry fix common
+to control and candidate, all20 captured frames/16 comparisons are pixel-exact
+in OpenGL and GLES, with valid unchanged application contexts. A threaded
+Qt Quick variant also passes the same scale1 matrix. The harness explicitly
+turns off Weston's startup fade; the first comparison with the fade enabled
+was inconclusive, not a rendering regression.
+
+A separate public `QEGLContext::fromNative` fixture reproduces an original Qt
+null-display dereference under ASan for both GL and GLES. Lazy decoration
+creation removes that crash, but first revealed missing Qt share-group
+registration. The adoption patch initializes Wayland display/reconnect state,
+uses the adopted context's API and sets shareContext before private adoption.
+The corrected prototype returns0 with ASan/LSan enabled for both APIs: FBO
+color readback succeeds, `areSharing` is true, deleting the borrowed wrapper
+does not destroy the owner's native context, and the owner remains usable.
+No system Qt libraries were replaced to run these private tests.
+
+Canonical115 Qt build and extended scale/native-adoption tests are in progress.
+None of the prototype evidence means every driver or every multimedia leak is
+fixed. The separately documented587-byte global Fontconfig LSan residual
+remains open and is not suppressed. Evidence is outside Git under
+`~/.local/state/hics-testing/qt109-source/`, with per-case logs and immutable
+VM directories; reproducible fixtures/controllers are in `tests/`.

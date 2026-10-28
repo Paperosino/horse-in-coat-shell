@@ -1,0 +1,37 @@
+--- a/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandglcontext.cpp
++++ b/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandglcontext.cpp
+@@ -234,8 +234,11 @@
+ 
+ QWaylandGLContext::QWaylandGLContext()
+     : QEGLPlatformContext(),
++      m_display(QWaylandIntegration::instance()->display()),
+       m_api(EGL_OPENGL_ES_API)
+ {
++    m_reconnectionWatcher = QObject::connect(m_display, &QWaylandDisplay::connected,
++                                             m_display, [this] { invalidateContext(); });
+ }
+ 
+ QWaylandGLContext::QWaylandGLContext(EGLDisplay eglDisplay, QWaylandDisplay *display,
+@@ -338,6 +341,12 @@
+ void QWaylandGLContext::initialize()
+ {
+     QEGLPlatformContext::initialize();
++    // Adopted contexts bypass the format-taking constructor.
++    switch (format().renderableType()) {
++    case QSurfaceFormat::OpenGL: m_api = EGL_OPENGL_API; break;
++    case QSurfaceFormat::OpenVG: m_api = EGL_OPENVG_API; break;
++    default: m_api = EGL_OPENGL_ES_API; break;
++    }
+ }
+ 
+ bool QWaylandGLContext::ensureDecorationsContext()
+--- a/src/gui/opengl/platform/egl/qeglplatformcontext_p.h
++++ b/src/gui/opengl/platform/egl/qeglplatformcontext_p.h
+@@ -52,6 +52,7 @@
+         QPlatformOpenGLContext *shareHandle = shareContext ? shareContext->handle() : nullptr;
+ 
+         auto *resultingContext = new QOpenGLContext;
++        resultingContext->setShareContext(shareContext);
+         auto *contextPrivate = QOpenGLContextPrivate::get(resultingContext);
+         auto *platformContext = new T;
+         platformContext->adopt(context, contextDisplay, shareHandle);

@@ -124,3 +124,31 @@ USE_JEMALLOC=OFF. Предзагрузка ASan в релизный QS с jemall
 окружение до запуска. Это не повод отключать аллокатор в релизе или скрывать
 LSan: отдельный диагностический executable и обычные проверки релизного
 аллокатора имеют разные области проверки и явно указанные SHA.
+
+
+## Кандидат115: EGL и изменение клиентской рамки (приёмка продолжается)
+
+Проверены по исходникам Qt6.12.0:
+[контекст Wayland EGL](https://github.com/qt/qtbase/blob/v6.12.0/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandglcontext.cpp),
+[геометрия окна](https://github.com/qt/qtbase/blob/v6.12.0/src/plugins/platforms/wayland/qwaylandwindow.cpp),
+[заимствование EGL](https://github.com/qt/qtbase/blob/v6.12.0/src/gui/opengl/platform/egl/qeglplatformcontext_p.h).
+Дополнительный контекст рамки создаётся при первом реальном CSD swap вместо
+инициализации любого контекста. CSD и её графический конвейер сохраняются.
+При изменении рамки развёрнутого окна размер остаётся в пределах configure.
+Заимствованный контекст получает Wayland display, обработчик переподключения,
+правильный GL API и Qt share group; владение исходным EGLContext не передаётся.
+
+Воспроизводимые диагностические бинарники:
+
+```sh
+cmake -S tests/fixtures/qt-wayland-probes -B /tmp/hics-wayland-probes -GNinja -DHICS_PROBE_ASAN=ON
+cmake --build /tmp/hics-wayland-probes -j2
+```
+
+Контроллеры `tests/integration_qt_wayland_decorations.py` и
+`tests/integration_qt_egl_adoption.py` предназначены только для disposable
+CachyOS VM с приватным Weston. Снимки берутся с реальной композиции, не с
+Qt grab одного содержимого. Исходный runtime служит статическим эталоном;
+контроль с общей правкой геометрии изолирует эффект lazy EGL. Для Qt Quick
+есть отдельная проверка работы render thread. Scale factor тестирует Qt UI
+scaling и не объявляется проверкой fractional-scale протокола монитора.

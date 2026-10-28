@@ -30,6 +30,7 @@ cursor=json.loads(records.strip().splitlines()[-1])['__CURSOR']
 def ctl(*args):return subprocess.check_output(user+['hyprctl','-i',instances[0]['instance'],*args],text=True,timeout=8)
 def own():return [w for w in json.loads(ctl('-j','clients')) if w['pid']==pid]
 def unlocked():return subprocess.check_output(user+['/usr/share/hics/qs/bin/hics-qs','ipc','-p','/usr/share/hics/shell','call','lock','isLocked'],text=True,timeout=5).strip()=='false'
+def first_frame_ready():return subprocess.check_output(user+['/usr/share/hics/qs/bin/hics-qs','ipc','-p','/usr/share/hics/shell','call','sessionHealth','ready'],text=True,timeout=5).strip()=='true'
 def wait(check,seconds=10):
  end=time.monotonic()+seconds
  while time.monotonic()<end:
@@ -43,6 +44,7 @@ def sample(cycle):
  lines=Path(f'/proc/{pid}/smaps_rollup').read_text().splitlines()
  memory={k:int(next(line for line in lines if line.startswith(k+':')).split()[1]) for k in ('Rss','Pss','Private_Dirty')}
  return {'cycle':cycle,'seconds':time.monotonic()-started,'memoryKiB':memory,'fds':len(list(Path(f'/proc/{pid}/fd').iterdir())),'threads':len(list(Path(f'/proc/{pid}/task').iterdir())),'cpuTicks':int(stats[11])+int(stats[12])}
+assert first_frame_ready(),'Wait for the real first frame before sampling resource trends'
 assert unlocked(),'Unlock the guest normally before running an interactive soak'
 assert not own(),'Close guest settings/recovery windows before starting the soak'
 started=time.monotonic();samples=[sample(0)];
@@ -84,7 +86,7 @@ categories={}
 for line in qslines:
  match=re.match(r'\s*(WARN|ERROR) ([^:]+):',line)
  if match:categories[match[2]]=categories.get(match[2],0)+1
-print(json.dumps({'pid':pid,'runner':runner,'allocatorEnvironment':allocatorEnvironment,'clockTicksPerSecond':os.sysconf('SC_CLK_TCK'),'journalEntriesChecked':len(entries),'journalBindingErrors':failures,'quickshellLogLines':len(qslines),'quickshellBindingErrors':qsfailures,'warningCategories':categories,'pageDwellSeconds':0.3,'pages':pages,'cycles':int(sys.argv[1]),'keepActiveInput':'QMP Shift every 15 seconds; no text','logindInhibitor':True,'samples':samples,'package':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'kernel':os.uname().release,'gpuDrivers':sorted({p.resolve().name for p in Path('/sys/class/drm').glob('card[0-9]/device/driver')}),'scope':'QEMU software rendering; read-only page lifecycle, not all functions or proof of no leaks'},indent=2))
+print(json.dumps({'pid':pid,'runner':runner,'firstFrameReady':True,'allocatorEnvironment':allocatorEnvironment,'clockTicksPerSecond':os.sysconf('SC_CLK_TCK'),'journalEntriesChecked':len(entries),'journalBindingErrors':failures,'quickshellLogLines':len(qslines),'quickshellBindingErrors':qsfailures,'warningCategories':categories,'pageDwellSeconds':0.3,'pages':pages,'cycles':int(sys.argv[1]),'keepActiveInput':'QMP Shift every 15 seconds; no text','logindInhibitor':True,'samples':samples,'package':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'kernel':os.uname().release,'gpuDrivers':sorted({p.resolve().name for p in Path('/sys/class/drm').glob('card[0-9]/device/driver')}),'scope':'QEMU software rendering; read-only page lifecycle, not all functions or proof of no leaks'},indent=2))
 '''
 def main():
  parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--lab',type=Path,required=True);parser.add_argument('--disposable-cachyos-vm',action='store_true',required=True);parser.add_argument('--cycles',type=int,default=60);parser.add_argument('--out',type=Path,required=True);args=parser.parse_args()

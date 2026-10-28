@@ -1,0 +1,26 @@
+--- a/src/plugins/platforms/wayland/qwaylandwindow.cpp
++++ b/src/plugins/platforms/wayland/qwaylandwindow.cpp
+@@ -1123,6 +1123,11 @@
+         decoration = false;
+ 
+     bool hadDecoration = mWindowDecorationEnabled;
++    // A client-side flag change must not enlarge the compositor-configured
++    // maximized geometry. Configure application will supply its own new size.
++    const QSize previousContentSize = !mWaitingToApplyConfigure
++            && (windowStates() & Qt::WindowMaximized)
++            ? windowContentGeometry().size() : QSize();
+     if (decoration && !decorationPluginFailed) {
+         if (!mWindowDecorationEnabled) {
+             if (mWindowDecoration) {
+@@ -1184,7 +1189,10 @@
+             QMargins m = frameMargins();
+             subsurf->set_position(pos.x() + m.left(), pos.y() + m.top());
+         }
+-        setGeometry(geometry());
++        if (!previousContentSize.isEmpty())
++            resizeFromApplyConfigure(previousContentSize.grownBy(windowContentMargins()));
++        else
++            setGeometry(geometry());
+ 
+         // creating a decoration changes our margins which in turn change size hints
+         propagateSizeHints();
