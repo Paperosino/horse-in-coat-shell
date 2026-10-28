@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef HICS_TEST_RESIDENT_DBUS
@@ -23,7 +24,14 @@ struct capture {
     uint64_t first_hash, bytes;
     int error;
     bool timeout;
+    bool hold, announced, streaming;
+    unsigned ticks;
 };
+static volatile sig_atomic_t stop_requested;
+static void request_stop(int signal_number) {
+    (void)signal_number;
+    stop_requested = 1;
+}
 static void core_error(void *data, uint32_t id, int seq, int res, const char *message) {
     (void)id; (void)seq; (void)message;
     struct capture *c = data;
@@ -34,6 +42,11 @@ static void state_changed(void *data, enum pw_stream_state old,
                           enum pw_stream_state state, const char *message) {
     (void)old; (void)message;
     struct capture *c = data;
+    if (state == PW_STREAM_STATE_STREAMING) c->streaming = true;
+    if (c->hold && c->streaming && state == PW_STREAM_STATE_UNCONNECTED) {
+        c->error = -EPIPE;
+        pw_main_loop_quit(c->loop);
+    }
     if (state == PW_STREAM_STATE_ERROR) {
         c->error = -EIO;
         pw_main_loop_quit(c->loop);
@@ -78,13 +91,25 @@ static void process(void *data) {
     }
     /* Return every dequeued buffer, including unsupported/empty planes. */
     pw_stream_queue_buffer(c->stream, buffer);
-    if (c->frames >= 12 && c->changes) pw_main_loop_quit(c->loop);
+    if (!c->hold && c->frames >= 12 && c->changes) pw_main_loop_quit(c->loop);
 }
 static void deadline(void *data, uint64_t expirations) {
-    (void)expirations;
     struct capture *c = data;
-    c->timeout = true;
-    pw_main_loop_quit(c->loop);
+    c->ticks += expirations;
+    if (stop_requested) {
+        pw_main_loop_quit(c->loop);
+        return;
+    }
+    if (c->hold && !c->announced && c->frames >= 12 && c->changes) {
+        printf("{\"frames\":%u,\"changingFrames\":%u,\"width\":%u,\"height\":%u}\n",
+               c->frames, c->changes, c->format.size.width, c->format.size.height);
+        fflush(stdout);
+        c->announced = true;
+    }
+    if (c->ticks >= (c->hold ? 400 : 200)) {
+        c->timeout = true;
+        pw_main_loop_quit(c->loop);
+    }
 }
 int main(int argc, char **argv) {
     if (argc != 4) return 2;
@@ -111,7 +136,12 @@ int main(int argc, char **argv) {
     if (!dbus_threads_init_default()) return 13;
 #endif
     pw_init(&argc, &argv);
-    struct capture c = {0};
+    struct capture c = {.hold = getenv("HICS_CAPTURE_HOLD") != NULL};
+    if (c.hold) {
+        struct sigaction action = {.sa_handler = request_stop};
+        sigemptyset(&action.sa_mask);
+        if (sigaction(SIGUSR1, &action, NULL)) return 14;
+    }
     c.loop = pw_main_loop_new(NULL);
     if (!c.loop) {pw_deinit();return 7;}
     struct pw_loop *loop = pw_main_loop_get_loop(c.loop);
@@ -149,8 +179,8 @@ int main(int argc, char **argv) {
         spa_hook_remove(&core_hook);pw_core_disconnect(core);
         pw_context_destroy(context);pw_main_loop_destroy(c.loop);pw_deinit();return 11;
     }
-    struct timespec limit = {.tv_sec=20};
-    pw_loop_update_timer(loop, timer, &limit, NULL, false);
+    struct timespec interval = {.tv_nsec=100000000};
+    pw_loop_update_timer(loop, timer, &interval, &interval, false);
     int result = pw_stream_connect(c.stream, PW_DIRECTION_INPUT, use_serial ? PW_ID_ANY : (uint32_t)node,
         PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS, params, 1);
     if (result < 0) c.error = result;

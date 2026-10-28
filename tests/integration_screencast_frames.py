@@ -8,6 +8,8 @@ import argparse
 import hashlib
 import json
 import os
+import select
+import signal
 from pathlib import Path
 import subprocess
 import sys
@@ -29,9 +31,11 @@ def main():
     parser.add_argument('--source', choices=('monitor', 'window'), default='monitor')
     parser.add_argument('--expect-cancel', action='store_true')
     parser.add_argument('--backend-exit-after-frames',type=Path,help='Diagnostic-only instrumented backend executable; normal teardown while the sharing session remains open')
+    parser.add_argument('--consumer-active-at-exit',action='store_true',help='Keep receiving frames when the diagnostic backend exits')
     parser.add_argument('--disposable-cachyos-vm', required=True, action='store_true')
     args = parser.parse_args()
     if args.backend_exit_after_frames and args.expect_cancel:parser.error('Exit requires a successful stream')
+    if args.consumer_active_at_exit and not args.backend_exit_after_frames:parser.error('Active consumer requires diagnostic backend exit')
     if not 15<=args.picker_timeout<=600:parser.error('Picker timeout must be 15..600 seconds')
     assert os.getuid() == 1000 and Path('/etc/hostname').read_text().strip() == 'hics-test'
     assert subprocess.check_output(['systemd-detect-virt'], text=True).strip() in ('kvm', 'qemu')
@@ -139,18 +143,61 @@ def main():
                 consumer_env['HICS_PIPEWIRE_MAPS'] = str(root/'consumer-maps.log')
             try:
                 with (root/'frames.stderr.log').open('w') as log:
-                    run = subprocess.run([str(args.probe_binary),str(descriptor),str(node),
-                                          str(serial) if serial else '-'],
-                        pass_fds=(descriptor,),stdout=subprocess.PIPE,stderr=log,text=True,timeout=25,env=consumer_env)
+                    argv=[str(args.probe_binary),str(descriptor),str(node),str(serial) if serial else '-']
+                    if args.consumer_active_at_exit:
+                        consumer_env['HICS_CAPTURE_HOLD']='1'
+                        consumer=subprocess.Popen(argv,pass_fds=(descriptor,),stdout=subprocess.PIPE,stderr=log,text=True,env=consumer_env)
+                        try:
+                            assert select.select([consumer.stdout],[],[],25)[0], 'Consumer did not report live frames'
+                            report['frames']=json.loads(consumer.stdout.readline())
+                            assert consumer.poll() is None, 'Consumer exited before backend teardown'
+                            report['consumerAliveBeforeExit']=True
+                            save()
+                            assert serial and report['frames']['frames']>=12 and report['frames']['changingFrames']>0
+                            assert (backend_process/'stat').read_text().rsplit(')',1)[1].split()[19]==backend_start
+                            report['backendExitRequested']=True;save()
+                            controller=Path(__file__).with_name('integration_portal_backend_exit.py')
+                            with (root/'backend-exit-controller.log').open('w') as exit_log:
+                                stopped=subprocess.run([sys.executable,str(controller),'--expected-executable',str(args.backend_exit_after_frames),
+                                    '--output',str(root/'backend-exit.json'),'--disposable-cachyos-vm'],stdout=exit_log,stderr=subprocess.STDOUT,timeout=20)
+                            assert stopped.returncode==0, 'Inspect backend exit controller evidence'
+                            report['backendExit']=json.loads((root/'backend-exit.json').read_text())
+                            assert report['backendExit']['status']=='exited-awaiting-sanitizer-review' and report['backendExit']['backendPid']==backend_pid
+                            assert consumer.poll() is None, 'Consumer ended during backend teardown'
+                            report['consumerAliveAfterExit']=True
+                            until=time.monotonic()+5
+                            while True:
+                                graph=json.loads(subprocess.check_output(['pw-dump'],text=True,timeout=3))
+                                present=any(item.get('type')=='PipeWire:Interface:Node' and str(item.get('info',{}).get('props',{}).get('object.serial'))==str(serial) for item in graph)
+                                if not present:break
+                                assert time.monotonic()<until, 'Producer node survived backend exit'
+                                time.sleep(.1)
+                            assert consumer.poll() is None, 'Consumer exited before producer removal was observed'
+                            report['streamNodeRemovedWhileConsumerAlive']=True
+                            consumer.send_signal(signal.SIGUSR1)
+                            stdout,_=consumer.communicate(timeout=15)
+                            report['consumerReturncode']=consumer.returncode
+                            report['consumerAfterExit']=json.loads(stdout.strip())
+                            assert report['consumerReturncode']==0 and not report['consumerAfterExit']['timeout'], 'Consumer did not stop cleanly'
+                        finally:
+                            if consumer.poll() is None:
+                                consumer.terminate()
+                                try: consumer.communicate(timeout=3)
+                                except subprocess.TimeoutExpired:
+                                    consumer.kill();consumer.communicate()
+                    else:
+                        run = subprocess.run(argv,pass_fds=(descriptor,),stdout=subprocess.PIPE,stderr=log,text=True,timeout=25,env=consumer_env)
             finally:
                 os.close(descriptor)
-            report['consumerReturncode'] = run.returncode
-            if run.stdout.strip().startswith('{'):
-                report['frames'] = json.loads(run.stdout)
+            if not args.consumer_active_at_exit:
+                report['consumerReturncode'] = run.returncode
+                if run.stdout.strip().startswith('{'):
+                    report['frames'] = json.loads(run.stdout)
             save()
-            assert run.returncode==0, 'PipeWire consumer failed; inspect result and stderr'
+            if not args.consumer_active_at_exit:
+                assert run.returncode==0, 'PipeWire consumer failed; inspect result and stderr'
             assert report['frames']['frames']>=12 and report['frames']['changingFrames']>0
-            if args.backend_exit_after_frames:
+            if args.backend_exit_after_frames and not args.consumer_active_at_exit:
                 assert serial, 'This diagnostic case requires stable stream identity'
                 dump=subprocess.check_output(['pw-dump'],text=True,timeout=3);assert len(dump)<4*1024*1024
                 assert any(str(item.get('info',{}).get('props',{}).get('object.serial'))==str(serial)

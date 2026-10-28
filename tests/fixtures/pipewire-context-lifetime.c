@@ -2,6 +2,9 @@
 #include <pipewire/pipewire.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HICS_PROBE_ASAN
+extern size_t __sanitizer_get_current_allocated_bytes(void);
+#endif
 #ifdef HICS_TEST_RESIDENT_DBUS
 #include <dbus/dbus.h>
 #endif
@@ -22,8 +25,17 @@ int main(int argc, char **argv) {
         if (!context) {pw_main_loop_destroy(loop);pw_deinit();return 5;}
         pw_context_destroy(context);
         pw_main_loop_destroy(loop);
+#ifdef HICS_PROBE_ASAN
+        if (getenv("HICS_PROBE_MEMORY") && (i == 0 || i == 9 || i == count-1))
+            fprintf(stderr,"HICS_ALLOCATED_AFTER %ld %zu\n",i+1,__sanitizer_get_current_allocated_bytes());
+#endif
     }
     pw_deinit();
+#ifdef HICS_TEST_DBUS_SHUTDOWN
+    // This standalone diagnostic owns every libdbus user and has no remaining
+    // threads or connections. Never call this from a plugin or shared library.
+    dbus_shutdown();
+#endif
     printf("PIPEWIRE_CONTEXT_COMPLETE %ld\n",count);fflush(stdout);
     return 0;
 }

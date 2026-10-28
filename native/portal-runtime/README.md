@@ -131,10 +131,9 @@ Restart=no, реальную executable identity, ASan в maps, включённ
 `wl_display_disconnect`. Патч теперь освобождает outputs, mapping и protocol
 wrappers до отключения display. Освобождаются также временные drmDevice сведения
 через drmFreeDevice; ошибка drmGetDevice2 больше не передаёт nullptr в сравнение.
-После этих исправлений idle-exit не воспроизводит UAF/DRM leak, но LSan всё ещё
-сообщает3677 байт/34 allocations через PipeWire module loading. Полностью чистым
-результат не является. Active stream/pending picker teardown остаются отдельными
-обязательными сценариями.
+После этих исправлений idle-exit не воспроизводил UAF/DRM leak, но LSan сообщал
+3677 байт/34 allocations через PipeWire module loading. Дальнейшая проверка и
+изменение времени жизни libdbus описаны ниже; это не приёмка всего портала.
 
 Контракты lifetime проверены по первичным исходникам:
 https://wayland.pages.freedesktop.org/wayland.freedesktop.org/docs/html/apb.html
@@ -177,3 +176,30 @@ frontend может активировать новый backend через D-Bus
 Во время проверки исправленного случая был получен LSan3685bytes/34allocs;
 обычный Close+последующий Exit дал3677/34, без прежних SEGV/UAF в этих сценариях.
 Это всё ещё не полная sanitizer acceptance.
+
+### libdbus и завершение с работающим потребителем
+
+PipeWire module-rt использует libdbus и закрывает свои соединения при выгрузке.
+libdbus, однако, содержит глобальные кэши и блокировки; при выгрузке самой
+библиотеки без shutdown ссылки на них исчезают. В отдельной VM при 100 циклах
+raw probe получил 410800 байт / 3400 allocations, а probe с принадлежащей
+процессу libdbus и диагностическим dbus_shutdown после уничтожения всех
+контекстов прошёл LSan. Последний вызов допустим только в этом изолированном
+однопроцессном fixture, где известны все пользователи libdbus.
+
+Экспериментальный backend теперь явно связывает dbus-1 и инициализирует его
+до остальных компонентов: библиотека и её глобальное состояние существуют
+до выхода процесса, а повторная выгрузка module-rt не теряет ссылки на них.
+Это удерживает ограниченное глобальное состояние libdbus до выхода процесса;
+не вызываем dbus_shutdown в backend, поскольку другие библиотеки могут её
+использовать. Зелёный LSan при живой libdbus сам по себе не доказывает, что
+её доступные кэши освобождены. Семантика shutdown описана в
+https://dbus.freedesktop.org/doc/api/html/group__DBusMemory.html.
+
+Новый `--consumer-active-at-exit` в тесте кадров удерживает реальный consumer
+в работе при штатном диагностическом Exit backend. В CachyOS software VM
+получены 12 меняющихся кадров 1280×800, consumer оставался жив до и после
+выхода backend, producer serial исчез, затем consumer штатно завершён. Тот же
+instrumented backend завершился с systemd status 0, полный journal без отчётов
+ASan/UBSan/LSan, без suppressions; это относится к проверенному пути, а не ко
+всем устройствам и операциям портала. Экспериментальный патч не включён в пакет.
