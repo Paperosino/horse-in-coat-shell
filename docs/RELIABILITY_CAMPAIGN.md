@@ -3601,3 +3601,56 @@ PID6195,NRestarts0, прошла оба mapped Close и monitor capture12кад�
 проверка прошла. Это не продуктовая регрессия и не скрытый повтор прежнего fail.
 Evidence: `async-v2-request-mapped-close`, `async-v2-session-mapped-close`,
 `async-v2-monitor`; source diff по-прежнему экспериментальный и не ставится пакетом.
+
+### 2026-10-28: peer loss и выявленный Wayland teardown UAF
+
+`integration_portal_cancel.py` теперь создаёт отдельное private connection для
+клиента; `--close disconnect` закрывает его при mapped picker. Независимый observer
+проверяет исходный namespace и backend identity. На async-v2,PID6195, он прошёл:
+picker6488 reaped, requests0/sessions0, D-Bus responsive. Это реальная потеря peer,
+не тест SIGKILL большого GUI приложения; успешная отмена не доказывает активный
+stream teardown.
+
+Для полной проверки выхода создана **отдельная** instrumented source copy и
+`tests/fixtures/portal-backend-test-exit.patch`, которого нет в release patch.
+Тестовый Exit позволяет пройти обычный C++ teardown, ASan/UBSan/LSan не подавлены.
+`integration_portal_backend_exit.py` пинит executable/PID, проверяет runtime ASan
+и возвращает только `exited-awaiting-sanitizer-review`: отдельно изучаются полный
+journal и статус systemd. Его code0 не считается доказательством исправности.
+
+Первый диагностический запуск под Type=dbus дал обрезанный journal и нулевые
+статусы. Он отвергнут: потеря bus name меняет lifetime dbus службы. При Type=exec,
+BusName пустом,Restart=no, тот же binary38536ece9592fe90c617799c7e329a06d985fdf4cb04edad428eaa2cf942ca5a,
+PID6647, штатный Exit воспроизвёл **heap-use-after-free**. Стек: destructor SOutput
+→ Wayland proxy; display освобождён ранее в startEventLoop. systemd exit95,
+NRestarts0. Это реальное падение на завершении, не статическое предположение.
+
+Исправление: mapping manager, vector outputs и Wayland protocol wrappers
+освобождаются до wl_display_disconnect; остаток dma format mapping снят, raw
+loop/display указатели обнуляются. Повтор instrumented2ace08b5ca0ccae2d6cb4d3bc15ffd950bfffb11ea81cbed6f20a92874a7ba95,
+PID6716, дошёл до LSan вместо UAF. Он показал3965bytes/36allocs, в том числе два
+описания DRM устройств. RAII drmFreeDevice и проверка результата drmGetDevice2
+исправляют эти владения; в fallback deviceUsed проверяется реальный gbmDevice.
+Контракты сверены с Wayland Client API и libdrm xf86drm.c (ссылки в README).
+
+Instrumented a6fb762a81d2208a758452249c00e778f8bc9b6e4214bd136e2fc36a51147bb6,
+PID6820: LSan3677bytes/34allocs, без прежнего UAF и двух DRM allocations.
+Остаток проходит через pw_context_new/module loading и пока не устранён;
+статус по-прежнему95. Не использовались глобальный dbus_shutdown, preload,
+отключение leak detector или suppressions. Это не clean sanitizer acceptance.
+Полный active/pending teardown ещё предстоит, GBM hardware lifetime тоже требует
+своей проверки. Нормальная Type=dbus конфигурация восстановлена в VM после
+сохранения diagnostic journal, на хосте ничего не заменено.
+
+Исходная SSH передача evidence задержалась, QMP подтвердил именно suspended VM.
+Стенд разбужен без перезапуска; тот же живой transfer handle завершился успешно.
+Это штатный сон, не объявленный краш сервиса или потеря результата.
+Evidence: `async-v2-disconnect-mapped`, `asan-idle-exit-v2` (redUAF),
+`asan-idle-exit-fixed-v1` (3965/36), `asan-idle-exit-fixed-v2` (3677/34),
+с полными journal рядом в private `xdph118-source/evidence`.
+
+Обычная сборка с teardown/DRM исправлением597a42b0e081ad039e7600e1740572ef7c5e7f2014287c40cc27e7dcbd24baa1,
+VM PID6918,Type=dbus,Result=success,NRestarts0: monitor capture12кадров1280×800,
+11изменяющихся,consumer0,serial91 удалён послеClose. configerrors пуст.
+Evidence `async-v3-monitor`. Повтор26 portal unit tests также прошёл; это не
+замена оставшихся backend ASan сценариев и не полная приёмка оболочки.

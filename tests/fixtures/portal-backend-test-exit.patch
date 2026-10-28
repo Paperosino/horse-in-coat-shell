@@ -1,0 +1,29 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -164,3 +164,6 @@
+       ${CMAKE_BINARY_DIR}/contrib/systemd/xdg-desktop-portal-hyprland.service
+     DESTINATION "lib/systemd/user")
+ endif()
++
++target_compile_options(xdg-desktop-portal-hyprland PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1)
++target_link_options(xdg-desktop-portal-hyprland PRIVATE -fsanitize=address,undefined)
+--- a/src/core/PortalManager.cpp
++++ b/src/core/PortalManager.cpp
+@@ -377,6 +377,9 @@
+ }
+ 
+ void CPortalManager::startEventLoop() {
++    // Test-only object in a private source copy: never included in release patch.
++    auto testExit=sdbus::createObject(*m_pConnection,sdbus::ObjectPath{"/org/hics/TestPortal"});
++    testExit->addVTable(sdbus::registerMethod("Exit").implementedAs([this]() {m_eventLoop.exit(0);})).forInterface("org.hics.TestPortal");
+     m_pConnection->attachSdEventLoop(m_eventLoop.nativeHandle());
+     m_eventLoop.addFd(wl_display_get_fd(m_sWaylandConnection.display),EPOLLIN,
+                       [this](uint32_t events) { dispatchWayland(events); });
+@@ -400,6 +403,7 @@
+     m_eventLoop.removeFd(wl_display_get_fd(m_sWaylandConnection.display));
+     m_eventLoop.removeFd(pw_loop_get_fd(m_sPipewire.loop));
+     m_pConnection->detachSdEventLoop();
++    testExit.reset();
+ 
+     m_sPortals.globalShortcuts.reset();
+     m_sPortals.screencopy.reset();

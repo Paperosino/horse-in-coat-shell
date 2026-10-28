@@ -16,14 +16,15 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--expected-executable',type=Path,required=True)
-    parser.add_argument('--close',choices=('request','session'),required=True)
+    parser.add_argument('--close',choices=('request','session','disconnect'),required=True)
     parser.add_argument('--disposable-cachyos-vm',action='store_true',required=True)
     args=parser.parse_args()
     assert os.getuid()==1000 and Path('/etc/hostname').read_text().strip()=='hics-test'
     assert subprocess.check_output(['systemd-detect-virt'],text=True).strip() in ('kvm','qemu')
     assert not json.loads(subprocess.check_output(['hyprctl','-i','0','-j','locked'],text=True))['locked']
     assert not args.output.exists();os.umask(0o077);args.output.parent.mkdir(parents=True,exist_ok=True)
-    bus=Gio.bus_get_sync(Gio.BusType.SESSION,None);context=GLib.MainContext.default()
+    bus=Gio.DBusConnection.new_for_address_sync(os.environ['DBUS_SESSION_BUS_ADDRESS'],Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT|Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,None,None)
+    client=bus;unique=bus.get_unique_name()[1:].replace('.','_');context=GLib.MainContext.default()
     frontend='org.freedesktop.portal.Desktop';backend='org.freedesktop.impl.portal.desktop.hyprland';path='/org/freedesktop/portal/desktop'
     def call(target,path,interface,method,signature=None,values=None,timeout=3000):
         return bus.call_sync(target,path,interface,method,GLib.Variant(signature,values) if signature else None,
@@ -72,7 +73,11 @@ def main():
         report['phase']='cancel-picker';save()
         begin=time.monotonic()
         if args.close=='request':call(frontend,request,'org.freedesktop.portal.Request','Close')
-        else:call(frontend,session,'org.freedesktop.portal.Session','Close');session=None
+        elif args.close=='session':call(frontend,session,'org.freedesktop.portal.Session','Close');session=None
+        else:
+            bus.close_sync(None);session=None
+            bus=Gio.bus_get_sync(Gio.BusType.SESSION,None)
+            report['clientConnectionClosed']=client.is_closed()
         report['closeReturned']=True
         responsive();report['responsiveAfterClose']=True
         assert select.select([childfd],[],[],3)[0],'Picker survives cancellation'
@@ -86,7 +91,6 @@ def main():
                 assert name in ('org.freedesktop.DBus.Error.UnknownObject','org.freedesktop.DBus.Error.UnknownMethod'),name
                 report['frontendSessionAlreadyRemoved']=True
             session=None
-        unique=bus.get_unique_name()[1:].replace('.','_')
         def count(kind):
             try:xml,=call(backend,path+'/'+kind+'/'+unique,'org.freedesktop.DBus.Introspectable','Introspect')
             except GLib.Error as error:
@@ -105,6 +109,6 @@ def main():
         if session:
             try:call(frontend,session,'org.freedesktop.portal.Session','Close')
             except GLib.Error as error:report['cleanupError']=Gio.DBusError.get_remote_error(error)
-        bus.signal_unsubscribe(subscription);save()
+        client.signal_unsubscribe(subscription);save()
     print(json.dumps(report,indent=2))
 if __name__=='__main__':main()

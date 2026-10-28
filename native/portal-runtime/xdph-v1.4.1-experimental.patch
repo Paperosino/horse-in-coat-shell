@@ -83,7 +83,7 @@
  inline std::unique_ptr<CPortalManager> g_pPortalManager;
 --- a/src/core/PortalManager.cpp
 +++ b/src/core/PortalManager.cpp
-@@ -8,7 +8,11 @@
+@@ -8,7 +8,18 @@
  #include <fcntl.h>
  #include <unistd.h>
  
@@ -93,10 +93,48 @@
 +#include <cmath>
 +#include <limits>
 +#include <system_error>
++
++namespace {
++struct DrmDeviceDeleter {
++    void operator()(drmDevice* device) const { drmFreeDevice(&device); }
++};
++using OwnedDrmDevice=std::unique_ptr<drmDevice,DrmDeviceDeleter>;
++}
  
  SOutput::SOutput(SP<CCWlOutput> output_) : output(output_) {
      output->setName([this](CCWlOutput* o, const char* name_) {
-@@ -265,7 +269,6 @@
+@@ -147,7 +158,8 @@
+                 exit(1);
+             }
+ 
+-            m_sWaylandConnection.gbmDevice = createGBMDevice(drmDev);
++            const OwnedDrmDevice owned(drmDev);
++            m_sWaylandConnection.gbmDevice = createGBMDevice(owned.get());
+         });
+         m_sWaylandConnection.linuxDmabufFeedback->setFormatTable([this](CCZwpLinuxDmabufFeedbackV1* r, int fd, uint32_t size) {
+             Debug::log(TRACE, "[core] dmabufFeedbackFormatTable");
+@@ -195,13 +207,15 @@
+             if (drmGetDeviceFromDevId(device, /* flags */ 0, &drmDev) != 0)
+                 return;
+ 
++            const OwnedDrmDevice owned(drmDev);
+             if (m_sWaylandConnection.gbmDevice) {
+-                drmDevice* drmDevRenderer = NULL;
+-                drmGetDevice2(gbm_device_get_fd(m_sWaylandConnection.gbmDevice), /* flags */ 0, &drmDevRenderer);
+-                m_sWaylandConnection.dma.deviceUsed = drmDevicesEqual(drmDevRenderer, drmDev);
++                drmDevice* drmDevRenderer = nullptr;
++                const int result=drmGetDevice2(gbm_device_get_fd(m_sWaylandConnection.gbmDevice),0,&drmDevRenderer);
++                const OwnedDrmDevice renderer(drmDevRenderer);
++                m_sWaylandConnection.dma.deviceUsed = result==0 && renderer && drmDevicesEqual(renderer.get(),owned.get());
+             } else {
+-                m_sWaylandConnection.gbmDevice      = createGBMDevice(drmDev);
+-                m_sWaylandConnection.dma.deviceUsed = m_sWaylandConnection.gbm;
++                m_sWaylandConnection.gbmDevice      = createGBMDevice(owned.get());
++                m_sWaylandConnection.dma.deviceUsed = m_sWaylandConnection.gbmDevice!=nullptr;
+             }
+         });
+         m_sWaylandConnection.linuxDmabufFeedback->setTrancheFormats([this](CCZwpLinuxDmabufFeedbackV1* r, wl_array* indices) {
+@@ -265,7 +279,6 @@
  }
  
  void CPortalManager::init() {
@@ -104,7 +142,7 @@
  
      try {
          m_pConnection = sdbus::createSessionBusConnection(sdbus::ServiceName{"org.freedesktop.impl.portal.desktop.hyprland"});
-@@ -337,161 +340,65 @@
+@@ -337,161 +350,82 @@
      startEventLoop();
  }
  
@@ -306,16 +344,33 @@
      m_sHelpers.toplevel.reset();
      m_sPortals.inputCapture.reset();
 -
++    // Destroy every proxy while its owning wl_display is still alive. Output
++    // and mapping wrappers otherwise survive until the manager destructor.
++    m_sHelpers.toplevelMapping.reset();
++    m_vOutputs.clear();
++    m_sWaylandConnection.linuxDmabufFeedback.reset();
++    m_sWaylandConnection.linuxDmabuf.reset();
++    m_sWaylandConnection.hyprlandToplevelMgr.reset();
++    m_sWaylandConnection.xdgOutputManager.reset();
++    m_sWaylandConnection.shm.reset();
++    m_sWaylandConnection.registry.reset();
++    if(m_sWaylandConnection.dma.formatTable) {
++        munmap(m_sWaylandConnection.dma.formatTable,m_sWaylandConnection.dma.formatTableSize);
++        m_sWaylandConnection.dma.formatTable=nullptr;
++        m_sWaylandConnection.dma.formatTableSize=0;
++    }
      m_pConnection.reset();
      pw_loop_destroy(m_sPipewire.loop);
++    m_sPipewire.loop=nullptr;
      wl_display_disconnect(m_sWaylandConnection.display);
 -
 -    m_sTimersThread.thread.release();
 -    pollThr.join(); // wait for poll to exit
++    m_sWaylandConnection.display=nullptr;
  }
  
  sdbus::IConnection* CPortalManager::getConnection() {
-@@ -553,39 +460,21 @@
+@@ -553,39 +487,21 @@
  }
  
  void CPortalManager::addTimer(const CTimer& timer) {

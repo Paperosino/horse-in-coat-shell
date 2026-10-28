@@ -94,3 +94,53 @@ API контракты сверены с первичными источника
 https://www.freedesktop.org/software/systemd/man/latest/sd_event_add_io.html
 https://www.freedesktop.org/software/systemd/man/latest/sd_event_add_time.html
 https://kistler-group.github.io/sdbus-cpp/docs/using-sdbus-c++.html
+
+## Полное завершение backend под ASan
+
+Проверка выделена в `tests/integration_portal_backend_exit.py`. Сначала применить
+экспериментальный патч к копии официального source tree, затем **только к отдельной
+диагностической копии** применить `tests/fixtures/portal-backend-test-exit.patch`.
+Он включает ASan/UBSan на backend target и тестовый D-Bus метод Exit. Обычный
+патч/пакет этого метода не содержит. Собрать только target
+`xdg-desktop-portal-hyprland`; picker остаётся системным.
+
+Только в disposable VM нужен временный service override с Type=exec, пустым
+BusName, Restart=no и отдельным исполняемым файлом:
+
+```ini
+[Service]
+Type=exec
+BusName=
+Restart=no
+ExecStart=
+ExecStart=/var/tmp/hics-xdph118/asan-exit-v3
+Environment=ASAN_OPTIONS=detect_leaks=1:halt_on_error=1:exitcode=95
+Environment=LSAN_OPTIONS=
+Environment=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+```
+
+Не переносить эту конфигурацию в установленную службу. Type=dbus может закончить
+lifetime службы при потере bus name раньше полного exit/LSan; первый такой прогон
+имел обрезанный journal и не был принят. Controller теперь проверяет Type=exec,
+Restart=no, реальную executable identity, ASan в maps, включённый leak detector
+и отсутствие suppressions. Состояние `exited-awaiting-sanitizer-review` означает
+лишь выход процесса: обязательны полный journal с `_PID` именно этого backend
+и ExecMainStatus/Result systemd. Код0 самого controller не доказывает чистый ASan.
+
+В этом сценарии обнаружен реальный heap-use-after-free: SOutput уничтожался после
+`wl_display_disconnect`. Патч теперь освобождает outputs, mapping и protocol
+wrappers до отключения display. Освобождаются также временные drmDevice сведения
+через drmFreeDevice; ошибка drmGetDevice2 больше не передаёт nullptr в сравнение.
+После этих исправлений idle-exit не воспроизводит UAF/DRM leak, но LSan всё ещё
+сообщает3677 байт/34 allocations через PipeWire module loading. Полностью чистым
+результат не является. Active stream/pending picker teardown остаются отдельными
+обязательными сценариями.
+
+Контракты lifetime проверены по первичным исходникам:
+https://wayland.pages.freedesktop.org/wayland.freedesktop.org/docs/html/apb.html
+https://cgit.freedesktop.org/drm/libdrm/tree/xf86drm.c
+
+`integration_portal_cancel.py --close disconnect` закрывает отдельное реальное
+D-Bus-соединение приложения; наблюдатель использует другую connection и проверяет
+cleanup исходного namespace. Это проверка исчезновения D-Bus peer, не имитация
+SIGKILL полноценного приложения.
