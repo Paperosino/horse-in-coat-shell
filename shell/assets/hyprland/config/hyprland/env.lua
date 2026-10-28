@@ -33,10 +33,13 @@ hl.env("SDL_VIDEODRIVER", "wayland,x11")
 hl.env("CLUTTER_BACKEND", "wayland")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
--- XDG specifications
-hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
+-- Preserve the hics desktop identity established by hics-start. Portal
+-- selection must see HICS before Hyprland for this session; an unrelated
+-- Hyprland session retains its original desktop identity.
+local hics_session = (os.getenv("XDG_SESSION_DESKTOP") or ""):lower() == "hics"
+hl.env("XDG_CURRENT_DESKTOP", hics_session and "HICS:Hyprland" or "Hyprland")
 hl.env("XDG_SESSION_TYPE", "wayland")
-hl.env("XDG_SESSION_DESKTOP", "Hyprland")
+hl.env("XDG_SESSION_DESKTOP", hics_session and "hics" or "Hyprland")
 
 -- Others
 hl.env("_JAVA_AWT_WM_NONREPARENTING", "1")

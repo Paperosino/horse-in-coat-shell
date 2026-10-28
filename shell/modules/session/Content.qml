@@ -86,8 +86,13 @@ Column {
         required property list<string> command
 
         function exec(): void {
-            if (!SessionManager.exec(command))
-                CUtils.execDetached(command);
+            const selectedCommand = command;
+            const handled = SessionManager.exec(selectedCommand);
+            // The session drawer reserves input while open. Release it before
+            // a non-modal logout dialog or an application's warning appears.
+            root.screenState.session = false;
+            if (!handled)
+                CUtils.execDetached(selectedCommand);
         }
 
         implicitWidth: Tokens.sizes.session.button

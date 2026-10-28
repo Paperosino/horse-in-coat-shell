@@ -9,7 +9,11 @@ class PackagePayload(unittest.TestCase):
   self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','qs/lib/libjemalloc.so.2','qs/licenses/jemalloc-BSD-2-Clause','qs/lib/qt6/plugins/sqldrivers/libqsqlibase.so','qs/lib/qt6/plugins/sqldrivers/libqsqlmysql.so','qs/lib/qt6/plugins/sqldrivers/libqsqlodbc.so','qs/lib/qt6/plugins/sqldrivers/libqsqlpsql.so','qs/lib/qt6/plugins/sqldrivers/libqsqlite.so','qs/licenses/libfbclient/LICENSE','qs/licenses/postgresql-libs/COPYRIGHT','qs/hics-qt-patches.json','qs/hics-quickshell-patches.json','shell/shell.qml','shell/recovery/shell.qml')
   for name in self.payload:
    p=self.source/'usr/share/hics'/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('fixture');p.chmod(0o755 if name.endswith('hics-qs') else 0o644)
-  helper=self.start/'src/hics/distribution';helper.mkdir()
+  backend=self.start/'portal-backend-build/build/xdg-desktop-portal-hyprland';backend.parent.mkdir(parents=True);backend.write_text('fixture')
+  license=self.start/'portal-backend-build/xdph/LICENSE';license.parent.mkdir(parents=True);license.write_text('fixture license')
+  override=self.start/'src/hics/distribution/systemd/user/xdg-desktop-portal-hyprland.service.d/60-hics-portal-backend.conf'
+  override.parent.mkdir(parents=True);override.write_text('[Service]\nExecStart=/usr/share/hics/portal/xdg-desktop-portal-hyprland\n')
+  helper=self.start/'src/hics/distribution';helper.mkdir(exist_ok=True)
   shutil.copy2(ROOT/'distribution/apply_qt_runtime_patches.py',helper/'apply_qt_runtime_patches.py')
   shutil.copy2(ROOT/'distribution/apply_quickshell_patches.py',helper/'apply_quickshell_patches.py')
   shutil.copytree(ROOT/'distribution/patches',helper/'patches')
