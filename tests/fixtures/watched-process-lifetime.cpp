@@ -46,6 +46,22 @@ int main(int argc, char **argv) {
     std::unique_ptr<hics::util::WatchedProcess> reentrant;
     reentrant = std::make_unique<hics::util::WatchedProcess>([&] { reentrant.reset(); }, [](QString) {});
     reentrant->request(command("reentrant")); until([&] { return !reentrant; });
+    // Starting -> FailedToStart has no finished signal. Deleting the watcher
+    // before exec failure must still delete its asynchronously retired child.
+    const auto brokenPath = tmp.filePath("broken-exec");
+    QFile broken(brokenPath);
+    require(broken.open(QIODevice::WriteOnly), "broken exec fixture");
+    broken.write("#!/nonexistent/hics-test-interpreter\n");
+    broken.close();
+    require(broken.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner), "executable fixture");
+    for (int attempt = 0; attempt < 50; ++attempt) {
+        watcher = std::make_unique<hics::util::WatchedProcess>([] {}, [](QString) {});
+        watcher->request({brokenPath});
+        QPointer<QProcess> retired = watcher->findChild<QProcess *>();
+        require(retired, "capture process exists before retirement");
+        watcher.reset();
+        until([&] { return !retired; });
+    }
     // Exercise the app-destructor fallback without another event-loop turn.
     watcher = std::make_unique<hics::util::WatchedProcess>([] {}, [](QString) {});
     watcher->request(command("final")); until([&] { return pid(tmp.filePath("final")) > 0; });

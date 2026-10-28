@@ -5,6 +5,9 @@
 #include <QOpenGLFunctions>
 #include <QOffscreenSurface>
 #include <QColor>
+#include <QWindow>
+#include <QElapsedTimer>
+#include <QThread>
 #include <QImage>
 #include <QtGui/qopenglcontext_platform.h>
 #include <QJsonDocument>
@@ -55,13 +58,38 @@ int main(int argc, char **argv) {
         fbo.release();
     }
     const int renderableType = int(borrowed->format().renderableType());
+    // Exercise the adopted context's decorated-window path, not only pbuffers.
+    QWindow window;
+    window.setSurfaceType(QSurface::OpenGLSurface);
+    window.setFormat(owner.format());
+    window.setTitle("HICS adopted EGL context");
+    window.resize(320, 240);
+    window.show();
+    QElapsedTimer exposed;
+    exposed.start();
+    while (!window.isExposed() && exposed.elapsed() < 5000) {
+        app.processEvents();
+        QThread::msleep(5);
+    }
+    if (!window.isExposed()) return 11;
+    const bool decoratedWindow = !window.frameMargins().isNull();
+    for (int frame = 0; frame < 3; ++frame) {
+        if (!borrowed->makeCurrent(&window)) return 12;
+        auto *functions = borrowed->functions();
+        functions->glBindFramebuffer(GL_FRAMEBUFFER, borrowed->defaultFramebufferObject());
+        functions->glClearColor(.25f, .5f, .75f, 1.0f);
+        functions->glClear(GL_COLOR_BUFFER_BIT);
+        glError |= int(functions->glGetError());
+        borrowed->swapBuffers(&window);
+        app.processEvents();
+    }
     borrowed->doneCurrent();
     borrowed.reset();
     const bool ownerRetained = owner.isValid() && native->nativeContext() == handle && owner.makeCurrent(&surface);
     owner.doneCurrent();
     const bool colorful = pixel.red() > 30 && pixel.green() > pixel.red() && pixel.blue() > pixel.green() && pixel.alpha() == 255;
     QTextStream(stdout) << QJsonDocument(QJsonObject{{"ownerRetained", ownerRetained}, {"sharing", sharing},
-        {"renderableType", renderableType}, {"colorful", colorful}, {"glError", glError},
+        {"renderableType", renderableType}, {"decoratedWindow", decoratedWindow}, {"colorful", colorful}, {"glError", glError},
         {"red", pixel.red()}, {"green", pixel.green()}, {"blue", pixel.blue()}}).toJson(QJsonDocument::Compact) << Qt::endl;
-    return ownerRetained && sharing && colorful && !glError ? 0 : 10;
+    return ownerRetained && sharing && colorful && decoratedWindow && !glError ? 0 : 10;
 }

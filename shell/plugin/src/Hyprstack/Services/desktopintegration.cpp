@@ -84,7 +84,10 @@ DesktopIntegration::~DesktopIntegration() {
         process->closeReadChannel(QProcess::StandardError);
         if (process->state() == QProcess::NotRunning) process->deleteLater();
         else {
-            connect(process, &QProcess::finished, process, &QObject::deleteLater);
+            // FailedToStart transitions Starting -> NotRunning without finished().
+            connect(process, &QProcess::stateChanged, process, [process](QProcess::ProcessState state) {
+                if (state == QProcess::NotRunning) process->deleteLater();
+            });
             process->kill();
         }
     }

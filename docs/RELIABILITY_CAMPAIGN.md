@@ -3312,3 +3312,37 @@ fixed. The separately documented587-byte global Fontconfig LSan residual
 remains open and is not suppressed. Evidence is outside Git under
 `~/.local/state/hics-testing/qt109-source/`, with per-case logs and immutable
 VM directories; reproducible fixtures/controllers are in `tests/`.
+
+
+### Follow-up115: rendered multimedia teardown and another failed-exec leak
+
+Extended native adoption now also performs3 real decorated-window swaps before
+deleting the borrowed wrapper;6 ASan/LSan processes (3GL+3GLES) pass with the
+owner retained, correct sharing, non-empty CSD margins, color readback and
+no GL errors. Threaded Qt Quick additionally passes scale1.25 and2 matrices:
+20 captures/16 zero-difference comparisons each. These are UI scaling tests,
+not a claim about monitor fractional-scale protocol coverage.
+
+`qt-video-output-probe` creates20 real Qt Quick views/FFmpeg players in one
+ASan process. Each view presents6 frames through `VideoOutput`, pauses and
+captures a real render; all20 captures contain183 sampled colors. It then
+stops/detaches the player and destroys player before sink/view. Exit0 with
+ASan/LSan enabled, no backend-disable variables and no suppressions. This
+exercises an actual threaded presentation/teardown path, beyond the earlier
+CPU `QVideoFrame::toImage`/wallpaper watchdog check. The first fixture returned4
+because QQml imports were still Loading and its import path was wrong; the
+fixture now waits for Ready/Error with a bounded deadline and uses the actual
+bundle QML path. That was a harness error, not a product failure.
+
+The79-module isolated suite exposed a different **production** cleanup gap:
+`test_destroy_while_exec_is_failing_does_not_leave_retired_process` observed1
+retired QProcess after the same800ms deadline. Both DesktopIntegration's
+destructor and shared ProcessReaper only connected `finished`; failed exec
+transitions Starting→NotRunning with FailedToStart but without finished.
+They now defer deletion on NotRunning, covering success and failed-start
+without a GUI wait or extra timer. The28 desktop native tests pass at the
+unchanged deadline; the watcher ASan fixture now repeats50 immediate owner
+teardowns while exec fails and proves every retired QPointer is cleared.
+The initial red full-suite report remains preserved separately; it is not
+relabelled green. Focused sanitized desktop checks and the canonical package
+acceptance are still being collected.

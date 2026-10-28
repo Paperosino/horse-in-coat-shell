@@ -30,7 +30,10 @@ public:
         process->disconnect();
         if (process->state() == QProcess::NotRunning) process->deleteLater();
         else {
-            connect(process, &QProcess::finished, process, &QObject::deleteLater);
+            // Failed exec has no finished() signal; reap on either terminal path.
+            connect(process, &QProcess::stateChanged, process, [process](QProcess::ProcessState state) {
+                if (state == QProcess::NotRunning) process->deleteLater();
+            });
             process->kill();
         }
     }
