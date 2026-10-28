@@ -51,11 +51,43 @@ WINDOW = r'''
 #include <QCloseEvent>
 #include <QFile>
 #include <QMainWindow>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QTimer>
 class Editor : public QMainWindow {
+ QMessageBox *warning = nullptr;
+ bool saved = false;
+ void trace(const char *event) {
+  QFile file(qEnvironmentVariable("HICS_TEST_WINDOW_TRACE"));
+  if (file.open(QIODevice::Append)) file.write(event);
+ }
  void closeEvent(QCloseEvent *event) override {
-  QFile trace(qEnvironmentVariable("HICS_TEST_WINDOW_TRACE"));
-  if (trace.open(QIODevice::Append)) trace.write("close-request\n");
-  event->ignore(); // An editor with unsaved changes declines to close.
+  if (saved) { event->accept(); return; }
+  trace("close-request\n");
+  event->ignore();
+  if (warning) return;
+  warning = new QMessageBox(QMessageBox::Warning, "Unsaved document",
+                            "Save your changes before closing?",
+                            QMessageBox::Save | QMessageBox::Cancel, this);
+  warning->setAttribute(Qt::WA_DeleteOnClose);
+  connect(warning, &QMessageBox::finished, this, [this](int result) {
+   warning = nullptr;
+   if (result == QMessageBox::Save) { saved = true; trace("saved\n"); close(); }
+   else trace("cancelled\n");
+  });
+  warning->open(); trace("warning-shown\n");
+ }
+public:
+ Editor() {
+  auto *timer = new QTimer(this);
+  connect(timer, &QTimer::timeout, this, [this] {
+   QFile control(qEnvironmentVariable("HICS_TEST_WINDOW_CONTROL"));
+   if (!warning || !control.open(QIODevice::ReadOnly)) return;
+   const auto command = control.readAll().trimmed(); control.close(); control.remove();
+   if (command == "cancel") warning->button(QMessageBox::Cancel)->click();
+   else if (command == "save") warning->button(QMessageBox::Save)->click();
+  });
+  timer->start(50);
  }
 };
 int main(int argc,char**argv) {
@@ -64,6 +96,7 @@ int main(int argc,char**argv) {
  return app.exec();
 }
 '''
+
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -125,6 +158,7 @@ def main():
                 env['WAYLAND_DISPLAY']=instance['wl_socket']
                 env['HYPRLAND_INSTANCE_SIGNATURE']=instance['instance']
                 env['HICS_TEST_WINDOW_TRACE']=str(root/'window-trace')
+                env['HICS_TEST_WINDOW_CONTROL']=str(root/'window-control')
                 editor=subprocess.Popen([str(root/'editor')],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
                 while True:
                     assert editor.poll() is None,'Unsaved-window fixture exited'
@@ -156,6 +190,25 @@ def main():
                 report['positiveControlCloseObserved']='close-request' in window_trace.read_text()
                 report['positiveControlWindowStillAlive']=editor.poll() is None
                 assert report['positiveControlCloseObserved'] and report['positiveControlWindowStillAlive']
+                deadline=time.monotonic()+5
+                while 'warning-shown' not in window_trace.read_text():
+                    assert editor.poll() is None and time.monotonic()<deadline,'Close did not display the warning'
+                    time.sleep(.05)
+                (root/'window-control').write_text('cancel')
+                deadline=time.monotonic()+5
+                while 'cancelled' not in window_trace.read_text():
+                    assert editor.poll() is None and time.monotonic()<deadline,'Warning cancellation failed'
+                    time.sleep(.05)
+                report['positiveControlWarningCancelled']=editor.poll() is None
+                subprocess.run(['hyprctl','-i',instance['instance'],'eval',expression],env=env,check=True,capture_output=True,timeout=3)
+                deadline=time.monotonic()+5
+                while window_trace.read_text().count('warning-shown')<2:
+                    assert editor.poll() is None and time.monotonic()<deadline,'Second warning did not open'
+                    time.sleep(.05)
+                (root/'window-control').write_text('save')
+                assert editor.wait(timeout=5)==0,'Editor did not exit after saving'
+                report['positiveControlSavedAndClosed']='saved' in window_trace.read_text()
+                assert report['positiveControlWarningCancelled'] and report['positiveControlSavedAndClosed']
             args.output.write_text(json.dumps(report,indent=2)+'\n')
             print(json.dumps(report,indent=2))
         finally:

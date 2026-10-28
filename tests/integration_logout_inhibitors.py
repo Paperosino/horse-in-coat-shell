@@ -21,7 +21,10 @@ def main():
     os.umask(0o077);args.output.mkdir(parents=True,mode=0o700)
     with tempfile.TemporaryDirectory(prefix='hlo-') as directory:
         root=Path(directory);runtime=root/'run';runtime.mkdir(mode=0o700)
-        config=root/'hyprland.lua';config.write_text('hl.monitor({output="WAYLAND-1",mode="800x600@60",position="0x0",scale=1})\n')
+        config=root/'hyprland.lua'
+        rules=(ROOT/'shell/assets/hyprland/layouts.lua').read_text()
+        rule=rules.split('-- BEGIN logout-blockers-rule',1)[1].split('-- END logout-blockers-rule',1)[0]
+        config.write_text('hl.monitor({output="WAYLAND-1",mode="800x600@60",position="0x0",scale=1})\n'+rule+'\n')
         display=os.environ['WAYLAND_DISPLAY']
         if not display.startswith('/'):display=str(Path(os.environ['XDG_RUNTIME_DIR'])/display)
         env=dict(os.environ,HOME=str(root),XDG_CONFIG_HOME=str(root/'config'),XDG_DATA_HOME=str(root/'data'),
@@ -66,11 +69,30 @@ def main():
                                   LD_LIBRARY_PATH='/usr/share/hics/qs/lib:/usr/share/hics/qml/Hyprstack/lib:/usr/share/hics/lib')
                 else:
                     ui_env.update(snapshot_qml_runtime(ROOT,root))
-                with (args.output/'dialog.log').open('w') as ui_log:
-                    ui=subprocess.run(['/usr/share/hics/qs/bin/hics-qs','-p',str(shell)],env=ui_env,
-                                      stdout=ui_log,stderr=subprocess.STDOUT,timeout=30)
-                output=(args.output/'dialog.log').read_text()
-                assert ui.returncode==0 and 'LOGOUT_DIALOG_OK' in output, output[-5000:]
+                for language,title in [('en','Applications preventing sign out'),
+                                       ('ru','Приложения, препятствующие выходу')]:
+                    ui_env['HICS_TEST_DIALOG_TITLE']=title
+                    ui_env['HICS_DIALOG_SCREENSHOT']=str(args.output/f'dialog-{language}.png')
+                    with (args.output/f'dialog-{language}.log').open('w') as ui_log:
+                        ui=subprocess.Popen(['/usr/share/hics/qs/bin/hics-qs','-p',str(shell)],env=ui_env,
+                                            stdout=ui_log,stderr=subprocess.STDOUT)
+                        try:
+                            deadline=time.monotonic()+20
+                            while True:
+                                clients=json.loads(subprocess.check_output(['hyprctl','-i',item['instance'],'clients','-j'],env=env,text=True,timeout=3))
+                                window=next((x for x in clients if x.get('pid')==ui.pid and x.get('mapped')),None)
+                                if window:break
+                                assert ui.poll() is None and time.monotonic()<deadline,'Dialog window did not map'
+                                time.sleep(.05)
+                            assert window.get('floating') is True, 'Logout dialog was tiled: '+str(window)
+                            assert window.get('class')=='org.hics.Shell', 'Unexpected dialog app ID: '+str(window)
+                            assert window.get('initialTitle')==title, 'Unexpected dialog title: '+str(window)
+                            ui.wait(timeout=30)
+                        finally:
+                            if ui.poll() is None:
+                                ui.terminate();ui.wait(timeout=5)
+                    output=(args.output/f'dialog-{language}.log').read_text()
+                    assert ui.returncode==0 and 'LOGOUT_DIALOG_OK' in output, output[-5000:]
                 report={'status':'passed','scope':'prototype inhibitor backend, real GTK4 and XDG frontend and standalone dialog in nested compositor; no actual logout',
                         'nestedPid':compositor.pid,'output':monitors[0].get('name')}
                 (args.output/'result.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

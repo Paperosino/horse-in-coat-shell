@@ -106,6 +106,34 @@ class PrototypeBus(unittest.TestCase):
         control.BeginQuery();self.assertFalse(control.Ready())
         portal.QueryEndResponse(dbus.ObjectPath(monitor));self.assertTrue(control.Ready())
 
+    def test_pending_monitor_never_expires_and_owner_loss_unblocks(self):
+        monitor='/org/freedesktop/portal/desktop/session/1_123/stalled'
+        self.portal(self.owner).CreateMonitor(dbus.ObjectPath(self.path),dbus.ObjectPath(monitor),'org.example.Slow','')
+        control=dbus.Interface(self.observer.get_object(SERVICE,PATH),'org.hics.TestInhibitors')
+        control.BeginQuery()
+        # The GTK implementation uses a one-second timeout. A timeout must
+        # never turn a still-outstanding query into a successful logout.
+        time.sleep(1.2)
+        self.assertFalse(control.Ready())
+        with self.assertRaises(dbus.DBusException):control.Commit()
+        self.owner.close()
+        deadline=time.monotonic()+3
+        while not control.Ready():
+            self.assertLess(time.monotonic(),deadline,'Dead monitor remained pending')
+            time.sleep(.02)
+        control.Commit()
+
+    def test_monitor_created_during_query_must_respond(self):
+        monitor='/org/freedesktop/portal/desktop/session/1_123/late'
+        control=dbus.Interface(self.observer.get_object(SERVICE,PATH),'org.hics.TestInhibitors')
+        control.BeginQuery();self.assertTrue(control.Ready())
+        portal=self.portal(self.owner)
+        portal.CreateMonitor(dbus.ObjectPath(self.path),dbus.ObjectPath(monitor),'org.example.Late','')
+        self.assertFalse(control.Ready())
+        with self.assertRaises(dbus.DBusException):control.Commit()
+        portal.QueryEndResponse(dbus.ObjectPath(monitor))
+        self.assertTrue(control.Ready());control.Commit()
+
     def start_frontend(self):
         root=Path(self.tmp.name);data=root/'data';config=root/'config'
         portals=data/'xdg-desktop-portal/portals';portals.mkdir(parents=True)

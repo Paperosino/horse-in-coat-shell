@@ -2011,6 +2011,15 @@ hl.window_rule({ name = "hyprstack-telegram-auxiliary", match = {
     class = telegram_classes, initial_title = "(?i)^(" .. table.concat(telegram_auxiliary_titles, "|") .. ")$"
 }, float = true, center = true, suppress_event = "maximize", ["hyprbars:no_bar"] = no_titlebar })
 
+-- A logout blocker view must not tile over the applications it asks the user
+-- to inspect. Match only hics's own window and both available translations.
+-- BEGIN logout-blockers-rule
+hl.window_rule({ name = "hics-logout-blockers", match = {
+    class = "^org\\.hics\\.Shell$",
+    initial_title = "^(Applications preventing sign out|Приложения, препятствующие выходу)$"
+}, float = true, center = true, no_initial_focus = true })
+-- END logout-blockers-rule
+
 -- Authentication and capture tools are screen utilities, never canvas objects.
 hl.window_rule({ name = "hyprstack-screen-dialogs", match = {
     class = "(?i)^(gcr-prompter|gcr-system-prompter|org\\.gnome\\.keyring\\.SystemPrompter|polkit-gnome-authentication-agent-1|polkit-kde-authentication-agent-1|swappy|org\\.gnome\\.NautilusPreviewer)$"

@@ -1,3 +1,4 @@
+//@ pragma AppId org.hics.Shell
 import QtQuick
 import Quickshell
 import qs.modules.session
@@ -10,6 +11,7 @@ ShellRoot {
     LogoutBlockersWindow {
         id: dialog
         visible: true
+        title: Quickshell.env("HICS_TEST_DIALOG_TITLE")
         blockers: [{name: "Document editor", reason: "Unsaved document"},
                    {name: "Long application name", reason: "Preparing to close"}]
         onCancelRequested: root.cancelled++
@@ -32,10 +34,12 @@ ShellRoot {
             if (!list || !cancel || !force || (root.phase < 2 && list.count !== 2)) {
                 console.error("LOGOUT_DIALOG_FAIL: missing controls or blockers"); Qt.exit(1); return;
             }
+            if (root.phase === -1) return;
             if (root.phase === 0) {
+                root.phase = -1;
                 root.find(dialog.contentItem, "logoutDialogContent").grabToImage(result => {
                     result.saveToFile(Quickshell.env("HICS_DIALOG_SCREENSHOT"));
-                    root.phase++;
+                    root.phase = 1;
                 });
             } else if (root.phase === 1) {
                 cancel.clicked();

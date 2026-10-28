@@ -15,9 +15,12 @@ flags, lock state, desktop compatibility and integration are still needed.
 
 `LogoutBlockersWindow.qml` is an unconnected non-modal view. Its model contains
 objects with `name` and `reason`; cancellation and force emit separate signals.
-The view does not implement any termination. The window manager's floating
-rule, actual blocker tracking, accessible keyboard/pointer behavior and live
-coordinator integration must be verified before exposing it to users.
+The view does not implement any termination. The window manager rule is checked against both supported title translations,
+and separate button events are exercised programmatically. Pointer injection
+was intermittent when the nested output received parent-session pointer events;
+it needs a deterministic isolated test before acceptance.
+Actual blocker tracking, keyboard behavior and live coordinator integration
+still need verification before exposing the window to users.
 
 Acceptance requires exercising an actual logout with unsaved applications,
 late and absent replies, multiple windows and workspaces, background clients,
@@ -34,3 +37,9 @@ python3 -m unittest discover -s tests -p 'test_logout_inhibit*.py' -v
 Run the isolated GTK and dialog fixtures from an existing Wayland session with
 `python3 tests/integration_logout_inhibitors.py --output NEW_DIRECTORY`.
 These tests use a private runtime and buses; they do not test a real logout.
+
+`diagnose_session_logout.py --nested-window` reproduces the installed
+manager's direct termination on a fake logind bus. A real Qt editor fixture
+shows an unsaved-document warning when the test explicitly sends it a close
+request; cancel leaves it open and save closes it. The positive control does
+not mean the installed logout implementation handles that warning.

@@ -38,17 +38,21 @@ FloatingWindow {
             font: Tokens.font.title.large
             wrapMode: Text.Wrap
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
         }
         StyledText {
             text: Tr.tr("Return to these applications to save your work or respond to their warnings.")
             wrapMode: Text.Wrap
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
         }
         ListView {
             id: list
             objectName: "logoutBlockerList"
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             Layout.fillHeight: true
+            Layout.minimumHeight: 0
             clip: true
             spacing: Tokens.spacing.small
             model: root.blockers
@@ -72,6 +76,7 @@ FloatingWindow {
                         font: Tokens.font.title.small
                         wrapMode: Text.WrapAnywhere
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                     }
                     StyledText {
                         objectName: "logoutBlockerReason"
@@ -80,6 +85,7 @@ FloatingWindow {
                         color: Colours.palette.m3onSurfaceVariant
                         wrapMode: Text.WrapAnywhere
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                     }
                 }
             }
@@ -89,21 +95,25 @@ FloatingWindow {
             color: Colours.palette.m3error
             wrapMode: Text.Wrap
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
         }
         RowLayout {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             Layout.alignment: Qt.AlignRight
             TextButton {
                 objectName: "logoutCancel"
                 type: ButtonBase.Tonal
                 text: Tr.tr("Cancel")
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 onClicked: root.cancelRequested()
             }
             TextButton {
                 objectName: "logoutForce"
                 text: Tr.tr("Force sign out")
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 onClicked: root.forceRequested()
             }
         }
