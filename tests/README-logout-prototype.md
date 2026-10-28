@@ -1,45 +1,31 @@
-# Logout coordination prototype
+# Session logout tests
 
-This is unfinished research, not an implementation of session logout. The
-existing SessionManager still calls logind Terminate directly. Neither the
-prototype inhibitor registry nor the dialog is connected to that path, and
-no package release should claim safe logout based on these tests.
+The hics logout controller queries the XDG Inhibit portal and asks mapped
+Wayland/XWayland windows to close before requesting logind termination. Its
+non-modal blocker window allows cancellation or explicit forced termination.
+It never forces termination on a timer. A portal forwarding probe prevents a
+missing or differently selected backend from being mistaken for no blockers.
+Loss of either portal process stops ordinary logout.
 
-The isolated backend in `tests/fixtures/logout_inhibit_backend.py` tracks
-logout inhibition and forwards other flags to a test-selected delegate. The real GTK portal installed on the test system
-rejects logout inhibition with “Inhibiting other than idle not supported”.
-The fixture demonstrates the XDG monitor query, replies, inhibitor lifetime,
-client disconnect and cancellation, including with a GTK4 application. It is
-not a replacement for the installed backend: forwarding in the live desktop,
-lock state, desktop compatibility and integration are still needed.
+The implementation covers XDG portal logout inhibitors and mapped windows.
+It does not implement the GNOME or KDE session-manager protocols or XSMP;
+background applications using only those protocols may not be detected.
+Power-off and reboot still use their existing logind paths, independently of
+this logout coordination. These are limitations, not equivalent KDE/GNOME
+session-manager compatibility.
 
-`LogoutBlockersWindow.qml` is an unconnected non-modal view. Its model contains
-objects with `name` and `reason`; cancellation and force emit separate signals.
-The view does not implement any termination. The window manager rule is checked against both supported title translations,
-and separate button events are exercised programmatically. Pointer injection
-was intermittent when the nested output received parent-session pointer events;
-it needs a deterministic isolated test before acceptance.
-Actual blocker tracking, keyboard behavior and live coordinator integration
-still need verification before exposing the window to users.
-
-Acceptance requires exercising an actual logout with unsaved applications,
-late and absent replies, multiple windows and workspaces, background clients,
-locks, cancellation, a user-confirmed forced exit, and failure paths in both
-an isolated nested compositor and a disposable VM. Do not force logout on a
-timer. Do not stop unrelated host sessions or services during testing.
-
-Run the non-graphical tests with:
+Run the private-bus tests with:
 
 ```
-python3 -m unittest discover -s tests -p 'test_logout_inhibit*.py' -v
+python3 -m unittest discover -s tests -p 'test_logout_*.py' -v
 ```
 
-Run the isolated GTK and dialog fixtures from an existing Wayland session with
-`python3 tests/integration_logout_inhibitors.py --output NEW_DIRECTORY`.
-These tests use a private runtime and buses; they do not test a real logout.
-
-`diagnose_session_logout.py --nested-window` reproduces the installed
-manager's direct termination on a fake logind bus. A real Qt editor fixture
-shows an unsaved-document warning when the test explicitly sends it a close
-request; cancel leaves it open and save closes it. The positive control does
-not mean the installed logout implementation handles that warning.
+`integration_logout_inhibitors.py --output NEW_DIRECTORY` exercises the real
+XDG frontend and GTK4 against private portal backends in nested Hyprland.
+`integration_logout_flow.py --action save --with-inhibitor --output NEW_DIRECTORY`
+exercises the real controller and compositor window dispatch with an unsaved
+Qt editor and fake logind. Use `--action cancel` or `--action force`, optionally
+`--pointer`, for the other actions. Additional switches simulate wrong portal
+selection or portal process loss. These tests do not terminate a real session.
+The test disables the parent-provided pointer in the nested compositor only;
+its virtual pointer cannot affect the host session.

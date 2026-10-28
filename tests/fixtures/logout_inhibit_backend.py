@@ -124,7 +124,7 @@ class Broker(dbus.service.Object):
     def CreateMonitor(self,handle,session_handle,app_id,window,sender=None):
         del handle,app_id,window
         path=str(session_handle)
-        if len(path)>512 or not re.fullmatch(r'/org/freedesktop/portal/desktop/session/[A-Za-z0-9_]+/[A-Za-z0-9_]+',path) or path in self.monitors or len(self.monitors)>=256:
+        if len(path)>512 or not re.fullmatch(r'/org/freedesktop/portal/desktop/session/[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)+',path) or path in self.monitors or len(self.monitors)>=256:
             raise dbus.exceptions.DBusException('Invalid or duplicate session',name='org.freedesktop.portal.Error.Failed')
         monitor=Monitor(self,path,str(sender));self.monitors[path]=monitor
         if self.state==2:self.pending.add(path)

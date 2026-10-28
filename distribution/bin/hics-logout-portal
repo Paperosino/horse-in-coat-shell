@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+hics_bin_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+hics_data=${HICS_DATA_DIR:-$hics_bin_dir/../share/hics}
+exec python3 "$hics_data/shell/assets/logout_portal_backend.py"

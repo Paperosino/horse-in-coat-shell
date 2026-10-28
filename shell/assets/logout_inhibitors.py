@@ -1,8 +1,7 @@
 """Lifecycle model for session inhibitors; no D-Bus ownership or UI side effects.
 
-Callers must pass the unique D-Bus owner, never a well-known name. This module
-is intentionally not connected to the active session until the session protocol
-and logout coordinator have been implemented and tested together.
+Callers must pass the unique D-Bus owner, never a well-known name. The XDG
+logout backend uses this model to own inhibition lifetimes.
 """
 from dataclasses import dataclass
 import re
@@ -36,7 +35,7 @@ class InhibitorRegistry:
         return self._generation
 
     def add(self, path, owner, app_id, reason, flags):
-        if not isinstance(path,str) or len(path)>512 or not re.fullmatch(r'/org/freedesktop/portal/desktop/request/[A-Za-z0-9_]+/[A-Za-z0-9_]+',path):
+        if not isinstance(path,str) or len(path)>512 or not re.fullmatch(r'/org/freedesktop/portal/desktop/request/[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)+',path):
             raise ValueError('Invalid request path')
         if not isinstance(owner,str) or len(owner)>255 or not re.fullmatch(r':[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+',owner):
             raise ValueError('A unique D-Bus owner is required')

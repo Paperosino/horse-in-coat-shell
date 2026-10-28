@@ -59,6 +59,7 @@ if __name__=='__main__':
     DBusGMainLoop(set_as_default=True)
     bus=dbus.SessionBus()
     name=dbus.service.BusName(SERVICE,bus,do_not_queue=True)
+    gtk_name=dbus.service.BusName('org.freedesktop.impl.portal.desktop.gtk',bus,do_not_queue=True) if os.environ.get('HICS_TEST_DELEGATE_AS_GTK') else None
     screensaver_name=dbus.service.BusName('org.freedesktop.ScreenSaver',bus,do_not_queue=True)
     screensaver=Screensaver(bus)
     backend=Backend(bus)

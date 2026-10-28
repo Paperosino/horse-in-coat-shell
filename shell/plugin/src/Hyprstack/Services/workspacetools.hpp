@@ -134,6 +134,8 @@ public:
                               bool portable = false);
   Q_INVOKABLE void dismissStartup();
   static void saveBeforeExit();
+  static void checkpointBeforeExit();
+  static void clearClipboardBeforeExit();
 signals:
   void changed();
   void finished(bool success);

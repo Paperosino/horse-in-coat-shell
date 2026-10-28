@@ -2,7 +2,7 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=120
+pkgrel=121
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 # Preserve bundled runtime/plugin checksums generated during packaging.
@@ -20,7 +20,7 @@ depends=(gnome-keyring 'ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman
     gtk2 gtk3 gtk4 libadwaita webkitgtk-6.0 blueman bluez bluez-obex pacman-contrib gsettings-desktop-schemas
     'util-linux>=2.41' kmod btrfs-progs bubblewrap
     orca python-atspi at-spi2-core speech-dispatcher espeak-ng
-    xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland sdbus-cpp)
+    xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland python-dbus python-gobject sdbus-cpp)
 makedepends=(base-devel git rsync cmake ninja pkgconf python gettext nlohmann-json jemalloc libfbclient mariadb-libs postgresql-libs unixodbc
     'qt6-base=6.12.0' qt6-declarative qt6-shadertools qt6-wayland qt6-svg
     qt6-imageformats qt6-multimedia spirv-tools wayland wayland-protocols mesa vulkan-headers

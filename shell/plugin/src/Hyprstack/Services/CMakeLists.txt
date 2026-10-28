@@ -38,6 +38,7 @@ qml_module(hyprstack-services
         lyriccandidate.cpp
         lyrics.cpp
         sessionmanager.cpp
+        logoutcontroller.cpp
         networkusage.cpp
         hyprdevices.cpp
         hyprextras.cpp

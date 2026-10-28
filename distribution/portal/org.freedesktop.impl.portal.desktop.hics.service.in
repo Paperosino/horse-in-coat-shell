@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.freedesktop.impl.portal.desktop.hics
+Exec=@HICS_BIN_DIR@/hics-logout-portal
+SystemdService=hics-logout-portal.service

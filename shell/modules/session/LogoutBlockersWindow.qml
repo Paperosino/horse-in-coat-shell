@@ -14,6 +14,8 @@ FloatingWindow {
     id: root
 
     property var blockers: []
+    property bool cancelEnabled: true
+    property bool forceEnabled: true
     signal cancelRequested()
     signal forceRequested()
 
@@ -103,6 +105,7 @@ FloatingWindow {
             Layout.alignment: Qt.AlignRight
             TextButton {
                 objectName: "logoutCancel"
+                disabled: !root.cancelEnabled
                 type: ButtonBase.Tonal
                 text: Tr.tr("Cancel")
                 Layout.fillWidth: true
@@ -111,6 +114,7 @@ FloatingWindow {
             }
             TextButton {
                 objectName: "logoutForce"
+                disabled: !root.forceEnabled
                 text: Tr.tr("Force sign out")
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0

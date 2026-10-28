@@ -20,6 +20,8 @@ public:
     explicit SessionManager(QObject* parent = nullptr);
 
     Q_INVOKABLE void logout();
+    Q_INVOKABLE void checkpointLogout();
+    Q_INVOKABLE void terminateSession();
     Q_INVOKABLE void suspend();
     Q_INVOKABLE void suspendThenHibernate();
     Q_INVOKABLE void hibernate();
@@ -29,6 +31,8 @@ public:
     Q_INVOKABLE bool exec(const QStringList& command);
 
 signals:
+    void logoutRequested();
+    void terminateFailed(const QString& reason);
     void aboutToSleep();
     void resumed();
     void lockRequested();

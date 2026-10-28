@@ -1614,14 +1614,23 @@ void WorkspaceSession::dismissStartup() {
   }
   emit changed();
 }
-void WorkspaceSession::saveBeforeExit() {
+void WorkspaceSession::checkpointBeforeExit() {
   try {
     auto s = W::settings("session");
     if (s.value("enabled").toBool() && s.value("autosave").toBool())
       W::command(helper(), {"capture", "--automatic"}, 5000);
+  } catch (...) {
+  }
+}
+void WorkspaceSession::clearClipboardBeforeExit() {
+  try {
     if (W::settings("clipboard").value("clearOnLogout").toBool())
       W::clearClipboard(false);
   } catch (...) {
-  } // A failed checkpoint must not prevent logout or shutdown.
+  }
+}
+void WorkspaceSession::saveBeforeExit() {
+  checkpointBeforeExit();
+  clearClipboardBeforeExit();
 }
 } // namespace hyprstack::services

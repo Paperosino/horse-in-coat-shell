@@ -42,6 +42,12 @@ class Inhibitors(unittest.TestCase):
         self.assertFalse(self.registry.close(self.first,':1.1'))
         self.assertEqual(self.registry.matching(module.IDLE)[0].owner,':1.3')
 
+    def test_portal_generated_nested_request_path(self):
+        path='/org/freedesktop/portal/desktop/request/1_8/t/cogyWnV7UCC4A_50z1CAhg'
+        self.registry.add(path,':1.8','editor','',module.LOGOUT)
+        self.assertEqual(self.registry.matching(module.LOGOUT)[0].path,path)
+        self.assertTrue(self.registry.close(path,':1.8'))
+
     def test_invalid_flags_and_unowned_clients_are_rejected(self):
         for flags in (0,16,True,-1):
             with self.subTest(flags=flags),self.assertRaises(ValueError):

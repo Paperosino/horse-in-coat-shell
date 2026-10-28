@@ -1,0 +1,10 @@
+[Unit]
+Description=hics session inhibition portal
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.impl.portal.desktop.hics
+ExecStart=@HICS_BIN_DIR@/hics-logout-portal
+Restart=on-failure

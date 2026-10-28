@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import shutil
+import shlex
 from pathlib import Path
 import subprocess
 import sys
@@ -24,7 +25,7 @@ def main():
         config=root/'hyprland.lua'
         rules=(ROOT/'shell/assets/hyprland/layouts.lua').read_text()
         rule=rules.split('-- BEGIN logout-blockers-rule',1)[1].split('-- END logout-blockers-rule',1)[0]
-        config.write_text('hl.monitor({output="WAYLAND-1",mode="800x600@60",position="0x0",scale=1})\n'+rule+'\n')
+        config.write_text('hl.monitor({output="WAYLAND-1",mode="800x600@60",position="0x0",scale=1})\nhl.device({name="wl_pointer",enabled=false})\n'+rule+'\n')
         display=os.environ['WAYLAND_DISPLAY']
         if not display.startswith('/'):display=str(Path(os.environ['XDG_RUNTIME_DIR'])/display)
         env=dict(os.environ,HOME=str(root),XDG_CONFIG_HOME=str(root/'config'),XDG_DATA_HOME=str(root/'data'),
@@ -50,7 +51,7 @@ def main():
                     time.sleep(.1)
                 test_env=dict(env,HICS_TEST_GTK_DISPLAY=str(runtime/item['wl_socket']))
                 with (args.output/'tests.log').open('w') as test_log:
-                    test=subprocess.run([sys.executable,'-m','unittest','discover','-s',str(ROOT/'tests'),'-p','test_logout_inhibit*.py','-v'],
+                    test=subprocess.run([sys.executable,'-m','unittest','discover','-s',str(ROOT/'tests'),'-p','test_logout_*.py','-v'],
                                         env=test_env,stdout=test_log,stderr=subprocess.STDOUT,timeout=45)
                 if test.returncode:raise SystemExit('Tests failed; inspect '+str(args.output/'tests.log'))
                 # Exercise the actual non-modal QML component with an isolated fixture model.
@@ -69,6 +70,16 @@ def main():
                                   LD_LIBRARY_PATH='/usr/share/hics/qs/lib:/usr/share/hics/qml/Hyprstack/lib:/usr/share/hics/lib')
                 else:
                     ui_env.update(snapshot_qml_runtime(ROOT,root))
+                fixtures=ROOT/'tests/fixtures'
+                pointer_binary=os.environ.get('HICS_TEST_POINTER_BINARY')
+                if not pointer_binary:
+                    xml=fixtures/'wlr-virtual-pointer-unstable-v1.xml'
+                    subprocess.run(['wayland-scanner','client-header',str(xml),str(root/'virtual-pointer.h')],check=True)
+                    subprocess.run(['wayland-scanner','private-code',str(xml),str(root/'virtual-pointer-protocol.c')],check=True)
+                    flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','wayland-client'],text=True))
+                    pointer_binary=str(root/'pointer')
+                    subprocess.run(['cc',str(fixtures/'virtual-pointer.c'),str(root/'virtual-pointer-protocol.c'),'-I',str(root),*flags,'-o',pointer_binary],check=True)
+                ui_env['HICS_TEST_POINTER']=os.environ.get('HICS_TEST_POINTER','0')
                 for language,title in [('en','Applications preventing sign out'),
                                        ('ru','Приложения, препятствующие выходу')]:
                     ui_env['HICS_TEST_DIALOG_TITLE']=title
@@ -87,6 +98,46 @@ def main():
                             assert window.get('floating') is True, 'Logout dialog was tiled: '+str(window)
                             assert window.get('class')=='org.hics.Shell', 'Unexpected dialog app ID: '+str(window)
                             assert window.get('initialTitle')==title, 'Unexpected dialog title: '+str(window)
+                            if ui_env['HICS_TEST_POINTER']=='1':
+                                log_path=args.output/f'dialog-{language}.log'
+                                deadline=time.monotonic()+15
+                                while True:
+                                    lines=log_path.read_text().splitlines()
+                                    geometry=next((line.split('LOGOUT_BUTTONS ',1)[1] for line in lines if 'LOGOUT_BUTTONS ' in line),None)
+                                    if geometry:break
+                                    assert ui.poll() is None and time.monotonic()<deadline,'Dialog controls did not become ready'
+                                    time.sleep(.05)
+                                geometry=json.loads(geometry)
+                                # A user may focus the non-modal window before using its controls.
+                                # Target only the window in this isolated compositor.
+                                focus='local w=hl.get_window('+json.dumps('address:'+window['address'])+');hl.dispatch(hl.dsp.focus({window=w}))'
+                                subprocess.run(['hyprctl','-i',item['instance'],'eval',focus],env=env,check=True,capture_output=True,timeout=3)
+                                current_monitors=json.loads(subprocess.check_output(['hyprctl','-i',item['instance'],'monitors','-j'],env=env,text=True,timeout=3))
+                                pointer_env=dict(env,WAYLAND_DISPLAY=str(runtime/item['wl_socket']),
+                                                 HYPRSTACK_POINTER_WIDTH=str(current_monitors[0]['width']),
+                                                 HYPRSTACK_POINTER_HEIGHT=str(current_monitors[0]['height']))
+                                pointer=subprocess.Popen([pointer_binary],env=pointer_env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True,bufsize=1)
+                                try:
+                                    assert pointer.stdout.readline().strip()=='ready','Nested pointer not ready'
+                                    def send(op,x,y):
+                                        pointer.stdin.write(f'{op} {x} {y}\n');pointer.stdin.flush()
+                                        assert pointer.stdout.readline().strip()=='ok'
+                                    for button in ('cancel','force'):
+                                        x,y=geometry[button]
+                                        clients=json.loads(subprocess.check_output(['hyprctl','-i',item['instance'],'clients','-j'],env=env,text=True,timeout=3))
+                                        window=next(x for x in clients if x.get('pid')==ui.pid and x.get('mapped'))
+                                        px,py=round(window['at'][0]+x),round(window['at'][1]+y)
+                                        send('move',max(0,px-20),max(0,py-20));send('move',px,py)
+                                        cursor=json.loads(subprocess.check_output(['hyprctl','-i',item['instance'],'cursorpos','-j'],env=env,text=True,timeout=3))
+                                        assert abs(cursor['x']-px)<=1 and abs(cursor['y']-py)<=1, ('Pointer outside button',cursor,(px,py))
+                                        time.sleep(.1);send('button',272,1);time.sleep(.1);send('button',272,0)
+                                        if button=='cancel':
+                                            deadline=time.monotonic()+10
+                                            while 'LOGOUT_READY_FORCE' not in log_path.read_text():
+                                                assert ui.poll() is None and time.monotonic()<deadline,'Cancel click not handled'
+                                                time.sleep(.05)
+                                finally:
+                                    pointer.stdin.close();pointer.wait(timeout=5)
                             ui.wait(timeout=30)
                         finally:
                             if ui.poll() is None:

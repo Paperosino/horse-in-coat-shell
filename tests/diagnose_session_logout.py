@@ -27,6 +27,10 @@ name=dbus.service.BusName('org.freedesktop.login1',bus)
 class Manager(dbus.service.Object):
  @dbus.service.method('org.freedesktop.login1.Manager',in_signature='s',out_signature='o')
  def GetSession(self,value):return dbus.ObjectPath('/org/freedesktop/login1/session/test')
+ @dbus.service.method('org.freedesktop.login1.Manager',in_signature='u',out_signature='o')
+ def GetSessionByPID(self,value):
+  with open(os.environ['HICS_TEST_TRACE'],'a') as stream:stream.write('GetSessionByPID '+str(int(value))+'\n')
+  return dbus.ObjectPath('/org/freedesktop/login1/session/test')
 class Session(dbus.service.Object):
  @dbus.service.method('org.freedesktop.login1.Session')
  def Terminate(self):

@@ -13,6 +13,7 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
+import "modules/session" as SessionModule
 import "modules/overview" as OverviewModule
 import "modules/switcher" as SwitcherModule
 import "modules/polkit" as PolkitModule
@@ -65,6 +66,7 @@ ShellRoot {
     }
 
     WorkspaceServices {locked:lock.lock.locked}
+    SessionModule.LogoutFlow { locked: lock.lock.locked }
     Shortcuts {}
     ShortcutHelp { authenticationActive: authentication.active }
     OverviewModule.OverviewWindows {}

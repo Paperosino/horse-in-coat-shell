@@ -2,6 +2,11 @@
 #include "workspacetools.hpp"
 
 #include <qdbusconnection.h>
+#include <qdir.h>
+#include <qfile.h>
+#include <qfileinfo.h>
+#include <qregularexpression.h>
+#include <unistd.h>
 #include <qdbuserror.h>
 #include <qdbusmessage.h>
 #include <qdbuspendingcall.h>
@@ -30,6 +35,29 @@ const QString k_loginPath = u"/org/freedesktop/login1"_s;
 const QString k_loginIface = u"org.freedesktop.login1.Manager"_s;
 const QString k_sessionIface = u"org.freedesktop.login1.Session"_s;
 
+// A shell launched by the systemd user manager does not necessarily belong to
+// any logind session. Resolve the compositor for this exact Hyprland instance
+// instead of terminating another session belonging to the same user.
+std::optional<quint32> compositorPid() {
+    const auto signature = qEnvironmentVariable("HYPRLAND_INSTANCE_SIGNATURE");
+    const auto runtime = qEnvironmentVariable("XDG_RUNTIME_DIR");
+    if (signature.isEmpty() || runtime.isEmpty() || signature.size() > 128 ||
+        !QRegularExpression(u"^[A-Za-z0-9_-]+$"_s).match(signature).hasMatch()) return std::nullopt;
+    QFile lock(QDir(runtime).filePath(u"hypr/"_s + signature + u"/hyprland.lock"_s));
+    if (!lock.open(QIODevice::ReadOnly) || lock.size() > 256) return std::nullopt;
+    const auto lines = lock.readAll().split('\n');
+    bool ok = false;
+    const auto pid = lines.value(0).trimmed().toUInt(&ok);
+    if (!ok || pid == 0 || lines.size() < 2) return std::nullopt;
+    const auto display = QFileInfo(qEnvironmentVariable("WAYLAND_DISPLAY")).fileName();
+    if (display.isEmpty() || QString::fromUtf8(lines.at(1).trimmed()) != display) return std::nullopt;
+    const auto proc = u"/proc/"_s + QString::number(pid);
+    if (QFileInfo(proc).ownerId() != static_cast<uint>(geteuid())) return std::nullopt;
+    QFile name(proc + u"/comm"_s);
+    if (!name.open(QIODevice::ReadOnly) || name.readAll().trimmed() != QByteArrayLiteral("Hyprland")) return std::nullopt;
+    return pid;
+}
+
 } // namespace
 
 SessionManager::SessionManager(QObject* parent)
@@ -43,8 +71,19 @@ SessionManager::SessionManager(QObject* parent)
     if (!ok)
         qCWarning(lcSessionManager) << "Failed to connect to PrepareForSleep signal:" << bus->lastError().message();
 
-    auto sessionMsg = QDBusMessage::createMethodCall(k_loginService, k_loginPath, k_loginIface, u"GetSession"_s);
-    sessionMsg.setArguments({ u"auto"_s });
+    const auto signature = qEnvironmentVariable("HYPRLAND_INSTANCE_SIGNATURE");
+    auto sessionMsg = QDBusMessage::createMethodCall(k_loginService, k_loginPath, k_loginIface,
+        signature.isEmpty() ? u"GetSession"_s : u"GetSessionByPID"_s);
+    if (signature.isEmpty()) {
+        sessionMsg.setArguments({ u"auto"_s });
+    } else {
+        const auto pid = compositorPid();
+        if (!pid) {
+            qCWarning(lcSessionManager) << "Cannot determine the compositor session";
+            return;
+        }
+        sessionMsg.setArguments({ QVariant::fromValue(*pid) });
+    }
     const QDBusReply<QDBusObjectPath> sessionReply = bus->call(sessionMsg);
     if (!sessionReply.isValid()) {
         qCWarning(lcSessionManager) << "Failed to get session path:" << sessionReply.error().message();
@@ -95,8 +134,27 @@ bool SessionManager::exec(const QStringList& command) {
 }
 
 void SessionManager::logout() {
-    WorkspaceSession::saveBeforeExit();
-    callSession(u"Terminate"_s);
+    emit logoutRequested();
+}
+
+void SessionManager::checkpointLogout() {
+    WorkspaceSession::checkpointBeforeExit();
+}
+
+void SessionManager::terminateSession() {
+    auto bus = getSystemBus();
+    if (!bus || m_sessionPath.isEmpty()) {
+        emit terminateFailed(u"Session service is unavailable"_s);
+        return;
+    }
+    auto msg = QDBusMessage::createMethodCall(k_loginService, m_sessionPath, k_sessionIface, u"Terminate"_s);
+    auto* watcher = new QDBusPendingCallWatcher(bus->asyncCall(msg), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this](QDBusPendingCallWatcher* self) {
+        const QDBusPendingReply<> reply = *self;
+        self->deleteLater();
+        if (reply.isError()) emit terminateFailed(reply.error().message());
+        else WorkspaceSession::clearClipboardBeforeExit();
+    });
 }
 
 void SessionManager::suspend() {

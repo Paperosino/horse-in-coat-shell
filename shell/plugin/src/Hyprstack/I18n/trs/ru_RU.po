@@ -13110,3 +13110,15 @@ msgstr "При принудительном выходе несохранённ�
 
 msgid "Force sign out"
 msgstr "Завершить принудительно"
+
+msgid "Waiting for the application to respond"
+msgstr "Ожидание ответа приложения"
+
+msgid "Could not check applications"
+msgstr "Не удалось проверить приложения"
+
+msgid "Waiting for the window to close"
+msgstr "Ожидание закрытия окна"
+
+msgid "Could not read application windows"
+msgstr "Не удалось получить список окон приложений"
