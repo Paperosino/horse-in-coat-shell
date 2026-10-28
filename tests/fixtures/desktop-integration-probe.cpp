@@ -65,6 +65,29 @@ int main(int argc, char **argv) {
         const bool reaped = !childPid || (::kill(childPid, 0) < 0 && errno == ESRCH);
         result = {{"destroyed", destroyed}, {"deletedFromSignal",fromSignal}, {"childReaped",reaped}, {"deletionMs",deletionMs},
             {"retiredProcesses",app.findChildren<QProcess *>(QString(),Qt::FindDirectChildrenOnly).size()}};
+    } else if (operation == "capture-snapshot" || operation == "capture-late-fallback") {
+        DesktopIntegration desktop;
+        int notifications = 0;
+        QObject::connect(&desktop, &DesktopIntegration::changed, &app, [&] { ++notifications; });
+        if (operation == "capture-late-fallback") desktop.refreshMonitoring();
+        if (operation == "capture-late-fallback") {
+            QEventLoop loop;
+            QTimer::singleShot(40, &loop, &QEventLoop::quit); loop.exec();
+        }
+        QJsonArray accepted, snapshots, counts;
+        for (const auto &value : request["snapshots"].toArray()) {
+            const auto snapshot = value.toObject();
+            accepted.append(desktop.setCaptureMonitorSnapshot(snapshot["available"].toBool(), snapshot["streams"].toArray().toVariantList()));
+            QCoreApplication::processEvents();
+            snapshots.append(QJsonArray::fromVariantList(desktop.captureStreams()));
+            counts.append(notifications);
+        }
+        desktop.refreshMonitoring();
+        QEventLoop loop;
+        QTimer::singleShot(600, &loop, &QEventLoop::quit); loop.exec();
+        result = {{"accepted", accepted}, {"snapshots", snapshots}, {"notifications", counts},
+            {"captures", QJsonArray::fromVariantList(desktop.captureStreams())},
+            {"captureAvailable", desktop.captureMonitorAvailable()}};
     } else if (operation == "destroy-active") {
         auto *desktop = new DesktopIntegration;
         bool destroyed = false;

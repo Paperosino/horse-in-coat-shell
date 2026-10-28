@@ -93,7 +93,8 @@ foreach(input distribution/apply_quickshell_patches.py
         distribution/patches/quickshell-v0.3.2-logging-lifetime.patch
         distribution/patches/quickshell-v0.3.2-shutdown-lifetime.patch
         distribution/patches/quickshell-v0.3.2-process-lifetime.patch
-        distribution/patches/quickshell-v0.3.2-fontconfig-xml.patch)
+        distribution/patches/quickshell-v0.3.2-fontconfig-xml.patch
+        distribution/patches/quickshell-v0.3.2-video-capture-nodes.patch)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${input}")
     file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/${input}" input_sha)
     string(APPEND qs_patch_signature "${input_sha}")

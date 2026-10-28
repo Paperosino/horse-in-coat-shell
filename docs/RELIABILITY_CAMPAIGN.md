@@ -3442,3 +3442,32 @@ GLib portal warning is not declared fixed merely because later cases pass.
 Evidence: `unit116/manifest.json`, package116-*-session/locked-upgrade/qt-runtime,
 package116-settings120, egl-video116-installed-controller and host116-*.json
 under the private lab. No broad goal completion is claimed.
+
+
+## ScreenCast end-to-end и событийный индикатор — кандидат117
+
+Добавлены настоящий portal CreateSession/SelectSources/Start/OpenPipeWireRemote
+контроллер, ограниченный C consumer кадров и минимальный context-lifetime
+контроль. В fresh CachyOS VM получены меняющиеся кадры экрана1280×800 и
+отдельного окна640×360, проверены отказ пользователя, Session.Close и
+исчезновение serial узла. Подробности и открытые красные результаты
+PipeWire/DBus и отмены внешнего picker записаны в
+[PIPEWIRE_CAPTURE_TESTING.md](PIPEWIRE_CAPTURE_TESTING.md).
+
+Новый monitor использует тот же QS PipeWire core и события узлов.
+Настоящий короткий захват дал suspended/running/remove, без ожидания
+пятисекундного интервала. 32 native desktop теста и3 QMP harness теста
+проходят;4 новых native сценария отдельно проходят ASan/UBSan/LSan.
+Сборка services без предупреждений после уточнения проверки дробного id.
+Полная приёмка/упаковка117 продолжается; установка на хосте остаётся116.
+
+
+Следующий fault injection выявил stale core внешнего backend после restart
+PipeWire: SelectSources0, Start зависает, backend отсутствует в новом графе.
+Добавлена systemd BindsTo+After связь, без polling/watchdog процесса. В ВМ
+проверены explicit restart и SIGKILL PipeWire с последующей D-Bus активацией
+backend и настоящими меняющимися кадрами. QS monitor также восстанавливается;
+основные UI594/window2891 сохраняются, NRestarts0. Полный текущий unit прогон
+80модулей/485тестов/6context skips проходит; добавленные после старта прогона
+packaging metadata и install drop-in требуют отдельной приёмки пакета.
+Окончательные frame/helper hashes и границы приведены в capture документе.

@@ -3,6 +3,7 @@
 #include <QQmlEngine>
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <QVariantList>
+#include <QSet>
 #include <QTimer>
 #include <QAudioSource>
 #include <QMediaDevices>
@@ -45,6 +46,7 @@ public:
     Q_INVOKABLE QUrl wallpaperVideo(const QString &path) const;
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void refreshMonitoring();
+    Q_INVOKABLE bool setCaptureMonitorSnapshot(bool available, const QVariantList &streams);
     Q_INVOKABLE void setCardProfile(const QString &card, const QString &profile);
     Q_INVOKABLE void startMicrophoneTest();
     Q_INVOKABLE void stopMicrophoneTest();
@@ -78,6 +80,7 @@ private:
     int m_portalSourceTypes = 0;
     QString m_error;
     QVariantList m_cards, m_wifi, m_encrypted, m_drives, m_captures, m_recordingSources;
+    bool m_captureFeedActive = false;
     bool m_captureAvailable = false, m_disksLoaded = false;
     QSet<QString> m_knownVolumes;
     QAudioSource *m_audio = nullptr;

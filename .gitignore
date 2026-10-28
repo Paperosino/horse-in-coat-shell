@@ -133,6 +133,7 @@
 !/docs/
 /docs/*
 !/docs/QT_RUNTIME_PATCHES.md
+!/docs/PIPEWIRE_CAPTURE_TESTING.md
 !/docs/STABILITY_AUDIT.md
 !/docs/RELIABILITY_CAMPAIGN.md
 !/docs/media/

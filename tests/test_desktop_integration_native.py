@@ -56,6 +56,7 @@ class DesktopIntegrationTests(unittest.TestCase):
 import json, os, sys, time
 name=os.path.basename(sys.argv[0])
 mode=os.environ.get('HICS_TEST_TOOL_MODE','')
+if name=='pw-dump' and os.environ.get('HICS_TEST_CAPTURE_DELAY'):time.sleep(float(os.environ['HICS_TEST_CAPTURE_DELAY']))
 if name==os.environ.get('HICS_TEST_TOOL_TARGET','pactl') and mode=='hang':time.sleep(60)
 if name==os.environ.get('HICS_TEST_TOOL_TARGET','pactl') and mode in ('stdout-overflow','stderr-overflow'):
  os.write(1 if mode=='stdout-overflow' else 2,b'x'*(32*1024*1024));sys.exit(0 if mode=='stdout-overflow' else 1)
@@ -96,6 +97,44 @@ elif name=='hyprctl':
         self.assertEqual(run.returncode,0,run.stderr[-16000:])
         self.last_stderr=run.stderr;self.last_seconds=time.monotonic()-started
         return json.loads(run.stdout)
+
+    def test_live_capture_snapshot_preserves_metadata_and_coalesces_noop(self):
+        stream = dict(id=17, serial='18446744073709551615', application='Browser', screen=True, state='running')
+        snapshot = dict(available=True, streams=[stream])
+        data = self.probe('capture-snapshot', snapshots=[snapshot, snapshot])
+        self.assertEqual(data['accepted'], [True, True])
+        self.assertEqual(data['captures'], [stream])
+        self.assertEqual(data['notifications'], [1, 1])
+        self.assertTrue(data['captureAvailable'])
+
+    def test_live_capture_snapshot_rejects_bad_input_without_mutation(self):
+        stream = dict(id=17, serial='42', application='Camera', screen=False, state='idle')
+        invalid = [dict(stream, id=-1), dict(stream, id=1.5), dict(stream, id=2**32),
+                   dict(stream, serial='18446744073709551616'), dict(stream, serial='oops'),
+                   dict(stream, screen='true'), dict(stream, state='invented')]
+        snapshots = [dict(available=True, streams=[stream])]
+        snapshots += [dict(available=True, streams=[row]) for row in invalid]
+        snapshots += [dict(available=True, streams=[stream, stream]),
+                      dict(available=False, streams=[stream]),
+                      dict(available=True, streams=[stream]*513)]
+        data = self.probe('capture-snapshot', snapshots=snapshots)
+        self.assertEqual(data['accepted'], [True] + [False]*(len(snapshots)-1))
+        self.assertTrue(all(rows == [stream] for rows in data['snapshots']))
+        self.assertEqual(data['captures'], [stream])
+
+    def test_capture_disconnect_clears_old_streams(self):
+        stream = dict(id=7, serial='42', application='Camera', screen=False, state='running')
+        data = self.probe('capture-snapshot', snapshots=[dict(available=True, streams=[stream]),
+                                                       dict(available=False, streams=[])])
+        self.assertEqual(data['accepted'], [True, True])
+        self.assertFalse(data['captureAvailable'])
+        self.assertEqual(data['captures'], [])
+
+    def test_late_poll_cannot_overwrite_live_capture(self):
+        stream = dict(id=17, serial='42', application='Live', screen=True, state='running')
+        data = self.probe('capture-late-fallback', environment=dict(self.env, HICS_TEST_CAPTURE_DELAY='0.2'),
+                          snapshots=[dict(available=True, streams=[stream])])
+        self.assertEqual(data['captures'], [stream])
 
     def test_network_refresh_does_not_load_multimedia_backend(self):
         data=self.probe('refresh')

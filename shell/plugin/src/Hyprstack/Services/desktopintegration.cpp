@@ -1,4 +1,6 @@
 #include "desktopintegration.hpp"
+#include <cmath>
+#include <limits>
 #include "wallpaperplayer.hpp"
 #include <QAudioDevice>
 #include <QCoreApplication>
@@ -21,7 +23,6 @@
 #include <QStandardPaths>
 #include <QUuid>
 #include <cstring>
-#include <cmath>
 #include <algorithm>
 
 using SettingsMap = QMap<QString, QVariantMap>;
@@ -250,10 +251,46 @@ void DesktopIntegration::refreshMonitoring() {
     refreshDisks();
     refreshCapture();
 }
+bool DesktopIntegration::setCaptureMonitorSnapshot(bool available, const QVariantList &streams) {
+    if (streams.size() > 512) return false;
+    QVariantList normalized;
+    QSet<quint32> ids;
+    for (const auto &entry : streams) {
+        const auto row = entry.toMap();
+        bool validId = false;
+        const double number = row.value(u"id"_s).toDouble(&validId);
+        const auto state = row.value(u"state"_s).toString();
+        if (!validId || !std::isfinite(number) || number < 0 ||
+            number > std::numeric_limits<quint32>::max() || std::floor(number) < number ||
+            row.value(u"screen"_s).metaType().id() != QMetaType::Bool ||
+            !QStringList{u"creating"_s,u"suspended"_s,u"idle"_s,u"running"_s,u"error"_s}.contains(state)) return false;
+        const auto id = static_cast<quint32>(number);
+        if (ids.contains(id)) return false;
+        ids.insert(id);
+        const auto serial = row.value(u"serial"_s).toString();
+        bool validSerial = false;
+        const auto serialNumber = serial.toULongLong(&validSerial);
+        Q_UNUSED(serialNumber)
+        if (!validSerial || serial.size() > 20) return false;
+        normalized.append(QVariantMap{{u"id"_s,id}, {u"serial"_s,serial},
+            {u"application"_s,row.value(u"application"_s).toString().left(512)},
+            {u"screen"_s,row.value(u"screen"_s).toBool()}, {u"state"_s,state}});
+    }
+    if (!available && !normalized.isEmpty()) return false;
+    m_captureFeedActive = true;
+    if (m_captureAvailable == available && m_captures == normalized) return true;
+    m_captureAvailable = available;
+    m_captures = normalized;
+    notifyChanged();
+    return true;
+}
+
 void DesktopIntegration::refreshCapture() {
+    if (m_captureFeedActive) return;
     m_captureAvailable = !QStandardPaths::findExecutable(u"pw-dump"_s).isEmpty();
     if (!m_captureAvailable) { m_captures.clear(); notifyChanged(); return; }
     process(u"pw-dump"_s, {}, [this](const QByteArray &raw) {
+        if (m_captureFeedActive) return;
         QJsonParseError error;
         auto document = QJsonDocument::fromJson(raw, &error);
         m_captureAvailable = error.error == QJsonParseError::NoError && document.isArray();

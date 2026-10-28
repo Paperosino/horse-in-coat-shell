@@ -60,6 +60,8 @@ class Update(Installer):
                              self.config / "systemd/user/hics-displays.service")
         yield from self.tree(ROOT / "distribution/systemd/user/hics-screen-reader.service",
                              self.config / "systemd/user/hics-screen-reader.service")
+        yield from self.tree(ROOT / "distribution/systemd/user/xdg-desktop-portal-hyprland.service.d/50-hics-pipewire-lifetime.conf",
+                             self.config / "systemd/user/xdg-desktop-portal-hyprland.service.d/50-hics-pipewire-lifetime.conf")
 
 
 def validate_destinations(update, files):

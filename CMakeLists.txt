@@ -122,6 +122,8 @@ install(FILES shell/assets/logo.svg DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/
 install(DIRECTORY distribution/licenses/ DESTINATION "${CMAKE_INSTALL_DATADIR}/hics/licenses")
 
 install(FILES distribution/systemd/user/hics-screen-reader.service DESTINATION lib/systemd/user)
+install(FILES distribution/systemd/user/xdg-desktop-portal-hyprland.service.d/50-hics-pipewire-lifetime.conf
+    DESTINATION lib/systemd/user/xdg-desktop-portal-hyprland.service.d)
 
 foreach(unit hics-displays hics-configuration)
     configure_file("distribution/systemd/user/${unit}.service.in" "${unit}.service" @ONLY)
@@ -142,4 +144,4 @@ install(FILES "${CMAKE_BINARY_DIR}/hics-desktop.service" DESTINATION lib/systemd
 configure_file(distribution/dbus/org.hics.Desktop1.service.in org.hics.Desktop1.service @ONLY)
 install(FILES "${CMAKE_BINARY_DIR}/org.hics.Desktop1.service" DESTINATION share/dbus-1/services)
 
-install(FILES docs/DE_PLATFORM.md docs/DESKTOP_ICONS.md docs/WINDOW_DECORATIONS.md docs/UX_INTEGRATION_AUDIT.md docs/QT_RUNTIME_PATCHES.md DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/hics")
+install(FILES docs/DE_PLATFORM.md docs/DESKTOP_ICONS.md docs/WINDOW_DECORATIONS.md docs/UX_INTEGRATION_AUDIT.md docs/QT_RUNTIME_PATCHES.md docs/PIPEWIRE_CAPTURE_TESTING.md DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/hics")
