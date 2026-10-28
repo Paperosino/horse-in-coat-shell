@@ -56,6 +56,30 @@ class CandidatePortal(unittest.TestCase):
         with self.assertRaises(dbus.DBusException):self.control.Force()
         self.control.SetLocked(False);self.control.Commit()
 
+    def test_frontend_request_without_app_id_uses_client_process_name(self):
+        data=self.root/'data';config=self.root/'config'
+        portals=data/'xdg-desktop-portal/portals';portals.mkdir(parents=True)
+        (portals/'hics.portal').write_text('[portal]\nDBusName='+SERVICE+'\nInterfaces='+INHIBIT+';\nUseIn=HICS\n')
+        preferences=config/'xdg-desktop-portal';preferences.mkdir(parents=True)
+        (preferences/'portals.conf').write_text('[preferred]\ndefault=hics\n')
+        env=dict(self.env,XDG_DATA_HOME=str(data),XDG_CONFIG_HOME=str(config),XDG_CACHE_HOME=str(self.root/'cache'),
+                 XDG_DATA_DIRS='/usr/share',XDG_CURRENT_DESKTOP='HICS',DBUS_SYSTEM_BUS_ADDRESS='unix:path='+str(self.root/'absent'))
+        frontend=subprocess.Popen(['/usr/lib/xdg-desktop-portal'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True)
+        self.addCleanup(self.stop,frontend)
+        deadline=time.monotonic()+8
+        while not self.controller.name_has_owner('org.freedesktop.portal.Desktop'):
+            self.assertIsNone(frontend.poll());self.assertLess(time.monotonic(),deadline);time.sleep(.02)
+        client=subprocess.Popen(['python3',str(ROOT/'tests/fixtures/logout_inhibit_client.py')],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        self.addCleanup(self.stop,client)
+        self.assertEqual(client.stdout.readline().strip(),'ready')
+        while True:
+            entries=json.loads(self.control.List())
+            match=next((entry for entry in entries if entry['reason']=='Unsaved background work'),None)
+            if match:break
+            self.assertIsNone(client.poll());self.assertLess(time.monotonic(),deadline);time.sleep(.02)
+        self.assertIn('python',match['process_name'].lower())
+        self.assertNotIn('/',match['process_name'])
+
     @unittest.skipUnless(os.environ.get('HICS_TEST_GTK_DISPLAY'),'Requires an isolated nested Wayland display')
     def test_real_frontend_and_gtk_query_end(self):
         data=self.root/'data';config=self.root/'config'

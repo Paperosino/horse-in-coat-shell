@@ -20,6 +20,7 @@ class Inhibitor:
     app_id: str
     reason: str
     flags: int
+    process_name: str = ''
 
 
 class InhibitorRegistry:
@@ -34,12 +35,12 @@ class InhibitorRegistry:
     def generation(self):
         return self._generation
 
-    def add(self, path, owner, app_id, reason, flags):
+    def add(self, path, owner, app_id, reason, flags, process_name=''):
         if not isinstance(path,str) or len(path)>512 or not re.fullmatch(r'/org/freedesktop/portal/desktop/request/[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)+',path):
             raise ValueError('Invalid request path')
         if not isinstance(owner,str) or len(owner)>255 or not re.fullmatch(r':[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+',owner):
             raise ValueError('A unique D-Bus owner is required')
-        if not isinstance(app_id,str) or not isinstance(reason,str) or len(app_id)>512 or len(reason)>4096:
+        if not isinstance(app_id,str) or not isinstance(reason,str) or not isinstance(process_name,str) or len(app_id)>512 or len(reason)>4096 or len(process_name)>255:
             raise ValueError('Invalid inhibitor description')
         if type(flags) is not int or flags <= 0 or flags & ~VALID_FLAGS:
             raise ValueError('Invalid inhibitor flags')
@@ -47,7 +48,7 @@ class InhibitorRegistry:
             raise ValueError('Request path is already registered')
         if len(self._entries) >= self._limit:
             raise OverflowError('Inhibitor capacity reached')
-        entry=Inhibitor(path,owner,app_id,reason,flags)
+        entry=Inhibitor(path,owner,app_id,reason,flags,process_name)
         self._entries[path]=entry
         self._generation += 1
         return entry

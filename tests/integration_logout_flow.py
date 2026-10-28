@@ -226,7 +226,12 @@ def main():
                 def listed():
                     query=subprocess.run([QS,'ipc','--pid',str(qs.pid),'call','logoutFixture','blockers'],env=appenv,text=True,capture_output=True,timeout=5)
                     assert 'hics-logout-probe-' not in query.stdout, 'Internal portal probe was exposed as an application'
-                    return 'Unsaved background work' in query.stdout
+                    if 'Unsaved background work' not in query.stdout:return False
+                    entries=json.loads(query.stdout)
+                    blocker_entry=next(entry for entry in entries if entry.get('reason')=='Unsaved background work')
+                    identity=blocker_entry.get('app_id') or blocker_entry.get('process_name','')
+                    assert identity and '/' not in identity, 'Blocking client was not identified safely'
+                    return True
                 wait_until(listed,'Controller did not expose portal inhibitor')
                 assert not window_trace.exists() and (not logind_trace.exists() or 'Terminate' not in logind_trace.read_text()),'Session advanced while portal inhibitor was active'
                 if args.kill_backend:

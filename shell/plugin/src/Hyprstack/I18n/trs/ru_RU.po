@@ -13122,3 +13122,6 @@ msgstr "Ожидание закрытия окна"
 
 msgid "Could not read application windows"
 msgstr "Не удалось получить список окон приложений"
+
+msgid "Unknown application"
+msgstr "Неизвестное приложение"

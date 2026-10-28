@@ -5,6 +5,7 @@ The control methods require the unique owner of org.hics.LogoutController.
 Inhibit requests for non-logout flags are delegated to the GTK backend.
 """
 import json
+import os
 import re
 import sys
 import dbus
@@ -31,8 +32,8 @@ class Request(dbus.service.Object):
         self.broker.remove(self.path,self.owner)
 
 class Monitor(dbus.service.Object):
-    def __init__(self, broker, path, owner, app_id):
-        self.broker=broker;self.path=path;self.owner=owner;self.app_id=app_id
+    def __init__(self, broker, path, owner, app_id, process_name):
+        self.broker=broker;self.path=path;self.owner=owner;self.app_id=app_id;self.process_name=process_name
         super().__init__(broker.bus,path)
 
     @dbus.service.method(SESSION,in_signature='',out_signature='',sender_keyword='sender')
@@ -88,6 +89,26 @@ class Broker(dbus.service.Object):
         self.StateChanged(dbus.ObjectPath(path),{'session-state':dbus.UInt32(self.state,variant_level=1),
                                                 'screensaver-active':dbus.Boolean(self.locked,variant_level=1)})
 
+    def process_name(self,path,app_id,sender):
+        if app_id:return ''
+        # The trusted portal frontend encodes its caller's unique bus name in
+        # the request path. Resolve only that peer, and expose only its short
+        # executable name, never its command-line arguments or private paths.
+        match=re.fullmatch(r'/org/freedesktop/portal/desktop/(?:request|session)/(\d+)_(\d+)(?:/[A-Za-z0-9_]+)+',path)
+        if not match:return ''
+        try:
+            if self.bus.get_name_owner('org.freedesktop.portal.Desktop')!=sender:return ''
+            peer=':'+match.group(1)+'.'+match.group(2)
+            daemon=self.bus.get_object('org.freedesktop.DBus','/org/freedesktop/DBus')
+            pid=int(daemon.GetConnectionUnixProcessID(peer,dbus_interface='org.freedesktop.DBus',timeout=1))
+            proc='/proc/'+str(pid)
+            if os.stat(proc).st_uid!=os.getuid():return ''
+            with open(proc+'/comm','rb') as stream:
+                name=stream.read(256).decode('utf-8','replace').strip()
+            return name if name and len(name)<=255 else ''
+        except (OSError,dbus.DBusException,ValueError):
+            return ''
+
     @dbus.service.method(INHIBIT,in_signature='ossua{sv}',out_signature='',sender_keyword='sender',
                          async_callbacks=('reply','error'))
     def Inhibit(self,handle,app_id,window,flags,options,reply,error,sender=None):
@@ -101,7 +122,7 @@ class Broker(dbus.service.Object):
         if other and not self.delegate_name:
             error(dbus.exceptions.DBusException('No delegate for non-logout flags',name='org.freedesktop.portal.Error.Failed'));return
         try:
-            self.registry.add(path,owner,str(app_id),reason,flags)
+            self.registry.add(path,owner,str(app_id),reason,flags,self.process_name(path,app_id,sender))
             try:self.requests[path]=Request(self,path,owner)
             except Exception:
                 self.registry.close(path,owner)
@@ -131,7 +152,7 @@ class Broker(dbus.service.Object):
             raise dbus.exceptions.DBusException('Invalid or duplicate session',name='org.freedesktop.portal.Error.Failed')
         if len(str(app_id))>512:
             raise dbus.exceptions.DBusException('Invalid application ID',name='org.freedesktop.portal.Error.Failed')
-        monitor=Monitor(self,path,str(sender),str(app_id));self.monitors[path]=monitor
+        monitor=Monitor(self,path,str(sender),str(app_id),self.process_name(path,app_id,sender));self.monitors[path]=monitor
         if self.state==2:self.pending.add(path)
         GLib.idle_add(lambda:(self.publish_state(path),False)[1] if self.monitors.get(path) is monitor else False)
         return dbus.UInt32(0)
@@ -178,9 +199,9 @@ class Broker(dbus.service.Object):
     @dbus.service.method('org.hics.Logout1',in_signature='',out_signature='s',sender_keyword='sender')
     def List(self,sender=None):
         self.authorize(sender)
-        entries=[{'path':entry.path,'app_id':entry.app_id,'reason':entry.reason,'flags':entry.flags,'pending':False}
+        entries=[{'path':entry.path,'app_id':entry.app_id,'reason':entry.reason,'flags':entry.flags,'pending':False,'process_name':entry.process_name}
                  for entry in self.registry.matching(LOGOUT)]
-        entries.extend({'path':path,'app_id':self.monitors[path].app_id,'reason':'','flags':LOGOUT,'pending':True}
+        entries.extend({'path':path,'app_id':self.monitors[path].app_id,'reason':'','flags':LOGOUT,'pending':True,'process_name':self.monitors[path].process_name}
                        for path in sorted(self.pending | self.stale) if path in self.monitors)
         return json.dumps(entries)
 

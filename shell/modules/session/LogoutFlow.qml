@@ -80,10 +80,12 @@ Scope {
         });
     }
     function blockerModel(): var {
-        const items = LogoutController.blockers.map(b => ({
-            name: String(b.app_id || Tr.tr("Unknown application")),
-            reason: b.pending ? Tr.tr("Waiting for the application to respond") : String(b.reason || "")
-        }));
+        const items = LogoutController.blockers.map(b => {
+            const id = String(b.app_id || "");
+            const app = id ? (ApplicationCatalogue.byId(id) ?? ApplicationCatalogue.heuristicLookup(id)) : null;
+            return {name: String(app?.name || id || b.process_name || Tr.tr("Unknown application")),
+                    reason: b.pending ? Tr.tr("Waiting for the application to respond") : String(b.reason || "")};
+        });
         if (LogoutController.error) items.push({name: Tr.tr("Could not check applications"), reason: LogoutController.error});
         if (root.windowError) items.push({name: root.windowError, reason: ""});
         for (const ipc of root.remainingWindows) {
