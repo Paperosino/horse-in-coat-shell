@@ -169,6 +169,23 @@ for (const name of ['focus','keydown','input','paste']) edit.addEventListener(na
             app_log.flush()
             raise AssertionError('Before paste: events='+repr(events())+'; window='+repr(client())
                                  +'; Electron='+(base/'electron.log').read_text()[-2000:])
+        # Exercise the same stacking path as the dock, including the hidden
+        # workspace and the first physical key after restoring the window.
+        address = json.dumps(window['address'])
+        stable = json.dumps(window['stableId'])
+        ctl('eval', f'hyprstack_layouts.action("minimize",{address},{stable})')
+        wait_for(lambda: client() and client()['workspace']['name'].startswith('special:'), 'minimized workspace')
+        delay = float(os.environ.get('HICS_TEST_IDLE_SECONDS', '2'))
+        assert 0 <= delay <= 1800, 'Invalid isolated idle interval'
+        time.sleep(delay)
+        ctl('eval', f'hyprstack_layouts.action("dock-activate",{address},{stable})')
+        restored = wait_for(lambda: (w if (w := client()) and w['visible'] and not w['workspace']['name'].startswith('special:') else None), 'restored window')
+        x, y = restored['at']
+        send(pointer, f'move {x+100} {y+130}')
+        send(pointer, 'button 272 1'); send(pointer, 'button 272 0')
+        key(46)
+        wait_for(lambda: any(e['type']=='input' and 'c' in e['text'] for e in events()), 'first key after stacking restore')
+        print(f'PASS: Electron XWayland accepts input after stacking minimize and {delay:g}s idle')
         # Paste only the probe's private image, then verify another key.
         send(keyboard,'key 29 1'); key(47); send(keyboard,'key 29 0')
         try:
