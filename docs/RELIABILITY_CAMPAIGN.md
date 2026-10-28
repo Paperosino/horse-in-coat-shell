@@ -3390,3 +3390,55 @@ compares mapped external window identities (address,pid,class), requiring at
 least one, instead of unrelated/transient process names. The failed observation
 is retained and is not treated as accepted proof. Package116 will repeat both
 locked upgrade scenarios with this stronger application check.
+
+
+### Installed116 acceptance and host deployment
+
+Package116 SHA256:
+`2c9ec4d1bfa15e6b8193d20219a4c0f3eb37f2e1f1111785c70b3c4e3a11ed96`.
+Both locked upgrades pass with actual external window identity preserved,
+unchanged runner/UI/lock,207binds and restored autoreload. Main reboot yields
+bootbc529245-bffc-4b3c-b64c-0ee619ce5455, compositor383, runner456/UI498.
+Fresh guest uses a normal PAM TTY login followed by installed `hics-start`:
+boot9f2fea62-58ad-4bc1-8e74-fd5d7a1481d7, compositor466, runner552/UI594.
+Both prove new QS/Core/Gui/Wayland/EGL/native/config/services inode and manifest
+SHA matches, ready=true, safe=false, NRestarts0,207binds, configerrors empty,
+no failed user/system units. Fresh116 passes all8 installed-runtime gates and
+6 decorated EGL native adoption ASan/LSan processes plus20 rendered VideoOutput
+lifecycles. Source/library Qt bytes are identical to canonical115;116 fixes
+public publication permissions and the upgrade observation harness.
+
+The final unit116 run uses clean2b7a11ac7956338dbc5bd571e04cac303e7bfab9:
+79modules,478tests,0failed/timeouts,6explicit skips (2user-systemd scopes,
+1user-systemd watchdog,2Wayland network QML,1opt-in GPU backoff). The separate
+opt-in GPU protocol run passes9tests including the actual30-second recovery.
+These context skips are not silently relabelled covered by the isolated suite.
+Earlier campaign/context evidence is separate from this exact full run.
+
+The real UI120-cycle run keeps runner456/UI498, reads6pages, verifies first
+frame/unlocked state and logs without binding failures. Wall117.402s; UI CPU
+82.10s. RSS688740→807036KiB, PSS562869→685645KiB, PrivateDirty449980→563732KiB;
+FD99→94, threads27→25. At60cycles RSS793360KiB, versus114's1015796KiB final60.
+Prior113's same120-cycle workload ended984920KiB with83.20s CPU/wall117.604s.
+This supports lower observed memory retention/startup footprint in this VM;
+CPU difference is not statistically established. It is not a physical-GPU or
+controlled fully cold disk-cache benchmark. No production polling/profiler,
+cache-dropping, quality reduction or decoration-disable flag was added.
+
+Host pacman upgrade113→116 succeeds through the normal polkit agent (no
+conversation credential entered in commands or files). Snapper pre/post505/506
+comes from existing host hooks. Runner1183724/startticks17100252/NRestarts0,
+5main application windows and the final6window identities are retained. One
+classless ChatGPT same-process window was absent in an intermediate read and
+present with its original identity on final verification; no application
+closure occurred and the transient observation's cause is not established.
+Configerrors empty, autoreloadfalse restored,2system+4user services active;
+Qt/QS/allocator manifests verify as the ordinary user. The working session's
+old running images are preserved deliberately: a normal logout/login loads116.
+
+Scope remains explicit: no proof of every DE feature or every GPU. The587-byte
+global Fontconfig LSan finding remains isolated/open, and an older intermittent
+GLib portal warning is not declared fixed merely because later cases pass.
+Evidence: `unit116/manifest.json`, package116-*-session/locked-upgrade/qt-runtime,
+package116-settings120, egl-video116-installed-controller and host116-*.json
+under the private lab. No broad goal completion is claimed.
