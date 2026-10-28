@@ -9,7 +9,7 @@
 +  message(FATAL_ERROR "HICS_PORTAL_RUNTIME_DIR is required for this audited candidate")
 +endif()
 +pkg_check_modules(HICS_SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
-+target_sources(xdg-desktop-portal-hyprland PRIVATE "${HICS_PORTAL_RUNTIME_DIR}/eventloop.cpp")
++target_sources(xdg-desktop-portal-hyprland PRIVATE "${HICS_PORTAL_RUNTIME_DIR}/eventloop.cpp" "${HICS_PORTAL_RUNTIME_DIR}/process.cpp")
 +target_include_directories(xdg-desktop-portal-hyprland PRIVATE "${HICS_PORTAL_RUNTIME_DIR}")
 +target_link_libraries(xdg-desktop-portal-hyprland PRIVATE PkgConfig::HICS_SYSTEMD)
 +
@@ -18,28 +18,33 @@
                                        PkgConfig::deps)
 --- a/src/core/PortalManager.hpp
 +++ b/src/core/PortalManager.hpp
-@@ -25,7 +25,7 @@
+@@ -25,7 +25,8 @@
  #include "../includes.hpp"
  #include "../dbusDefines.hpp"
  
 -#include <mutex>
 +#include "eventloop.hpp"
++#include "process.hpp"
  
  struct pw_loop;
  
-@@ -59,6 +59,11 @@
+@@ -59,8 +60,15 @@
  };
  
  class CPortalManager {
 +    hics::portal::EventLoop m_eventLoop;
++    hics::portal::Processes m_processes{m_eventLoop};
 +    int m_exitCode = 0;
 +    bool m_waylandWritable = false;
 +    void dispatchWayland(uint32_t events);
 +    void flushWayland();
    public:
      CPortalManager();
++    hics::portal::Processes& processes() { return m_processes; }
  
-@@ -120,35 +125,17 @@
+     void                                         init();
+ 
+@@ -120,35 +128,17 @@
  
      // terminate after the event loop has been created. Before we can exit()
      void terminate();
@@ -374,7 +379,7 @@
  }
 --- a/src/shared/Session.hpp
 +++ b/src/shared/Session.hpp
-@@ -5,6 +5,7 @@
+@@ -5,12 +5,16 @@
  #include <sdbus-c++/sdbus-c++.h>
  
  struct SDBusSession {
@@ -382,9 +387,40 @@
      std::unique_ptr<sdbus::IObject> object;
      sdbus::ObjectPath               handle;
      std::function<void()>           onDestroy;
+ };
+ 
+ struct SDBusRequest {
++    std::shared_ptr<bool> alive=std::make_shared<bool>(true);
++    bool closing=false;
++    ~SDBusRequest() { *alive=false; }
+     std::unique_ptr<sdbus::IObject> object;
+     sdbus::ObjectPath               handle;
+     std::function<void()>           onDestroy;
 --- a/src/shared/Session.cpp
 +++ b/src/shared/Session.cpp
-@@ -17,9 +17,10 @@
+@@ -5,11 +5,16 @@
+ static int onCloseRequest(SDBusRequest* req) {
+     Debug::log(TRACE, "[internal] Close Request {}", (void*)req);
+ 
+-    if (!req)
+-        return 0;
+-
+-    req->onDestroy();
+-    req->object.release();
++    if (!req || req->closing) return 0;
++    req->closing=true;
++    std::weak_ptr<bool> life=req->alive;
++    auto destroy=std::move(req->onDestroy);
++    g_pPortalManager->addTimer({0,[req,life,destroy] {
++        const auto alive=life.lock();
++        if(!alive || !*alive) return;
++        req->object.reset();
++        if(destroy) destroy();
++    }});
+ 
+     return 0;
+ }
+@@ -17,9 +22,10 @@
  static int onCloseSession(SDBusSession* sess) {
      Debug::log(TRACE, "[internal] Close Session {}", (void*)sess);
  
@@ -396,9 +432,198 @@
      auto destroy = std::move(sess->onDestroy);
      g_pPortalManager->addTimer({0, [sess, destroy]() {
                                      sess->object.reset();
+--- a/src/shared/ScreencopyShared.hpp
++++ b/src/shared/ScreencopyShared.hpp
+@@ -43,7 +43,7 @@
+ 
+ struct wl_buffer;
+ 
+-SSelectionData   promptForScreencopySelection();
++uint64_t promptForScreencopySelectionAsync(std::function<void(SSelectionData)> callback);
+ uint32_t         drmFourccFromSHM(wl_shm_format format);
+ spa_video_format pwFromDrmFourcc(uint32_t format);
+ wl_shm_format    wlSHMFromDrmFourcc(uint32_t format);
+--- a/src/shared/ScreencopyShared.cpp
++++ b/src/shared/ScreencopyShared.cpp
+@@ -8,6 +8,8 @@
+ #include <sys/mman.h>
+ #include <sys/stat.h>
+ #include <fcntl.h>
++#include <charconv>
++#include <sys/wait.h>
+ 
+ #include <hyprutils/os/Process.hpp>
+ using namespace Hyprutils::OS;
+@@ -39,92 +41,59 @@
+     return result;
+ }
+ 
+-SSelectionData promptForScreencopySelection() {
+-    SSelectionData      data;
+-
+-    const char*         WAYLAND_DISPLAY             = getenv("WAYLAND_DISPLAY");
+-    const char*         XCURSOR_SIZE                = getenv("XCURSOR_SIZE");
+-    const char*         HYPRLAND_INSTANCE_SIGNATURE = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+-
+-    static auto* const* PALLOWTOKENBYDEFAULT =
+-        (Hyprlang::INT* const*)g_pPortalManager->m_sConfig.config->getConfigValuePtr("screencopy:allow_token_by_default")->getDataStaticPtr();
+-    static auto* const*      PCUSTOMPICKER = (Hyprlang::STRING* const)g_pPortalManager->m_sConfig.config->getConfigValuePtr("screencopy:custom_picker_binary")->getDataStaticPtr();
+-
+-    std::vector<std::string> args;
+-    if (**PALLOWTOKENBYDEFAULT)
+-        args.emplace_back("--allow-token");
+-
+-    CProcess proc(std::string{*PCUSTOMPICKER}.empty() ? "hyprland-share-picker" : *PCUSTOMPICKER, args);
+-    proc.addEnv("WAYLAND_DISPLAY", WAYLAND_DISPLAY ? WAYLAND_DISPLAY : "");
+-    proc.addEnv("QT_QPA_PLATFORM", "wayland");
+-    proc.addEnv("XCURSOR_SIZE", XCURSOR_SIZE ? XCURSOR_SIZE : "24");
+-    proc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HYPRLAND_INSTANCE_SIGNATURE ? HYPRLAND_INSTANCE_SIGNATURE : "0");
+-    proc.addEnv("XDPH_WINDOW_SHARING_LIST", buildWindowList()); // buildWindowList will sanitize any shell stuff in case the picker (qt) does something funky? It shouldn't.
+-
+-    if (!proc.runSync())
+-        return data;
+-
+-    const auto RETVAL    = proc.stdOut();
+-    const auto RETVALERR = proc.stdErr();
+-
+-    if (!RETVAL.contains("[SELECTION]")) {
+-        // failed
+-        constexpr const char* QPA_ERR = "qt.qpa.plugin: Could not find the Qt platform plugin";
+-
+-        if (RETVAL.contains(QPA_ERR) || RETVALERR.contains(QPA_ERR)) {
+-            // prompt the user to install qt5-wayland and qt6-wayland
+-            addHyprlandNotification("3", 7000, "0", "[xdph] Could not open the picker: qt5-wayland or qt6-wayland doesn't seem to be installed.");
+-        }
+-
+-        return data;
+-    }
+-
+-    const auto SELECTION = RETVAL.substr(RETVAL.find("[SELECTION]") + 11);
+-
+-    Debug::log(LOG, "[sc] Selection: {}", SELECTION);
+-
+-    const auto FLAGS = SELECTION.substr(0, SELECTION.find_first_of('/'));
+-    const auto SEL   = SELECTION.substr(SELECTION.find_first_of('/') + 1);
+-
+-    for (auto& flag : FLAGS) {
+-        if (flag == 'r')
+-            data.allowToken = true;
+-        else
+-            Debug::log(LOG, "[screencopy] unknown flag from share-picker: {}", flag);
+-    }
+-
+-    if (SEL.find("screen:") == 0) {
+-        data.type   = TYPE_OUTPUT;
+-        data.output = SEL.substr(7);
+-
+-        data.output.pop_back();
+-    } else if (SEL.find("window:") == 0) {
+-        data.type         = TYPE_WINDOW;
+-        uint32_t handleLo = std::stoull(SEL.substr(7));
+-        data.windowHandle = nullptr;
+-
+-        const auto HANDLE = g_pPortalManager->m_sHelpers.toplevel->handleFromHandleLower(handleLo);
+-        if (HANDLE) {
+-            data.windowHandle = HANDLE->handle;
+-            data.windowClass  = HANDLE->windowClass;
+-        }
+-    } else if (SEL.find("region:") == 0) {
+-        std::string running = SEL;
+-        running             = running.substr(7);
+-        data.type           = TYPE_GEOMETRY;
+-        data.output         = running.substr(0, running.find_first_of('@'));
+-        running             = running.substr(running.find_first_of('@') + 1);
+-
+-        data.x  = std::stoi(running.substr(0, running.find_first_of(',')));
+-        running = running.substr(running.find_first_of(',') + 1);
+-        data.y  = std::stoi(running.substr(0, running.find_first_of(',')));
+-        running = running.substr(running.find_first_of(',') + 1);
+-        data.w  = std::stoi(running.substr(0, running.find_first_of(',')));
+-        running = running.substr(running.find_first_of(',') + 1);
+-        data.h  = std::stoi(running);
+-    }
+-
+-    return data;
++uint64_t promptForScreencopySelectionAsync(std::function<void(SSelectionData)> callback) {
++    const auto config=g_pPortalManager->m_sConfig.config.get();
++    const auto allow=std::any_cast<Hyprlang::INT>(config->getConfigValue("screencopy:allow_token_by_default"));
++    const auto custom=std::any_cast<Hyprlang::STRING>(config->getConfigValue("screencopy:custom_picker_binary"));
++    std::vector<std::string> args{std::string{custom}.empty()?"hyprland-share-picker":custom};
++    if(allow)args.emplace_back("--allow-token");
++    auto env=[](const char* key,const char* fallback){const char* value=getenv(key);return std::string{value?value:fallback};};
++    return g_pPortalManager->processes().start(args,{
++        {"QT_QPA_PLATFORM","wayland"},{"WAYLAND_DISPLAY",env("WAYLAND_DISPLAY","")},
++        {"XCURSOR_SIZE",env("XCURSOR_SIZE","24")},
++        {"HYPRLAND_INSTANCE_SIGNATURE",env("HYPRLAND_INSTANCE_SIGNATURE","0")},
++        {"XDPH_WINDOW_SHARING_LIST",buildWindowList()}},std::chrono::minutes(5),
++        [callback=std::move(callback)](hics::portal::Processes::Result result) {
++            SSelectionData data;
++            if(result.reason!=hics::portal::Processes::Reason::Exited || !WIFEXITED(result.status) || WEXITSTATUS(result.status)!=0){callback(data);return;}
++            const auto marker=result.out.find("[SELECTION]");
++            if(marker==std::string::npos){callback(data);return;}
++            auto value=result.out.substr(marker+11);
++            const auto end=value.find_first_of("\r\n");if(end!=std::string::npos)value.resize(end);
++            const auto slash=value.find('/');
++            if(slash==std::string::npos){callback(data);return;}
++            const auto flags=value.substr(0,slash);value.erase(0,slash+1);
++            for(char flag:flags){if(flag!='r'){callback(data);return;}data.allowToken=true;}
++            const auto number=[](std::string_view text,uint32_t& out){
++                if(text.empty())return false;
++                auto [last,error]=std::from_chars(text.data(),text.data()+text.size(),out);
++                return error==std::errc{} && last==text.data()+text.size();
++            };
++            if(value.starts_with("screen:") && value.size()>7){
++                data.type=TYPE_OUTPUT;data.output=value.substr(7);
++            }else if(value.starts_with("window:")){
++                uint32_t id=0;
++                if(number(std::string_view{value}.substr(7),id)){
++                    const auto handle=g_pPortalManager->m_sHelpers.toplevel->handleFromHandleLower(id);
++                    if(handle){data.type=TYPE_WINDOW;data.windowHandle=handle->handle;data.windowClass=handle->windowClass;}
++                }
++            }else if(value.starts_with("region:")){
++                std::string_view region{value};region.remove_prefix(7);
++                auto at=region.find('@');
++                if(at!=std::string_view::npos && at>0){
++                    data.output=region.substr(0,at);region.remove_prefix(at+1);
++                    uint32_t* fields[]={&data.x,&data.y,&data.w,&data.h};bool valid=true;
++                    for(int i=0;i<4;++i){auto comma=region.find(',');
++                        if((i<3 && comma==std::string_view::npos)||(i==3 && comma!=std::string_view::npos)){valid=false;break;}
++                        auto part=region.substr(0,comma);
++                        if(!number(part,*fields[i])){valid=false;break;}
++                        if(i<3)region.remove_prefix(comma+1);
++                    }
++                    if(valid && data.w>0 && data.h>0 && uint64_t(data.x)+data.w<=INT32_MAX && uint64_t(data.y)+data.h<=INT32_MAX)data.type=TYPE_GEOMETRY;
++                }
++            }
++            callback(data);
++        });
+ }
+ 
+ wl_shm_format wlSHMFromDrmFourcc(uint32_t format) {
+--- a/src/portals/Screencopy.hpp
++++ b/src/portals/Screencopy.hpp
+@@ -60,7 +60,8 @@
+     void   appendToplevelExport(SP<CCHyprlandToplevelExportManagerV1>);
+ 
+     dbUasv onCreateSession(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID, std::unordered_map<std::string, sdbus::Variant> opts);
+-    dbUasv onSelectSources(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID, std::unordered_map<std::string, sdbus::Variant> opts);
++    using SelectionReply=sdbus::Result<uint32_t,std::unordered_map<std::string,sdbus::Variant>>;
++    void onSelectSources(SelectionReply&& reply,sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID, std::unordered_map<std::string, sdbus::Variant> opts);
+     dbUasv onStart(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID, std::string parentWindow,
+                    std::unordered_map<std::string, sdbus::Variant> opts);
+ 
+@@ -69,6 +70,8 @@
+         sdbus::ObjectPath                         requestHandle, sessionHandle;
+         uint32_t                                  cursorMode  = HIDDEN;
+         uint32_t                                  persistMode = 0;
++        uint64_t picker=0;
++        bool selecting=false;
+ 
+         std::unique_ptr<SDBusRequest>             request;
+         std::unique_ptr<SDBusSession>             session;
 --- a/src/portals/Screencopy.cpp
 +++ b/src/portals/Screencopy.cpp
-@@ -40,31 +40,27 @@
+@@ -40,36 +40,33 @@
  
  dbUasv CScreencopyPortal::onCreateSession(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID,
                                            std::unordered_map<std::string, sdbus::Variant> opts) {
@@ -431,6 +656,7 @@
 -
 -        // deactivate toplevel so it doesn't listen and waste battery
 +        if (!PSESSION) return;
++        if (PSESSION->picker)g_pPortalManager->processes().cancel(PSESSION->picker);
 +        if (PSESSION->sharingData.active) m_pPipewire->destroyStream(PSESSION.get());
 +        const auto retired = PSESSION.get();
 +        // The session factory invokes this callback after unregistering its
@@ -448,7 +674,121 @@
  
      return {0, {}};
  }
-@@ -639,7 +635,10 @@
+ 
+-dbUasv CScreencopyPortal::onSelectSources(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID,
++void CScreencopyPortal::onSelectSources(SelectionReply&& reply,sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID,
+                                           std::unordered_map<std::string, sdbus::Variant> options) {
+     Debug::log(LOG, "[screencopy] SelectSources:");
+     Debug::log(LOG, "[screencopy]  | {}", requestHandle.c_str());
+@@ -82,9 +79,11 @@
+     if (!PSESSION) {
+         Debug::log(ERR, "[screencopy] SelectSources: no session found??");
+         throw sdbus::Error{sdbus::Error::Name{"NOSESSION"}, "No session found"};
+-        return {1, {}};
+-    }
+-
++        return;
++    }
++
++    if(PSESSION->selecting || PSESSION->sharingData.active || PSESSION->session->closing)
++        throw sdbus::Error{sdbus::Error::Name{"org.freedesktop.DBus.Error.InvalidArgs"},"Session is busy or closing"};
+     if (**PCURSORMODE == HIDDEN || **PCURSORMODE == EMBEDDED) {
+         PSESSION->cursorMode = **PCURSORMODE;
+         Debug::log(LOG, "[screencopy] default cursor_mode to {}", PSESSION->cursorMode);
+@@ -93,9 +92,9 @@
+     struct {
+         bool        exists = false;
+         std::string token, output;
+-        uint64_t    windowHandle;
+-        bool        withCursor;
+-        uint64_t    timeIssued;
++        uint64_t    windowHandle=0;
++        bool        withCursor=false;
++        uint64_t    timeIssued=0;
+         std::string windowClass;
+         struct {
+             uint32_t x = 0;
+@@ -201,6 +200,27 @@
+     );
+     // clang-format on
+ 
++    PSESSION->selecting=true;
++    auto answer=std::make_shared<SelectionReply>(std::move(reply));
++    const auto weak=PSESSION->self;
++    auto complete=[weak,answer,this](SSelectionData selection) {
++        if(!weak){answer->returnResults(uint32_t{1},std::unordered_map<std::string,sdbus::Variant>{});return;}
++        weak->picker=0;weak->selecting=false;
++        const bool cancelled=weak->session->closing || (weak->request && weak->request->closing);
++        weak->request.reset();
++        if(cancelled)selection.type=TYPE_INVALID;
++        if(selection.type==TYPE_WINDOW && (!m_sState.toplevel || !selection.windowHandle))selection.type=TYPE_INVALID;
++        if(selection.type==TYPE_OUTPUT || selection.type==TYPE_GEOMETRY){
++            const auto output=g_pPortalManager->getOutputFromName(selection.output);
++            if(!output)selection.type=TYPE_INVALID;
++            else {
++                static auto* const* fps=(Hyprlang::INT* const*)g_pPortalManager->m_sConfig.config->getConfigValuePtr("screencopy:max_fps")->getDataStaticPtr();
++                weak->sharingData.framerate=**fps<=0?output->refreshRate:std::clamp(output->refreshRate,1.F,float(**fps));
++            }
++        }
++        weak->selection=selection;
++        answer->returnResults(uint32_t{selection.type==TYPE_INVALID?1U:0U},std::unordered_map<std::string,sdbus::Variant>{});
++    };
+     SSelectionData SHAREDATA;
+     if (RESTOREDATAVALID) {
+         Debug::log(LOG, "[screencopy] restore data valid, not prompting");
+@@ -225,30 +245,18 @@
+     } else {
+         Debug::log(LOG, "[screencopy] restore data invalid / missing, prompting");
+ 
+-        SHAREDATA = promptForScreencopySelection();
+-    }
+-
+-    Debug::log(LOG, "[screencopy] SHAREDATA returned selection {}", (int)SHAREDATA.type);
+-
+-    if (SHAREDATA.type == TYPE_WINDOW && !m_sState.toplevel) {
+-        Debug::log(ERR, "[screencopy] Requested type window for no toplevel export protocol!");
+-        SHAREDATA.type = TYPE_INVALID;
+-    } else if (SHAREDATA.type == TYPE_OUTPUT || SHAREDATA.type == TYPE_GEOMETRY) {
+-        const auto POUTPUT = g_pPortalManager->getOutputFromName(SHAREDATA.output);
+-
+-        if (POUTPUT) {
+-            static auto* const* PFPS = (Hyprlang::INT* const*)g_pPortalManager->m_sConfig.config->getConfigValuePtr("screencopy:max_fps")->getDataStaticPtr();
+-
+-            if (**PFPS <= 0)
+-                PSESSION->sharingData.framerate = POUTPUT->refreshRate;
+-            else
+-                PSESSION->sharingData.framerate = std::clamp(POUTPUT->refreshRate, 1.F, (float)**PFPS);
+-        }
+-    }
+-
+-    PSESSION->selection = SHAREDATA;
+-
+-    return {SHAREDATA.type == TYPE_INVALID ? 1 : 0, {}};
++        try {
++            PSESSION->request=createDBusRequest(requestHandle);
++            PSESSION->request->onDestroy=[weak] {if(weak && weak->picker)g_pPortalManager->processes().cancel(weak->picker);};
++            PSESSION->picker=promptForScreencopySelectionAsync(complete);
++        }catch(const std::exception& error){
++            Debug::log(ERR,"[screencopy] Cannot start picker: {}",error.what());
++            complete({});
++        }
++        return;
++    }
++
++    complete(SHAREDATA);
+ }
+ 
+ dbUasv CScreencopyPortal::onStart(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID, std::string parentWindow,
+@@ -267,6 +275,8 @@
+         return {1, {}};
+     }
+ 
++    if(PSESSION->selecting || PSESSION->session->closing || PSESSION->sharingData.active || PSESSION->selection.type==TYPE_INVALID)
++        throw sdbus::Error{sdbus::Error::Name{"org.freedesktop.DBus.Error.InvalidArgs"},"Session has no completed selection or is already active"};
+     startSharing(PSESSION);
+ 
+     std::unordered_map<std::string, sdbus::Variant> options;
+@@ -639,7 +649,10 @@
                 MSTILNEXTREFRESH, std::clamp(1000.0 / FRAMETOOKMS, 1.0, (double)pSession->sharingData.framerate));
  
      g_pPortalManager->addTimer(
@@ -460,3 +800,14 @@
  }
  bool CScreencopyPortal::hasToplevelCapabilities() {
      return !!m_sState.toplevel;
+@@ -663,8 +676,8 @@
+                             return onCreateSession(o1, o2, s1, m1);
+                         }),
+                     sdbus::registerMethod("SelectSources")
+-                        .implementedAs([this](sdbus::ObjectPath o1, sdbus::ObjectPath o2, std::string s1, std::unordered_map<std::string, sdbus::Variant> m1) {
+-                            return onSelectSources(o1, o2, s1, m1);
++                        .implementedAs([this](SelectionReply&& result,sdbus::ObjectPath o1, sdbus::ObjectPath o2, std::string s1, std::unordered_map<std::string, sdbus::Variant> m1) {
++                            onSelectSources(std::move(result),o1, o2, s1, m1);
+                         }),
+                     sdbus::registerMethod("Start").implementedAs([this](sdbus::ObjectPath o1, sdbus::ObjectPath o2, std::string s1, std::string s2,
+                                                                         std::unordered_map<std::string, sdbus::Variant> m1) { return onStart(o1, o2, s1, s2, m1); }),

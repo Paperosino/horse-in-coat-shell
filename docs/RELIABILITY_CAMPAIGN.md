@@ -3546,3 +3546,58 @@ backend уменьшилось4→2 в этом стенде; CPU/FPS улучш
 Raw evidence: private testing directory `xdph118-source/evidence/`, JSON
 `baseline-churn`, `loop-sessions-churn-warm-v3`, `loop-sessions-v2-churn`,
 `loop-sessions-v2-window-v3`; все относятся к VM, не к хост-сессии.
+
+### 2026-10-28: async picker, Close запроса и сессии
+
+Экспериментальный патч расширен нативным process supervisor поверх того же
+sd-event. Backend не ждёт picker в D-Bus callback. Штатный sdbus::Result хранит
+отложенный ответ, weak session защищает поздний результат; повторный выбор на
+занятой/закрывающейся сессии отклоняется. Close отменяет процесс; request unregister
+отложен до выхода из vtable, lifetime marker защищает уже удалённый wrapper.
+Restore scalar поля инициализированы; Start не принимает незавершённый выбор.
+
+Новый supervisor использует argv/env без shell, pidfd и process group, ограничивает
+число процессов8 и вывод1MiB, deadline5минут для picker, TERM→KILL500мс.
+11 нативных tests прошли обычно и под ASan/UBSan/LSan, без suppressions.
+Проверены100 lifetimes без fd роста/прямых zombie children, capacity8/9,
+повторная отмена, отсутствие унаследованных fd и уничтожение из callback.
+Это не гарантия срока завершения процесса в kernel D-state и не sandbox custom
+picker, который намеренно уходит из process group.
+
+Контрольный официальный backend SHA5413908b2a441de21d6d90eb0bd43c4442cbfe92272a2a7a58a84b18f80301e8,
+PID5893, реальное mapped picker окно5910: Properties.Get во время выбора
+истёк по3с deadline. Этот тест остановился до Close; он доказывает starvation
+D-Bus, а не отдельно измеренное время Close. После сохранения ошибки вручную
+завершён только test-owned picker с проверкой его PPid/исполняемого файла backend.
+Backend не перезапускался по одному таймауту наблюдения; переключение версии
+после сохранения результата — намеренная смена контрольной конфигурации.
+
+Прототип SHA d63b41900a710e432fa692479ab3c26f40ee6c986778467fe284c27f0888f229,
+PID5738: оба Close проходят при mapped picker, backend отвечает до/после Close,
+ребёнок reaped, requests0/sessions0. Наблюдавшиеся0.004с (Request) и0.006с
+(Session) относятся к этому VM прогону, не являются обещанием пользовательской
+задержки. Первая версия harness пометила ошибкой уже удалённую frontend Session
+после отмены; этот штатный UnknownMethod теперь учитывается, исходный fail сохранён.
+
+После возврата к тому же бинарнику (новый намеренно запущенный PID5953,
+NRestarts0) прошёл настоящий window picker и PipeWire consumer:12кадров640×360,
+11изменяющихся,exit0,serial node удалён послеClose. Источник прежний внешний
+Quickshell fixture; GTK/X11 и полная матрица picker ещё не проверены. Изображения
+не сохранялись, постоянное разрешение не выдавалось. Хост остаётся на117;
+backend override только /run свежей тестовой ВМ. Пакет118 ещё не выпущен.
+
+Evidence в private `xdph118-source/evidence`: `async-v1-request-mapped-close`,
+`async-v1-session-mapped-close`, `baseline-request-mapped-close`, `async-v1-window`.
+Открыты полный backend sanitizer/teardown, owner death, конкурентные операции,
+все типы источников и плохие ответы custom picker/restore tokens.
+
+Дополнение того же прогона: supervisor защищён также при закрытом inherited
+stdin (pipe endpoints повышаются вышеfd2 до child file actions);12process tests
+проходят подASan/UBSan/LSan. Объединённый `test_portal_*.py`:26tests,0fail.
+Последняя сборка5fbfc7fd2b7f871c0f52ada737d249b238bf6fa5b8291b63a42ac12b00d7096c,
+PID6195,NRestarts0, прошла оба mapped Close и monitor capture12кадров1280×800,
+11изменяющихся,serial79 исчез послеClose. Отдельный последний тест closed-stdin
+сначала ошибочно запускал slow-child вместо fd-child; исправлен fixture, затем
+проверка прошла. Это не продуктовая регрессия и не скрытый повтор прежнего fail.
+Evidence: `async-v2-request-mapped-close`, `async-v2-session-mapped-close`,
+`async-v2-monitor`; source diff по-прежнему экспериментальный и не ставится пакетом.

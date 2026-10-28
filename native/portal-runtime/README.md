@@ -52,17 +52,41 @@ PipeWire и Wayland, убирает fork/sleep аварийного заверш
 держит weak session; повторный Close не планирует второй callback на raw pointer.
 Toplevel subscriptions сохраняют upstream reference counting на каждую сессию.
 
-**Границы:** selector всё ещё синхронный; отмена запроса, гибель клиента,
-конкурентные операции и полный teardown ещё требуют доработки и проверки.
-Перенос loop сам по себе не исправляет блокирующий `runSync`. Пока это не
-основание выпускать пакет или заменять backend пользователя.
+`Processes` теперь обеспечивает асинхронный picker: `posix_spawnp`, argv/env без
+shell, pidfd, отдельная process group, максимум8 процессов и1MiB суммарного
+stdout/stderr на процесс. Завершение по deadline/отмене: TERM, затем KILL через
+500мс; callback вызывается после waitpid и снятия watches. Деструктор отменяет
+работу и собирает прямых детей без пользовательских callbacks. При штатном
+закрытии процесса оставшиеся члены его process group завершаются; это не sandbox
+и не обещание контроля произвольно демонизирующего custom picker. Финальный
+waitpid не имеет гарантированного срока при uninterruptible kernel sleep.
+
+Дополнительные12 tests (`test_portal_process.py`) покрывают FailedToStart,
+stdout/stderr/exit, TERM resistance, повторную отмену, закрытый stdin, лимит вывода, descriptor
+inheritance, уничтожение из callback,8 параллельных детей с отказом9-му,
+потомка с открытыми pipes и100 lifetimes без ростаfd/прямых zombie детей.
+Проходят также ASan/UBSan/LSan; реальный backend целиком ещё не принят sanitizer.
+
+Async SelectSources использует штатный `sdbus::Result`, weak session и один
+ожидающий выбор на сессию. Request.Close и Session.Close отменяют picker.
+Время picker ограничено5минутами, лишний запрос не заменяет активный.
+Парсинг результата больше не использует бросающие stoi/stoull или pop_back на
+непроверенной строке. Региональный выбор и испорченные restore/picker данные ещё
+требуют отдельной матрицы; их нельзя считать принятыми по window capture.
+
+**Границы:** Start ещё содержит синхронные пути. Гибель клиента,
+конкурентные операции, все типы выбора и полный teardown требуют доработки и
+проверки. Это пока не основание выпускать пакет или заменять backend пользователя.
 
 VM проверки: `tests/integration_portal_session_churn.py` использует настоящий
 frontend CreateSession/Close, фиксирует PID/starttime/hash backend, считает
 зарегистрированные объекты, память, fd и потоки. Она не открывает picker и не
 доказывает работоспособность захвата. Последнюю отдельно проверяет
 `tests/integration_screencast_frames.py` через настоящий picker и PipeWire frames.
-Оба требуют явный флаг disposable VM. Churn поддерживает проверяемый root
+`tests/integration_portal_cancel.py` ждёт фактически mapped окно picker,
+проверяет доступность D-Bus до/после Close, pidfd exit и reaping, отсутствие
+оставшихся request/session объектов. Проверяются оба вида Close; реальные кадры
+в этом тесте не запрашиваются. Все интеграции требуют явный флаг disposable VM. Churn поддерживает проверяемый root
 `systemd-inhibit` ancestor, чтобы штатный сон не прерывал прогон; авторизация
 не обходится. Пользовательский logind Inhibit из SSH может быть запрещён polkit.
 
