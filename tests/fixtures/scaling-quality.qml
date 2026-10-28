@@ -10,7 +10,8 @@ import qs.modules.bar.popouts as Popouts
 ShellRoot {
  id:root
  property int phase:0
- property var sizes:[0.75,1,1.25,1.5,2]
+ property var sizes:[0.5,0.65,0.75,1,1.25,1.5,2,1,1,1,1]
+ property var heights:[24,28,32,36]
  function check(value,message){if(!value){console.error("DESIGN_FAIL",message);Qt.exit(1);}return value;}
  FloatingWindow {
   id:win;visible:true;implicitWidth:900;implicitHeight:480;color:"#202438"
@@ -39,7 +40,7 @@ ShellRoot {
    if(root.phase%2===0){
     const index=root.phase/2;
     if(index>=root.sizes.length){console.log("SETTINGS_DESIGN_OK");Qt.quit();return;}
-    GlobalConfig.appearance.scale=root.sizes[index];GlobalConfig.bar.height=0;GlobalConfig.bar.scale=Math.min(1.5,root.sizes[index]);
+    GlobalConfig.appearance.scale=root.sizes[index];GlobalConfig.bar.height=index>=7?root.heights[index-7]:0;GlobalConfig.bar.scale=Math.min(1.5,root.sizes[index]);
    }else{
     const expected=GlobalConfig.appearance.font.body.small.size*GlobalConfig.appearance.scale;
     if(!root.check(Math.abs(sample.font.pointSize-expected)<.001,"fractional font size was rounded"))return;
@@ -49,7 +50,10 @@ ShellRoot {
     if(!root.check(tinted.layer.textureSize.width>=tinted.width*bar.panelScale,"recolour layer texture undersampled"))return;
     if(!root.check(icon.status===Image.Ready,"scaling probe icon did not load"))return;
     if(!root.check(icon.mipmap,"icon downsampling has no mipmap"))return;
-    const filename="/tmp/hics-scaling-"+root.sizes[Math.floor(root.phase/2)]+".png";
+    if(!root.check(bar.content.layer.enabled === (bar.panelScale < 1),"compact panel supersampling missing"))return;
+    if(bar.panelScale < 1 && !root.check(bar.content.layer.textureSize.width >= Math.ceil(bar.width * 2) && bar.content.layer.mipmap && bar.content.layer.smooth,"compact panel texture is undersampled"))return;
+    const index=Math.floor(root.phase/2);
+    const filename="/tmp/hics-scaling-"+(index>=7?"height-"+root.heights[index-7]:root.sizes[index])+".png";
     canvas.grabToImage(result=>root.check(result.saveToFile(filename),"scaling snapshot failed"));
    }
    root.phase++;

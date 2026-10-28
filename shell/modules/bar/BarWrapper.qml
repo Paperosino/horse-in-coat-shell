@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Window
 import Quickshell
 import Hyprstack.Config
 import qs.components
@@ -125,7 +126,15 @@ Item {
     Bar {
         id: content
 
-        iconRasterScale: root.panelScale
+        // Render the compact panel at twice its final device resolution, then
+        // downsample once. Directly shrinking thin symbol/Shape outlines loses
+        // strokes; smooth mipmaps also cover fractional panel sizes.
+        layer.enabled: root.panelScale < 1
+        layer.textureSize: Qt.size(Math.ceil(root.width * Screen.devicePixelRatio * 2),
+                                   Math.ceil(root.contentWidth * Screen.devicePixelRatio * 2))
+        layer.smooth: true
+        layer.mipmap: true
+        iconRasterScale: root.panelScale < 1 ? Math.max(1, root.panelScale * 2) : root.panelScale
         width: root.width / root.panelScale
         height: root.contentWidth / root.panelScale
         scale: root.panelScale
