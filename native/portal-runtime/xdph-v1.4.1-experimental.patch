@@ -1,0 +1,462 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -86,6 +86,15 @@
+ 
+ file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
+ add_executable(xdg-desktop-portal-hyprland ${SRCFILES})
++set(HICS_PORTAL_RUNTIME_DIR "" CACHE PATH "Audited hics portal event loop sources")
++if(NOT HICS_PORTAL_RUNTIME_DIR)
++  message(FATAL_ERROR "HICS_PORTAL_RUNTIME_DIR is required for this audited candidate")
++endif()
++pkg_check_modules(HICS_SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
++target_sources(xdg-desktop-portal-hyprland PRIVATE "${HICS_PORTAL_RUNTIME_DIR}/eventloop.cpp")
++target_include_directories(xdg-desktop-portal-hyprland PRIVATE "${HICS_PORTAL_RUNTIME_DIR}")
++target_link_libraries(xdg-desktop-portal-hyprland PRIVATE PkgConfig::HICS_SYSTEMD)
++
+ target_link_libraries(
+   xdg-desktop-portal-hyprland PRIVATE rt PkgConfig::SDBUS Threads::Threads
+                                       PkgConfig::deps)
+--- a/src/core/PortalManager.hpp
++++ b/src/core/PortalManager.hpp
+@@ -25,7 +25,7 @@
+ #include "../includes.hpp"
+ #include "../dbusDefines.hpp"
+ 
+-#include <mutex>
++#include "eventloop.hpp"
+ 
+ struct pw_loop;
+ 
+@@ -59,6 +59,11 @@
+ };
+ 
+ class CPortalManager {
++    hics::portal::EventLoop m_eventLoop;
++    int m_exitCode = 0;
++    bool m_waylandWritable = false;
++    void dispatchWayland(uint32_t events);
++    void flushWayland();
+   public:
+     CPortalManager();
+ 
+@@ -120,35 +125,17 @@
+ 
+     // terminate after the event loop has been created. Before we can exit()
+     void terminate();
++    int exitCode() const { return m_exitCode; }
+ 
+   private:
+     void  startEventLoop();
+     void  setupXDGOutput(SOutput* output);
+ 
+     bool  m_bTerminate = false;
+-    pid_t m_iPID       = 0;
+-
+-    struct {
+-        std::condition_variable              loopSignal;
+-        std::mutex                           loopMutex;
+-        std::atomic<bool>                    shouldProcess = false;
+-        std::mutex                           loopRequestMutex;
+-        std::vector<pollfd>                  pollFds;
+-        std::map<int, std::function<void()>> pollCallbacks;
+-    } m_sEventLoopInternals;
+-
+-    struct {
+-        std::condition_variable              loopSignal;
+-        std::mutex                           loopMutex;
+-        bool                                 shouldProcess = false;
+-        std::vector<std::unique_ptr<CTimer>> timers;
+-        std::unique_ptr<std::thread>         thread;
+-    } m_sTimersThread;
+ 
+     std::unique_ptr<sdbus::IConnection>   m_pConnection;
+     std::vector<std::unique_ptr<SOutput>> m_vOutputs;
+ 
+-    std::mutex                            m_mEventLock;
+ };
+ 
+ inline std::unique_ptr<CPortalManager> g_pPortalManager;
+--- a/src/core/PortalManager.cpp
++++ b/src/core/PortalManager.cpp
+@@ -8,7 +8,11 @@
+ #include <fcntl.h>
+ #include <unistd.h>
+ 
+-#include <thread>
++#include <systemd/sd-event.h>
++#include <sys/epoll.h>
++#include <cmath>
++#include <limits>
++#include <system_error>
+ 
+ SOutput::SOutput(SP<CCWlOutput> output_) : output(output_) {
+     output->setName([this](CCWlOutput* o, const char* name_) {
+@@ -265,7 +269,6 @@
+ }
+ 
+ void CPortalManager::init() {
+-    m_iPID = getpid();
+ 
+     try {
+         m_pConnection = sdbus::createSessionBusConnection(sdbus::ServiceName{"org.freedesktop.impl.portal.desktop.hyprland"});
+@@ -337,161 +340,65 @@
+     startEventLoop();
+ }
+ 
++void CPortalManager::dispatchWayland(uint32_t events) {
++    if (events & (EPOLLERR | EPOLLHUP)) { terminate(); return; }
++    if (events & EPOLLIN) {
++        // All Wayland reads belong to this thread. Other callbacks can have
++        // drained the socket since epoll marked it ready, so recheck it first.
++        pollfd ready{.fd=wl_display_get_fd(m_sWaylandConnection.display),.events=POLLIN,.revents=0};
++        if (poll(&ready,1,0)>0 && (ready.revents&POLLIN)) {
++            if (wl_display_dispatch(m_sWaylandConnection.display)<0) { terminate(); return; }
++        }
++    }
++    flushWayland();
++}
++
++void CPortalManager::flushWayland() {
++    if (m_bTerminate) return;
++    if (wl_display_dispatch_pending(m_sWaylandConnection.display)<0) { terminate(); return; }
++    const int result=wl_display_flush(m_sWaylandConnection.display);
++    if (result<0 && errno!=EAGAIN) { terminate(); return; }
++    const bool writable=result<0;
++    if (writable!=m_waylandWritable) {
++        m_waylandWritable=writable;
++        m_eventLoop.addFd(wl_display_get_fd(m_sWaylandConnection.display),EPOLLIN|(writable?static_cast<uint32_t>(EPOLLOUT):0U),
++                          [this](uint32_t events) { dispatchWayland(events); });
++    }
++}
++
+ void CPortalManager::startEventLoop() {
+-    addFdToEventLoop(m_pConnection->getEventLoopPollData().fd, POLLIN, nullptr);
+-    addFdToEventLoop(wl_display_get_fd(m_sWaylandConnection.display), POLLIN, nullptr);
+-    addFdToEventLoop(pw_loop_get_fd(m_sPipewire.loop), POLLIN, nullptr);
+-
+-    std::thread pollThr([this]() {
+-        while (1) {
+-
+-            int ret = poll(m_sEventLoopInternals.pollFds.data(), m_sEventLoopInternals.pollFds.size(), 5000 /* 5 seconds, reasonable. It's because we might need to terminate */);
+-            if (ret < 0) {
+-                Debug::log(CRIT, "[core] Polling fds failed with {}", strerror(errno));
+-                g_pPortalManager->terminate();
+-                break;
+-            }
+-
+-            for (size_t i = 0; i < m_sEventLoopInternals.pollFds.size(); ++i) {
+-                if (!(m_sEventLoopInternals.pollFds[i].revents & (POLLHUP | POLLERR | POLLNVAL)))
+-                    continue;
+-
+-                Debug::log(CRIT, "[core] Disconnected from pollfd id {}", i);
+-                g_pPortalManager->terminate();
+-                break;
+-            }
+-
+-            if (m_bTerminate)
+-                break;
+-
+-            if (ret != 0) {
+-                Debug::log(TRACE, "[core] got poll event");
+-                std::lock_guard<std::mutex> lg(m_sEventLoopInternals.loopRequestMutex);
+-                m_sEventLoopInternals.shouldProcess = true;
+-                m_sEventLoopInternals.loopSignal.notify_all();
+-            }
+-        }
+-    });
+-
+-    m_sTimersThread.thread = std::make_unique<std::thread>([this] {
+-        while (1) {
+-            std::unique_lock lk(m_sTimersThread.loopMutex);
+-
+-            // find nearest timer ms
+-            m_mEventLock.lock();
+-            float nearest = 60000; /* reasonable timeout */
+-            for (auto& t : m_sTimersThread.timers) {
+-                float until = t->duration() - t->passedMs();
+-                if (until < nearest)
+-                    nearest = until;
+-            }
+-            m_mEventLock.unlock();
+-
+-            m_sTimersThread.loopSignal.wait_for(lk, std::chrono::milliseconds((int)nearest), [this] { return m_sTimersThread.shouldProcess; });
+-            m_sTimersThread.shouldProcess = false;
+-
+-            if (m_bTerminate)
+-                break;
+-
+-            // awakened. Check if any timers passed
+-            m_mEventLock.lock();
+-            bool notify = false;
+-            for (auto& t : m_sTimersThread.timers) {
+-                if (t->passed()) {
+-                    Debug::log(TRACE, "[core] got timer event");
+-                    notify = true;
+-                    break;
+-                }
+-            }
+-            m_mEventLock.unlock();
+-
+-            if (notify) {
+-                std::lock_guard<std::mutex> lg(m_sEventLoopInternals.loopRequestMutex);
+-                m_sEventLoopInternals.shouldProcess = true;
+-                m_sEventLoopInternals.loopSignal.notify_all();
+-            }
+-        }
+-    });
+-
+-    while (1) { // dbus events
+-        // wait for being awakened
+-        std::unique_lock lk(m_sEventLoopInternals.loopMutex);
+-        if (m_sEventLoopInternals.shouldProcess == false) // avoid a lock if a thread managed to request something already since we .unlock()ed
+-            m_sEventLoopInternals.loopSignal.wait_for(lk, std::chrono::seconds(5), [this] { return m_sEventLoopInternals.shouldProcess == true; }); // wait for events
+-
+-        std::lock_guard<std::mutex> lg(m_sEventLoopInternals.loopRequestMutex);
+-
+-        if (m_bTerminate)
+-            break;
+-
+-        m_sEventLoopInternals.shouldProcess = false;
+-
+-        m_mEventLock.lock();
+-
+-        if (m_sEventLoopInternals.pollFds[0].revents & POLLIN /* dbus */) {
+-            while (m_pConnection->processPendingEvent()) {
+-                ;
+-            }
+-        }
+-
+-        if (m_sEventLoopInternals.pollFds[1].revents & POLLIN /* wl */) {
+-            wl_display_flush(m_sWaylandConnection.display);
+-            if (wl_display_prepare_read(m_sWaylandConnection.display) == 0) {
+-                wl_display_read_events(m_sWaylandConnection.display);
+-                wl_display_dispatch_pending(m_sWaylandConnection.display);
+-            } else {
+-                wl_display_dispatch(m_sWaylandConnection.display);
+-            }
+-        }
+-
+-        if (m_sEventLoopInternals.pollFds[2].revents & POLLIN /* pw */) {
+-            while (pw_loop_iterate(m_sPipewire.loop, 0) != 0) {
+-                ;
+-            }
+-        }
+-
+-        for (pollfd p : m_sEventLoopInternals.pollFds) {
+-            if (p.revents & POLLIN && m_sEventLoopInternals.pollCallbacks.contains(p.fd)) {
+-                m_sEventLoopInternals.pollCallbacks[p.fd]();
+-            }
+-        }
+-
+-        std::vector<CTimer*> toRemove;
+-        for (auto& t : m_sTimersThread.timers) {
+-            if (t->passed()) {
+-                t->m_fnCallback();
+-                toRemove.emplace_back(t.get());
+-                Debug::log(TRACE, "[core] calling timer {}", (void*)t.get());
+-            }
+-        }
+-
+-        int ret = 0;
+-        do {
+-            ret = wl_display_dispatch_pending(m_sWaylandConnection.display);
+-            wl_display_flush(m_sWaylandConnection.display);
+-        } while (ret > 0);
+-
+-        if (!toRemove.empty())
+-            std::erase_if(m_sTimersThread.timers,
+-                          [&](const auto& t) { return std::find_if(toRemove.begin(), toRemove.end(), [&](const auto& other) { return other == t.get(); }) != toRemove.end(); });
+-
+-        m_mEventLock.unlock();
+-    }
+-
+-    Debug::log(ERR, "[core] Terminated");
++    m_pConnection->attachSdEventLoop(m_eventLoop.nativeHandle());
++    m_eventLoop.addFd(wl_display_get_fd(m_sWaylandConnection.display),EPOLLIN,
++                      [this](uint32_t events) { dispatchWayland(events); });
++    m_eventLoop.addFd(pw_loop_get_fd(m_sPipewire.loop),EPOLLIN,[this](uint32_t events) {
++        if (events&(EPOLLERR|EPOLLHUP)) { terminate(); return; }
++        // pw_loop_iterate is nonblocking; PipeWire dispatches queued callbacks.
++        const int result=pw_loop_iterate(m_sPipewire.loop,0);
++        if (result<0 && result!=-EINTR) terminate();
++    });
++    sd_event_source* rawPost=nullptr;
++    const int result=sd_event_add_post(m_eventLoop.nativeHandle(),&rawPost,[](sd_event_source*,void* data) noexcept -> int {
++        auto* self=static_cast<CPortalManager*>(data);
++        try { self->flushWayland(); }
++        catch (...) { self->terminate(); }
++        return 0;
++    },this);
++    if (result<0) throw std::system_error(-result,std::generic_category());
++    std::unique_ptr<sd_event_source,decltype(&sd_event_source_unref)> post(rawPost,sd_event_source_unref);
++    m_exitCode=m_eventLoop.run();
++    post.reset();
++    m_eventLoop.removeFd(wl_display_get_fd(m_sWaylandConnection.display));
++    m_eventLoop.removeFd(pw_loop_get_fd(m_sPipewire.loop));
++    m_pConnection->detachSdEventLoop();
+ 
+     m_sPortals.globalShortcuts.reset();
+     m_sPortals.screencopy.reset();
+     m_sPortals.screenshot.reset();
+     m_sHelpers.toplevel.reset();
+     m_sPortals.inputCapture.reset();
+-
+     m_pConnection.reset();
+     pw_loop_destroy(m_sPipewire.loop);
+     wl_display_disconnect(m_sWaylandConnection.display);
+-
+-    m_sTimersThread.thread.release();
+-    pollThr.join(); // wait for poll to exit
+ }
+ 
+ sdbus::IConnection* CPortalManager::getConnection() {
+@@ -553,39 +460,21 @@
+ }
+ 
+ void CPortalManager::addTimer(const CTimer& timer) {
+-    Debug::log(TRACE, "[core] adding timer for {}ms", timer.duration());
+-    m_sTimersThread.timers.emplace_back(std::make_unique<CTimer>(timer));
+-    m_sTimersThread.shouldProcess = true;
+-    m_sTimersThread.loopSignal.notify_all();
++    const double usec=std::max(0.0,static_cast<double>(timer.duration()))*1000.0;
++    if (!std::isfinite(usec) || usec>=static_cast<double>(std::numeric_limits<int64_t>::max()))
++        throw std::invalid_argument("Invalid portal timer duration");
++    m_eventLoop.addTimer(std::chrono::microseconds(static_cast<int64_t>(usec)),timer.m_fnCallback);
+ }
+ 
+ void CPortalManager::addFdToEventLoop(int fd, short events, std::function<void()> callback) {
+-    m_sEventLoopInternals.pollFds.emplace_back(pollfd{.fd = fd, .events = events});
+-
+-    if (callback == nullptr)
+-        return;
+-
+-    m_sEventLoopInternals.pollCallbacks[fd] = callback;
+-}
+-
+-void CPortalManager::removeFdFromEventLoop(int fd) {
+-    std::erase_if(m_sEventLoopInternals.pollFds, [fd](const pollfd& p) { return p.fd == fd; });
+-    m_sEventLoopInternals.pollCallbacks.erase(fd);
+-}
++    const uint32_t mask=((events&POLLIN)?static_cast<uint32_t>(EPOLLIN):0U)|((events&POLLOUT)?static_cast<uint32_t>(EPOLLOUT):0U);
++    m_eventLoop.addFd(fd,mask,[callback=std::move(callback)](uint32_t) { if(callback) callback(); });
++}
++
++void CPortalManager::removeFdFromEventLoop(int fd) { m_eventLoop.removeFd(fd); }
+ 
+ void CPortalManager::terminate() {
+-    m_bTerminate = true;
+-
+-    // if we don't exit in 5s, we'll kill by force. Nuclear option. PIDs are not reused in linux until a wrap-around,
+-    // and I doubt anyone will make 4.2M PIDs within 5s.
+-    if (fork() == 0)
+-        execl("/bin/sh", "/bin/sh", "-c", std::format("sleep 5 && kill -9 {}", m_iPID).c_str(), nullptr);
+-
+-    {
+-        m_sEventLoopInternals.shouldProcess = true;
+-        m_sEventLoopInternals.loopSignal.notify_all();
+-    }
+-
+-    m_sTimersThread.shouldProcess = true;
+-    m_sTimersThread.loopSignal.notify_all();
+-}
++    if (m_bTerminate) return;
++    m_bTerminate=true;
++    m_eventLoop.exit(1);
++}
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -41,5 +41,5 @@
+ 
+     g_pPortalManager->init();
+ 
+-    return 0;
++    return g_pPortalManager->exitCode();
+ }
+--- a/src/shared/Session.hpp
++++ b/src/shared/Session.hpp
+@@ -5,6 +5,7 @@
+ #include <sdbus-c++/sdbus-c++.h>
+ 
+ struct SDBusSession {
++    bool closing = false;
+     std::unique_ptr<sdbus::IObject> object;
+     sdbus::ObjectPath               handle;
+     std::function<void()>           onDestroy;
+--- a/src/shared/Session.cpp
++++ b/src/shared/Session.cpp
+@@ -17,9 +17,10 @@
+ static int onCloseSession(SDBusSession* sess) {
+     Debug::log(TRACE, "[internal] Close Session {}", (void*)sess);
+ 
+-    if (!sess)
++    if (!sess || sess->closing)
+         return 0;
+ 
++    sess->closing = true;
+     auto destroy = std::move(sess->onDestroy);
+     g_pPortalManager->addTimer({0, [sess, destroy]() {
+                                     sess->object.reset();
+--- a/src/portals/Screencopy.cpp
++++ b/src/portals/Screencopy.cpp
+@@ -40,31 +40,27 @@
+ 
+ dbUasv CScreencopyPortal::onCreateSession(sdbus::ObjectPath requestHandle, sdbus::ObjectPath sessionHandle, std::string appID,
+                                           std::unordered_map<std::string, sdbus::Variant> opts) {
+-    g_pPortalManager->m_sHelpers.toplevel->activate();
+-
+-    Debug::log(LOG, "[screencopy] New session:");
+-    Debug::log(LOG, "[screencopy]  | {}", requestHandle.c_str());
+-    Debug::log(LOG, "[screencopy]  | {}", sessionHandle.c_str());
+-    Debug::log(LOG, "[screencopy]  | appid: {}", appID);
+-
+-    const Hyprutils::Memory::CWeakPointer<SSession> PSESSION = m_vSessions.emplace_back(Hyprutils::Memory::makeUnique<SSession>(appID, requestHandle, sessionHandle));
+-    PSESSION->self                                           = PSESSION;
+-
+-    // create objects
+-    PSESSION->session            = createDBusSession(sessionHandle);
++    if (getSession(sessionHandle))
++        throw sdbus::Error{sdbus::Error::Name{"org.freedesktop.DBus.Error.InvalidArgs"}, "Session already exists"};
++
++    auto owned = Hyprutils::Memory::makeUnique<SSession>(appID, requestHandle, sessionHandle);
++    const Hyprutils::Memory::CWeakPointer<SSession> PSESSION = owned;
++    PSESSION->self = PSESSION;
++    PSESSION->session = createDBusSession(sessionHandle);
+     PSESSION->session->onDestroy = [PSESSION, this]() {
+-        if (PSESSION->sharingData.active) {
+-            m_pPipewire->destroyStream(PSESSION.get());
+-            Debug::log(LOG, "[screencopy] Stream destroyed");
+-        }
+-        PSESSION->session.release();
+-        Debug::log(LOG, "[screencopy] Session destroyed");
+-
+-        // deactivate toplevel so it doesn't listen and waste battery
++        if (!PSESSION) return;
++        if (PSESSION->sharingData.active) m_pPipewire->destroyStream(PSESSION.get());
++        const auto retired = PSESSION.get();
++        // The session factory invokes this callback after unregistering its
++        // object and returning from the Close vtable dispatch.
++        PSESSION->session.reset();
++        std::erase_if(m_vSessions,[retired](const auto& session) { return session.get()==retired; });
+         g_pPortalManager->m_sHelpers.toplevel->deactivate();
+     };
+-    PSESSION->request            = createDBusRequest(requestHandle);
+-    PSESSION->request->onDestroy = [PSESSION]() { PSESSION->request.release(); };
++    // CreateSession completes synchronously. Its request handle must not leave
++    // a registered request object behind after the method has returned.
++    m_vSessions.emplace_back(std::move(owned));
++    g_pPortalManager->m_sHelpers.toplevel->activate();
+ 
+     return {0, {}};
+ }
+@@ -639,7 +635,10 @@
+                MSTILNEXTREFRESH, std::clamp(1000.0 / FRAMETOOKMS, 1.0, (double)pSession->sharingData.framerate));
+ 
+     g_pPortalManager->addTimer(
+-        {std::clamp(MSTILNEXTREFRESH - 1.0 /* safezone */, 6.0, 1000.0), [pSession]() { g_pPortalManager->m_sPortals.screencopy->startFrameCopy(pSession); }});
++        {std::clamp(MSTILNEXTREFRESH - 1.0 /* safezone */, 6.0, 1000.0), [session = pSession->self]() {
++             if (session && session->sharingData.active)
++                 g_pPortalManager->m_sPortals.screencopy->startFrameCopy(session.get());
++         }});
+ }
+ bool CScreencopyPortal::hasToplevelCapabilities() {
+     return !!m_sState.toplevel;

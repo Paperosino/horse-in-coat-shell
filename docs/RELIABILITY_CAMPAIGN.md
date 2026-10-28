@@ -3500,3 +3500,49 @@ configerrors и autoreload сохранены;2system+4user services active. О�
 Snapper hooks507/508, Qt/QS/allocator manifests проходят от пользователя.
 Старая активная сессия не перезапускалась; normal logout/login загрузит117.
 Raw dependency leaks и остальные открытые пункты не объявлены исправленными.
+
+### 2026-10-28: экспериментальный portal loop и очистка ScreenCast sessions
+
+Хост остаётся на принятом пакете117. Исследовательский backend v1.4.1 собран
+отдельно; временный ExecStart override действует только в fresh CachyOS VM.
+Исходный патч и воспроизводимость сохранены в `native/portal-runtime/README.md`.
+Он не включён в установщик/пакет, приёмка не завершена.
+
+Контроль, собранный из pristine официальных исходников, после500 реальных
+CreateSession/Close через frontend сохраняет500 зарегистрированных request
+objects; sessions0. PrivateDirty1232→2504KiB, fd22, threads4. Это воспроизведение
+утечки завершённых запросов, а не предположение по RSS. В исходнике также
+сохранялись SSession в векторе: освобождение wrapper через release не удаляет
+session. Прототип удаляет завершённые Create requests, освобождает sessions,
+защищает повторный Close и frame timers weak ссылками.
+
+Первый прототип500циклов: requests0/sessions0, PrivateDirty1120→1140KiB.
+Повторный прогон того же процесса500циклов:1140→1144KiB, fd23→23, threads2.
+Уточнённый прототип d3f35ed7aaa49dd6dbda97c2e9a6c60d3d4dce37b05b454b1cca1c2cf86ec887,
+PID4914:1000циклов,requests0/sessions0,PrivateDirty1124→1144KiB;
+fd21→23 в первых100циклах, затем23 до конца. Два ленивых fd пока не
+идентифицированы; утверждать отсутствие любых утечек нельзя.
+
+После1000циклов тот же backend прошёл Create/Select/Start через реальный picker:
+12кадров640×360,10изменяющихся, consumer exit0, Close вернул ответ и stream node
+с нужным serial исчез. Источник — внешнее окно Quickshell fixture; это ещё не
+проверка GTK/X11/Qt приложений. Использован ранее аттестованный consumer с
+явной app-owned libdbus lifetime; это не исправление известной raw PipeWire
+module-rt/libdbus утечки. Содержимое кадров на диск не сохранялось.
+
+Предыдущие неуспешные попытки сохранены: один SelectSources дошёл до90с deadline
+при позднем ручном подтверждении; следующий запуск остановлен guard проверки
+заблокированной сессии до начала сценария. После нормальной PAM разблокировки
+повтор с ограниченным300с picker deadline прошёл, выбор занял16.623с. Эти16с
+включают работу оператора и не являются измерением задержки backend.
+
+Локально13 EventLoop tests проходят обычную сборку; ASan/UBSan/LSan проверяют
+тот же код отдельно, без suppressions. Runtime использует зрелый sd-event,
+единственный owner thread и настоящий delayed D-Bus reply test. Число потоков
+backend уменьшилось4→2 в этом стенде; CPU/FPS улучшение не измерялось.
+Открыты: синхронный selector и отмена, peer death, concurrent close/start,
+полный teardown под sanitizer, внешние GTK/X11/Qt источники. Исследование продолжается.
+
+Raw evidence: private testing directory `xdph118-source/evidence/`, JSON
+`baseline-churn`, `loop-sessions-churn-warm-v3`, `loop-sessions-v2-churn`,
+`loop-sessions-v2-window-v3`; все относятся к VM, не к хост-сессии.

@@ -59,6 +59,8 @@
 !/native/app-launch/
 !/native/app-launch/*.cpp
 !/native/app-launch/CMakeLists.txt
+!/native/portal-runtime/
+!/native/portal-runtime/**
 !/native/desktop/
 !/native/desktop/*.cpp
 !/native/desktop/*.hpp

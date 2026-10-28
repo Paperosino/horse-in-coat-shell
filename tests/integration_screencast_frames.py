@@ -23,11 +23,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--probe-binary', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--picker-timeout',type=int,default=90,help='Bounded manual selection deadline in seconds (15..600)')
     parser.add_argument('--trace-maps', action='store_true', help='Diagnostic-only bounded consumer mappings before module teardown')
     parser.add_argument('--source', choices=('monitor', 'window'), default='monitor')
     parser.add_argument('--expect-cancel', action='store_true')
     parser.add_argument('--disposable-cachyos-vm', required=True, action='store_true')
     args = parser.parse_args()
+    if not 15<=args.picker_timeout<=600:parser.error('Picker timeout must be 15..600 seconds')
     assert os.getuid() == 1000 and Path('/etc/hostname').read_text().strip() == 'hics-test'
     assert subprocess.check_output(['systemd-detect-virt'], text=True).strip() in ('kvm', 'qemu')
     assert not json.loads(subprocess.check_output(['hyprctl','-i','0','-j','locked'], text=True))['locked']
@@ -36,7 +38,8 @@ def main():
     os.umask(0o077)
     root = args.output.resolve()
     root.mkdir(mode=0o700)
-    report = {'pid': os.getpid(), 'status': 'starting', 'source': args.source,
+    started=time.monotonic()
+    report = {'pid': os.getpid(), 'startedUnixMillis':round(time.time()*1000), 'pickerTimeoutSeconds':args.picker_timeout, 'status': 'starting', 'source': args.source,
               'probeSha256': hashlib.file_digest(args.probe_binary.open('rb'),'sha256').hexdigest(),
               'steps': [], 'frameFilesSaved': False, 'persistentPermissionRequested': False}
     def save():
@@ -70,11 +73,15 @@ def main():
         while handle not in responses:
             while context.pending():
                 context.iteration(False)
-            assert time.monotonic()<until, method+' response timed out'
+            if time.monotonic()>=until:
+                report['timedOutMethod']=method
+                report['elapsedSeconds']=round(time.monotonic()-started,3)
+                save()
+                raise AssertionError(method+' response timed out')
             time.sleep(.02)
         pending.discard(handle)
         code, result = responses.pop(handle)
-        report['steps'].append({'method':method,'response':code})
+        report['steps'].append({'method':method,'response':code,'elapsedSeconds':round(time.monotonic()-started,3)})
         save()
         if code == 1 and args.expect_cancel and method in ('SelectSources','Start'):
             report['cancelled'] = True
@@ -89,11 +96,11 @@ def main():
         request('SelectSources','(oa{sv})',(session,{'handle_token':GLib.Variant('s',token+'_select'),
             'types':GLib.Variant('u',1 if args.source=='monitor' else 2),
             'multiple':GLib.Variant('b',False),'persist_mode':GLib.Variant('u',0),
-            'cursor_mode':GLib.Variant('u',2)}),timeout=90)
+            'cursor_mode':GLib.Variant('u',2)}),timeout=args.picker_timeout)
         report['status'] = 'awaiting-real-picker'
         save()
         result = request('Start','(osa{sv})',(session,'',{
-            'handle_token':GLib.Variant('s',token+'_start')}),timeout=90)
+            'handle_token':GLib.Variant('s',token+'_start')}),timeout=args.picker_timeout)
         assert not args.expect_cancel, 'The requested cancellation did not occur'
         if not args.expect_cancel:
             streams = result['streams']
