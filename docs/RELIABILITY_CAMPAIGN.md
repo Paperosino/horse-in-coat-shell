@@ -3488,3 +3488,15 @@ failed до ввода (нет вложенного выхода, IPC path113byt
 короткий runtime и сохранение внутреннего журнала. Повтор полностью зелёный,
 исходная неудача сохранена. Main VM locked upgrade117 также сохранил
 UI498/runner456/kitty4643/207binds; новая сессия и host install пока открыты.
+
+
+Приёмка117 завершена в обеих ВМ для описанных сценариев: после main normal
+boot реально загружены новые QS/services/config по SHA/inode,120 settings
+cycles без binding errors/рестартов. CPU82,23с/wall116,94с не доказывает
+ускорение относительно116; конечный RSS780172KiB ниже прежнего807036KiB.
+Хост обновлён116→117 через штатный pacman/sudo TTY без пароля в command/file
+или installer log. Runner1183724/startticks17100252/NRestarts0,5 окон,
+configerrors и autoreload сохранены;2system+4user services active. Обычные
+Snapper hooks507/508, Qt/QS/allocator manifests проходят от пользователя.
+Старая активная сессия не перезапускалась; normal logout/login загрузит117.
+Raw dependency leaks и остальные открытые пункты не объявлены исправленными.

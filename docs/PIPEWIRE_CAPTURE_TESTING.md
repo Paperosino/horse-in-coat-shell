@@ -168,3 +168,31 @@ autoreload восстановлен. Проверка новой сессии о
 Хост пока116. Источники: package117-main-locked-upgrade.json,
 package117-fresh-session.json, package117-fresh-settings60.json и отдельные
 failed/passed Qt worker directories в приватной лаборатории.
+
+
+## Завершение приёмки117 и установка на хосте
+
+Основная ВМ после normal boot использует compositor381/runner454/UI498,
+новые QS/config/services и прежний проверенный Qt по загруженным SHA/inode.
+Boot `bcf9760d-8931-4857-b9d6-9b31a95371e8`, ready=true, safe=false,
+NRestarts0,207 bindings, configerrors/failed units пусты.
+120 settings cycles: RSS671448→780172KiB, PSS562221→658052KiB,
+PrivateDirty448848→535884KiB, FD93→94, threads25→25,
+CPU82,23с за116,94с. В116 тот же сценарий дал82,10с CPU: заметного выигрыша
+CPU этот прогон не подтверждает. Конечный RSS ниже ранее наблюдавшегося
+807036KiB в116, но это не статистическое доказательство ускорения или
+отсутствия утечек.
+
+Хост обновлён116→117 штатным pacman. Ожидавший авторизации pkexec остановлен
+до запуска pacman, установка выполнена через обычный sudo TTY prompt с
+выключенным echo; пароль не включён в shell command/source/installer log.
+Работавшие runner1183724/startticks17100252/NRestarts0 и все5 текущих окон
+сохранены. Configerrors пусты, disable_autoreload=false восстановлен,2system
+и4user службы active. Qt/QS/allocator manifests проверены обычным пользователем.
+Существующие host Snapper hooks создали507/508; дополнительных снапшотных
+сервисов не добавлено. Установленная lifetime связь прочитана systemd.
+
+Текущий сеанс хоста намеренно сохраняет прежние загруженные образы;117
+загрузится после обычного выхода и входа. Установка117 не завершает всю
+кампанию: raw PipeWire/DBus LSan, Fontconfig residual, отмена внешнего picker,
+полный DE/аппаратный аудит и остальные открытые пункты сохраняются.
