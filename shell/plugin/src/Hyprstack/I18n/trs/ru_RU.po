@@ -13098,3 +13098,15 @@ msgstr "Системный компонент не ответил вовремя
 
 msgid "Estimate"
 msgstr "Оценка"
+
+msgid "Applications preventing sign out"
+msgstr "Приложения, препятствующие выходу"
+
+msgid "Return to these applications to save your work or respond to their warnings."
+msgstr "Вернитесь к этим приложениям, чтобы сохранить работу или ответить на их предупреждения."
+
+msgid "Forcing sign out can cause unsaved work to be lost."
+msgstr "При принудительном выходе несохранённые данные могут быть потеряны."
+
+msgid "Force sign out"
+msgstr "Завершить принудительно"
