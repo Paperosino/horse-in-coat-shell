@@ -3471,3 +3471,20 @@ backend и настоящими меняющимися кадрами. QS monito
 80модулей/485тестов/6context skips проходит; добавленные после старта прогона
 packaging metadata и install drop-in требуют отдельной приёмки пакета.
 Окончательные frame/helper hashes и границы приведены в capture документе.
+
+
+Пакет117 SHA `cd46ba87da90c557996a73038e4eb372699a1dcdfb372e7e9fe2baad34059bb7`
+собран штатным package() из предварительно собранного дерева385ca11; source
+patches/manifests/allocator и читаемость файлов проверены. Fresh VM locked
+upgrade сохранил runner/UI/window/binds. После normal reboot+PAM login реально
+загружены новые образы (inode+SHA), ready=true/safe=false/NRestarts0,207bindings,
+без configerrors/failed units.60 settings cycles без binding errors. Подробнее
+см. capture документ и приватные package117-fresh-* evidence. Основная ВМ
+и рабочий хост пока116; full DE campaign остаётся открытой.
+
+
+Дополнительно:8 installed Qt gates117 пройдены. Первый input-no-ime прогон
+failed до ввода (нет вложенного выхода, IPC path113bytes); обвязка получила
+короткий runtime и сохранение внутреннего журнала. Повтор полностью зелёный,
+исходная неудача сохранена. Main VM locked upgrade117 также сохранил
+UI498/runner456/kitty4643/207binds; новая сессия и host install пока открыты.

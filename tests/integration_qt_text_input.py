@@ -61,8 +61,12 @@ def main():
     args=parser.parse_args()
     if args.output.exists():parser.error('Use a fresh evidence path')
     require_wayland_session()
-    with tempfile.TemporaryDirectory(prefix='hics-qt-input-') as directory:
-        base=Path(directory);runtime=base/'run';runtime.mkdir(mode=0o700)
+    # Hyprland adds its long instance signature and socket filename below this
+    # directory. Keep the AF_UNIX path below sun_path's limit independently of
+    # TMPDIR; the descriptive evidence directory can remain separate.
+    with tempfile.TemporaryDirectory(prefix='hics-qt-input-') as directory, \
+         tempfile.TemporaryDirectory(prefix='hi-',dir='/tmp') as runtime_directory:
+        base=Path(directory);runtime=Path(runtime_directory)
         entry=base/'shell.qml';entry.write_text(QML)
         config=base/'compositor.lua';config.write_text('hl.monitor({output="",mode="1280x800@60",position="auto",scale=1})\n')
         bus_config=base/'bus.conf';bus_config.write_text('<busconfig><type>session</type><listen>unix:tmpdir='+str(base)+'</listen><policy context="default"><allow send_destination="*"/><allow receive_sender="*"/><allow own="*"/></policy></busconfig>')
@@ -196,6 +200,9 @@ def main():
             assert not warnings,warnings
             print(json.dumps(report,ensure_ascii=False,indent=2))
         except BaseException:
+            native_logs=sorted(runtime.glob('hypr/*/hyprland.log'))
+            if native_logs:
+                args.output.with_suffix('.hyprland.log').write_bytes(native_logs[-1].read_bytes())
             if (base/'app.log').exists():args.output.with_suffix('.log').write_bytes((base/'app.log').read_bytes())
             if (base/'compositor.log').exists():args.output.with_suffix('.compositor.log').write_bytes((base/'compositor.log').read_bytes())
             if (base/'ime.log').exists():args.output.with_suffix('.ime.log').write_bytes((base/'ime.log').read_bytes())

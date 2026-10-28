@@ -89,12 +89,12 @@ for line in qslines:
 print(json.dumps({'pid':pid,'runner':runner,'firstFrameReady':True,'allocatorEnvironment':allocatorEnvironment,'clockTicksPerSecond':os.sysconf('SC_CLK_TCK'),'journalEntriesChecked':len(entries),'journalBindingErrors':failures,'quickshellLogLines':len(qslines),'quickshellBindingErrors':qsfailures,'warningCategories':categories,'pageDwellSeconds':0.3,'pages':pages,'cycles':int(sys.argv[1]),'keepActiveInput':'QMP Shift every 15 seconds; no text','logindInhibitor':True,'samples':samples,'package':subprocess.check_output(['pacman','-Q','hic-shell'],text=True).strip(),'kernel':os.uname().release,'gpuDrivers':sorted({p.resolve().name for p in Path('/sys/class/drm').glob('card[0-9]/device/driver')}),'scope':'QEMU software rendering; read-only page lifecycle, not all functions or proof of no leaks'},indent=2))
 '''
 def main():
- parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--lab',type=Path,required=True);parser.add_argument('--disposable-cachyos-vm',action='store_true',required=True);parser.add_argument('--cycles',type=int,default=60);parser.add_argument('--out',type=Path,required=True);args=parser.parse_args()
+ parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--lab',type=Path,required=True);parser.add_argument('--disposable-cachyos-vm',action='store_true',required=True);parser.add_argument('--cycles',type=int,default=60);parser.add_argument('--out',type=Path,required=True);parser.add_argument('--ssh-port',type=int,default=22280);parser.add_argument('--identity',type=Path);parser.add_argument('--known-hosts',type=Path);args=parser.parse_args()
  if not 1<=args.cycles<=500:raise SystemExit('Cycles must be between 1 and 500')
  if args.out.exists():raise SystemExit('Refusing to replace existing evidence')
  lab=args.lab.resolve()
  if not qmp(lab,'query-status').get('running'):raise SystemExit('VM is not running')
- command=['ssh','-i',str(lab/'guest_ed25519'),'-p','22280','-o','BatchMode=yes','-o','UserKnownHostsFile='+str(lab/'known_hosts-installed'),'root@127.0.0.1','timeout','--kill-after=3',str(25+args.cycles*15),'systemd-inhibit','--what=idle:sleep','--mode=block','--who=hics-tests','--why=hics-settings-lifecycle-test','python3','-',str(args.cycles)]
+ command=['ssh','-i',str(args.identity or lab/'guest_ed25519'),'-p',str(args.ssh_port),'-o','BatchMode=yes','-o','ConnectTimeout=5','-o','UserKnownHostsFile='+str(args.known_hosts or lab/'known_hosts-installed'),'root@127.0.0.1','timeout','--kill-after=3',str(25+args.cycles*15),'systemd-inhibit','--what=idle:sleep','--mode=block','--who=hics-tests','--why=hics-settings-lifecycle-test','python3','-',str(args.cycles)]
  stopped=threading.Event();input_errors=[]
  def keep_active():
   while not stopped.is_set():

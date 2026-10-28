@@ -126,3 +126,45 @@ UI594, тестовое окно2891 и NRestarts=0 основной сесси�
 17 runtime/allocator тестов и21 packaging/installer тест проходят. Финальное
 изменение установки drop-in проверяется также отдельной приёмкой пакета;
 этот отчёт ещё не объявляет кандидат117 установленным на хосте.
+
+
+## Первая приёмка пакета117
+
+Артефакт `hic-shell-1.1.1-117-x86_64.pkg.tar.zst`, SHA256
+`cd46ba87da90c557996a73038e4eb372699a1dcdfb372e7e9fe2baad34059bb7`.
+Сборка исходников385ca11, Qt/QS/allocator manifests проверены. Drop-in и
+документация в пакете имеют0644. Настоящая user-update transaction в
+изолированном XDG установила drop-in и вернула прежний файл при uninstall.
+
+В fresh ВМ locked upgrade116→117 сохранил runner552/UI594, startticks,
+тестовое окно2891 и207 bindings. Autoreload восстановлен, guard завершён.
+Временный тестовый drop-in удалён; systemd использует файл из установленного
+пакета `/usr/lib/systemd/user/xdg-desktop-portal-hyprland.service.d/`.
+После обычного reboot и PAM login новый boot
+`1c27f2d4-7d66-4d95-b187-61bc041aecf5`: compositor412, runner486, UI528,
+ready=true, safe=false, NRestarts0,207 bindings, configerrors/failed units пусты.
+Проверены реальные inode/SHA загруженных QS, Qt, native, config и services.
+
+60 циклов настоящих страниц настроек: ошибок QML в journal и decoded QS log
+нет, основной UI не перезапускался. RSS679352→641392KiB,
+PSS569088→522116KiB, PrivateDirty455152→398628KiB; FD95→94, threads27→25.
+Длительность58,03с, CPU ticks239→4212. Это software-ВМ с2GiB RAM, а не
+сопоставимый с основной4GiB ВМ CPU benchmark или доказательство отсутствия
+утечек. Общая кампания, приёмка второй ВМ и установка на хосте продолжаются.
+
+
+На установленном117 пройдены8 Qt gates: SQL drivers/FTS5, portal registry,
+настоящий portal frontend, audio ASan, text input с Fcitx и без IME,
+VideoOutput и video watchdog. Первый прогон сохранён как failed: у вложенного
+Hyprland не появился выход; stdout также выявил IPC socket path113байт.
+Стенд теперь использует отдельный короткий runtime directory и сохраняет
+внутренний hyprland.log при отказе. Повтор с этой правкой прошёл полностью.
+Само совпадение предупреждения и отсутствия экрана не доказывает общей причины
+всех возможных output failures; регрессионный сбой не скрыт повтором.
+
+Основная ВМ также обновлена116→117 под настоящей блокировкой: runner456,
+UI498, окно kitty4643, его address/startticks и207 bindings сохранены,
+autoreload восстановлен. Проверка новой сессии основной ВМ ещё предстоит.
+Хост пока116. Источники: package117-main-locked-upgrade.json,
+package117-fresh-session.json, package117-fresh-settings60.json и отдельные
+failed/passed Qt worker directories в приватной лаборатории.
