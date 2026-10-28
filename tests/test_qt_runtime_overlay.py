@@ -22,6 +22,7 @@ class QtOverlayTests(unittest.TestCase):
         (self.source/'lib/qt6').mkdir();(self.source/'lib/qt6/plugins').symlink_to('../../plugins')
         self.metadata={'qtVersion':'6.12.0','files':{name:hashlib.sha256(data).hexdigest() for name,data in self.files.items()},
             'symlinks':{'lib/libQt6Core.so.6':'libQt6Core.so.6.12.0','lib/qt6/plugins':'../../plugins'}}
+        (self.source/'licenses/md4c.txt').chmod(0o600)
         self.save()
         (self.root/'bin').mkdir(parents=True);(self.root/'lib').mkdir()
         (self.root/'lib/libQt6Core.so.6.12.0').write_bytes(b'old core')
@@ -38,6 +39,7 @@ class QtOverlayTests(unittest.TestCase):
         self.assertEqual(old.read_bytes(),b'new core');self.assertEqual(untouched.read_bytes(),b'keep')
         self.assertTrue((self.root/'lib/qt6/plugins').is_dir());self.assertFalse((self.root/'lib/qt6/plugins').is_symlink())
         self.assertEqual((self.root/'licenses/qt-patches/md4c.txt').read_bytes(),b'license')
+        self.assertEqual((self.root/'licenses/qt-patches/md4c.txt').stat().st_mode & 0o444, 0o444)
         overlay.read(self.root)
 
     def test_corrupt_plugin_is_rejected_before_core_is_replaced(self):

@@ -3357,3 +3357,36 @@ acceptance is28/28, not an edited old full-suite result. A clean full rerun
 follows. The session acceptance probe now verifies the loaded QS executable
 and actual Core/Gui/Wayland/EGL mappings by inode and manifest SHA, avoiding
 acceptance of old running images after an in-place package upgrade.
+
+
+### Candidate115 package rejection; public payload permissions corrected in116
+
+Canonical Qt overlay8b40810c56fb0cba builds successfully with matching Core/Gui/
+Wayland features (the existing deliberate system-md4c flag difference only).
+The rebuilt EGL plugin SHA is e42d57eac23be5bc30f9e3b1a835a970e0cbae9501a956b73470ac097c7c1745;
+QuickEffects SHA d5cc01f19ed285bc70c831f29ea7607cf6f4a469ee89a860d9cf70ad587db87b.
+Its6 shadow PNGs and20 threaded Quick scale125% composited captures remain
+pixel-exact against pre-install references; expected new images were mapped.
+Package115 SHA7b073e3fde76c68237d57482047ea3ec8032d1dc8b79771504eb6296710bc840
+was installed in both guests, not the host. Fresh guest retained runner482,
+UI524, Kitty3253,207binds and lock owner during the upgrade.
+
+The ordinary-user installed Qt worker correctly rejects115 **before tests**:
+`licenses/qt-patches/renderdoc-header.txt` is root0600. The builder's temporary
+download is private, and copy2 had preserved that mode into a public license.
+This blocks complete manifest verification even though ELF loading and the
+installed6 EGL adoption+20 VideoOutput sanitizer cases pass. Publication now
+adds read permission for every user to public Qt payload files, preserving
+other mode bits and atomic inode replacement; source cache privacy is retained.
+An overlay test now supplies a0600 source license and requires published0444
+read bits.25 focused overlay/source/package tests pass. Candidate116 keeps the
+same immutable compiled Qt images and changes packaging, not feature flags.
+
+The main upgrade's first observation failed because no external Kitty fixture
+existed after the previous reboot; no transaction started. Its next transaction
+completed and kept the real Kitty window and session, but pgrep included a
+short-lived extra Kitty helper (3589) before the upgrade. The harness now
+compares mapped external window identities (address,pid,class), requiring at
+least one, instead of unrelated/transient process names. The failed observation
+is retained and is not treated as accepted proof. Package116 will repeat both
+locked upgrade scenarios with this stronger application check.

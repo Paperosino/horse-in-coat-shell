@@ -56,7 +56,12 @@ def apply(source,root):
         target=root/destination(name);target.parent.mkdir(parents=True,exist_ok=True)
         fd,tmp=tempfile.mkstemp(prefix='.hics-qt-',dir=target.parent);os.close(fd)
         try:
-            shutil.copy2(source/name,tmp);os.replace(tmp,target)
+            shutil.copy2(source/name,tmp)
+            # Downloads may be private0600 in the build cache. All published
+            # Qt binaries/licenses are public package payload, including files
+            # checked by the ordinary user's runtime manifest verifier.
+            os.chmod(tmp, stat.S_IMODE(os.stat(tmp).st_mode) | 0o444)
+            os.replace(tmp,target)
         finally:Path(tmp).unlink(missing_ok=True)
     for name,value in aliases.items():
         target=root/relative(name)

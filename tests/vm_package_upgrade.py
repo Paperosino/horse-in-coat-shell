@@ -29,7 +29,10 @@ def state():
    if Path('/proc/'+pid+'/comm').read_text().strip()=='hics-qs':shells.append(pid)
   except FileNotFoundError:pass
  assert len(shells)==1,{'runner':runner,'mainShellChildren':shells}
- return {'runner':runner,'shell':shells[0],'apps':user('pgrep','-x','kitty'),
+ windows=[{key:row[key] for key in ('address','pid','class')} for row in json.loads(user('hyprctl','-i','0','-j','clients')) if row.get('mapped') and row.get('pid')!=int(shells[0])]
+ assert windows,'Start a visible external test application before upgrading'
+ windows.sort(key=lambda row:row['address'])
+ return {'runner':runner,'shell':shells[0],'externalWindows':windows,
  'shellStartTicks':Path('/proc/'+shells[0]+'/stat').read_text().rsplit(')',1)[1].split()[19],
  'locked':'true' if json.loads(user('hyprctl','-i','0','-j','locked'))['locked'] else 'false',
  'binds':len(json.loads(user('hyprctl','-i','0','-j','binds'))),
