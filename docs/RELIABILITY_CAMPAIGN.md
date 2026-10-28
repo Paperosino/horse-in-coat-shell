@@ -3346,3 +3346,14 @@ teardowns while exec fails and proves every retired QPointer is cleared.
 The initial red full-suite report remains preserved separately; it is not
 relabelled green. Focused sanitized desktop checks and the canonical package
 acceptance are still being collected.
+
+
+Both focused DesktopIntegration ASan/UBSan checks pass at the original
+deadlines. The combined private EGL/video controller also passes6 decorated
+native adoption processes plus20 rendered video lifecycles with no LSan
+suppression. Commit0df8339 is pushed. The first full79-module run ends with78
+passing modules and the preserved desktop failed-exec failure; fixed-module
+acceptance is28/28, not an edited old full-suite result. A clean full rerun
+follows. The session acceptance probe now verifies the loaded QS executable
+and actual Core/Gui/Wayland/EGL mappings by inode and manifest SHA, avoiding
+acceptance of old running images after an in-place package upgrade.

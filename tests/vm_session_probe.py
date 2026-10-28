@@ -14,6 +14,19 @@ instance=instances[0];user+=['WAYLAND_DISPLAY='+instance['wl_socket']];composito
 runner=int(u('systemctl','--user','show','hic-session.service','-p','MainPID','--value'))
 children=Path(f'/proc/{runner}/task/{runner}/children').read_text().split()
 uis=[int(pid) for pid in children if Path('/proc/'+pid+'/comm').read_text().strip()=='hics-qs'];assert len(uis)==1,uis
+runtime=Path('/usr/share/hics/qs')
+qs=runtime/'bin/hics-qs';executable=Path(f'/proc/{uis[0]}/exe')
+assert executable.stat().st_ino==qs.stat().st_ino,'The session still uses the previous executable; log in normally'
+qsHash=hashlib.file_digest(qs.open('rb'),'sha256').hexdigest()
+assert qsHash==json.loads((runtime/'hics-quickshell-patches.json').read_text())['executableSha256']
+qtMetadata=json.loads((runtime/'hics-qt-patches.json').read_text());qtImages={}
+uiMaps=Path(f'/proc/{uis[0]}/maps').read_text().splitlines()
+for name in ('lib/libQt6Core.so.6.12.0','lib/libQt6Gui.so.6.12.0','lib/libQt6WaylandClient.so.6.12.0','lib/qt6/plugins/wayland-graphics-integration-client/libqt-plugin-wayland-egl.so'):
+ image=runtime/name;entries=[line for line in uiMaps if str(image) in line]
+ assert entries and all(int(line.split()[4])==image.stat().st_ino for line in entries),name
+ with image.open('rb') as stream:digest=hashlib.file_digest(stream,'sha256').hexdigest()
+ assert digest==qtMetadata['files'][name],name
+ qtImages[name]=digest
 path=Path('/usr/share/hics/native/hics-bars.so');entries=[line for line in Path(f'/proc/{compositor}/maps').read_text().splitlines() if str(path) in line]
 assert entries and all(int(line.split()[4])==path.stat().st_ino for line in entries),entries
 native=hashlib.sha256(path.read_bytes()).hexdigest();assert native==EXPECTED_NATIVE,native
@@ -32,7 +45,7 @@ assert serviceEntries and all(int(line.split()[4])==services.stat().st_ino for l
 servicesHash=hashlib.sha256(services.read_bytes()).hexdigest()
 if EXPECTED_SERVICES:assert servicesHash==EXPECTED_SERVICES,servicesHash
 boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip();assert not PREVIOUS_BOOT or boot!=PREVIOUS_BOOT
-report={'boot':boot,'package':package,'compositor':compositor,'runner':runner,'ui':uis[0],'health':health,'nativeSha256':native,'nativeInodeMatchesLoadedModule':True,'configSha256':configHash,'configInodeMatchesLoadedModule':True,'servicesSha256':servicesHash,'servicesInodeMatchesLoadedModule':True,'safeMode':state['safe'],'restarts':u('systemctl','--user','show','hic-session.service','-p','NRestarts','--value'),'locked':json.loads(u('hyprctl','-i',instance['instance'],'-j','locked')),'bindCount':len(json.loads(u('hyprctl','-i',instance['instance'],'-j','binds'))),'configerrors':'','userFailed':u('systemctl','--user','--failed','--no-legend'),'systemFailed':subprocess.check_output(['systemctl','--failed','--no-legend'],text=True).strip()}
+report={'boot':boot,'package':package,'compositor':compositor,'runner':runner,'ui':uis[0],'health':health,'qsSha256':qsHash,'qsInodeMatchesLoadedExecutable':True,'qtImagesSha256':qtImages,'qtInodesMatchLoadedImages':True,'nativeSha256':native,'nativeInodeMatchesLoadedModule':True,'configSha256':configHash,'configInodeMatchesLoadedModule':True,'servicesSha256':servicesHash,'servicesInodeMatchesLoadedModule':True,'safeMode':state['safe'],'restarts':u('systemctl','--user','show','hic-session.service','-p','NRestarts','--value'),'locked':json.loads(u('hyprctl','-i',instance['instance'],'-j','locked')),'bindCount':len(json.loads(u('hyprctl','-i',instance['instance'],'-j','binds'))),'configerrors':'','userFailed':u('systemctl','--user','--failed','--no-legend'),'systemFailed':subprocess.check_output(['systemctl','--failed','--no-legend'],text=True).strip()}
 assert report['restarts']=='0' and not report['userFailed'] and not report['systemFailed'],report
 print(json.dumps(report))
 '''
