@@ -1493,7 +1493,7 @@ local function configure_canvas()
 end
 
 function layouts.configure(value)
-    for _, key in ipairs({"canvasSticky", "canvasZoom", "canvasMinZoom", "canvasMaxZoom", "canvasZoomStep", "canvasPanSpeed", "canvasGap", "canvasGrid", "canvasSnap", "canvasSnapSize", "canvasMinimap", "canvasRemember", "canvasHoverFocus", "overviewDragMs", "overviewMotionMs"}) do
+    for _, key in ipairs({"canvasSticky", "canvasZoom", "canvasMinZoom", "canvasMaxZoom", "canvasZoomStep", "canvasPanSpeed", "canvasGap", "canvasGrid", "canvasSnap", "canvasSnapSize", "canvasMinimap", "canvasRemember", "canvasHoverFocus", "overviewDragMs", "overviewMotionMs", "stackFocusMotion"}) do
         if value[key] ~= nil then preferences[key] = value[key] end
     end
     configure_canvas()
@@ -2075,9 +2075,46 @@ for _, window in ipairs(initial_focus_history) do
     if window.focus_history_id >= 0 then remember_canvas_focus(window) end
 end
 remember_canvas_focus(hl.get_active_window())
+-- A newly mapped window is not a switch between two existing windows. Track
+-- stable identities, not addresses alone, because addresses can be recycled.
+local stack_seen, stack_previous = {}, nil
+for _, window in ipairs(hl.get_windows()) do
+    if window.mapped then stack_seen[window.address] = window.stable_id end
+end
+hl.on("window.close", function(window)
+    if window and stack_seen[window.address] == window.stable_id then stack_seen[window.address] = nil end
+end)
+local initially_active = hl.get_active_window()
+if initially_active and initially_active.mapped then
+    stack_previous = {address = initially_active.address, id = initially_active.stable_id}
+end
 hl.on("window.active", function(window)
+    local previous = stack_previous and hl.get_window("address:" .. stack_previous.address) or nil
+    if previous and (not previous.mapped or previous.stable_id ~= stack_previous.id) then previous = nil end
+    local known = window and stack_seen[window.address] == window.stable_id
+    if window and window.mapped then
+        stack_seen[window.address] = window.stable_id
+        stack_previous = {address = window.address, id = window.stable_id}
+    else
+        stack_previous = nil
+    end
     if not changing and not canvas_focus_restore_pending then remember_canvas_focus(window) end
     if window and window.mapped and (layouts.mode() == "tiling" or layouts.mode() == "stacking") then raise(window) end
+    local plugin = hl.plugin.hics_motion
+    if not window or not window.mapped or not plugin or not plugin.focus_animation then return end
+    local profile = preferences.stackFocusMotion or "expressive"
+    local appearance = read(config_dir .. "/shell.json").appearance or {}
+    local overlap = false
+    if previous and previous ~= window and stack_eligible(previous) and stack_eligible(window)
+        and previous.workspace.name == window.workspace.name and previous.fullscreen == 0 and window.fullscreen == 0 then
+        local a, b = geometry(previous), geometry(window)
+        overlap = a.x < b.x + b.width and b.x < a.x + a.width
+            and a.y < b.y + b.height and b.y < a.y + a.height
+    end
+    if changing or canvas_focus_restore_pending or layouts.mode() ~= "stacking" or not known
+        or not overlap or appearance.reducedMotion or overview_active then profile = "off" end
+    plugin.focus_animation(window.address, string.format("%x", window.stable_id), profile,
+        previous and previous.address or "", previous and string.format("%x", previous.stable_id) or "")
 end)
 
 local function replace_binds(keys, action, description, options)

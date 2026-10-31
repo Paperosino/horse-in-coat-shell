@@ -13125,3 +13125,24 @@ msgstr "Не удалось получить список окон прилож�
 
 msgid "Unknown application"
 msgstr "Неизвестное приложение"
+
+msgid "Stacking window transitions"
+msgstr "Переходы окон в стакинге"
+
+msgid "Animate overlapping windows when switching focus. Reduce motion uses the classic immediate switch."
+msgstr "Анимация перекрывающихся окон при переключении фокуса. При уменьшении движения используется обычное мгновенное переключение."
+
+msgid "Window switching animation"
+msgstr "Анимация переключения окон"
+
+msgid "M3 Expressive"
+msgstr "M3 Выразительная"
+
+msgid "M3 Standard"
+msgstr "M3 Стандартная"
+
+msgid "Mechanical"
+msgstr "Механическая"
+
+msgid "Fluid Jelly"
+msgstr "Упругое желе"

@@ -4,7 +4,7 @@ import json,math,sys,os
 from pathlib import Path
 from feature_common import CONFIG,atomic_json,read_json,run,lua,output
 MODES=('tiling','scrolling','stacking','canvas')
-DEFAULT={'mode':'scrolling','canvasZoom':0.72,'canvasMinZoom':0.1,'canvasMaxZoom':2.5,'canvasZoomStep':0.12,'canvasPanSpeed':1.0,'canvasGap':40,'canvasGrid':True,'canvasSnap':False,'canvasSnapSize':40,'canvasMinimap':True,'canvasRemember':True,'canvasHoverFocus':False,'canvasSticky':False,'overviewDragMs':35,'overviewMotionMs':320}
+DEFAULT={'mode':'scrolling','canvasZoom':0.72,'canvasMinZoom':0.1,'canvasMaxZoom':2.5,'canvasZoomStep':0.12,'canvasPanSpeed':1.0,'canvasGap':40,'canvasGrid':True,'canvasSnap':False,'canvasSnapSize':40,'canvasMinimap':True,'canvasRemember':True,'canvasHoverFocus':False,'canvasSticky':False,'overviewDragMs':35,'overviewMotionMs':320,'stackFocusMotion':'expressive'}
 RANGES={'canvasZoom':(.1,2),'canvasMinZoom':(.05,1),'canvasMaxZoom':(1,5),'canvasZoomStep':(.01,.5),'canvasPanSpeed':(.1,5),'canvasGap':(0,300),'canvasSnapSize':(24,300),'overviewDragMs':(0,120),'overviewMotionMs':(120,700)}
 BOOLS={'canvasSticky','canvasGrid','canvasSnap','canvasMinimap','canvasRemember','canvasHoverFocus'}
 FILE=CONFIG/'layouts.json'
@@ -17,7 +17,9 @@ def validate(value):
  if not isinstance(value,dict):raise ValueError('Expected layout settings')
  result={k:v for k,v in config().items() if k!='canvasAvailable'}
  for k,v in value.items():
-  if k in BOOLS:
+  if k == 'stackFocusMotion':
+   if v not in ('off','expressive','standard','heavy','jelly'):raise ValueError('Unknown stacking animation')
+  elif k in BOOLS:
    if not isinstance(v,bool):raise ValueError('Expected a switch value')
   elif k in RANGES:
    if isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v):raise ValueError('Expected a finite number')

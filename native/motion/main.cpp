@@ -2,6 +2,7 @@
 #include <hyprland/src/desktop/state/WindowState.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include "task-animation.hpp"
+#include "focus-animation.hpp"
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 extern "C" {
@@ -25,6 +26,7 @@ int animate(lua_State* L) {
     }
     if (!window) { lua_pushboolean(L, false); return 1; }
     const auto previous = CExpressiveTaskAnimation::find(window);
+    if (operation == "to" || operation == "from") CStackFocusAnimation::clear(window);
     if (operation == "busy") { lua_pushboolean(L, previous && previous->busy()); return 1; }
     if (operation == "state") {
         if (!previous) { lua_pushnil(L); return 1; }
@@ -50,17 +52,57 @@ int animate(lua_State* L) {
     g_pHyprRenderer->damageWindow(window);
     return 0;
 }
+int focusAnimation(lua_State* L) {
+    const std::string address = luaL_checkstring(L, 1), id = luaL_checkstring(L, 2), profile = luaL_checkstring(L, 3);
+    PHLWINDOW window;
+    for (const auto& w : Desktop::windowState()->windows())
+        if (w->m_isMapped && std::format("0x{:x}", reinterpret_cast<uintptr_t>(w.get())) == address && std::format("{:x}", w->m_stableID) == id) { window = w; break; }
+    if (!window) { lua_pushboolean(L, false); return 1; }
+    if (profile == "state") {
+        auto focus = CStackFocusAnimation::find(window);
+        if (!focus) { lua_pushnil(L); return 1; }
+        lua_createtable(L, 0, 2);
+        lua_pushnumber(L, focus->scale()); lua_setfield(L, -2, "scale");
+        lua_pushinteger(L, focus->paints()); lua_setfield(L, -2, "paints");
+        return 1;
+    }
+    for (const auto& w : Desktop::windowState()->windows()) CStackFocusAnimation::clear(w);
+    if (profile == "off" || CExpressiveTaskAnimation::find(window)) { lua_pushboolean(L, false); return 1; }
+    double stiffness = 280, damping = .68, amplitude = .095;
+    if (profile == "standard") { stiffness = 380; damping = .90; amplitude = .055; }
+    else if (profile == "heavy") { stiffness = 190; damping = .78; amplitude = .070; }
+    else if (profile == "jelly") { stiffness = 320; damping = .42; amplitude = .12; }
+    else if (profile != "expressive") { lua_pushboolean(L, false); return 1; }
+    // The outgoing client remains below the newly focused client in the real
+    // compositor order, so pointer and keyboard routing change immediately.
+    // Its visible portions recede at the same time as the new window lifts.
+    const std::string outgoingAddress = luaL_optstring(L, 4, ""), outgoingId = luaL_optstring(L, 5, "");
+    for (const auto& other : Desktop::windowState()->windows()) {
+        if (other != window && other->m_isMapped && !CExpressiveTaskAnimation::find(other) &&
+            std::format("0x{:x}", reinterpret_cast<uintptr_t>(other.get())) == outgoingAddress &&
+            std::format("{:x}", other->m_stableID) == outgoingId) {
+            other->m_transformers.emplace_back(makeUnique<CStackFocusAnimation>(other, stiffness, damping, -amplitude * 0.65));
+            g_pHyprRenderer->damageWindow(other);
+            break;
+        }
+    }
+    window->m_transformers.emplace_back(makeUnique<CStackFocusAnimation>(window, stiffness, damping, amplitude));
+    g_pHyprRenderer->damageWindow(window);
+    lua_pushboolean(L, true); return 1;
+}
+
 }
 APICALL EXPORT std::string PLUGIN_API_VERSION() { return HYPRLAND_API_VERSION; }
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     if (std::string(__hyprland_api_get_hash()) != __hyprland_api_get_client_hash()) throw std::runtime_error("hics motion: compositor ABI mismatch");
     HyprlandAPI::addLuaFunction(handle,"hics_motion","animate_window",animate);
+    HyprlandAPI::addLuaFunction(handle,"hics_motion","focus_animation",focusAnimation);
     fullscreenListener = Event::bus()->m_events.window.fullscreen.listen([](PHLWINDOW window) {
-        if (window && Fullscreen::controller()->getFullscreenModes(window).internal == Fullscreen::FSMODE_FULLSCREEN) CExpressiveTaskAnimation::clear(window);
+        if (window && Fullscreen::controller()->getFullscreenModes(window).internal == Fullscreen::FSMODE_FULLSCREEN) { CExpressiveTaskAnimation::clear(window); CStackFocusAnimation::clear(window); }
     });
     return {"hics-motion","Expressive dock window transitions","hics","1.0"};
 }
 APICALL EXPORT void PLUGIN_EXIT() {
     fullscreenListener.reset();
-    for (const auto& window : Desktop::windowState()->windows()) CExpressiveTaskAnimation::clear(window);
+    for (const auto& window : Desktop::windowState()->windows()) { CExpressiveTaskAnimation::clear(window); CStackFocusAnimation::clear(window); }
 }

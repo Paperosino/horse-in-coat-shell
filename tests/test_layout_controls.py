@@ -12,6 +12,11 @@ class LayoutSettings(unittest.TestCase):
  def test_invalid_ranges_types_and_camera_bounds(self):
   for value in [{'canvasZoom':float('nan')},{'canvasZoom':2.1},{'canvasSnapSize':1},{'overviewDragMs':True},{'canvasGap':1.5},{'canvasGrid':'false'},{'canvasMinZoom':.9,'canvasZoom':.5},{'mode':'canvas'},{'command':'rm'}]:
    with self.assertRaises(ValueError,msg=str(value)):layouts.validate(value)
+ def test_focus_motion_profiles_are_validated(self):
+  for profile in ('off','expressive','standard','heavy','jelly'):
+   self.assertEqual(layouts.validate({'stackFocusMotion':profile})['stackFocusMotion'],profile)
+  for invalid in ('unknown',True,None):
+   with self.assertRaises(ValueError):layouts.validate({'stackFocusMotion':invalid})
  def test_unknown_mode_never_reaches_compositor(self):
   with patch.object(sys,'argv',['layout_controls.py','mode','canvas;exit']),patch.object(layouts,'run') as run,contextlib.redirect_stdout(io.StringIO()):self.assertEqual(layouts.main(),1);run.assert_not_called()
  def test_sticky_setting_is_typed_and_preserves_spacing(self):

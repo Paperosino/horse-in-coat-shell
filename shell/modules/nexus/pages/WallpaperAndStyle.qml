@@ -25,6 +25,24 @@ PageBase {
             badges: [Tr.tr("Background"), Tr.tr("Colours"), Tr.tr("Icons"), Tr.tr("Cursors")]
         }
         SettingsCard {
+            title: Tr.tr("Stacking window transitions")
+            description: Tr.tr("Animate overlapping windows when switching focus. Reduce motion uses the classic immediate switch.")
+            icon: "animation"
+
+            GenericSettingRow {
+                spec: ({label: "Window switching animation", type: "choice", choices: [
+                    {value: "off", label: "Classic"},
+                    {value: "expressive", label: "M3 Expressive"},
+                    {value: "standard", label: "M3 Standard"},
+                    {value: "heavy", label: "Mechanical"},
+                    {value: "jelly", label: "Fluid Jelly"}
+                ]})
+                value: LayoutModes.config.stackFocusMotion ?? "expressive"
+                onEdited: v => LayoutModes.save("stackFocusMotion", v)
+            }
+        }
+
+        SettingsCard {
             title: Tr.tr("Desktop background")
             icon: "palette"
 
