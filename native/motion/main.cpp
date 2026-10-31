@@ -3,6 +3,10 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include "task-animation.hpp"
 #include "focus-animation.hpp"
+#include "drag-tilt.hpp"
+#include <fstream>
+#include <cstdlib>
+#include <nlohmann/json.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
@@ -17,7 +21,36 @@ extern "C" {
 }
 
 namespace {
-CHyprSignalListener fullscreenListener, handoffRender;
+CHyprSignalListener fullscreenListener, handoffRender, dragMove;
+bool dragMotionEnabled() {
+    const char* xdg = std::getenv("XDG_CONFIG_HOME");
+    const char* home = std::getenv("HOME");
+    if ((!xdg || !*xdg) && (!home || !*home)) return false;
+    const std::string base = xdg && *xdg ? xdg : std::string(home) + "/.config";
+    try {
+        nlohmann::json layout = nlohmann::json::object(), shell = nlohmann::json::object();
+        std::ifstream l(base + "/hics/layouts.json"), s(base + "/hics/shell.json");
+        if (l) l >> layout; if (s) s >> shell;
+        return layout.value("mode", "scrolling") == "stacking" && layout.value("stackFocusMotion", "expressive") != "off" &&
+            !shell.value("appearance", nlohmann::json::object()).value("reducedMotion", false);
+    } catch (...) { return false; }
+}
+void dragMotion(Vector2D position) {
+    if (!g_layoutManager) return;
+    const auto drag=g_layoutManager->dragController().get();
+    const auto target=drag->target();
+    const auto window=target ? target->window() : nullptr;
+    if (!window || !window->m_isMapped || drag->mode()!=MBIND_MOVE || !drag->dragThresholdReached()) return;
+    auto animation=CStackDragTilt::find(window);
+    if (!animation) {
+        if (!dragMotionEnabled() || CExpressiveTaskAnimation::find(window)) return;
+        CStackFocusAnimation::clear(window);
+        window->m_transformers.emplace_back(makeUnique<CStackDragTilt>(window,position,dragMotionEnabled));
+        animation=CStackDragTilt::find(window);
+    }
+    if (animation) animation->move(position);
+}
+
 PHLWINDOWREF handoffFrom, handoffTo;
 uint64_t handoffFrames = 0;
 void clearHandoff() { handoffFrom.reset(); handoffTo.reset(); }
@@ -84,7 +117,7 @@ int animate(lua_State* L) {
     }
     if (!window) { lua_pushboolean(L, false); return 1; }
     const auto previous = CExpressiveTaskAnimation::find(window);
-    if (operation == "to" || operation == "from") { clearHandoff(); CStackFocusAnimation::clear(window); }
+    if (operation == "to" || operation == "from") { clearHandoff(); CStackFocusAnimation::clear(window); CStackDragTilt::clear(window); }
     if (operation == "busy") { lua_pushboolean(L, previous && previous->busy()); return 1; }
     if (operation == "state") {
         if (!previous) { lua_pushnil(L); return 1; }
@@ -116,12 +149,22 @@ int focusAnimation(lua_State* L) {
     for (const auto& w : Desktop::windowState()->windows())
         if (w->m_isMapped && std::format("0x{:x}", reinterpret_cast<uintptr_t>(w.get())) == address && std::format("{:x}", w->m_stableID) == id) { window = w; break; }
     if (!window) { lua_pushboolean(L, false); return 1; }
+    if (profile == "drag-state") {
+        const auto tilt = CStackDragTilt::find(window);
+        if (!tilt) { lua_pushnil(L); return 1; }
+        lua_createtable(L, 0, 3);
+        lua_pushnumber(L, tilt->tiltX()); lua_setfield(L, -2, "x");
+        lua_pushnumber(L, tilt->tiltY()); lua_setfield(L, -2, "y");
+        lua_pushinteger(L, tilt->paints()); lua_setfield(L, -2, "paints");
+        return 1;
+    }
     if (profile == "state") {
         auto focus = CStackFocusAnimation::find(window);
         if (!focus) { lua_pushnil(L); return 1; }
         lua_createtable(L, 0, 2);
         lua_pushnumber(L, focus->scale()); lua_setfield(L, -2, "scale");
         lua_pushinteger(L, focus->paints()); lua_setfield(L, -2, "paints");
+        lua_pushinteger(L, focus->shadowFrames()); lua_setfield(L, -2, "shadowFrames");
         lua_pushboolean(L, handoffTo.lock() == window); lua_setfield(L, -2, "handoff");
         lua_pushinteger(L, handoffFrames); lua_setfield(L, -2, "handoffFrames");
         lua_pushnumber(L, focus->progress()); lua_setfield(L, -2, "elapsed");
@@ -165,14 +208,16 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addLuaFunction(handle,"hics_motion","animate_window",animate);
     HyprlandAPI::addLuaFunction(handle,"hics_motion","focus_animation",focusAnimation);
     handoffRender = Event::bus()->m_events.render.stage.listen(renderHandoff);
+    dragMove = Event::bus()->m_events.input.mouse.move.listen([](Vector2D pos, Event::SCallbackInfo&) { dragMotion(pos); });
     fullscreenListener = Event::bus()->m_events.window.fullscreen.listen([](PHLWINDOW window) {
-        if (window && Fullscreen::controller()->getFullscreenModes(window).internal == Fullscreen::FSMODE_FULLSCREEN) { CExpressiveTaskAnimation::clear(window); CStackFocusAnimation::clear(window); }
+        if (window && Fullscreen::controller()->getFullscreenModes(window).internal == Fullscreen::FSMODE_FULLSCREEN) { CExpressiveTaskAnimation::clear(window); CStackFocusAnimation::clear(window); CStackDragTilt::clear(window); }
     });
     return {"hics-motion","Expressive dock window transitions","hics","1.0"};
 }
 APICALL EXPORT void PLUGIN_EXIT() {
     clearHandoff();
+    dragMove.reset();
     handoffRender.reset();
     fullscreenListener.reset();
-    for (const auto& window : Desktop::windowState()->windows()) { CExpressiveTaskAnimation::clear(window); CStackFocusAnimation::clear(window); }
+    for (const auto& window : Desktop::windowState()->windows()) { CExpressiveTaskAnimation::clear(window); CStackFocusAnimation::clear(window); CStackDragTilt::clear(window); }
 }

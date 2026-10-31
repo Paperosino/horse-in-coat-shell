@@ -38,6 +38,14 @@ with tempfile.TemporaryDirectory(prefix='hics-focus-motion-') as directory:
                 subprocess.run(['wayland-scanner', flag, str(fixtures/'virtual-keyboard.xml'), str(base/('virtual-keyboard'+suffix))], check=True)
             flags = subprocess.check_output(['pkg-config', '--cflags', '--libs', 'wayland-client', 'xkbcommon'], text=True).split()
             subprocess.run(['cc', str(fixtures/'virtual-keyboard-stream.c'), str(base/'virtual-keyboard.c'), '-I', str(base), *flags, '-o', str(base/'keyboard')], check=True)
+        pointer_binary = os.environ.get('HICS_TEST_POINTER_BINARY')
+        if pointer_binary:
+            shutil.copy2(pointer_binary,base/'pointer')
+        else:
+            for flag, suffix in (('client-header', '.h'), ('private-code', '-protocol.c')):
+                subprocess.run(['wayland-scanner', flag, str(fixtures/'wlr-virtual-pointer-unstable-v1.xml'), str(base/('virtual-pointer'+suffix))], check=True)
+            flags = subprocess.check_output(['pkg-config','--cflags','--libs','wayland-client'],text=True).split()
+            subprocess.run(['cc',str(fixtures/'virtual-pointer.c'),str(base/'virtual-pointer-protocol.c'),'-I',str(base),*flags,'-o',str(base/'pointer')],check=True)
         with (base/'compositor.log').open('w') as log:
             compositor=subprocess.Popen(['Hyprland','--config',str(lua)],env=env,stdout=log,stderr=subprocess.STDOUT)
         processes.append(compositor)
@@ -63,6 +71,10 @@ with tempfile.TemporaryDirectory(prefix='hics-focus-motion-') as directory:
             result=json.loads(raw);return json.loads(result) if isinstance(result,str) else result
         keyboard=subprocess.Popen([str(base/'keyboard')],env=appenv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True,bufsize=1);processes.append(keyboard)
         assert keyboard.stdout.readline().strip()=='ready'
+        pointer=subprocess.Popen([str(base/'pointer')],env=dict(appenv,HYPRSTACK_POINTER_HEIGHT='900'),stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True,bufsize=1);processes.append(pointer)
+        assert pointer.stdout.readline().strip()=='ready'
+        def point(op,x,y):
+            pointer.stdin.write(f'{op} {x} {y}\n');pointer.stdin.flush();assert pointer.stdout.readline().strip()=='ok'
         for profile in ('expressive','standard','heavy','jelly'):
             ctl('repl','hyprstack_layouts.configure({stackFocusMotion='+json.dumps(profile)+'})')
             focus(1); time.sleep(.1); before=window(0); focus(0)
@@ -73,8 +85,9 @@ with tempfile.TemporaryDirectory(prefix='hics-focus-motion-') as directory:
                 subprocess.run(['grim',os.environ['HICS_FOCUS_SCREENSHOT']],env=appenv,check=True)
             current=state(0); outgoing=state(1)
             assert current.get('scale',1)>1 and current.get('paints',0)>0, (profile,current)
+            assert current.get('shadowFrames',0)>0, ('shadow blur did not render',profile,current)
             assert current.get('handoffFrames',0)>0, ('no frames before visual handoff',profile,current)
-            assert not current.get('handoff') and current['elapsed'] >= current['peak'], ('handoff did not finish at spring peak',profile,current)
+            wait(lambda:(s:=state(0)) and not s.get('handoff') and s['elapsed'] >= s['peak'], 'handoff did not finish on a frame after the spring peak',3)
             assert outgoing.get('scale',1)<1 and outgoing.get('paints',0)>0, (profile,outgoing)
             after=window(0); assert before['at']==after['at'] and before['size']==after['size'], (before,after)
             wait(lambda:not state(0) and not state(1),'focus transformers did not clean up',3)
@@ -97,6 +110,29 @@ with tempfile.TemporaryDirectory(prefix='hics-focus-motion-') as directory:
         focus(1);focus(0);time.sleep(.1);assert not state(0),state(0)
         print('PASS: reduced motion switches immediately',flush=True)
         (base/'config/hics/shell.json').write_text('{}')
+        focus(1);time.sleep(.9)
+        w=window(1); x,y=w['at']; startx=int(x+130); starty=int(y-15)
+        point('move',startx,starty);point('button',272,1)
+        for i in range(1,7):
+            point('move',startx+i*15,starty+i*3);time.sleep(.03)
+        w=window(1); identity=format(w['stableId'],'x') if isinstance(w.get('stableId'),int) else w.get('stableId')
+        raw=ctl('repl','local s=hl.plugin.hics_motion.focus_animation('+json.dumps(w['address'])+','+json.dumps(identity)+',"drag-state");return require("utils.json").encode(s or {})')
+        tilt=json.loads(raw);tilt=json.loads(tilt) if isinstance(tilt,str) else tilt
+        assert tilt.get('paints',0)>0 and abs(tilt.get('y',0))>.0001,('perspective drag did not render',tilt)
+        if os.environ.get('HICS_DRAG_SCREENSHOT'):subprocess.run(['grim',os.environ['HICS_DRAG_SCREENSHOT']],env=appenv,check=True)
+        point('button',272,0)
+        def dragstate():
+            raw=ctl('repl','local s=hl.plugin.hics_motion.focus_animation('+json.dumps(w['address'])+','+json.dumps(identity)+',"drag-state");return require("utils.json").encode(s or {})')
+            value=json.loads(raw);return json.loads(value) if isinstance(value,str) else value
+        wait(lambda:not dragstate(),'drag spring did not settle and clean up',3)
+        (base/'config/hics/shell.json').write_text('{"appearance":{"reducedMotion":true}}')
+        w=window(1);x,y=w['at']; startx=int(x+130);starty=int(y-15)
+        point('move',startx,starty);point('button',272,1)
+        for i in range(1,5):point('move',startx+i*15,starty);time.sleep(.03)
+        assert not dragstate(), 'reduced motion still applied drag tilt'
+        point('button',272,0)
+        (base/'config/hics/shell.json').write_text('{}')
+        print('PASS: drag tilt renders, settles and respects reduced motion',flush=True)
         focus(1);focus(0);apps[0].terminate();apps[0].wait(timeout=5)
         time.sleep(1); assert compositor.poll() is None, 'compositor crashed when animated window closed'
         assert not ctl('configerrors'),ctl('configerrors')

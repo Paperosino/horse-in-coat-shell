@@ -2,6 +2,7 @@
 // input remain owned by Hyprland and never follow the temporary visual scale.
 #pragma once
 #include "task-animation.hpp"
+#include "focus-shadow.hpp"
 
 class CStackFocusAnimation final : public Render::IWindowTransformer {
   public:
@@ -69,27 +70,12 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
             ++m_paints;
             return output;
         }
-        // Soft, bounded shadow and a low-opacity tonal halo follow elevation.
-        // Draw in the same offscreen pass as the client so they share the same
-        // timestamp, damage and compositor colour management.
+        // An analytic Gaussian falloff avoids full-output blur passes and
+        // keeps the application pixels unchanged and sharp.
         if (m_amplitude > 0) {
-            const double elevation = std::clamp((scale() - 1.0) / .025, 0.0, 1.0);
-            const CBox box = m_destination.copy().scale(monitor->m_scale);
-            for (int layer = 10; layer >= 1; --layer) {
-                CRectPassElement::SRectData shadow;
-                const double spread = layer * (1.0 + 2.0 * elevation) * monitor->m_scale;
-                shadow.box = box.copy().expand(spread).translate({0.0, (2.0 + elevation * 7.0) * monitor->m_scale});
-                shadow.round = std::lround(12.0 * monitor->m_scale + spread);
-                shadow.color = CHyprColor(0, 0, 0, (.006 + elevation * .008) * (11 - layer));
-                g_pHyprRenderer->draw(shadow, render.damage);
-            }
-            if (elevation > .01) {
-                CRectPassElement::SRectData halo;
-                halo.box = box.copy().expand(5 * monitor->m_scale);
-                halo.round = std::lround(18 * monitor->m_scale);
-                halo.color = m_accent.modifyA(.045 * elevation);
-                g_pHyprRenderer->draw(halo, render.damage);
-            }
+            const double elevation=std::clamp((scale()-1.0)/.025,0.0,1.0);
+            if (m_shadow.draw(m_destination.copy().scale(monitor->m_scale),monitor->m_transformedSize,monitor->m_scale,elevation,m_accent))
+                ++m_shadowFrames;
         }
         CTexPassElement::SRenderData texture;
         texture.tex = in->getTexture();
@@ -99,6 +85,7 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
         return output;
     }
     int paints() const { return m_paints; }
+    int shadowFrames() const { return m_shadowFrames; }
     double progress() const { return elapsed(); }
     double peakTime() const {
         const double omega = std::sqrt(m_stiffness);
@@ -128,7 +115,8 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
     bool m_hasSource = false;
     double m_stiffness, m_damping, m_amplitude;
     CHyprColor m_accent;
-    int m_paints = 0;
+    hics::motion::FocusShadow m_shadow;
+    int m_paints = 0, m_shadowFrames = 0;
     uint64_t m_cleanup = 0;
     Time::steady_tp m_start = Time::steadyNow();
     SP<CEventLoopTimer> m_timer;
