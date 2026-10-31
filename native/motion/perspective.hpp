@@ -40,7 +40,10 @@ class Perspective {
         Render::GL::g_pHyprOpenGL->useShader(m_shader);
         m_shader->setUniformInt(SHADER_TEX,0);
         glUniform2f(m_size,output->m_size.x,output->m_size.y);
-        glUniform4f(m_box,box.x,output->m_size.y-box.y-box.h,box.w,box.h);
+        // Hyprland's work-buffer texture is composited with its own vertical
+        // projection. Both sampling and vertices therefore use the same
+        // top-origin framebuffer coordinates here.
+        glUniform4f(m_box,box.x,box.y,box.w,box.h);
         glUniform2f(m_tilt,tiltX,tiltY);
         glActiveTexture(GL_TEXTURE0); input->getTexture()->bind();
         glBindVertexArray(m_shader->getUniformLocation(SHADER_SHADER_VAO));

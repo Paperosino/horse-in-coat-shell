@@ -120,6 +120,23 @@ with tempfile.TemporaryDirectory(prefix='hics-focus-motion-') as directory:
         tilt=json.loads(raw);tilt=json.loads(tilt) if isinstance(tilt,str) else tilt
         assert tilt.get('paints',0)>0 and abs(tilt.get('y',0))>.0001,('perspective drag did not render',tilt)
         if os.environ.get('HICS_DRAG_SCREENSHOT'):subprocess.run(['grim',os.environ['HICS_DRAG_SCREENSHOT']],env=appenv,check=True)
+        # Check the actual client image, not merely the compositor's unchanged
+        # geometry: vertical movement used to stretch and crop it.
+        from PIL import Image
+        for direction in (-1, 1):
+            for i in range(1,7):
+                point('move',startx+90,starty+18+direction*i*15);time.sleep(.03)
+            time.sleep(.03)
+            actual=window(1); snapshot=base/('vertical-'+str(direction)+'.png')
+            subprocess.run(['grim',str(snapshot)],env=appenv,check=True,capture_output=True)
+            frame=Image.open(snapshot).convert('RGB'); wx,wy=actual['at']; ww,wh=actual['size']
+            rows=[]
+            for yy in range(max(0,wy-35),min(frame.height,wy+wh+35)):
+                matches=sum(1 for xx in range(max(0,wx+35),min(frame.width,wx+ww-35),4)
+                    if (lambda p: p[0]<65 and p[1]<85 and 100<p[2]<220)(frame.getpixel((xx,yy))))
+                if matches>max(15,(ww-70)//8):rows.append(yy)
+            assert rows and abs(rows[0]-wy)<25 and abs(rows[-1]-(wy+wh-1))<25, ('vertical drag cropped or stretched the client',direction,actual,(min(rows),max(rows)) if rows else None)
+        print('PASS: vertical drag keeps the full client image aligned in both directions',flush=True)
         point('button',272,0)
         def dragstate():
             raw=ctl('repl','local s=hl.plugin.hics_motion.focus_animation('+json.dumps(w['address'])+','+json.dumps(identity)+',"drag-state");return require("utils.json").encode(s or {})')
