@@ -272,6 +272,16 @@ local function eligible(window)
     return window and window.mapped and not window.pinned and window.workspace and not window.workspace.special
 end
 
+-- User-visible special workspaces need the same stacking policy. The private
+-- minimize workspaces are storage, not another workspace to migrate.
+local function layout_workspace(workspace)
+    return workspace and (not workspace.special or not workspace.name:match("^special:hyprstack%-minimized%-"))
+end
+
+local function stack_eligible(window)
+    return window and window.mapped and not window.pinned and layout_workspace(window.workspace)
+end
+
 local function record_for(window)
     local record = records[window.address]
     if record and record.id ~= window.stable_id then
@@ -479,7 +489,7 @@ local function without_cursor_warps(action)
     if not ok then error(err) end
 end
 
-local function restore_focus(active, focused, visible)
+local function restore_focus(active, focused, visible, specials)
     without_cursor_warps(function()
         for _, entry in ipairs(visible) do
             local monitor = hl.get_monitor(entry.monitor)
@@ -490,6 +500,16 @@ local function restore_focus(active, focused, visible)
                 else
                     hl.dispatch(hl.dsp.focus({ monitor = monitor }))
                     hl.dispatch(hl.dsp.focus({ workspace = entry.workspace }))
+                end
+            end
+        end
+        for _, entry in ipairs(specials or {}) do
+            local monitor = hl.get_monitor(entry.monitor)
+            if monitor then
+                local current = monitor.active_special_workspace
+                if (current and current.name or false) ~= entry.workspace then
+                    if entry.workspace then monitor:set_special_workspace({ workspace = entry.workspace })
+                    else monitor:set_special_workspace({}) end
                 end
             end
         end
@@ -507,11 +527,16 @@ end
 local function preserve_focus(action, views)
     local active, focused = hl.get_active_window(), hl.get_active_monitor()
     local visible = views or capture_views()
+    local specials = {}
+    for _, monitor in ipairs(hl.get_monitors()) do
+        specials[#specials + 1] = { monitor = monitor.name,
+            workspace = monitor.active_special_workspace and monitor.active_special_workspace.name or false }
+    end
     -- Config reloads and layout bookkeeping restore focus internally. Only
     -- explicit navigation should apply the user's usual pointer warp policy.
     without_cursor_warps(function()
         local ok, err = pcall(action)
-        restore_focus(active, focused, visible)
+        restore_focus(active, focused, visible, specials)
         if not ok then error(err) end
     end)
 end
@@ -618,7 +643,7 @@ local function stack(workspace, prepared)
     -- Capture every column before floating the first window changes its indices.
     for _, window in ipairs(workspace:get_windows()) do
         local monitor = window.monitor
-        if eligible(window) and (not window.floating or prepared) and monitor and monitor.width > 0 and monitor.height > 0 then
+        if stack_eligible(window) and (not window.floating or prepared) and monitor and monitor.width > 0 and monitor.height > 0 then
             local record = record_for(window) or { id = window.stable_id }
             if not prepared and not window.floating then record.scroll = scroll_position(window) end
             record.workspace = key(workspace)
@@ -660,7 +685,7 @@ local function tile(workspace, prepared)
     local entries = {}
     for _, window in ipairs(workspace:get_windows()) do
         local record = record_for(window)
-        if eligible(window) and ((record and record.stacked) or not window.floating) then
+        if stack_eligible(window) and ((record and record.stacked) or not window.floating) then
             record = record or { id = window.stable_id, scroll = scroll_position(window) }
             if not record.stacked and not prepared then record.scroll = scroll_position(window) end
             records[window.address] = record
@@ -1066,7 +1091,7 @@ local function restore()
         end
     end
     for _, workspace in ipairs(hl.get_workspaces()) do
-        if not workspace.special then tile(workspace, true) end
+        if layout_workspace(workspace) then tile(workspace, true) end
     end
     tiled_views = {}
 end
@@ -1413,6 +1438,9 @@ function layouts.toggle()
             preferences.mode = "stacking"
             refresh_decorations(false, true)
             for _, target in ipairs(targets) do stack(target, true) end
+            for _, special in ipairs(hl.get_workspaces()) do
+                if special.special and layout_workspace(special) then stack(special, true) end
+            end
         end, nil, true)
     else
         change(function()
@@ -1603,7 +1631,10 @@ function layouts.restore_window(window, focus)
     local hidden = record.minimized
     cancel_minimize(window)
     local monitor = hl.get_monitor(hidden.monitor) or hl.get_active_monitor()
-    local destination = layouts.mode() == "stacking" and monitor and monitor.active_workspace
+    -- A special workspace is an explicit destination, not a desktop bank.
+    -- Restoring its window must not silently move it to the normal workspace.
+    local was_special = hidden.workspace:match("^name:special:") ~= nil
+    local destination = not was_special and layouts.mode() == "stacking" and monitor and monitor.active_workspace
     local workspace = destination and key(destination) or hidden.workspace
     record.minimized = nil
     move_to_workspace(window, workspace)
@@ -1687,7 +1718,7 @@ function layouts.action(operation, address, stable_id)
         else
             layouts.action("activate", address, stable_id)
         end
-    elseif operation == "minimize" and not record.minimized and not window.workspace.special then
+    elseif operation == "minimize" and not record.minimized and layout_workspace(window.workspace) then
         local monitor = window.monitor
         record.minimized = { workspace = key(window.workspace), monitor = monitor.name,
             internal = window.fullscreen, client = window.fullscreen_client,
@@ -1839,7 +1870,7 @@ function layouts.enforce_workspace_banks()
 end
 
 local function sync_window(window)
-    if changing or layouts.mode() == "canvas" or not window or not window.mapped or not window.workspace or window.workspace.special then return end
+    if changing or layouts.mode() == "canvas" or not stack_eligible(window) then return end
     local record = record_for(window)
     if layouts.mode() == "stacking" and (not record or not record.origin) then
         record = record or { id = window.stable_id }
@@ -1847,7 +1878,6 @@ local function sync_window(window)
         record.origin = { workspace = key(window.workspace), monitor = monitor and monitor.name }
         records[window.address] = record
     end
-    if not eligible(window) then return end
     if layouts.mode() == "scrolling" and not window.floating then
         local scroll = scroll_position(window)
         record = record or { id = window.stable_id }
@@ -2542,7 +2572,7 @@ end
 change(function()
     prepare_banks()
     for _, workspace in ipairs(hl.get_workspaces()) do
-        if not workspace.special and layouts.mode() == "stacking" then
+        if layout_workspace(workspace) and layouts.mode() == "stacking" then
             stack(workspace)
         elseif layouts.mode() ~= "canvas" then
             for _, window in ipairs(workspace:get_windows()) do
