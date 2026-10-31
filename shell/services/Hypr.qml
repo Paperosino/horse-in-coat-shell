@@ -94,7 +94,11 @@ Singleton {
             const hidden = windowState(t).minimized;
             if (hidden)
                 return hidden.monitor === screen.name;
-            return !t.workspace?.name.startsWith("special:") && ipc.monitor === monitor?.id;
+            const workspace = t.workspace?.name ?? ipc.workspace?.name ?? "";
+            // User-facing special workspaces contain ordinary running apps too.
+            // Only the private minimize workspace is excluded without a valid
+            // minimize record; otherwise Spotify and similar apps disappear.
+            return !workspace.startsWith("special:hyprstack-minimized-") && ipc.monitor === monitor?.id;
         });
     }
 

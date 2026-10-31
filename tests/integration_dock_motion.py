@@ -16,7 +16,8 @@ with tempfile.TemporaryDirectory(prefix='hics-dock-motion-') as directory:
     (base/'config/hics/layouts.json').write_text('{"mode":"stacking"}')
     dock=base/'config/hics/dock.json';dock.write_text('{"enabled":true,"windowAnimations":true,"animationDuration":700}')
     for name in ('libhics-render-dispatch.so','hics-bars.so','hics-motion.so'):
-        shutil.copy2(ROOT/'build'/name,base/'data/native'/name)
+        native=Path(os.environ.get('HICS_TEST_NATIVE_DIR',str(ROOT/'build')))
+        shutil.copy2(native/name,base/'data/native'/name)
     config=ROOT/'shell/assets/hyprland/config'
     lua=base/'test.lua'
     lua.write_text('package.path='+json.dumps(str(config/'?.lua')+';')+'..package.path\npackage.preload["scheme.current"]=function()return require("scheme.default")end\ndofile('+json.dumps(str(config/'hyprland/animations.lua'))+')\nhl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})\ndofile('+json.dumps(str(config/'hyprland/gestures.lua'))+')\ndofile('+json.dumps(str(ROOT/'shell/assets/hyprland/layouts.lua'))+')\n')
@@ -134,7 +135,10 @@ ShellRoot {
  FileView{id:output;path:STATUS;printErrors:false}
  Timer{interval:20;repeat:true;running:true;onTriggered:{const t=task(dock);if(t){const p=t.mapToItem(win.contentItem,t.width/2,t.height/2);const v=t.visual.mapToItem(win.contentItem,t.width/2,t.height/2);output.setText(JSON.stringify({x:p.x,y:p.y,vx:v.x,vy:v.y,scale:t.impulseScale,minimized:t.minimizedCount,icon:t.entry?.animationIcon()??""}));}}}
 }'''.replace('STATUS',json.dumps(str(status))))
-        qmlenv=dict(appenv,QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'))
+        qmlpath='/usr/share/hics/qml' if os.environ.get('HICS_TEST_INSTALLED_RUNTIME')=='1' else str(ROOT/'build/qml')
+        qmlenv=dict(appenv,QML_IMPORT_PATH=qmlpath,QML2_IMPORT_PATH=qmlpath)
+        if os.environ.get('HICS_TEST_INSTALLED_RUNTIME')=='1':
+            qmlenv['LD_LIBRARY_PATH']='/usr/share/hics/qs/lib'
         uilog=(base/'ui.log').open('w');processes.append(subprocess.Popen(['/usr/share/hics/qs/bin/hics-qs','-p',str(ui)],env=qmlenv,stdout=uilog,stderr=subprocess.STDOUT))
         def ui_state():
             try:return json.loads(status.read_text())
@@ -146,9 +150,12 @@ ShellRoot {
         assert Path(ui_state()['icon']).is_file(),'Native animation icon was not exported'
         import shlex
         fixtures=ROOT/'tests/fixtures'
-        for flag,name in [('client-header','virtual-pointer.h'),('private-code','virtual-pointer-protocol.c')]:subprocess.run(['wayland-scanner',flag,str(fixtures/'wlr-virtual-pointer-unstable-v1.xml'),str(base/name)],check=True)
-        flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','wayland-client'],text=True))
-        subprocess.run(['cc',str(fixtures/'virtual-pointer.c'),str(base/'virtual-pointer-protocol.c'),'-I',str(base),*flags,'-o',str(base/'pointer')],check=True)
+        if os.environ.get('HICS_TEST_POINTER_BINARY'):
+            shutil.copy2(os.environ['HICS_TEST_POINTER_BINARY'],base/'pointer')
+        else:
+            for flag,name in [('client-header','virtual-pointer.h'),('private-code','virtual-pointer-protocol.c')]:subprocess.run(['wayland-scanner',flag,str(fixtures/'wlr-virtual-pointer-unstable-v1.xml'),str(base/name)],check=True)
+            flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','wayland-client'],text=True))
+            subprocess.run(['cc',str(fixtures/'virtual-pointer.c'),str(base/'virtual-pointer-protocol.c'),'-I',str(base),*flags,'-o',str(base/'pointer')],check=True)
         monitor=json.loads(ctl('-j','monitors'))[0]
         pointer=subprocess.Popen([str(base/'pointer')],env=dict(appenv,HYPRSTACK_POINTER_WIDTH=str(monitor['width']),HYPRSTACK_POINTER_HEIGHT=str(monitor['height'])),stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True,bufsize=1);processes.append(pointer)
         assert pointer.stdout.readline().strip()=='ready'
@@ -162,11 +169,35 @@ ShellRoot {
         samples=[]
         for _ in range(50):samples.append(ui_state());time.sleep(.02)
         assert any(s.get('minimized')==1 for s in samples),('Dock click did not minimize',samples)
-        assert min(s.get('scale',1) for s in samples)<.94 and max(s.get('scale',1) for s in samples)>1.03,('No icon squash/rebound',samples)
+        if os.environ.get('HICS_TEST_SKIP_IMPULSE') != '1':
+            assert min(s.get('scale',1) for s in samples)<.94 and max(s.get('scale',1) for s in samples)>1.03,('No icon squash/rebound',samples)
         assert windows()[0]['workspace']['name'].startswith('special:')
         send('button',272,1);send('button',272,0);time.sleep(.8)
         assert not windows()[0]['workspace']['name'].startswith('special:')
-        print('PASS: left click on a raised icon minimizes/restores the real window and triggers icon absorption',flush=True)
+        print('PASS: left click on a raised icon minimizes/restores the real window' +
+              (' (icon impulse not measured)' if os.environ.get('HICS_TEST_SKIP_IMPULSE')=='1' else ' and triggers icon absorption'),flush=True)
+        # Repeat through the actual dock with an unpinned application on a
+        # user-facing special workspace, as used by Spotify's Flatpak entry.
+        ctl('repl','hl.dispatch(hl.dsp.focus({workspace="special:music"}));local w=hl.get_window("address:'+address+'");hl.dispatch(hl.dsp.window.move({window=w,workspace="special:music",follow=false}));hl.dispatch(hl.dsp.focus({window=w}))')
+        for _ in range(60):
+            if windows()[0]['workspace']['name']=='special:music' and ui_state().get('icon'):break
+            time.sleep(.1)
+        assert windows()[0]['workspace']['name']=='special:music',windows()
+        target=ui_state();send('move',target['x'],target['y'])
+        for _ in range(40):
+            target=ui_state()
+            if target.get('vy',0)<target.get('y',0)-10:break
+            time.sleep(.05)
+        assert target.get('vy',0)<target.get('y',0)-10,('Dock did not receive pointer',target)
+        send('move',target['vx'],target['vy']);send('button',272,1);send('button',272,0)
+        time.sleep(.15);motion=state()
+        assert motion and motion.get('x',-1000)>target['x']-250,('Special window used wrong animation target or did not minimize',motion,target)
+        time.sleep(.8)
+        assert windows()[0]['workspace']['name'].startswith('special:hyprstack-minimized-'),windows()
+        send('button',272,1);send('button',272,0);time.sleep(.8)
+        assert windows()[0]['workspace']['name']=='special:music',windows()
+        print('PASS: special-workspace window minimizes to real dock and restores on click',flush=True)
+        ctl('repl','local w=hl.get_window("address:'+address+'");hl.dispatch(hl.dsp.window.move({window=w,workspace="1",follow=false}));hl.dispatch(hl.dsp.focus({window=w}))')
         output=(base/'ui.log').read_text();assert not any(e in output for e in ('TypeError:','ReferenceError:','Binding loop')),output[-3000:]
         pointer.stdin.close();pointer.wait(timeout=3)
         ctl('reload');time.sleep(.5)

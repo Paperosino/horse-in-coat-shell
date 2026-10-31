@@ -130,6 +130,22 @@ ShellRoot {
             assert next(b for b in reopened['buttons'] if b['key']=='fixture-dock')['identity']==pinned['identity'],'Reopening an app replaced its pinned dock delegate'
             print('PASS: pinned app keeps one dock delegate through close and reopen',flush=True)
         wait_for(lambda s:len(s.get('buttons',[]))==1)
+        # Flatpak music players commonly live in a special workspace. Their
+        # unpinned running windows must remain visible and grouped in the dock.
+        for process in (terminal,terminal2):
+            windows=json.loads(subprocess.check_output(['hyprctl','-i',instance['instance'],'clients','-j']))
+            window=next(w for w in windows if w['pid']==process.pid)
+            script='local w=hl.get_window('+json.dumps('address:'+window['address'])+');hl.dispatch(hl.dsp.window.move({window=w,workspace="special:music",follow=false}))'
+            subprocess.run(['hyprctl','-i',instance['instance'],'eval',script],check=True,capture_output=True)
+        wait_for(lambda s:any(b.get('key')=='fixture-dock' and b.get('windowCount')==2 for b in s.get('buttons',[])))
+        for process in (terminal,terminal2):
+            windows=json.loads(subprocess.check_output(['hyprctl','-i',instance['instance'],'clients','-j']))
+            window=next(w for w in windows if w['pid']==process.pid)
+            assert window['workspace']['name']=='special:music',window
+            script='local w=hl.get_window('+json.dumps('address:'+window['address'])+');hl.dispatch(hl.dsp.window.move({window=w,workspace="1",follow=false}))'
+            subprocess.run(['hyprctl','-i',instance['instance'],'eval',script],check=True,capture_output=True)
+        wait_for(lambda s:any(b.get('key')=='fixture-dock' and b.get('windowCount')==2 for b in s.get('buttons',[])))
+        print('PASS: unpinned special-workspace windows remain grouped in dock',flush=True)
         control.write_text('badge-history')
         wait_for(lambda s:any(b.get('badgeCount')==1 for b in s.get('buttons',[])))
         control.write_text('badges')

@@ -39,6 +39,7 @@ public:
   bool update(const QVariantMap &data, const QString &path, bool fileChanged = false);
   Q_INVOKABLE void execute();
   Q_INVOKABLE QString animationIcon();
+  void invalidateIcon() { m_animationIcon.clear(); }
 signals:
   void changed();
   void launchFailed(const QString &message);
@@ -68,21 +69,26 @@ class ApplicationCatalogue : public QObject {
   Q_PROPERTY(
       QVariantMap applications READ applications NOTIFY applicationsChanged)
   Q_PROPERTY(QString error READ error NOTIFY errorChanged)
+  Q_PROPERTY(quint64 iconRevision READ iconRevision NOTIFY iconsChanged)
 public:
   explicit ApplicationCatalogue(QObject *parent = nullptr);
   QVariantMap applications() const {
     return {{QStringLiteral("values"), QVariant::fromValue(m_visible)}};
   }
   QString error() const { return m_error; }
+  quint64 iconRevision() const { return m_iconRevision; }
   Q_INVOKABLE QObject *byId(QString id) const;
   Q_INVOKABLE QObject *heuristicLookup(QString name) const;
   Q_INVOKABLE void refresh(bool force = false);
 signals:
   void applicationsChanged();
   void errorChanged();
+  void iconsChanged();
 
 private:
   void scan(bool force);
+  void watchIcons();
+  void invalidateIcons();
   struct CachedFile { QByteArray stamp; QString tryExec, executable; };
   QHash<QString, CachedFile> m_cachedFiles;
   QSet<QString> m_dirtyFiles;
@@ -90,7 +96,11 @@ private:
   mutable QHash<QString, DesktopApplication *> m_lookupCache;
   QObjectList m_visible;
   QFileSystemWatcher m_watcher;
+  QFileSystemWatcher m_iconWatcher;
   QTimer m_debounce, m_reconcile;
   QString m_error;
+  QString m_watchedIconTheme;
+  quint64 m_iconRevision = 0;
+  bool m_iconsDirty = false;
 };
 } // namespace hyprstack::services

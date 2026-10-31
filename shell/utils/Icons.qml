@@ -141,16 +141,23 @@ Singleton {
         return "";
     }
 
+    // Distinct valid fallback URLs force QML to request the icon again after
+    // the catalogue invalidates Qt's icon-theme cache. Icon images using this
+    // helper disable their own QML image cache as well.
+    function themeIcon(name: string, fallback: string): string {
+        const revision = ApplicationCatalogue.iconRevision;
+        const candidate = name ? Quickshell.iconPath(name, true) : "";
+        if (!candidate) return Quickshell.iconPath(fallback || "image-missing", true);
+        const alternate = revision % 2 ? "image-missing" : "application-x-executable";
+        return Quickshell.iconPath(name, alternate);
+    }
+
     function getAppIcon(name: string, fallback: string): string {
         const shortName = (name ?? "").replace(/\.desktop$/, "").split(".").pop();
         const revision = ApplicationCatalogue.applications; // reactive invalidation after desktop/theme changes
         const entry = ApplicationCatalogue.heuristicLookup(name ?? "")
             ?? ApplicationCatalogue.heuristicLookup(shortName);
-        const icon = entry?.icon ? Quickshell.iconPath(entry.icon, true) : "";
-        if (icon)
-            return icon;
-        return (fallback ? Quickshell.iconPath(fallback, true) : "")
-            || Quickshell.iconPath("application-x-executable", true);
+        return root.themeIcon(entry?.icon ?? "", fallback || "application-x-executable");
     }
 
     function getAppCategoryIcon(name: string, fallback: string): string {

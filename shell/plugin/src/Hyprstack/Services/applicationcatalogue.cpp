@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QFile>
 #include <QIcon>
+#include <QGuiApplication>
 #include <QCryptographicHash>
 #include <QProcess>
 #include <QSet>
@@ -29,9 +30,22 @@ QStringList strings(const gchar *const *values) {
       result.append(QString::fromUtf8(*values));
   return result;
 }
+QStringList dataRoots() {
+  auto result = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+  const auto userExport = QDir::homePath() + "/.local/share/flatpak/exports/share";
+  if (!result.contains(userExport)) result.append(userExport);
+  const auto xdgUserExport = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/flatpak/exports/share";
+  if (!result.contains(xdgUserExport)) result.append(xdgUserExport);
+  // Honor deliberately isolated XDG_DATA_DIRS used by tests and sandboxes.
+  if ((result.contains(QStringLiteral("/usr/share")) || qEnvironmentVariableIsEmpty("XDG_DATA_DIRS")) &&
+      !result.contains(QStringLiteral("/var/lib/flatpak/exports/share")))
+    result.append(QStringLiteral("/var/lib/flatpak/exports/share"));
+  return result;
+}
 QStringList roots() {
-  auto result =
-      QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+  auto result = dataRoots();
+  // Flatpak's export directories may be absent from the user manager's
+  // environment when Flatpak was installed after login.
   for (auto &path : result)
     path += "/applications";
   return result;
@@ -148,7 +162,16 @@ ApplicationCatalogue::ApplicationCatalogue(QObject *parent) : QObject(parent) {
           [this] { m_debounce.start(); });
   connect(&m_watcher, &QFileSystemWatcher::fileChanged, this,
           [this](const QString &path) { m_dirtyFiles.insert(path); m_debounce.start(); });
-  connect(&m_debounce, &QTimer::timeout, this, [this] { scan(false); });
+  const auto iconsDirty = [this] { m_iconsDirty = true; m_debounce.start(); };
+  connect(&m_iconWatcher, &QFileSystemWatcher::directoryChanged, this, iconsDirty);
+  connect(&m_iconWatcher, &QFileSystemWatcher::fileChanged, this, iconsDirty);
+  connect(&m_debounce, &QTimer::timeout, this, [this] {
+    const bool iconsChanged = m_iconsDirty;
+    m_iconsDirty = false;
+    if (iconsChanged) invalidateIcons();
+    scan(false);
+    if (iconsChanged) watchIcons();
+  });
   // Reconcile new XDG roots, nested directories and atomically replaced files.
   m_reconcile.setInterval(15000);
   connect(&m_reconcile, &QTimer::timeout, this, [this] { scan(false); });
@@ -176,6 +199,53 @@ QObject *ApplicationCatalogue::heuristicLookup(QString name) const {
   return match;
 }
 void ApplicationCatalogue::refresh(bool force) { scan(force); }
+void ApplicationCatalogue::invalidateIcons() {
+  if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance())) return;
+  // Qt caches misses and the theme directory index. Resetting the same search
+  // paths invalidates both without changing the user's selected icon theme.
+  QIcon::setThemeSearchPaths(QIcon::themeSearchPaths());
+  for (auto *entry : m_entries) entry->invalidateIcon();
+  ++m_iconRevision;
+  emit iconsChanged();
+}
+
+void ApplicationCatalogue::watchIcons() {
+  if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance())) return;
+  m_watchedIconTheme = QIcon::themeName();
+  auto locations = dataRoots();
+  locations.prepend(QDir::homePath() + "/.local/share");
+  auto searchPaths = QIcon::themeSearchPaths();
+  bool pathsChanged = false;
+  for (const auto &location : locations) {
+    const auto path = location + "/icons";
+    if (!searchPaths.contains(path)) { searchPaths.append(path); pathsChanged = true; }
+  }
+  if (pathsChanged) QIcon::setThemeSearchPaths(searchPaths);
+  QSet<QString> wanted;
+  for (const auto &location : locations) {
+    const QDir iconRoot(location + "/icons");
+    if (iconRoot.exists()) wanted.insert(iconRoot.path());
+    else if (QDir(location).exists()) wanted.insert(location);
+    for (const auto &theme : QSet<QString>{QStringLiteral("hicolor"), QIcon::themeName()}) {
+      if (theme.isEmpty() || theme.contains('/') || theme.contains('\\')) continue;
+      const auto path = iconRoot.filePath(theme);
+      if (!QDir(path).exists()) continue;
+      wanted.insert(path);
+      QDirIterator dirs(path, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+      while (dirs.hasNext()) wanted.insert(dirs.next());
+      for (const auto &file : {QStringLiteral("index.theme"), QStringLiteral("icon-theme.cache")}) {
+        const auto full = QDir(path).filePath(file);
+        if (QFileInfo::exists(full)) wanted.insert(full);
+      }
+    }
+  }
+  auto current = m_iconWatcher.directories();
+  current.append(m_iconWatcher.files());
+  const QSet<QString> old(current.begin(), current.end());
+  const auto removed = (old - wanted).values(), added = (wanted - old).values();
+  if (!removed.isEmpty()) m_iconWatcher.removePaths(removed);
+  if (!added.isEmpty()) m_iconWatcher.addPaths(added);
+}
 void ApplicationCatalogue::scan(bool force) {
   m_lookupCache.clear();
   QSet<QString> seen, watched, filesSeen;
@@ -315,6 +385,9 @@ void ApplicationCatalogue::scan(bool force) {
     if (!filesSeen.contains(it.key())) it = m_cachedFiles.erase(it);
     else ++it;
   m_dirtyFiles.clear();
+  const bool themeChanged = qobject_cast<QGuiApplication *>(QCoreApplication::instance()) && m_watchedIconTheme != QIcon::themeName();
+  if (themeChanged && !m_watchedIconTheme.isEmpty()) invalidateIcons();
+  if (entriesChanged || force || themeChanged || m_iconWatcher.directories().isEmpty()) watchIcons();
   if (m_visible != visible || entriesChanged) {
     m_visible = visible;
     emit applicationsChanged();

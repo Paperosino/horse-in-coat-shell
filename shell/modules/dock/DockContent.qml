@@ -115,6 +115,7 @@ Item {
     Timer {id:targetRefresh;interval:80;onTriggered:root.reportTargets()}
     Timer {interval:80;repeat:true;running:Hypr.stacking && root.visible && (pointerField.hovered || root.hoverAmount>0.002);onTriggered:root.reportTargets()}
     Connections {target:Hypr;function onStackingChanged(){root.scheduleTargets();}function onConfigReloaded(){root.lastTargets="";root.scheduleTargets();}}
+    Connections {target:ApplicationCatalogue;function onIconsChanged(){root.scheduleTargets();}}
     Connections {target:Hypr.monitorFor(root.screen);function onLastIpcObjectChanged(){root.scheduleTargets();}}
     Item {
         z:1000
@@ -439,7 +440,7 @@ Item {
                         readonly property bool allMinimized: windows.length > 0 && windows.every(w => Hypr.isMinimized(w))
                         readonly property bool pinned: Taskbar.pinned.includes(group.key)
                         readonly property var entry: group?.entry
-                        readonly property string iconSource: entry?.icon ? Quickshell.iconPath(entry.icon, true) : ""
+                        readonly property string iconSource: entry?.icon ? Icons.themeIcon(entry.icon, "image-missing") : ""
                         readonly property string badgeId: ApplicationBadges.canonicalId(entry?.id || group?.key || "")
                         readonly property var appBadge: ApplicationBadges.entries[badgeId]
                         readonly property int notificationCount: Notifs.unreadByApplication[badgeId] ?? 0
@@ -585,6 +586,7 @@ Item {
                             implicitSize: Math.round(parent.width * 0.62)
                             visible: !!task.iconSource && status !== Image.Error
                             source: task.iconSource
+                            backer.cache: false
                             opacity: task.allMinimized ? 0.55 : 1
 
                             Behavior on opacity {

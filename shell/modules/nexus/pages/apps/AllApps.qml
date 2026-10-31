@@ -67,7 +67,8 @@ PageBase {
                     IconImage {
                         asynchronous: true
                         implicitSize: Math.round(Tokens.font.icon.large.pointSize * 1.8)
-                        source: Quickshell.iconPath(appItem.modelData.icon, "image-missing")
+                        source: Icons.themeIcon(appItem.modelData.icon, "image-missing")
+                        backer.cache: false
                     }
 
                     ColumnLayout {

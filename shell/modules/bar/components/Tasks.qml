@@ -219,7 +219,7 @@ StyledClippingRect {
                     readonly property bool allMinimized: windows.length > 0 && windows.every(w => Hypr.isMinimized(w))
                     readonly property bool pinned: Taskbar.pinned.includes(group.key)
                     readonly property var entry: group?.entry
-                    readonly property string iconSource: entry?.icon ? Quickshell.iconPath(entry.icon, true) : ""
+                    readonly property string iconSource: entry?.icon ? Icons.themeIcon(entry.icon, "image-missing") : ""
                     property bool popupOpen
                     property bool menuMode
                     readonly property bool previewOpen: !!root.popouts && root.popouts.hasCurrent && root.popouts.currentName === "tasks" && root.popouts.taskButton === task
@@ -295,6 +295,7 @@ StyledClippingRect {
                         implicitSize: 20 * Tokens.scale
                         visible: !!task.iconSource && status !== Image.Error
                         source: task.iconSource
+                        backer.cache: false
                         opacity: task.allMinimized ? 0.55 : 1
                         Behavior on opacity { Anim { type: Anim.FastEffects } }
                     }
