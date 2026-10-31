@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory(prefix='hics-focus-motion-') as directory:
         assert ctl('plugin','load',str(base/'data/native/hics-motion.so'))=='ok'
         apps=[]
         for n in range(2):
-            app=subprocess.Popen(['kitty','--class','org.hics.FocusFixture'+str(n),'-o','confirm_os_window_close=0','python3','-u','-c', 'import os,tty; tty.setraw(0); open('+repr(str(base/'keys'))+',"ab",buffering=0).write(os.read(0,1)); import time; time.sleep(120)'],env=appenv,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            app=subprocess.Popen(['kitty','--class','org.hics.FocusFixture'+str(n),'-o','confirm_os_window_close=0','-o','background='+('#a02020' if n == 0 else '#2030a0'),'python3','-u','-c', 'import os,tty; tty.setraw(0); open('+repr(str(base/'keys'))+',"ab",buffering=0).write(os.read(0,1)); import time; time.sleep(120)'],env=appenv,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             apps.append(app); processes.append(app)
             wait(lambda: any(w['pid']==app.pid for w in json.loads(ctl('-j','clients'))),'window did not map')
         def window(n):return next(w for w in json.loads(ctl('-j','clients')) if w['pid']==apps[n].pid)
@@ -65,9 +65,16 @@ with tempfile.TemporaryDirectory(prefix='hics-focus-motion-') as directory:
         assert keyboard.stdout.readline().strip()=='ready'
         for profile in ('expressive','standard','heavy','jelly'):
             ctl('repl','hyprstack_layouts.configure({stackFocusMotion='+json.dumps(profile)+'})')
-            focus(1); time.sleep(.1); before=window(0); focus(0); time.sleep(.08)
+            focus(1); time.sleep(.1); before=window(0); focus(0)
+            if profile == 'expressive' and os.environ.get('HICS_FOCUS_EARLY_SCREENSHOT'):
+                subprocess.run(['grim',os.environ['HICS_FOCUS_EARLY_SCREENSHOT']],env=appenv,check=True)
+            time.sleep(.08)
+            if profile == 'expressive' and os.environ.get('HICS_FOCUS_SCREENSHOT'):
+                subprocess.run(['grim',os.environ['HICS_FOCUS_SCREENSHOT']],env=appenv,check=True)
             current=state(0); outgoing=state(1)
             assert current.get('scale',1)>1 and current.get('paints',0)>0, (profile,current)
+            assert current.get('handoffFrames',0)>0, ('no frames before visual handoff',profile,current)
+            assert not current.get('handoff') and current['elapsed'] >= current['peak'], ('handoff did not finish at spring peak',profile,current)
             assert outgoing.get('scale',1)<1 and outgoing.get('paints',0)>0, (profile,outgoing)
             after=window(0); assert before['at']==after['at'] and before['size']==after['size'], (before,after)
             wait(lambda:not state(0) and not state(1),'focus transformers did not clean up',3)

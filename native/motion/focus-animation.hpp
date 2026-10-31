@@ -5,8 +5,8 @@
 
 class CStackFocusAnimation final : public Render::IWindowTransformer {
   public:
-    CStackFocusAnimation(PHLWINDOW window, double stiffness, double damping, double amplitude) :
-        m_window(window), m_stiffness(stiffness), m_damping(damping), m_amplitude(amplitude) {
+    CStackFocusAnimation(PHLWINDOW window, double stiffness, double damping, double amplitude, CHyprColor accent) :
+        m_window(window), m_stiffness(stiffness), m_damping(damping), m_amplitude(amplitude), m_accent(accent) {
         m_damage = window->getFullWindowBoundingBox().expand(160);
         m_timer = makeShared<CEventLoopTimer>(std::chrono::milliseconds(1), [this](SP<CEventLoopTimer> timer, void*) {
             auto window = m_window.lock();
@@ -62,6 +62,35 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
         Hyprutils::Utils::CScopeGuard damageGuard([&render, sourceDamage] { render.damage = sourceDamage; });
         render.damage = CRegion{0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y};
         g_pHyprRenderer->draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
+        // Before the handoff the outgoing window is composed once in the
+        // overlay pass. Suppressing its normal pass avoids doubling alpha and
+        // shadows for translucent clients outside the overlap.
+        if (m_amplitude < 0 && elapsed() < peakTime()) {
+            ++m_paints;
+            return output;
+        }
+        // Soft, bounded shadow and a low-opacity tonal halo follow elevation.
+        // Draw in the same offscreen pass as the client so they share the same
+        // timestamp, damage and compositor colour management.
+        if (m_amplitude > 0) {
+            const double elevation = std::clamp((scale() - 1.0) / .025, 0.0, 1.0);
+            const CBox box = m_destination.copy().scale(monitor->m_scale);
+            for (int layer = 10; layer >= 1; --layer) {
+                CRectPassElement::SRectData shadow;
+                const double spread = layer * (1.0 + 2.0 * elevation) * monitor->m_scale;
+                shadow.box = box.copy().expand(spread).translate({0.0, (2.0 + elevation * 7.0) * monitor->m_scale});
+                shadow.round = std::lround(12.0 * monitor->m_scale + spread);
+                shadow.color = CHyprColor(0, 0, 0, (.006 + elevation * .008) * (11 - layer));
+                g_pHyprRenderer->draw(shadow, render.damage);
+            }
+            if (elevation > .01) {
+                CRectPassElement::SRectData halo;
+                halo.box = box.copy().expand(5 * monitor->m_scale);
+                halo.round = std::lround(18 * monitor->m_scale);
+                halo.color = m_accent.modifyA(.045 * elevation);
+                g_pHyprRenderer->draw(halo, render.damage);
+            }
+        }
         CTexPassElement::SRenderData texture;
         texture.tex = in->getTexture();
         texture.box = {(m_destination.pos() - m_source.pos() * ratio) * monitor->m_scale, in->m_size * ratio};
@@ -70,6 +99,12 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
         return output;
     }
     int paints() const { return m_paints; }
+    double progress() const { return elapsed(); }
+    double peakTime() const {
+        const double omega = std::sqrt(m_stiffness);
+        const double wd = omega * std::sqrt(1.0 - m_damping * m_damping);
+        return std::atan2(wd, m_damping * omega) / wd;
+    }
     static CStackFocusAnimation* find(PHLWINDOW window) {
         for (const auto& t : window->m_transformers)
             if (auto focus = dynamic_cast<CStackFocusAnimation*>(t.get())) return focus;
@@ -92,6 +127,7 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
     CBox m_source, m_destination, m_damage;
     bool m_hasSource = false;
     double m_stiffness, m_damping, m_amplitude;
+    CHyprColor m_accent;
     int m_paints = 0;
     uint64_t m_cleanup = 0;
     Time::steady_tp m_start = Time::steadyNow();

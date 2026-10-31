@@ -2114,7 +2114,8 @@ hl.on("window.active", function(window)
     if changing or canvas_focus_restore_pending or layouts.mode() ~= "stacking" or not known
         or not overlap or appearance.reducedMotion or overview_active then profile = "off" end
     plugin.focus_animation(window.address, string.format("%x", window.stable_id), profile,
-        previous and previous.address or "", previous and string.format("%x", previous.stable_id) or "")
+        previous and previous.address or "", previous and string.format("%x", previous.stable_id) or "",
+        theme_palette.primary or "d0bcff")
 end)
 
 local function replace_binds(keys, action, description, options)
