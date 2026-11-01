@@ -1,6 +1,7 @@
 #define WLR_USE_UNSTABLE
 
 #include <unistd.h>
+#include <fstream>
 
 #include <any>
 #include <hyprland/src/Compositor.hpp>
@@ -154,6 +155,18 @@ static int unresponsiveLua(lua_State* L) {
     lua_pushlstring(L,json.data(),json.size());return 1;
 }
 
+// An unresponsive shell dialog shares its process with the entire desktop.
+// Resolve its PID from the compositor and fail closed if procfs is absent.
+static bool protectedShellWindow(PHLWINDOW window) {
+    if (!window || window->m_class == "org.hics.Shell") return true;
+    const auto pid = window->getPID();
+    if (pid < 2) return true;
+    std::ifstream input("/proc/" + std::to_string(pid) + "/comm");
+    std::string name;
+    if (!std::getline(input, name)) return true;
+    return name == "hics-qs" || name == "quickshell" || name == "hics-shell";
+}
+
 int animateLuaWindow(lua_State* L) {
     const std::string address = luaL_checkstring(L, 1), id = luaL_checkstring(L, 2), operation = luaL_checkstring(L, 3);
     PHLWINDOW window;
@@ -165,7 +178,7 @@ int animateLuaWindow(lua_State* L) {
     if (operation == "terminate-unresponsive") {
         // Resolve both compositor identities in this event-loop turn. Never
         // accept a PID from QML or target the newly focused application.
-        if (!window->isNotResponding()) {lua_pushboolean(L,false);return 1;}
+        if (protectedShellWindow(window) || !window->isNotResponding()) {lua_pushboolean(L,false);return 1;}
         const auto dispatcher=g_pKeybindManager->m_dispatchers.find("signalwindow");
         if(dispatcher==g_pKeybindManager->m_dispatchers.end()){lua_pushboolean(L,false);return 1;}
         dispatcher->second("address:"+address+",9");lua_pushboolean(L,true);return 1;

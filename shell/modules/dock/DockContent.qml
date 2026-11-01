@@ -840,13 +840,17 @@ Item {
                     }
                     Row {
                         spacing: 6 * Tokens.scale
+                        readonly property bool shellWindow: Number(menuWindow.modelData?.lastIpcObject?.pid) === Quickshell.processId
+                            || menuWindow.modelData?.lastIpcObject?.class === "org.hics.Shell"
                         TaskMenuButton {
-                            width: (menuColumn.width - 6 * Tokens.scale) * 0.3
+                            width: parent.shellWindow ? menuColumn.width : (menuColumn.width - 6 * Tokens.scale) * 0.3
                             text: Tr.tr("Close")
                             onClicked: taskMenu.selectedTask.act("close", menuWindow.modelData)
                         }
                         TaskMenuButton {
                             width: (menuColumn.width - 6 * Tokens.scale) * 0.7
+                            objectName: "dockForceQuit"
+                            visible: !parent.shellWindow
                             text: Tr.tr("Force quit")
                             onClicked: {
                                 taskMenu.selectedTask.act("force-quit", menuWindow.modelData);

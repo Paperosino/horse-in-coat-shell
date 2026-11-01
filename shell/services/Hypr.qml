@@ -105,7 +105,10 @@ Singleton {
     function windowAction(action: string, toplevel: HyprlandToplevel): void {
         const ipc = toplevel?.lastIpcObject;
         if (usingLua && ipc?.address && ipc?.stableId) {
-            const request=`eval hyprstack_layouts.action(${JSON.stringify(action)}, ${JSON.stringify(ipc.address)}, ${JSON.stringify(ipc.stableId)})`;
+            // Quickshell hosts settings and shell dialogs in this process.
+            // Closing such a window must never kill its hosting process.
+            const safeAction = action === "force-quit" && Number(ipc.pid) === Quickshell.processId ? "close" : action;
+            const request=`eval hyprstack_layouts.action(${JSON.stringify(safeAction)}, ${JSON.stringify(ipc.address)}, ${JSON.stringify(ipc.stableId)})`;
             if(action==="force-quit") extras.request(request,()=>root.refreshToplevels());
             else extras.message(request);
         }

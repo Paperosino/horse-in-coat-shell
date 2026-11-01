@@ -1666,6 +1666,20 @@ function layouts.restore_window(window, focus)
     save()
 end
 
+-- hics windows (settings, logout and other dialogs) are hosted by the
+-- long-lived shell process. Never send it SIGKILL for an individual window.
+-- Resolve the PID from Hyprland, never from a request supplied by QML.
+local function protected_shell_window(window)
+    if window.class == "org.hics.Shell" then return true end
+    local pid = tonumber(window.pid)
+    if not pid or pid < 2 or pid % 1 ~= 0 then return true end
+    local file = io.open("/proc/" .. string.format("%.0f", pid) .. "/comm", "r")
+    if not file then return true end
+    local name = file:read("*l")
+    file:close()
+    return name == "hics-qs" or name == "quickshell" or name == "hics-shell"
+end
+
 function layouts.action(operation, address, stable_id)
     local window = address and hl.get_window("address:" .. address) or hl.get_active_window()
     if not window or not window.mapped then return end
@@ -1681,7 +1695,11 @@ function layouts.action(operation, address, stable_id)
         return
     end
     if operation == "force-quit" then
-        hl.dispatch(hl.dsp.window.signal({ window = window, signal = 9 }))
+        if protected_shell_window(window) then
+            hl.dispatch(hl.dsp.window.close({ window = window }))
+        else
+            hl.dispatch(hl.dsp.window.signal({ window = window, signal = 9 }))
+        end
         return
     end
     if operation == "close" then
