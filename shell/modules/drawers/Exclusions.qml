@@ -40,7 +40,11 @@ Scope {
     }
 
     component ExclusionZone: StyledWindow {
-        visible: !GameMode.quietOn(root.screen)
+        // A zero-sized reservation must unmap its surface. Layer-shell
+        // state changes are applied on wl_surface.commit; a transparent 1px
+        // surface can otherwise keep the previous frame reservation while
+        // the shell is idle and no new buffer is committed.
+        visible: !GameMode.quietOn(root.screen) && exclusiveZone > 0
         screen: root.screen
         name: "border-exclusion"
         exclusiveZone: root.frameThickness
