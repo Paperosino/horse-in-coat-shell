@@ -7,6 +7,7 @@
 #include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/config/values/types/ColorValue.hpp>
 #include <hyprland/src/config/values/types/FontWeightValue.hpp>
+#include <optional>
 
 inline HANDLE PHANDLE = nullptr;
 // Canvas forwarding already supplies coordinates on the chosen surface.
@@ -29,6 +30,7 @@ struct SGlobalState {
     std::vector<WP<CHyprBar>> bars;
     CHyprSignalListener pointerMove, pointerButton;
     WP<CHyprBar> pointerHovered, pointerPressed;
+    std::optional<uint32_t> pointerPressedButton;
     uint32_t                  nobarRuleIdx      = 0;
     uint32_t                  barColorRuleIdx   = 0;
     uint32_t                  titleColorRuleIdx = 0;

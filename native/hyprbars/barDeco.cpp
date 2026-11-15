@@ -35,6 +35,8 @@
 #include "BarPassElement.hpp"
 
 #include <climits>
+#include <utility>
+#include <linux/input-event-codes.h>
 #include <pango/pangocairo.h>
 #include "titlebar-controls.hpp"
 #include "titlebar-actions.hpp"
@@ -203,7 +205,8 @@ void CHyprBar::dispatchPointerMove(Vector2D pos, Event::SCallbackInfo& info) {
     auto& pressed = g_pGlobalState->pointerPressed;
     if (!g_pGlobalState->config.enabled->value() || g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) {
         if (hovered && hovered->m_iButtonHoverState) { hovered->m_iButtonHoverState=0; hovered->damageEntire(); }
-        hovered.reset(); pressed.reset(); return;
+        if (pressed) pressed->m_pressedButton.reset();
+        hovered.reset(); pressed.reset(); g_pGlobalState->pointerPressedButton.reset(); return;
     }
     if (pressed) { pressed->onMouseMove(pos); return; }
     const auto current = info.cancelled ? WP<CHyprBar>{} : pointerBar(pos);
@@ -212,28 +215,41 @@ void CHyprBar::dispatchPointerMove(Vector2D pos, Event::SCallbackInfo& info) {
     if (hovered) hovered->onMouseMove(pos);
 }
 void CHyprBar::dispatchPointerButton(IPointer::SButtonEvent event, Event::SCallbackInfo& info) {
-    if (!g_pGlobalState || !g_pGlobalState->config.enabled->value() || g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) return;
+    if (!g_pGlobalState) return;
+    if (!g_pGlobalState->config.enabled->value() || g_pInputManager->isConstrained() || g_pSessionLockManager->isSessionLocked()) {
+        if (g_pGlobalState->pointerPressed) g_pGlobalState->pointerPressed->m_pressedButton.reset();
+        g_pGlobalState->pointerPressed.reset();
+        g_pGlobalState->pointerPressedButton.reset();
+        return;
+    }
     auto& pressed = g_pGlobalState->pointerPressed;
     if (event.state == WL_POINTER_BUTTON_STATE_PRESSED) {
-        if (info.cancelled) return;
+        if (info.cancelled || pressed) return;
         pressed=pointerBar(g_pInputManager->getMouseCoordsInternal());
-        if (pressed) pressed->onMouseButton(info,event);
+        if (pressed) {
+            g_pGlobalState->pointerPressedButton=event.button;
+            pressed->onMouseButton(info,event);
+        }
     } else {
-        if (pressed) pressed->onMouseButton(info,event);
+        if (g_pGlobalState->pointerPressedButton != event.button) return;
+        // Decorations are uniquely owned by the window. Their weak pointers
+        // cannot be promoted to shared ownership; keep the lifetime-aware weak
+        // reference and finish all state changes before the final action.
+        const auto target = pressed;
         pressed.reset();
+        g_pGlobalState->pointerPressedButton.reset();
+        if (target) target->onMouseButton(info,event);
     }
 }
 
 void CHyprBar::onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e) {
-    if (!inputIsValid())
-        return;
-
     if (e.state != WL_POINTER_BUTTON_STATE_PRESSED) {
         handleUpEvent(info);
         return;
     }
+    if (!inputIsValid()) return;
 
-    handleDownEvent(info, std::nullopt);
+    handleDownEvent(info, std::nullopt, e.button == BTN_LEFT);
 }
 
 void CHyprBar::onTouchDown(Event::SCallbackInfo& info, ITouch::SDownEvent e) {
@@ -245,7 +261,7 @@ void CHyprBar::onTouchDown(Event::SCallbackInfo& info, ITouch::SDownEvent e) {
 }
 
 void CHyprBar::onTouchUp(Event::SCallbackInfo& info, ITouch::SUpEvent e) {
-    if (!m_bDragPending || !m_bTouchEv || e.touchID != m_touchId)
+    if ((!m_bDragPending && !m_pressedButton && !m_bCancelledDown) || !m_bTouchEv || e.touchID != m_touchId)
         return;
 
     handleUpEvent(info);
@@ -254,6 +270,7 @@ void CHyprBar::onTouchUp(Event::SCallbackInfo& info, ITouch::SUpEvent e) {
 void CHyprBar::onMouseMove(Vector2D coords) {
     if (m_hidden || !g_pGlobalState->config.enabled->value()) {
         m_bDragPending = false;
+        m_pressedButton.reset();
         return;
     }
     // ensure proper redraws of button icons on hover when using hardware cursors
@@ -267,12 +284,14 @@ void CHyprBar::onMouseMove(Vector2D coords) {
 }
 
 void CHyprBar::onTouchMove(Event::SCallbackInfo& info, ITouch::SMotionEvent e) {
-    if (!m_bDragPending || !m_bTouchEv || !validMapped(m_pWindow) || e.touchID != m_touchId)
+    if ((!m_bDragPending && !m_pressedButton) || !m_bTouchEv || !validMapped(m_pWindow) || e.touchID != m_touchId)
         return;
 
     auto PMONITOR     = m_pWindow->m_monitor.lock();
     PMONITOR          = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
     const auto COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y);
+    m_touchCoords = COORDS - assignedBoxGlobal().pos();
+    if (m_pressedButton) return;
 
     if (!m_bDraggingThis) {
         // Initial setup for dragging a window.
@@ -285,7 +304,8 @@ void CHyprBar::onTouchMove(Event::SCallbackInfo& info, ITouch::SMotionEvent e) {
     m_bDraggingThis = true;
 }
 
-void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch::SDownEvent> touchEvent) {
+void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch::SDownEvent> touchEvent, bool primary) {
+    m_pressedButton.reset();
     m_bTouchEv = touchEvent.has_value();
     if (m_bTouchEv)
         m_touchId = touchEvent.value().touchID;
@@ -304,15 +324,11 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
         }
         PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
         COORDS   = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y) - assignedBoxGlobal().pos();
+        m_touchCoords = COORDS;
     }
 
     const auto HEIGHT           = g_pGlobalState->config.barHeight->value();
-    const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
-    const auto BARPADDING       = g_pGlobalState->config.barPadding->value();
-    const auto ALIGNBUTTONS     = g_pGlobalState->config.barButtonsAlignment->value();
     const auto ON_DOUBLE_CLICK  = g_pGlobalState->config.onDoubleClick->value();
-
-    const bool BUTTONSRIGHT = ALIGNBUTTONS != "left";
 
     if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, HEIGHT - 1)) {
 
@@ -338,7 +354,8 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
     info.cancelled   = true;
     m_bCancelledDown = true;
 
-    if (doButtonPress(BARPADDING, BARBUTTONPADDING, HEIGHT, COORDS, BUTTONSRIGHT))
+    if (!primary) { m_bDragPending = false; return; }
+    if (primary && armButtonPress(COORDS))
         return;
 
     if (!ON_DOUBLE_CLICK.empty() &&
@@ -353,10 +370,12 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
 }
 
 void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
-    if (m_pWindow.lock() != Desktop::focusState()->window())
-        return;
+    const auto pending = std::exchange(m_pressedButton, std::nullopt);
+    const bool captured = m_bCancelledDown;
+    const auto coords = m_bTouchEv ? m_touchCoords : cursorRelativeToBar();
+    const bool activate = !info.cancelled && inputIsValid() && m_pWindow.lock() == Desktop::focusState()->window();
 
-    if (m_bCancelledDown)
+    if (captured)
         info.cancelled = true;
 
     m_bCancelledDown = false;
@@ -373,6 +392,14 @@ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
     m_bDragPending = false;
     m_bTouchEv     = false;
     m_touchId      = 0;
+    // Clear capture before executing an action that may close this window.
+    if (activate && pending && buttonAt(coords) == pending->index && pending->index < g_pGlobalState->buttons.size()) {
+        const auto& button = g_pGlobalState->buttons[pending->index];
+        if (button.icon != pending->icon || button.cmd != pending->command) return;
+        const auto window = m_pWindow.lock();
+        if (!pending->icon.starts_with("hyprstack:") || !runDecorationAction(window, pending->icon.substr(10)))
+            Config::Supplementary::executor()->spawn("env HYPRSTACK_WINDOW_ADDRESS=" + std::format("0x{:x}", reinterpret_cast<uintptr_t>(window.get())) + " HYPRSTACK_WINDOW_ID=" + std::format("{:x}", window->m_stableID) + " " + pending->command);
+    }
 }
 
 void CHyprBar::handleMovement() {
@@ -382,24 +409,35 @@ void CHyprBar::handleMovement() {
     return;
 }
 
-bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, const bool BUTTONSRIGHT) {
-    //check if on a button
-    float offset = barPadding;
+bool CHyprBar::armButtonPress(Vector2D COORDS) {
+    const auto index = buttonAt(COORDS);
+    if (!index) return false;
+    const auto& button = g_pGlobalState->buttons[*index];
+    m_pressedButton = SPendingButton{*index, button.icon, button.cmd};
+    m_bDragPending = false;
+    return true;
+}
 
-    for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, barHeight};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
+std::optional<size_t> CHyprBar::buttonAt(Vector2D COORDS) {
+    const auto height = g_pGlobalState->config.barHeight->value();
+    const auto padding = g_pGlobalState->config.barPadding->value();
+    const auto spacing = g_pGlobalState->config.barButtonPadding->value();
+    const bool right = g_pGlobalState->config.barButtonsAlignment->value() != "left";
+    if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, height - 1)) return std::nullopt;
+    float offset = padding;
+    const auto count = getVisibleButtonCount(spacing, padding, Vector2D{assignedBoxGlobal().w, height}, 1.F);
+
+    for (size_t index = 0; index < count; ++index) {
+        const auto& b = g_pGlobalState->buttons[index];
+        Vector2D currentPos = Vector2D{right ? assignedBoxGlobal().w - b.size - offset : offset, (height - b.size) / 2.0}.floor();
 
         if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size, currentPos.y + b.size)) {
-            // hit on close
-            if (!b.icon.starts_with("hyprstack:") || !runDecorationAction(m_pWindow.lock(), b.icon.substr(10)))
-                g_pKeybindManager->m_dispatchers["exec"]("env HYPRSTACK_WINDOW_ADDRESS=" + std::format("0x{:x}", reinterpret_cast<uintptr_t>(m_pWindow.lock().get())) + " HYPRSTACK_WINDOW_ID=" + std::format("{:x}", m_pWindow->m_stableID) + " " + b.cmd);
-            return true;
+            return index;
         }
 
-        offset += barButtonPadding + b.size;
+        offset += spacing + b.size;
     }
-    return false;
+    return std::nullopt;
 }
 
 void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
