@@ -378,6 +378,35 @@ def apply_desktop_palette(colours, config_root, mode=None):
     apply_palette(colours, config_root, mode)
     sync_session_preference(colours, config_root, mode)
     sync_flatpaks(colours, mode)
+    sync_root_appearance(colours, config_root, mode)
+
+
+def sync_root_appearance(colours, config_root, mode=None):
+    """Send bounded appearance data to the system broker, never user code/CSS."""
+    if os.geteuid() == 0 or not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):
+        return
+    antialias, hinting = font_rendering()
+    gtk = configparser.ConfigParser(interpolation=None, strict=False)
+    gtk.read(Path(config_root)/'gtk-3.0/settings.ini')
+    section = gtk['Settings']
+    qt = configparser.ConfigParser(interpolation=None, strict=False)
+    qt.read(Path(config_root)/'qt6ct/qt6ct.conf')
+    request = {'colours': colours,
+               'mode': mode or ('dark' if section.getboolean('gtk-application-prefer-dark-theme', fallback=False) else 'light'),
+               'antialias': antialias, 'hinting': hinting,
+               'icons': section.get('gtk-icon-theme-name', 'Adwaita'),
+               'cursor': section.get('gtk-cursor-theme-name', 'Adwaita'),
+               'cursorSize': section.getint('gtk-cursor-theme-size', 24),
+               'font': section.get('gtk-font-name', 'Adwaita Sans 11'),
+               'qtFont': qt.get('Fonts', 'general', fallback='Adwaita Sans,11,-1,5,50,0,0,0,0,0'),
+               'controls': window_controls(config_root)}
+    try:
+        result = subprocess.run(['hics-systemctl', 'apply', 'appearance', 'configure'],
+                                input=json.dumps(request), capture_output=True, text=True, timeout=15)
+        if result.returncode:
+            print('Unable to synchronize administrative appearance:', result.stdout[:2048], result.stderr[:2048], file=sys.stderr)
+    except (OSError, subprocess.SubprocessError) as error:
+        print('Unable to synchronize administrative appearance:', error, file=sys.stderr)
 
 
 def install_legacy_gtk2(config_root):

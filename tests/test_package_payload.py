@@ -9,6 +9,9 @@ class PackagePayload(unittest.TestCase):
   self.payload=('qs/bin/hics-qs','qs/lib/libQt6Core.so.6','qs/lib/libQt6Concurrent.so.6','qs/lib/libjemalloc.so.2','qs/licenses/jemalloc-BSD-2-Clause','qs/lib/qt6/plugins/sqldrivers/libqsqlibase.so','qs/lib/qt6/plugins/sqldrivers/libqsqlmysql.so','qs/lib/qt6/plugins/sqldrivers/libqsqlodbc.so','qs/lib/qt6/plugins/sqldrivers/libqsqlpsql.so','qs/lib/qt6/plugins/sqldrivers/libqsqlite.so','qs/licenses/libfbclient/LICENSE','qs/licenses/postgresql-libs/COPYRIGHT','qs/hics-qt-patches.json','qs/hics-quickshell-patches.json','shell/shell.qml','shell/recovery/shell.qml')
   for name in self.payload:
    p=self.source/'usr/share/hics'/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('fixture');p.chmod(0o755 if name.endswith('hics-qs') else 0o644)
+  self.admin_payload=('usr/share/hics/xwayland/Xwayland','usr/share/hics/shell/assets/xwayland_auth.py','usr/share/hics/shell/assets/root_appearance.py','usr/share/hics/shell/assets/gtk_theme.py','usr/share/hics/shell/assets/session_bootstrap.py','usr/lib/qt/plugins/platformthemes/libhics-qt5-theme.so','usr/lib/qt6/plugins/platformthemes/libhics-qt6-theme.so','etc/pam.d/hics-root-appearance','etc/security/hics-root-appearance.conf')
+  for name in self.admin_payload:
+   p=self.source/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('fixture');p.chmod(0o755 if name.endswith('Xwayland') else 0o644)
   backend=self.start/'portal-backend-build/build/xdg-desktop-portal-hyprland';backend.parent.mkdir(parents=True);backend.write_text('fixture')
   license=self.start/'portal-backend-build/xdph/LICENSE';license.parent.mkdir(parents=True);license.write_text('fixture license')
   override=self.start/'src/hics/distribution/systemd/user/xdg-desktop-portal-hyprland.service.d/60-hics-portal-backend.conf'
@@ -46,4 +49,11 @@ package
  def test_corrupt_qt_payload_stops_before_native_validation(self):
   (self.source/'usr/share/hics/qs/lib/libQt6Core.so.6').write_text('corrupt')
   result=self.run_package();self.assertNotEqual(result.returncode,0);self.assertIn('checksum mismatch',result.stderr);self.assertFalse((self.base/'validated').exists())
+ def test_each_missing_administrative_component_stops_packaging(self):
+  for name in self.admin_payload:
+   with self.subTest(component=name):
+    p=self.source/name;data=p.read_bytes();mode=p.stat().st_mode;p.unlink()
+    result=self.run_package();self.assertNotEqual(result.returncode,0);self.assertIn(name,result.stderr)
+    self.assertFalse((self.base/'validated').exists())
+    p.write_bytes(data);p.chmod(mode)
 if __name__=='__main__' :unittest.main()

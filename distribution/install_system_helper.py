@@ -25,6 +25,13 @@ def deployment(prefix):
     yield Path('/usr/local/share/dbus-1/system-services/org.hics.System1.service'), activation.encode(), 0o644
     yield Path('/etc/dbus-1/system.d/org.hics.System1.conf'), (ROOT / 'distribution/dbus/org.hics.System1.conf').read_bytes(), 0o644
     yield Path('/usr/share/polkit-1/actions/org.hics.system.policy'), (ROOT / 'distribution/polkit/org.hics.system.policy').read_bytes(), 0o644
+    for name in ('root_appearance.py', 'gtk_theme.py'):
+        yield Path('/usr/share/hics/shell/assets')/name, (ROOT/'shell/assets'/name).read_bytes(), 0o644
+    yield Path('/etc/pam.d/hics-root-appearance'), (ROOT/'distribution/appearance/hics-root-appearance.pam').read_bytes(), 0o644
+    yield Path('/etc/security/hics-root-appearance.conf'), (ROOT/'distribution/appearance/hics-root-appearance.conf').read_bytes(), 0o644
+    for version, directory in ((5, 'qt'), (6, 'qt6')):
+        relative = Path('lib')/directory/'plugins/platformthemes'/f'libhics-qt{version}-theme.so'
+        yield Path('/usr')/relative, (prefix/relative).read_bytes(), 0o755
 
 
 def install(prefix):
@@ -46,6 +53,13 @@ def install(prefix):
         finally:
             Path(temporary).unlink(missing_ok=True)
     Path('/etc/hics').mkdir(parents=True, exist_ok=True)
+    Path('/root/.config').mkdir(parents=True, exist_ok=True, mode=0o700)
+    Path('/root/.local/share/color-schemes').mkdir(parents=True, exist_ok=True, mode=0o700)
+    Path('/root/.gtkrc-2.0').touch(exist_ok=True)
+    pam = Path('/etc/pam.d/system-auth')
+    include = 'session include hics-root-appearance'
+    if include not in pam.read_text().splitlines():
+        with pam.open('a') as stream: stream.write('\n'+include+'\n')
     Path('/etc/systemd/zram-generator.conf.d').mkdir(parents=True, exist_ok=True)
     subprocess.run(['systemctl', 'daemon-reload'], check=True)
     subprocess.run(['systemctl', 'reload', 'dbus.service'], check=True)

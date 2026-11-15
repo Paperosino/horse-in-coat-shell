@@ -17,7 +17,7 @@ class StartupTests(unittest.TestCase):
   theme=types.SimpleNamespace(restore=lambda:events.append(('theme',None)))
   with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner,'wait_preflight',side_effect=lambda child,timeout:child.wait(timeout=timeout)),patch.object(runner.os,'killpg'):runner.prepare_session()
   starts=[i for i,e in enumerate(events) if e[0]=='start'];waits=[i for i,e in enumerate(events) if e[0]=='wait']
-  self.assertEqual(len(starts),4);self.assertLess(max(starts),min(waits));self.assertLess(events.index(('theme',None)),min(waits))
+  self.assertEqual(len(starts),5);self.assertLess(max(starts),min(waits));self.assertLess(events.index(('theme',None)),min(waits))
  def test_timeout_kills_and_reaps_unfinished_helper(self):
   class Child:
    pid=321
@@ -29,7 +29,7 @@ class StartupTests(unittest.TestCase):
   appearance=types.SimpleNamespace(STATE=types.SimpleNamespace(is_file=lambda:False),session_environment=lambda:{})
   theme=types.SimpleNamespace(restore=lambda:None)
   with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner,'wait_preflight',side_effect=lambda child,timeout:child.wait(timeout=timeout)),patch.object(runner.os,'killpg') as kill,patch.object(runner.time,'monotonic',side_effect=itertools.count(step=10).__next__):
-   runner.prepare_session();self.assertEqual(kill.call_count,3)
+   runner.prepare_session();self.assertEqual(kill.call_count,4)
  def test_stop_during_preparation_cancels_and_reaps_all_started_jobs(self):
   stopping=False;children=[]
   class Child:
@@ -46,7 +46,7 @@ class StartupTests(unittest.TestCase):
   theme=types.SimpleNamespace(restore=lambda:None)
   with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',Child),patch.object(runner,'wait_preflight',side_effect=lambda child,timeout:child.wait(timeout=timeout)),patch.object(runner.os,'killpg') as kill:
    self.assertFalse(runner.prepare_session(lambda:stopping))
-  self.assertEqual(len(children),3);self.assertEqual(kill.call_count,3)
+  self.assertEqual(len(children),4);self.assertEqual(kill.call_count,4)
   self.assertTrue(all(c.reaped for c in children));self.assertLessEqual(children[0].timeout,.25)
  def test_unchanged_theme_file_keeps_inode_and_mtime(self):
   spec=importlib.util.spec_from_file_location('startup_theme',ROOT/'shell/assets/gtk_theme.py');theme=importlib.util.module_from_spec(spec);spec.loader.exec_module(theme)
@@ -66,7 +66,7 @@ class StartupTests(unittest.TestCase):
   try:
    with patch.dict(sys.modules,appearance_themes=appearance,gtk_theme=theme),patch.object(runner.subprocess,'Popen',side_effect=spawn):
     self.assertFalse(runner.prepare_session(lambda:time.monotonic()>=deadline))
-   self.assertEqual(len(children),3)
+   self.assertEqual(len(children),4)
    self.assertTrue(all(c.poll() is not None for c in children))
    self.assertLess(time.monotonic()-start,3)
   finally:
@@ -88,7 +88,7 @@ class StartupTests(unittest.TestCase):
      self.assertTrue(runner.prepare_session())
     records=[json.loads(p.read_text()) for p in Path(directory).iterdir()]
     descendants=[r['managed'] for r in records]
-    self.assertEqual(len(descendants),3)
+    self.assertEqual(len(descendants),4)
     def active(pid):
      try:return Path(f'/proc/{pid}/stat').read_text().rsplit(')',1)[1].split()[0]!='Z'
      except (FileNotFoundError,ProcessLookupError):return False

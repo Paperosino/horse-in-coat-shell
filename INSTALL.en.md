@@ -95,7 +95,7 @@ Additionally install the system Quickshell and Qt:
 ```bash
 sudo pacman -S --needed quickshell nlohmann-json qt6-base qt6-declarative \
   qt6-shadertools qt6-svg qt6-imageformats qt6-wayland pixman libdrm \
-  libinput systemd-libs wayland libxkbcommon pango cairo
+  libinput systemd-libs wayland libxkbcommon pango cairo qt5ct qt6ct xorg-xauth dconf
 ```
 
 ```bash
@@ -120,6 +120,22 @@ launch it creates only missing settings in `$XDG_CONFIG_HOME/hics` (normally
 existing HICS configurations retain local settings, including monitor modes.
 Without a display manager, run `hics-start` from a TTY. Use `hics-start --prepare`
 to prepare settings without starting the compositor.
+
+The **HICS** session creates a private `0600` Xauthority file under
+`XDG_RUNTIME_DIR` and starts XWayland with `-auth` and TCP disabled. The shell
+grants local root access using `SI:localuser:root`, while keeping access control
+enabled. Root access can be applied to the current server; starting it with
+the authority file requires a new **HICS** login, not the plain Hyprland entry.
+
+The system broker synchronizes validated palette, mode, font rendering,
+system icon/cursor and window-control preferences into root's own GTK 2/3/4,
+Qt 5/6, KDE and Qt Quick configuration. It does not execute user CSS or plugins
+as root. Icon and cursor themes must exist in `/usr/share/icons`; otherwise
+Adwaita is used. The optional root-only PAM session include supplies the Qt
+theme environment for sudo/Polkit and selects libadwaita's GSettings backend
+without a user portal. Authentication checks are unchanged. Some running
+applications need restarting to reload CSS; applications forcing their own
+style can override desktop appearance.
 
 The following is an **optional manual migration** for deliberately replacing an
 existing configuration. It is unnecessary for a normal package installation.

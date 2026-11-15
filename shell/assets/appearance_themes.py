@@ -204,6 +204,11 @@ def apply(kind, theme, size=24, runtime=True):
         if os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):
             script=';'.join('hl.env('+json.dumps(k)+','+json.dumps(v,ensure_ascii=False)+')' for k,v in environment.items())
             command(['hyprctl','repl',script],warnings)
+        scheme_path=Path(os.environ.get('XDG_STATE_HOME',HOME/'.local/state'))/'hics/scheme.json'
+        scheme=read_json(scheme_path)
+        if scheme.get('colours'):
+            from gtk_theme import sync_root_appearance
+            sync_root_appearance(scheme['colours'],CONFIG,scheme.get('mode'))
     return {'current':current(),'warnings':warnings}
 
 def session_environment():

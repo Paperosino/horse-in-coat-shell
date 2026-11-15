@@ -53,6 +53,11 @@ hics_systemd_running() {
 }
 
 post_install() {
+    if ! grep -Eq '^session[[:space:]]+include[[:space:]]+hics-root-appearance$' /etc/pam.d/system-auth; then
+        printf '\nsession include hics-root-appearance\n' >> /etc/pam.d/system-auth || return 1
+    fi
+    install -d -m 0700 /root/.config /root/.local/share/color-schemes || return 1
+    test -e /root/.gtkrc-2.0 || touch /root/.gtkrc-2.0 || return 1
     # Enabling writes persistent symlinks and also works inside an offline
     # pacstrap/chroot. Only daemon-reload/start needs a running system manager.
     install -d -m755 /etc/hics /etc/systemd/zram-generator.conf.d
@@ -140,4 +145,8 @@ hics_pause_user_config() {
 
 pre_upgrade() {
     if hics_systemd_running; then hics_pause_user_config; fi
+}
+
+post_remove() {
+    sed -i '/^session include hics-root-appearance$/d' /etc/pam.d/system-auth
 }

@@ -93,6 +93,7 @@ def prepare_session(cancelled=lambda: False):
     """
     from appearance_themes import STATE, session_environment
     jobs = [("accessibility", "accessibility_manager.py", "startup", 20),
+            ("XWayland authorization", "xwayland_auth.py", "startup", 5),
             ("display protection", "display_profiles.py", "status", 20),
             ("configuration recovery", "configuration_manager.py", "status", 20)]
     if STATE.is_file():

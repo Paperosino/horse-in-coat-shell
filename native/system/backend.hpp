@@ -28,6 +28,8 @@ void applyRegion(const QString&,const QJsonObject&);
 QJsonObject applicationsStatus();
 void validateApplications(const QString&,const QJsonObject&);
 void applyApplications(const QString&,const QJsonObject&);
+void validateAppearance(const QString&,const QJsonObject&);
+void applyAppearance(const QJsonObject&);
 QJsonObject storageStatus();
 void validateStorage(const QString &operation, const QJsonObject &options);
 void storageMaintenance(const QString &operation, const QJsonObject &options);

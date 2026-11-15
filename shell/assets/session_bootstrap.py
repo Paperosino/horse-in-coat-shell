@@ -55,6 +55,8 @@ def main():
     os.environ.update(env)
     if sys.argv[1:]==['--prepare']:
         print(json.dumps({'environment':env,'configuration':str(configuration)}));return
+    from xwayland_auth import prepare as prepare_xwayland
+    os.environ.update(prepare_xwayland(data))
     os.execvp('start-hyprland',['start-hyprland','--','--config',str(configuration)])
 
 

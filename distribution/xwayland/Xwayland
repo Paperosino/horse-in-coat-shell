@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+"""Private HICS launch adapter for the compositor-owned XWayland server."""
+import os
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'shell/assets'))
+from xwayland_auth import server_arguments
+
+try:
+    os.execv('/usr/bin/Xwayland', ['/usr/bin/Xwayland', *server_arguments(sys.argv[1:])])
+except (OSError, ValueError) as error:
+    raise SystemExit('hics XWayland: ' + str(error))

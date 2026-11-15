@@ -137,7 +137,7 @@ def pull_sources():
 
 
 def preflight():
-    missing = [name for name in ("Hyprland", "hyprctl", "qs", "cmake", "ninja", "pkg-config", "c++", "msgfmt") if not shutil.which(name)]
+    missing = [name for name in ("Hyprland", "hyprctl", "qs", "cmake", "ninja", "pkg-config", "c++", "msgfmt", "xauth", "dconf", "qt5ct", "qt6ct") if not shutil.which(name)]
     if missing:
         raise ValueError("Не найдены зависимости: " + ", ".join(missing) + ". См. INSTALL.md.")
     hypr = json.loads(capture(["Hyprland", "--version-json"]) or "{}")

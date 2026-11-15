@@ -2,7 +2,7 @@
 
 pkgname=hic-shell
 pkgver=1.1.1
-pkgrel=129
+pkgrel=130
 pkgdesc="hics desktop shell for Hyprland, with a bundled private quickshell and Qt runtime"
 arch=(x86_64)
 # Preserve bundled runtime/plugin checksums generated during packaging.
@@ -14,9 +14,9 @@ license=(GPL-3.0-only BSD-2-Clause BSD-3-Clause Apache-2.0 MIT CC-BY-SA-3.0-US
 depends=(gnome-keyring 'ffmpeg' 'hyprland=0.56.2' libqalculate lm_sensors pixman libdrm libinput systemd
     hyprland-guiutils wayland libxkbcommon pango cairo libcups cups accountsservice fprintd fwupd colord gamemode flatpak apparmor restic seahorse fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt squeekboard poppler icu python python-pillow kitty firefox fuzzel
     btop pavucontrol wl-clipboard cliphist grim slurp wf-recorder swappy
-    glib2 gvfs libnotify brightnessctl networkmanager libnm libsecret pipewire pipewire-pulse libpulse wireplumber rtkit upower
+    glib2 dconf gvfs libnotify brightnessctl networkmanager libnm libsecret pipewire pipewire-pulse libpulse wireplumber rtkit upower
     polkit hyprlock hyprpicker xdg-utils xdg-user-dirs libxml2
-    adwaita-icon-theme noto-fonts-emoji dbus udisks2 qt5ct qt6ct libxcursor xorg-xrdb
+    adwaita-icon-theme noto-fonts-emoji dbus udisks2 qt5ct qt6ct libxcursor libx11 xorg-xauth xorg-xrdb
     gtk2 gtk3 gtk4 libadwaita webkitgtk-6.0 blueman bluez bluez-obex pacman-contrib gsettings-desktop-schemas
     'util-linux>=2.41' kmod btrfs-progs bubblewrap
     orca python-atspi at-spi2-core speech-dispatcher espeak-ng
@@ -62,6 +62,11 @@ package() {
         [[ -s "$pkgdir/usr/share/hics/$hics_payload" ]] || { error "Missing packaged HICS runtime: $hics_payload"; return 1; }
     done
     [[ -x "$pkgdir/usr/share/hics/qs/bin/hics-qs" ]] || { error "Packaged HICS runtime is not executable"; return 1; }
+    # Administrative GUI support is part of the desktop, including cached builds.
+    for hics_payload in usr/share/hics/xwayland/Xwayland usr/share/hics/shell/assets/xwayland_auth.py usr/share/hics/shell/assets/root_appearance.py usr/share/hics/shell/assets/gtk_theme.py usr/share/hics/shell/assets/session_bootstrap.py usr/lib/qt/plugins/platformthemes/libhics-qt5-theme.so usr/lib/qt6/plugins/platformthemes/libhics-qt6-theme.so etc/pam.d/hics-root-appearance etc/security/hics-root-appearance.conf; do
+        [[ -s "$pkgdir/$hics_payload" ]] || { error "Missing packaged administrative GUI integration: $hics_payload"; return 1; }
+    done
+    [[ -x "$pkgdir/usr/share/hics/xwayland/Xwayland" ]] || { error "Packaged XWayland launcher is not executable"; return 1; }
     python distribution/apply_qt_runtime_patches.py --root "$pkgdir/usr/share/hics/qs"
     python distribution/apply_quickshell_patches.py verify --root "$pkgdir/usr/share/hics/qs" --require-jemalloc
     python distribution/quickshell_allocator/verify.py "$pkgdir/usr/share/hics/qs/bin/hics-qs"

@@ -17,6 +17,7 @@ RestartSec=3
 NoNewPrivileges=yes
 ProtectSystem=strict
 ReadWritePaths=-/etc/apparmor.d
+ReadWritePaths=-/root/.config -/root/.local/share/color-schemes -/root/.gtkrc-2.0
 ProtectHome=read-only
 PrivateTmp=yes
 PrivateDevices=yes

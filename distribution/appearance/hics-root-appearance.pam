@@ -1,0 +1,3 @@
+# Session environment only; authentication and account checks stay unchanged.
+session [success=1 default=ignore] pam_succeed_if.so uid != 0 quiet
+session optional pam_env.so conffile=/etc/security/hics-root-appearance.conf readenv=0 user_readenv=0

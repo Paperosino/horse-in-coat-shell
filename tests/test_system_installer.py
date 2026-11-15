@@ -9,13 +9,15 @@ class SystemInstaller(unittest.TestCase):
   with tempfile.TemporaryDirectory() as directory:
    prefix=Path(directory);(prefix/'bin').mkdir()
    for name in ('hics-systemd','hics-systemctl','hics-memory','hics-region','hics-game-lease','hics-crash-report','hics-prefetch','hics-gpu-monitor'):(prefix/'bin'/name).write_bytes(b'fixture')
+   for version,qt_directory in ((5,'qt'),(6,'qt6')):
+    plugin=prefix/'lib'/qt_directory/'plugins/platformthemes'/f'libhics-qt{version}-theme.so';plugin.parent.mkdir(parents=True);plugin.write_bytes(b'fixture')
    plan={str(path):(content,mode) for path,content,mode in installer.deployment(prefix)}
-   self.assertEqual(len(plan),13)
+   self.assertEqual(len(plan),19)
    for path,(content,mode) in plan.items():
     self.assertNotIn(directory,path)
     if path.endswith('.service'):
      self.assertNotIn(directory,content.decode());self.assertIn('/usr/local/bin/hics-memory' if path.endswith('hics-memory.service') else '/usr/local/bin/hics-systemd',content.decode())
-    self.assertEqual(mode,0o755 if path.startswith('/usr/local/bin/') else 0o644)
+    self.assertEqual(mode,0o755 if path.startswith('/usr/local/bin/') or path.endswith('.so') else 0o644)
  def test_package_wires_system_service_post_install(self):
   pkg=(ROOT/'packaging/arch/PKGBUILD').read_text()
   script=(ROOT/'packaging/arch/build-package.sh').read_text()
@@ -46,6 +48,7 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
 ''')
   command.chmod(0o755)
   (self.directory/'install').write_text('#!/bin/sh\nexit 0\n');(self.directory/'install').chmod(0o755)
+  (self.directory/'touch').write_text('#!/bin/sh\nexit 0\n');(self.directory/'touch').chmod(0o755)
   self.env=dict(os.environ,PATH=str(self.directory)+':'+os.environ['PATH'],HICS_TEST_LOG=str(self.log),HICS_TEST_UNITS='user@1000.service loaded active running User Manager\nuser@1001.service loaded active running User Manager')
  def run_hook(self):
   import json
@@ -80,6 +83,18 @@ elif os.environ.get('HICS_TEST_FAIL_MACHINE') in args and args[-1]==os.environ.g
   self.assertIn(['restart','hics-system.service'],commands)
   self.assertIn(['--global','enable','hic-session.service'],commands)
   self.assertIn(['--global','enable','hics-desktop.service'],commands)
+
+ def test_root_appearance_pam_hook_is_idempotent_and_removable(self):
+  pam=self.directory/'system-auth';original='# distribution authentication rules\nsession optional pam_permit.so\n';pam.write_text(original)
+  compatibility=self.directory/'hyprstack';compatibility.symlink_to('hics')
+  hook=self.directory/'hook.sh'
+  hook.write_text((ROOT/'packaging/arch/hic-shell.install').read_text().replace('/etc/pam.d/system-auth',str(pam)).replace('/usr/share/hyprstack',str(compatibility)).replace('/root/',str(self.directory/'root')+'/'))
+  result=subprocess.run(['bash','-c','. "$1"; post_install && post_install','hook-test',str(hook)],env=self.env,text=True,capture_output=True)
+  self.assertEqual(result.returncode,0,result.stderr)
+  self.assertEqual(pam.read_text().count('session include hics-root-appearance'),1)
+  self.assertTrue(pam.read_text().startswith(original))
+  subprocess.run(['bash','-c','. "$1"; post_remove','hook-test',str(hook)],env=self.env,check=True)
+  self.assertEqual(pam.read_text().strip(),original.strip())
 
  def test_first_install_starts_shell_only_with_hyprland_environment(self):
   import socket

@@ -6,6 +6,8 @@
 #include <QLibraryInfo>
 #include <QVersionNumber>
 #include <memory>
+#include <QDir>
+#include <unistd.h>
 
 // qt*ct supplies the exact shell palette and fonts, but does not implement
 // QPlatformTheme::colorScheme. KDE and automatic editor themes need both.
@@ -18,7 +20,10 @@ public:
 #else
         QStringLiteral("qt5ct")
 #endif
-    )) {}
+    )) {
+        if (geteuid() == 0 && qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_CONF"))
+            qputenv("QT_QUICK_CONTROLS_CONF", (QDir::homePath() + QStringLiteral("/.config/hics/qtquickcontrols2.conf")).toUtf8());
+    }
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     Qt::ColorScheme colorScheme() const override {
         const auto *p = palette();
@@ -53,7 +58,9 @@ public:
         const auto version = QLibraryInfo::version();
         if (version.majorVersion() != QT_VERSION_MAJOR || version.minorVersion() != QT_VERSION_MINOR)
             return nullptr;
-        return key == QLatin1String("hics") ? new HicsTheme : nullptr;
+        // Polkit clears QT_QPA_PLATFORMTHEME. Unix Qt still asks for generic;
+        // intercept that fallback only for root, preserving ordinary sessions.
+        return (key == QLatin1String("hics") || (key == QLatin1String("generic") && geteuid() == 0)) ? new HicsTheme : nullptr;
     }
 };
 #include "main.moc"

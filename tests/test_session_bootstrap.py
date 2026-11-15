@@ -1,7 +1,7 @@
 """A fresh HICS login preserves other compositor setups and existing preferences."""
 import importlib.util, os, tempfile, unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('hics_bootstrap',ROOT/'shell/assets/session_bootstrap.py')
 bootstrap=importlib.util.module_from_spec(spec);spec.loader.exec_module(bootstrap)
@@ -99,7 +99,7 @@ class SessionBootstrap(unittest.TestCase):
   self.assertTrue(marker.exists(),'Desktop entry did not launch the quoted executable')
 
  def test_launch_uses_supported_compositor_watchdog_and_private_config(self):
-  with patch.object(bootstrap.os,'geteuid',return_value=1000),patch.object(bootstrap.sys,'argv',['hics-start']),patch.dict(os.environ,{'HICS_DATA_DIR':str(self.data),'XDG_CONFIG_HOME':str(self.config)}),patch.object(bootstrap.os,'execvp') as launch:
+  with patch.dict('sys.modules', {'xwayland_auth': Mock(prepare=lambda data: {})}),patch.object(bootstrap.os,'geteuid',return_value=1000),patch.object(bootstrap.sys,'argv',['hics-start']),patch.dict(os.environ,{'HICS_DATA_DIR':str(self.data),'XDG_CONFIG_HOME':str(self.config)}),patch.object(bootstrap.os,'execvp') as launch:
    with patch.dict(os.environ):
     os.environ.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
     bootstrap.main()

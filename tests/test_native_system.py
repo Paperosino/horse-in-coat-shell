@@ -24,4 +24,9 @@ class NativeSystemTests(unittest.TestCase):
  def test_invalid_json_never_reaches_bus(self):
   result=subprocess.run([str(CLIENT),'apply','power','profile'],input='{"bad":',text=True,capture_output=True,timeout=3)
   self.assertEqual(json.loads(result.stdout)['code'],'invalid')
+ def test_appearance_rejects_paths_scripts_and_wrong_types(self):
+  self.invalid('appearance','configure',{'path':'/root/.config','css':'untrusted'})
+  valid=dict(colours=dict(surface='101018',onSurface='eeeeee',surfaceContainer='202028',primary='aaccee',onPrimary='102030',outlineVariant='505060'),mode='dark',antialias=True,hinting='slight',icons='Adwaita',cursor='Adwaita',cursorSize=24,font='Sans 11',qtFont='Sans,11',controls={'side':'right','order':['close']})
+  for key,value in [('icons','../../private'),('font','bad\nfont'),('cursorSize',True),('controls',{'side':'left','order':['exec']})]:
+   with self.subTest(key=key):self.invalid('appearance','configure',{**valid,key:value})
 if __name__=='__main__':unittest.main()
