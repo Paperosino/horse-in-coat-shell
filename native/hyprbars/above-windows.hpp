@@ -5,6 +5,7 @@
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/plugins/HookSystem.hpp>
 #include <unordered_map>
+#include <dlfcn.h>
 
 namespace hics::above {
 inline std::unordered_map<uint64_t, PHLWINDOWREF> windows;
@@ -42,13 +43,13 @@ inline void remove(HANDLE handle) {
     windows.clear();
 }
 inline void install(HANDLE handle) {
-    for (const auto& symbol : HyprlandAPI::findFunctionsByName(handle,"raise")) {
-        if (!symbol.demangled.starts_with("Desktop::CWindowState::raise(")) continue;
-        hook=HyprlandAPI::createFunctionHook(handle,symbol.address,reinterpret_cast<void*>(raised));
-        if (!hook || !hook->hook()) { remove(handle); throw std::runtime_error("hics: cannot install window stacking order"); }
-        closed=Event::bus()->m_events.window.close.listen([](PHLWINDOW window){if(window)windows.erase(window->m_stableID);});
-        return;
-    }
-    throw std::runtime_error("hics: missing pinned window raise symbol");
+    // Exported ABI of the pinned Hyprland 0.56.2. Resolve it directly:
+    // findFunctionsByName pairs separate nm/demangler output by line number.
+    const auto address = dlsym(RTLD_DEFAULT,
+        "_ZN7Desktop12CWindowState5raiseEN9Hyprutils6Memory14CSharedPointerINS_4View7CWindowEEE");
+    if (!address) throw std::runtime_error("hics: missing pinned window raise symbol");
+    hook=HyprlandAPI::createFunctionHook(handle,address,reinterpret_cast<void*>(raised));
+    if (!hook || !hook->hook()) { remove(handle); throw std::runtime_error("hics: cannot install window stacking order"); }
+    closed=Event::bus()->m_events.window.close.listen([](PHLWINDOW window){if(window)windows.erase(window->m_stableID);});
 }
 }

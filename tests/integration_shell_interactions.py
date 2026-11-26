@@ -36,6 +36,12 @@ try:
     lua.write_text('package.path='+json.dumps(str(config/'?.lua')+';')+'..package.path\npackage.preload["scheme.current"]=function()return require("scheme.default")end\nhl.monitor({output="WAYLAND-1",mode="1280x900@60",position="0x0",scale=1})\nhl.device({name="wl_pointer",enabled=false})\n'+''.join('dofile('+json.dumps(str(p))+')\n' for p in (config/'hyprland/animations.lua',config/'hyprland/gestures.lua',ROOT/'shell/assets/hyprland/layouts.lua')))
     busconf=base/'bus.conf';busconf.write_text('<busconfig><type>session</type><listen>unix:path='+str(base/'bus')+'</listen><auth>EXTERNAL</auth><policy context="default"><allow own="*"/><allow send_destination="*"/><allow receive_sender="*"/></policy></busconfig>')
     env=dict(os.environ,HOME=str(base/'home'),XDG_CONFIG_HOME=str(base/'config'),XDG_DATA_HOME=str(base/'user-data'),XDG_STATE_HOME=str(base/'state'),XDG_CACHE_HOME=str(base/'cache'),HYPRSTACK_DATA_DIR=str(base/'data'),AQ_BACKEND='wayland',DBUS_SYSTEM_BUS_ADDRESS='unix:path='+str(base/'absent-system'),PIPEWIRE_REMOTE='hics-interactions-absent',PULSE_SERVER='unix:'+str(base/'absent-pulse'),HICS_NO_ONBOARDING='1',GTK_A11Y='none')
+    if os.environ.get('HICS_TEST_HIDE_RAISE_DEMANGLE'):
+        # Keep line positions and the ELF export; hide only this display name.
+        bindir=base/'bin';bindir.mkdir();wrapper=bindir/'nm'
+        script = '#!/usr/bin/python3\nimport subprocess,sys\nr=subprocess.run('+repr([shutil.which('nm')])+'+sys.argv[1:],stdout=subprocess.PIPE)\ns=r.stdout\nif any("demangle" in a for a in sys.argv[1:]):s=s.replace(b"Desktop::CWindowState::raise(",b"Unavailable::raise(")\nsys.stdout.buffer.write(s)\nsys.exit(r.returncode)\n'
+        wrapper.write_text(script);wrapper.chmod(0o755)
+        env['PATH']=str(bindir)+os.pathsep+env['PATH']
     env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
     bus=subprocess.Popen(['dbus-daemon','--nofork','--print-address=1','--config-file='+str(busconf)],stdout=subprocess.PIPE,text=True);processes.append(bus);env['DBUS_SESSION_BUS_ADDRESS']=bus.stdout.readline().strip()
     with (base/'compositor.log').open('w') as log: compositor=subprocess.Popen(['Hyprland','--config',str(lua)],env=env,stdout=log,stderr=subprocess.STDOUT)
