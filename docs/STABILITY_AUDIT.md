@@ -600,3 +600,35 @@ portal identity сохраняется. Nested first-pass проверяет о�
 активны. Параметр применён к рабочему Lua-композитору через eval/hl.config
 без reload. Окна сохранены, configerrors пуст; hyprbars и spatialoverview
 после предыдущего нового входа подтверждены в plugin list рабочего сеанса.
+
+
+## 2026-11-26 — пакет 1.1.1-137: портал после смены композитора
+
+На машине xdg-desktop-portal-hyprland исчерпал StartLimit при попытках
+перезапуска с закрытым Wayland compositor. Desktop identity уже была HICS,
+поэтому прежняя проверка только XDG_CURRENT_DESKTOP этого не исправляла.
+session_portal теперь сверяет WAYLAND_DISPLAY и HYPRLAND_INSTANCE_SIGNATURE
+backend/frontend; failed backend восстанавливается только после успешного
+IPC monitors с настроенным выходом. reset-failed предшествует restart,
+неактивные backend остаются для ленивой активации, совпадающие процессы
+не перезапускаются. Имя wayland-1 без поколения больше не считается совпадением.
+
+В поставляемом drop-in backend задан Restart=no: Wayland disconnect не должен
+порождать попытки подключения к прежнему сеансу. D-Bus activation и восстановление
+при следующем входе остаются штатными. BindsTo/After PipeWire сохраняются.
+Это не останавливает AmneziaVPN.service и не меняет VPN-маршруты.
+
+Семь unit-проверок portal owner/readiness/generation, три проверки порядка
+session activation и три проверки portal packaging прошли.
+
+
+Реальный frontend/backend с отдельным PipeWire прошёл nested integration:
+Qt host registration и доступность интерфейсов, без захвата или picker.
+Пакет 1.1.1-137 установлен. В рабочем сеансе установленный helper снял
+start-limit и запустил backend; ActiveState=active, Result=success, NRestarts=0,
+Restart=no. ScreenCast.version доступен через D-Bus; окружение backend содержит
+текущий HYPRLAND_INSTANCE_SIGNATURE и WAYLAND_DISPLAY. Повтор helper сохранил
+PID backend/frontend. Logout Inhibit по-прежнему дошёл до hics backend, own
+probe закрыт. Окна, PID системной Amnezia, PID amneziawg-go и интерфейс amn0
+сохранились; configerrors пуст, девять проверенных служб активны. Нативные
+плагины композитора не перезагружались; реальный выход из сеанса не выполнялся.
