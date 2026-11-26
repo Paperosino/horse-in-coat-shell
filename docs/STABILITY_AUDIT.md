@@ -632,3 +632,26 @@ PID backend/frontend. Logout Inhibit по-прежнему дошёл до hics 
 probe закрыт. Окна, PID системной Amnezia, PID amneziawg-go и интерфейс amn0
 сохранились; configerrors пуст, девять проверенных служб активны. Нативные
 плагины композитора не перезагружались; реальный выход из сеанса не выполнялся.
+
+
+## 2026-11-27 — пакет 1.1.1-138: сон из меню питания
+
+В существующую колонку действий добавлена кнопка сна с bedtime-глифом,
+переведённым Accessible.name и навигацией shutdown → suspend → hibernate.
+Команда/иконка используют SessionConfig и существующий SessionManager::suspend,
+который обращается к logind; дополнительный механизм сна не создаётся.
+Проверка integration_shell_interactions.py использует отдельную шину с fake
+logind: настоящий pointer нажимает продукционную кнопку, проверяется вызов
+Suspend(true) и закрытие меню. Сон рабочего компьютера не вызывается.
+
+При проверке повторного открытия исправлено восстановление фокуса:
+обработчик ошибочно следил за launcherChanged; теперь sessionChanged и
+Component.onCompleted возвращают фокус первой кнопке после обновления дерева
+через Qt.callLater. Pointer и Down/Down/Enter независимо вызвали fake Suspend.
+
+Все проверки integration_shell_interactions прошли, включая клавиатуру и
+нажатие sleep; снимок power-menu.png подтверждает кнопку без обрезки при
+1280x900. 1.1.1-138 установлен; QML и config library сверены с payload.
+Перезапущен только hic-session, sessionHealth.ready=true, окна сохранили
+PID/stable ID, configerrors пуст, шесть служб активны. Новых service errors
+за проверенный интервал нет. Native plugins и VPN не перезапускались.

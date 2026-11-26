@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Hyprstack
 import Hyprstack.Config
+import Hyprstack.I18n
 import Hyprstack.Services
 import qs.components
 import qs.components.controls
@@ -27,12 +28,12 @@ Column {
 
         KeyNavigation.down: shutdown
 
-        Component.onCompleted: forceActiveFocus()
+        Component.onCompleted: Qt.callLater(() => logout.forceActiveFocus())
 
         Connections {
-            function onLauncherChanged(): void {
-                if (!root.screenState.launcher)
-                    logout.forceActiveFocus();
+            function onSessionChanged(): void {
+                if (root.screenState.session)
+                    Qt.callLater(() => logout.forceActiveFocus());
             }
 
             target: root.screenState
@@ -46,6 +47,16 @@ Column {
         command: Config.session.commands.shutdown
 
         KeyNavigation.up: logout
+        KeyNavigation.down: suspend
+    }
+
+    SessionButton {
+        id: suspend
+        objectName: "sessionSuspendButton"
+        Accessible.name: Tr.tr("Suspend")
+        icon: Config.session.icons.suspend
+        command: Config.session.commands.suspend
+        KeyNavigation.up: shutdown
         KeyNavigation.down: hibernate
     }
 
@@ -67,7 +78,7 @@ Column {
         icon: Config.session.icons.hibernate
         command: Config.session.commands.hibernate
 
-        KeyNavigation.up: shutdown
+        KeyNavigation.up: suspend
         KeyNavigation.down: reboot
     }
 

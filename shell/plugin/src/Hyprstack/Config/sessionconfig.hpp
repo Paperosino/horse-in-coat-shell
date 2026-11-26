@@ -15,6 +15,7 @@ class SessionIcons : public settings::ObjectNode {
 
     CONFIG_PROPERTY(QString, logout, u"logout"_s)
     CONFIG_PROPERTY(QString, shutdown, u"power_settings_new"_s)
+    CONFIG_PROPERTY(QString, suspend, u"bedtime"_s)
     CONFIG_PROPERTY(QString, hibernate, u"downloading"_s)
     CONFIG_PROPERTY(QString, reboot, u"cached"_s)
 };
@@ -24,6 +25,7 @@ class SessionCommands : public settings::ObjectNode {
 
     CONFIG_PROPERTY(QStringList, logout, { u"logout"_s })
     CONFIG_PROPERTY(QStringList, shutdown, { u"poweroff"_s })
+    CONFIG_PROPERTY(QStringList, suspend, { u"suspend"_s })
     CONFIG_PROPERTY(QStringList, hibernate, { u"hibernate"_s })
     CONFIG_PROPERTY(QStringList, reboot, { u"reboot"_s })
 };

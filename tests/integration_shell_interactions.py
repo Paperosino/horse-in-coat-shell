@@ -46,6 +46,11 @@ try:
     bus=subprocess.Popen(['dbus-daemon','--nofork','--print-address=1','--config-file='+str(busconf)],stdout=subprocess.PIPE,text=True);processes.append(bus);env['DBUS_SESSION_BUS_ADDRESS']=bus.stdout.readline().strip()
     with (base/'compositor.log').open('w') as log: compositor=subprocess.Popen(['Hyprland','--config',str(lua)],env=env,stdout=log,stderr=subprocess.STDOUT)
     processes.append(compositor)
+    from diagnose_session_logout import MOCK
+    mock_source=MOCK.replace('class Manager(dbus.service.Object):', "class Manager(dbus.service.Object):\n @dbus.service.method('org.freedesktop.login1.Manager',in_signature='b')\n def Suspend(self,interactive):\n  with open(os.environ['HICS_TEST_TRACE'],'a') as stream:stream.write('Suspend '+str(bool(interactive))+'\\n')")
+    env.update(DBUS_SYSTEM_BUS_ADDRESS=env['DBUS_SESSION_BUS_ADDRESS'],HICS_TEST_TRACE=str(base/'logind.trace'))
+    mock=subprocess.Popen(['python3','-c',mock_source],env=env,stdout=subprocess.PIPE,stderr=(base/'logind.log').open('w'),text=True);processes.append(mock)
+    assert mock.stdout.readline().strip()=='ready'
     instance=wait(lambda:next((i for i in json.loads(subprocess.check_output(['hyprctl','instances','-j'])) if i['pid']==compositor.pid),None),'No compositor')
     resize_nested_compositor(compositor.pid)
     env.update(WAYLAND_DISPLAY=instance['wl_socket'],HYPRLAND_INSTANCE_SIGNATURE=instance['instance'])
@@ -97,7 +102,7 @@ ShellRoot {
   }
   function state():string {
    const p=ShellState.componentsFor(win.screen).panels,m=find(win.contentItem,"windowMenu");let menuActions=[];root.actions(m,menuActions);
-   return JSON.stringify({overview:Overview.active,nativeOverview:Overview.nativeStarted,dashboard:win.screenState.dashboard,session:win.screenState.session,logout:logout.visible,
+   return JSON.stringify({overview:Overview.active,nativeOverview:Overview.nativeStarted,dashboard:win.screenState.dashboard,session:win.screenState.session,suspend:box(find(p.session,"sessionSuspendButton")),logout:logout.visible,
     launcher:win.screenState.launcher,listOpen:p.dock.listOpen,list:box(p.dock.listSurface),normalLauncher:p.launcher.visible,draggingFiles:p.dock.draggingFiles,fileDragTarget:p.dock.fileDragTarget,
     audioIcon:box(root.audioIcon(win.bar)),osd:box(p.osdWrapper),popout:box(p.popoutsWrapper),menu:m.visible,menuBox:box(find(m,"titlebarContextMenu")),
     actions:menuActions,buttons:p.dock.motionButtons.filter(b=>b.objectName==="dockTaskButton").map(b=>({key:b.group.key,box:box(b)}))});
@@ -141,6 +146,18 @@ ShellRoot {
     command('logout');wait(logout_ready,'Logout did not map');click(30,300);wait(lambda:not state()['logout'],'Logout outside click failed')
     command('logout');wait(logout_ready,'Logout did not remap');escape();wait(lambda:not state()['logout'],'Logout Escape failed')
     print('PASS: dashboard Escape; overlay session/logout cancel on outside click and Escape',flush=True)
+    command('session');wait(lambda:state()['suspend'],'Sleep button not created');time.sleep(.6)
+    s=state()['suspend'];assert s['visible'] and s['y']>=0 and s['y']+s['h']<=900,s
+    subprocess.run(['grim',str(base/'power-menu.png')],env=env,check=True,capture_output=True)
+    click(s['x']+s['w']/2,s['y']+s['h']/2)
+    wait(lambda:(base/'logind.trace').exists() and 'Suspend True' in (base/'logind.trace').read_text(),'Sleep button did not call private logind Suspend')
+    wait(lambda:not state()['session'],'Sleep did not dismiss power menu')
+    time.sleep(.6);command('session');wait(lambda:state()['suspend'],'Sleep button did not reopen');time.sleep(.6)
+    for key in (108,108,28):send(keyboard,f'key {key} 1');send(keyboard,f'key {key} 0')
+    wait(lambda:(base/'logind.trace').read_text().count('Suspend True')==2,lambda:'Keyboard navigation did not reach sleep: '+str(state()))
+    wait(lambda:not state()['session'],'Keyboard sleep did not dismiss menu')
+    print('PASS: sleep button calls fake logind Suspend and dismisses menu without sleeping host',flush=True)
+
     icon=state()['audioIcon'];assert icon,'No audio status icon';move(icon['x']+icon['w']/2,icon['y']+icon['h']/2);wait(lambda:state()['popout']['h']>20,'Audio hover did not open popout');command('audio');time.sleep(.7);s=state();o,p=s['osd'],s['popout'];assert o['w']>10 and o['h']>10 and p['h']>20,(o,p)
     assert not(o['x']<p['x']+p['w'] and p['x']<o['x']+o['w'] and o['y']<p['y']+p['h'] and p['y']<o['y']+o['h']),(o,p)
     subprocess.run(['grim',str(base/'audio.png')],env=env,check=True,capture_output=True)
