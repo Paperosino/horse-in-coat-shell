@@ -655,3 +655,12 @@ Component.onCompleted возвращают фокус первой кнопке 
 Перезапущен только hic-session, sessionHealth.ready=true, окна сохранили
 PID/stable ID, configerrors пуст, шесть служб активны. Новых service errors
 за проверенный интервал нет. Native plugins и VPN не перезапускались.
+
+
+## 2026-11-27 — пакет 1.1.1-139: контурная луна
+
+Кнопка сна задаёт label.fill=0 вместо общего заполненного состояния IconButton.
+Снимок nested power-menu.png подтверждает контур; integration_shell_interactions
+прошёл, включая fake Suspend мышью/клавиатурой. Пакет установлен, интерфейс
+перезапущен, sessionHealth готов, окна сохранены, QML сверён с исходником,
+configerrors пуст. Нативные плагины не перезагружались.

@@ -55,6 +55,7 @@ Column {
         objectName: "sessionSuspendButton"
         Accessible.name: Tr.tr("Suspend")
         icon: Config.session.icons.suspend
+        label.fill: 0
         command: Config.session.commands.suspend
         KeyNavigation.up: shutdown
         KeyNavigation.down: hibernate
