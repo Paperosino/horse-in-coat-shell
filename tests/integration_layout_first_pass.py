@@ -18,6 +18,8 @@ try:
  def ctl(*a):return subprocess.check_output(['hyprctl','-i',i['instance'],*a],text=True).strip()
  time.sleep(1);errors=ctl('configerrors');assert not errors,errors
  assert ctl('repl','return hl.plugin.hyprbars ~= nil')=='false'
+ assert 'bool: true' in ctl('getoption','misc:disable_xdg_env_checks')
+ assert ctl('repl','return os.getenv("XDG_CURRENT_DESKTOP")')=='HICS:Hyprland'
  print('PASS: complete production layouts parses without titlebar plugin',flush=True)
 finally:
  p.terminate();p.wait(timeout=10)
