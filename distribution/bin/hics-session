@@ -24,6 +24,9 @@ if [[ "$action" != stop && ( -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" || -z "${WAYL
 fi
 export PATH="$PATH:$HOME/.local/bin"
 export PYTHONDONTWRITEBYTECODE=1
+if [[ $action != stop ]]; then
+    export XDG_CURRENT_DESKTOP=HICS:Hyprland XDG_SESSION_DESKTOP=hics XDG_SESSION_TYPE=wayland
+fi
 migration_marker="${XDG_STATE_HOME:-$HOME/.local/state}/hics/migrations/branding-v2"
 migration_script="$data_dir/shell/assets/migrate_branding.py"
 if [[ ! "$migration_marker" -nt "$migration_script" || "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.lua" -nt "$migration_marker" ]]; then
@@ -46,6 +49,7 @@ if command -v systemctl >/dev/null && systemctl --user show-environment >/dev/nu
         systemctl --user stop hic-session.service 2>/dev/null || true
         exec python3 "$data_dir/shell/assets/session_runner.py" stop
     fi
+    python3 "$data_dir/shell/assets/session_portal.py"
     # Import the real compositor environment before starting conditional units.
     # start is idempotent and leaves active display rollback/history jobs intact.
     systemctl --user enable hic-session.service hics-desktop.service hics-displays.service hics-configuration.service

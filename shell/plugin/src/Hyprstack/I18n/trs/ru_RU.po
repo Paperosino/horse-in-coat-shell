@@ -13170,3 +13170,6 @@ msgstr "Не удерживать поверх других окон"
 
 msgid "Minimize"
 msgstr "Свернуть"
+
+msgid "The desktop portal cannot check applications preventing sign out. Cancel and sign in to the hics session again."
+msgstr "Портал рабочего стола не может проверить приложения, препятствующие выходу. Отмените выход и войдите в сеанс hics заново."

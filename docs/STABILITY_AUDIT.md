@@ -549,3 +549,39 @@ integration_decoration_policy.py также прошёл с реальными G
 Временная строка debug.disable_logs из local.lua удалена без изменения других
 пользовательских настроек. Новый бинарник применяется после нового входа;
 результат загрузки в рабочем DRM-сеансе ещё требует этого входа.
+
+
+## 2026-11-26 — пакет 1.1.1-135: выбор Inhibit в старом сеансе Hyprland
+
+На рабочей машине systemd/portal имели XDG_CURRENT_DESKTOP=Hyprland, хотя
+выполнялась оболочка hics. Frontend PID пережил повторные входы; его журнал
+содержал `Inhibiting other than idle not supported`. Hyprland portal preferences
+не назначают Inhibit=hics. Контроллер правильно отвергал этот путь своим
+пробным logout-inhibitor, но пользователю показывался английский текст.
+
+layouts.lua теперь задаёт идентичность HICS:Hyprland и для сохранённого
+старого Hyprland config. hics-session нормализует идентичность до импорта в
+systemd/D-Bus. После импорта session_portal.py сверяет окружение работающего
+frontend по его MainPID; только при отличии desktop identity выполняет
+try-restart. Отсутствующий frontend остаётся для штатной D-Bus активации,
+совпадающий не перезапускается при shell restart. Это операция старта сеанса,
+не перезапуск при нажатии «Выйти». Пользовательские portal preferences не меняются.
+Ошибка probe переведена в понятное сообщение; fail-closed остаётся прежним.
+
+Unit-проверки stale/matching/inactive/disappearing portal owner и порядка
+импорта/старта прошли. Реальный frontend на private bus с HICS:Hyprland выбрал
+hics backend и передал logout inhibition. Интеграции завершения сеанса используют
+вложенный compositor, частные шины и fake logind, без завершения рабочего сеанса.
+
+
+Интеграции cancel мышью, force с настоящим XDG inhibitor и wrong-portal
+прошли; в последнем случае окно не закрывалось. Пакет 1.1.1-135 установлен,
+пять изменённых установленных файлов сверены с payload, восемь проверенных
+служб активны, пользовательское окно сохранилось, configerrors пуст.
+Окружение текущего user manager/D-Bus исправлено на HICS:Hyprland, stale
+frontend перезапущен тем же установленным helper. Без вызова LogoutController
+или logind создан единственный диагностический Inhibit(flags=1); его request
+обнаружен по точному пути в hics backend через Introspectable и затем закрыт
+через frontend. Это подтверждает исправление маршрутизации в рабочем сеансе;
+реальное завершение сеанса не проверялось. Уже открытый старый logout dialog
+после смены владельца frontend требует отмены и нового запроса выхода.

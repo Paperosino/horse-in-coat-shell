@@ -8,12 +8,13 @@ class SessionActivation(unittest.TestCase):
   (self.base/'shell/assets').mkdir(parents=True);(self.base/'shell/assets/migrate_branding.py').touch()
   tool='''#!/usr/bin/python3
 import os,json,sys
+assert os.environ.get('XDG_CURRENT_DESKTOP') == 'HICS:Hyprland' or sys.argv[-1] == 'stop'
 from pathlib import Path
 with open(os.environ['HICS_SESSION_TEST_LOG'],'a') as out:out.write(json.dumps([Path(sys.argv[0]).name,*sys.argv[1:]])+'\\n')
 '''
   for name in ('systemctl','dbus-update-activation-environment','python3','hyprctl'):
    file=bin/name;file.write_text(tool);file.chmod(0o755)
-  self.env=dict(os.environ,PATH=str(bin)+':'+os.environ['PATH'],HICS_SESSION_TEST_LOG=str(self.log),HICS_DATA_DIR=str(self.base),XDG_CONFIG_HOME=str(self.base/'config'),XDG_STATE_HOME=str(self.base/'state'),HYPRLAND_INSTANCE_SIGNATURE='fixture',WAYLAND_DISPLAY='wayland-fixture')
+  self.env=dict(os.environ,PATH=str(bin)+':'+os.environ['PATH'],HICS_SESSION_TEST_LOG=str(self.log),HICS_DATA_DIR=str(self.base),XDG_CONFIG_HOME=str(self.base/'config'),XDG_STATE_HOME=str(self.base/'state'),HYPRLAND_INSTANCE_SIGNATURE='fixture',WAYLAND_DISPLAY='wayland-fixture',XDG_CURRENT_DESKTOP='Hyprland')
  def run_entry(self,action):
   result=subprocess.run(['bash',str(ROOT/'distribution/bin/hics-session'),action],env=self.env,text=True,capture_output=True,timeout=5)
   calls=[json.loads(row) for row in self.log.read_text().splitlines()] if self.log.exists() else []
@@ -23,7 +24,8 @@ with open(os.environ['HICS_SESSION_TEST_LOG'],'a') as out:out.write(json.dumps([
   imported=next(i for i,c in enumerate(calls) if c[:3]==['systemctl','--user','import-environment'])
   helpers=['systemctl','--user','start','hics-desktop.service','hics-displays.service','hics-configuration.service']
   shell=['systemctl','--user','start','hic-session.service']
-  self.assertLess(imported,calls.index(helpers));self.assertLess(calls.index(helpers),calls.index(shell))
+  portal=next(i for i,c in enumerate(calls) if c[0]=='python3' and c[-1].endswith('/session_portal.py'))
+  self.assertLess(imported,portal);self.assertLess(portal,calls.index(helpers));self.assertLess(imported,calls.index(helpers));self.assertLess(calls.index(helpers),calls.index(shell))
   self.assertIn(['systemctl','--user','enable','hic-session.service','hics-desktop.service','hics-displays.service','hics-configuration.service'],calls)
   self.assertFalse(any('hics-screen-reader.service' in call or 'mask' in call for call in calls))
  def test_shell_restart_keeps_running_display_rollback_helpers(self):

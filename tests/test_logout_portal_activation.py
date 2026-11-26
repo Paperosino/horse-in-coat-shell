@@ -25,7 +25,7 @@ class Activation(unittest.TestCase):
             config.write_text('<busconfig><type>session</type><listen>unix:tmpdir='+str(root)+'</listen><servicedir>'+str(services)+'</servicedir><policy context="default"><allow send_destination="*"/><allow receive_sender="*"/><allow own="*"/></policy></busconfig>')
             env=dict(os.environ,HOME=str(root),XDG_RUNTIME_DIR=str(root),HICS_DATA_DIR=str(ROOT),
                      XDG_DATA_HOME=str(data),XDG_CONFIG_HOME=str(root/'config'),XDG_CACHE_HOME=str(root/'cache'),
-                     XDG_DATA_DIRS='/usr/share',XDG_CURRENT_DESKTOP='HICS',DBUS_SYSTEM_BUS_ADDRESS='unix:path='+str(root/'absent'))
+                     XDG_DATA_DIRS='/usr/share',XDG_CURRENT_DESKTOP='HICS:Hyprland',DBUS_SYSTEM_BUS_ADDRESS='unix:path='+str(root/'absent'))
             bus=subprocess.Popen(['dbus-daemon','--nofork','--print-address=1','--config-file='+str(config)],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
             frontend=None
             try:

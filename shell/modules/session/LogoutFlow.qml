@@ -86,7 +86,9 @@ Scope {
             return {name: String(app?.name || id || b.process_name || Tr.tr("Unknown application")),
                     reason: b.pending ? Tr.tr("Waiting for the application to respond") : String(b.reason || "")};
         });
-        if (LogoutController.error) items.push({name: Tr.tr("Could not check applications"), reason: LogoutController.error});
+        if (LogoutController.error) items.push({name: Tr.tr("Could not check applications"), reason: LogoutController.error === "Desktop portal did not forward logout inhibition"
+            ? Tr.tr("The desktop portal cannot check applications preventing sign out. Cancel and sign in to the hics session again.")
+            : LogoutController.error});
         if (root.windowError) items.push({name: root.windowError, reason: ""});
         for (const ipc of root.remainingWindows) {
             items.push({name: String(ipc.title || ipc.class || Tr.tr("Unknown application")),

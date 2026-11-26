@@ -1,3 +1,6 @@
+-- The hics integration also runs from preserved legacy Hyprland configs.
+hl.env("XDG_CURRENT_DESKTOP", "HICS:Hyprland")
+hl.env("XDG_SESSION_DESKTOP", "hics")
 local json = require("utils.json")
 local refresh_mode_bindings = function() end
 local config_dir = (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/hics"
