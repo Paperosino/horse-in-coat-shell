@@ -30,7 +30,7 @@ bool CUtils::execDetached(const QStringList &command, const QString &workingDire
     process.setProgram(command.first());
     process.setArguments(command.mid(1));
     process.setWorkingDirectory(workingDirectory);
-    process.setProcessEnvironment(hics::util::applicationEnvironment());
+    process.setProcessEnvironment(hics::util::applicationEnvironmentForExecutable(command.first()));
     hics::util::isolateApplication(process);
     return process.startDetached();
 }

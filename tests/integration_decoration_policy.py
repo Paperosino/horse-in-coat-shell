@@ -111,6 +111,13 @@ with tempfile.TemporaryDirectory(prefix='hics-decoration-integration-') as temp:
   qt=launch(['python3',str(ROOT/'tests/fixtures/canvas-qt-input-app.py')])
   expect(qt,'server',header=True);stop(qt)
   print('PASS: real GTK4 HeaderBar and Qt Widgets choose their own decoration policy',flush=True)
+  from PIL import Image
+  picture=base/'screenshot.png';Image.new('RGB',(480,280),(24,160,56)).save(picture)
+  swappy=launch(['swappy','-f',str(picture)],{'GDK_BACKEND':'wayland','XDG_CACHE_HOME':str(base/'cache'),'DBUS_SESSION_BUS_ADDRESS':'unix:path='+str(base/'absent-bus')})
+  expect(swappy,'server','user-show',True)
+  subprocess.run(['grim','/tmp/hics-swappy-stacking-titlebar.png'],env=env,check=True,capture_output=True)
+  stop(swappy)
+  print('PASS: real Swappy has a server titlebar in stacking',flush=True)
   for _ in range(60):
    children=subprocess.run(['ps','--ppid',str(compositor.pid),'-o','args='],capture_output=True,text=True).stdout
    display=re.search(r'Xwayland\s+(:\d+)',children)

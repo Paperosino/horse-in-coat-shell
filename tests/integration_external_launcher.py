@@ -16,7 +16,8 @@ ShellRoot {
  }
  Timer {interval:700;running:true;onTriggered:Qt.quit()}
 }'''.replace('SCRIPT',json.dumps(str(script))).replace('DIR',json.dumps(str(base))).replace('A]',json.dumps(str(a))+']').replace('B]',json.dumps(str(b))+']'))
- env=dict(os.environ,QT_QPA_PLATFORM='offscreen',LD_LIBRARY_PATH='/usr/share/hics/qs/lib',HYPRSTACK_DATA_DIR='/usr/share/hics',QML_IMPORT_PATH=str(ROOT/'build/qml'),QML2_IMPORT_PATH=str(ROOT/'build/qml'))
+ imports=os.environ.get('HICS_LAUNCH_TEST_IMPORTS',str(ROOT/'build/qml'))
+ env=dict(os.environ,QT_QPA_PLATFORM='offscreen',LD_LIBRARY_PATH='/usr/share/hics/qs/lib',HYPRSTACK_DATA_DIR='/usr/share/hics',QML_IMPORT_PATH=imports,QML2_IMPORT_PATH=imports)
  env.pop('WAYLAND_DISPLAY',None);env.pop('HYPRLAND_INSTANCE_SIGNATURE',None)
  r=subprocess.run(['/usr/share/hics/qs/bin/hics-qs','-p',str(qml)],env=env,capture_output=True,text=True,timeout=5)
  assert r.returncode==0 and a.exists() and b.exists(),r.stdout+r.stderr

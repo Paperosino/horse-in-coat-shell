@@ -2071,7 +2071,13 @@ hl.window_rule({ name = "hics-logout-blockers", match = {
 -- Authentication and capture tools are screen utilities, never canvas objects.
 hl.window_rule({ name = "hyprstack-screen-dialogs", match = {
     class = "(?i)^(gcr-prompter|gcr-system-prompter|org\\.gnome\\.keyring\\.SystemPrompter|polkit-gnome-authentication-agent-1|polkit-kde-authentication-agent-1|swappy|org\\.gnome\\.NautilusPreviewer)$"
-}, float = true, center = true, pin = true, ["hyprbars:no_bar"] = no_titlebar })
+}, float = true, center = true, pin = true })
+-- Swappy's client header is an editing toolbar without window controls.
+-- Explicit product override for the screenshot editor; protocol detection
+-- remains exclusively in decoration-policy.cpp.
+hl.window_rule({ name = "hics-screenshot-editor-titlebar", match = {
+    class = "^swappy$"
+}, ["hyprbars:no_bar"] = false })
 -- Stable identities prevent a newly created window reusing a closed address
 -- from inheriting its place in the activation history.
 local canvas_focus_history = {}

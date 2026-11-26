@@ -2,6 +2,9 @@
 #include <QDir>
 #include <QProcessEnvironment>
 #include <QStringList>
+#include <QFileInfo>
+#include <QSettings>
+#include <QStandardPaths>
 namespace hics::util {
 inline QProcessEnvironment applicationEnvironment(QProcessEnvironment env = QProcessEnvironment::systemEnvironment()) {
     QStringList roots{QStringLiteral("/usr/share/hics"), QStringLiteral("/usr/share/hyprstack")};
@@ -26,6 +29,26 @@ inline QProcessEnvironment applicationEnvironment(QProcessEnvironment env = QPro
         if (kept.isEmpty()) env.remove(key);
         else env.insert(key, kept.join(u':'));
     }
+    return env;
+}
+// A vendor's Qt cannot load a host QPA plugin built against another minor
+// version. Respect explicit theme choices; use its own GTK bridge when its
+// qt.conf declares a private runtime. Never inject the shell's Qt libraries.
+inline QProcessEnvironment applicationEnvironmentForExecutable(const QString &program, QProcessEnvironment env = QProcessEnvironment::systemEnvironment()) {
+    env = applicationEnvironment(env);
+    if (env.value(QStringLiteral("QT_QPA_PLATFORMTHEME")) != QStringLiteral("hics")) return env;
+    const auto resolved = QFileInfo(program.isEmpty() ? QString{} :
+        (QFileInfo(program).isAbsolute() ? program : QStandardPaths::findExecutable(program, env.value(QStringLiteral("PATH")).split(u':')))).canonicalFilePath();
+    if (resolved.isEmpty()) return env;
+    const QDir directory = QFileInfo(resolved).absoluteDir();
+    const auto config = directory.filePath(QStringLiteral("qt.conf"));
+    const QFileInfo info(config);
+    if (!info.isFile() || info.size() > 65536) return env;
+    QSettings settings(config, QSettings::IniFormat);
+    const QDir prefix(directory.filePath(settings.value(QStringLiteral("Paths/Prefix"), QStringLiteral(".")).toString()));
+    const auto plugins = prefix.filePath(settings.value(QStringLiteral("Paths/Plugins"), QStringLiteral("plugins")).toString());
+    if (QFileInfo::exists(plugins + QStringLiteral("/platformthemes/libqgtk3.so")))
+        env.insert(QStringLiteral("QT_QPA_PLATFORMTHEME"), QStringLiteral("gtk3"));
     return env;
 }
 }

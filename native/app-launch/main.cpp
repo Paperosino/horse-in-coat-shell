@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     if (args.size() >= 2 && args[0] == "--execute") {
         QProcess launch;
         launch.setProgram(args[1]); launch.setArguments(args.mid(2));
-        launch.setProcessEnvironment(hics::util::applicationEnvironment());
+        launch.setProcessEnvironment(hics::util::applicationEnvironmentForExecutable(args[1]));
         if (launch.startDetached()) return 0;
         QTextStream(stderr) << launch.errorString() << Qt::endl;
         return 1;
@@ -39,7 +39,11 @@ int main(int argc, char **argv) {
         for (auto actions = g_desktop_app_info_list_actions(info); actions && *actions; ++actions)
             found |= args[2] == QString::fromUtf8(*actions);
         if (!found) { g_object_unref(info); return 2; }
-        g_desktop_app_info_launch_action(info, args[2].toUtf8(), nullptr);
+        auto *context = g_app_launch_context_new();
+        const auto environment = hics::util::applicationEnvironmentForExecutable(QString::fromUtf8(g_app_info_get_executable(G_APP_INFO(info))));
+        for (const auto &key : environment.keys()) g_app_launch_context_setenv(context, key.toUtf8(), environment.value(key).toUtf8());
+        g_desktop_app_info_launch_action(info, args[2].toUtf8(), context);
+        g_object_unref(context);
         g_object_unref(info);
         return 0;
     }
@@ -47,7 +51,7 @@ int main(int argc, char **argv) {
     if (args.isEmpty()) { QTextStream(stderr) << "Usage: hics-launch -- PROGRAM [ARGUMENT...]\n"; return 2; }
     QProcess launch;
     launch.setProgram(args.takeFirst()); launch.setArguments(args);
-    launch.setProcessEnvironment(hics::util::applicationEnvironment());
+    launch.setProcessEnvironment(hics::util::applicationEnvironmentForExecutable(launch.program()));
     hics::util::isolateApplication(launch);
     return launch.startDetached() ? 0 : 1;
 }

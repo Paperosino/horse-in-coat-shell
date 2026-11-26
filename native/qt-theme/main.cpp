@@ -7,12 +7,26 @@
 #include <QVersionNumber>
 #include <memory>
 #include <QDir>
+#include <QGuiApplication>
 #include <unistd.h>
 
 // qt*ct supplies the exact shell palette and fonts, but does not implement
 // QPlatformTheme::colorScheme. KDE and automatic editor themes need both.
 class HicsTheme final : public QPlatformTheme {
     std::unique_ptr<QPlatformTheme> m_base;
+    mutable std::unique_ptr<QPlatformTheme> m_dialogs;
+    mutable bool m_dialogsAttempted = false;
+    QPlatformTheme *fileDialogs() const {
+        const auto backend = QGuiApplication::platformName();
+        if (backend != QLatin1String("xcb") && !backend.startsWith(QLatin1String("wayland"))) return nullptr;
+        // Construct only when requested: GTK initialization does not belong
+        // in every Qt application's startup or in palette-only consumers.
+        if (!m_dialogsAttempted) {
+            m_dialogsAttempted = true;
+            m_dialogs.reset(QPlatformThemeFactory::create(QStringLiteral("gtk3")));
+        }
+        return m_dialogs.get();
+    }
 public:
     HicsTheme() : m_base(QPlatformThemeFactory::create(
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -41,9 +55,14 @@ public:
         return m_base ? m_base->themeHint(hint) : QPlatformTheme::themeHint(hint);
     }
     bool usePlatformNativeDialog(DialogType type) const override {
+        if (type == FileDialog)
+            if (auto *dialogs = fileDialogs(); dialogs && dialogs->usePlatformNativeDialog(type)) return true;
         return m_base ? m_base->usePlatformNativeDialog(type) : QPlatformTheme::usePlatformNativeDialog(type);
     }
     QPlatformDialogHelper *createPlatformDialogHelper(DialogType type) const override {
+        if (type == FileDialog)
+            if (auto *dialogs = fileDialogs(); dialogs && dialogs->usePlatformNativeDialog(type))
+                if (auto *helper = dialogs->createPlatformDialogHelper(type)) return helper;
         return m_base ? m_base->createPlatformDialogHelper(type) : QPlatformTheme::createPlatformDialogHelper(type);
     }
     QIconEngine *createIconEngine(const QString &name) const override {

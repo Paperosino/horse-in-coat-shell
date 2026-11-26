@@ -18,8 +18,21 @@ class ApplicationEnvironmentTests(unittest.TestCase):
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTextStream>
-int main(int argc,char**argv){QCoreApplication app(argc,argv);auto data=QJsonDocument::fromJson(QTextStream(stdin).readAll().toUtf8()).object();QProcessEnvironment e;for(auto i=data.begin();i!=data.end();++i)e.insert(i.key(),i.value().toString());auto clean=hics::util::applicationEnvironment(e);QJsonObject r;for(const auto&key:clean.keys())r[key]=clean.value(key);QTextStream(stdout)<<QJsonDocument(r).toJson(QJsonDocument::Compact);}''')
+int main(int argc,char**argv){QCoreApplication app(argc,argv);auto data=QJsonDocument::fromJson(QTextStream(stdin).readAll().toUtf8()).object();QProcessEnvironment e;for(auto i=data.begin();i!=data.end();++i)e.insert(i.key(),i.value().toString());auto clean=argc>1?hics::util::applicationEnvironmentForExecutable(QString::fromLocal8Bit(argv[1]),e):hics::util::applicationEnvironment(e);QJsonObject r;for(const auto&key:clean.keys())r[key]=clean.value(key);QTextStream(stdout)<<QJsonDocument(r).toJson(QJsonDocument::Compact);}''')
    flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','Qt6Core'],text=True))
    subprocess.run(['c++','-std=c++20','-fPIC',str(source),'-I',str(ROOT/'shell/plugin/include'),*flags,'-o',str(base/'probe')],check=True)
    run=subprocess.run([str(base/'probe')],input=json.dumps(data),text=True,capture_output=True,check=True,timeout=5)
    self.assertEqual(json.loads(run.stdout),expected)
+   prefix=base/'vendor';(prefix/'bin').mkdir(parents=True);(prefix/'plugins/platformthemes').mkdir(parents=True)
+   executable=prefix/'bin/client';executable.write_text('#!/bin/sh\nexit 0\n');executable.chmod(0o700)
+   (prefix/'bin/qt.conf').write_text('[Paths]\nPrefix=..\n')
+   def launch(theme='hics'):
+    environment=dict(data,QT_QPA_PLATFORMTHEME=theme,PATH=str(prefix/'bin'))
+    result=subprocess.run([str(base/'probe'),'client'],input=json.dumps(environment),text=True,capture_output=True,check=True,timeout=5)
+    return json.loads(result.stdout)
+   self.assertEqual(launch()['QT_QPA_PLATFORMTHEME'],'hics') # no bundled bridge
+   (prefix/'plugins/platformthemes/libqgtk3.so').touch()
+   self.assertEqual(launch()['QT_QPA_PLATFORMTHEME'],'gtk3')
+   self.assertEqual(launch('user-theme')['QT_QPA_PLATFORMTHEME'],'user-theme')
+   (prefix/'bin/qt.conf').write_text('[Paths]\nPrefix=../missing\n')
+   self.assertEqual(launch()['QT_QPA_PLATFORMTHEME'],'hics')

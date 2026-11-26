@@ -71,7 +71,12 @@ void DesktopApplication::execute() {
   // file. This is deliberately the same path as `gio launch FILE`.
   auto *process = new QProcess(this);
   process->setUnixProcessParameters(QProcess::UnixProcessFlag::CreateNewSession);
-  process->setProcessEnvironment(hics::util::applicationEnvironment());
+  auto environment = hics::util::applicationEnvironment();
+  if (auto *info = g_desktop_app_info_new_from_filename(m_path.toUtf8().constData())) {
+    environment = hics::util::applicationEnvironmentForExecutable(QString::fromUtf8(g_app_info_get_executable(G_APP_INFO(info))), environment);
+    g_object_unref(info);
+  }
+  process->setProcessEnvironment(environment);
   process->setProgram("gio");
   process->setArguments({"launch", m_path});
   // gio exits before the application finishes starting. Pipes owned by this

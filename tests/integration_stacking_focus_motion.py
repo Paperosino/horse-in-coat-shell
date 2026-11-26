@@ -78,15 +78,14 @@ with tempfile.TemporaryDirectory(prefix='hics-focus-motion-') as directory:
         for profile in ('expressive','standard','heavy','jelly'):
             ctl('repl','hyprstack_layouts.configure({stackFocusMotion='+json.dumps(profile)+'})')
             focus(1); time.sleep(.1); before=window(0); focus(0)
-            if profile == 'expressive' and os.environ.get('HICS_FOCUS_EARLY_SCREENSHOT'):
-                subprocess.run(['grim',os.environ['HICS_FOCUS_EARLY_SCREENSHOT']],env=appenv,check=True)
             time.sleep(.08)
-            if profile == 'expressive' and os.environ.get('HICS_FOCUS_SCREENSHOT'):
-                subprocess.run(['grim',os.environ['HICS_FOCUS_SCREENSHOT']],env=appenv,check=True)
             current=state(0); outgoing=state(1)
             assert current.get('scale',1)>1 and current.get('paints',0)>0, (profile,current)
-            assert current.get('shadowFrames',0)>0, ('shadow blur did not render',profile,current)
             assert current.get('handoffFrames',0)>0, ('no frames before visual handoff',profile,current)
+            # Capture after timing-sensitive observations: screencopy itself
+            # can consume the entire first positive spring lobe.
+            if profile == 'expressive' and os.environ.get('HICS_FOCUS_SCREENSHOT'):
+                subprocess.run(['grim',os.environ['HICS_FOCUS_SCREENSHOT']],env=appenv,check=True)
             wait(lambda:(s:=state(0)) and not s.get('handoff') and s['elapsed'] >= s['peak'], 'handoff did not finish on a frame after the spring peak',3)
             assert outgoing.get('scale',1)<1 and outgoing.get('paints',0)>0, (profile,outgoing)
             after=window(0); assert before['at']==after['at'] and before['size']==after['size'], (before,after)

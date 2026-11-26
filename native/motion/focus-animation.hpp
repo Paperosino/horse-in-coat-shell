@@ -2,12 +2,11 @@
 // input remain owned by Hyprland and never follow the temporary visual scale.
 #pragma once
 #include "task-animation.hpp"
-#include "focus-shadow.hpp"
 
 class CStackFocusAnimation final : public Render::IWindowTransformer {
   public:
-    CStackFocusAnimation(PHLWINDOW window, double stiffness, double damping, double amplitude, CHyprColor accent) :
-        m_window(window), m_stiffness(stiffness), m_damping(damping), m_amplitude(amplitude), m_accent(accent) {
+    CStackFocusAnimation(PHLWINDOW window, double stiffness, double damping, double amplitude) :
+        m_window(window), m_stiffness(stiffness), m_damping(damping), m_amplitude(amplitude) {
         m_damage = window->getFullWindowBoundingBox().expand(160);
         m_timer = makeShared<CEventLoopTimer>(std::chrono::milliseconds(1), [this](SP<CEventLoopTimer> timer, void*) {
             auto window = m_window.lock();
@@ -70,13 +69,10 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
             ++m_paints;
             return output;
         }
-        // An analytic Gaussian falloff avoids full-output blur passes and
-        // keeps the application pixels unchanged and sharp.
-        if (m_amplitude > 0) {
-            const double elevation=std::clamp((scale()-1.0)/.025,0.0,1.0);
-            if (m_shadow.draw(m_destination.copy().scale(monitor->m_scale),monitor->m_transformedSize,monitor->m_scale,elevation,m_accent))
-                ++m_shadowFrames;
-        }
+        // source is the full decorated bounding box, including the compositor
+        // and client shadows. Transform that image once. A second shadow around
+        // this box also shadows its transparent margins and jumps in extent
+        // when the transformer is attached or removed.
         CTexPassElement::SRenderData texture;
         texture.tex = in->getTexture();
         texture.box = {(m_destination.pos() - m_source.pos() * ratio) * monitor->m_scale, in->m_size * ratio};
@@ -85,7 +81,6 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
         return output;
     }
     int paints() const { return m_paints; }
-    int shadowFrames() const { return m_shadowFrames; }
     double progress() const { return elapsed(); }
     double peakTime() const {
         const double omega = std::sqrt(m_stiffness);
@@ -114,9 +109,7 @@ class CStackFocusAnimation final : public Render::IWindowTransformer {
     CBox m_source, m_destination, m_damage;
     bool m_hasSource = false;
     double m_stiffness, m_damping, m_amplitude;
-    CHyprColor m_accent;
-    hics::motion::FocusShadow m_shadow;
-    int m_paints = 0, m_shadowFrames = 0;
+    int m_paints = 0;
     uint64_t m_cleanup = 0;
     Time::steady_tp m_start = Time::steadyNow();
     SP<CEventLoopTimer> m_timer;

@@ -164,7 +164,6 @@ int focusAnimation(lua_State* L) {
         lua_createtable(L, 0, 2);
         lua_pushnumber(L, focus->scale()); lua_setfield(L, -2, "scale");
         lua_pushinteger(L, focus->paints()); lua_setfield(L, -2, "paints");
-        lua_pushinteger(L, focus->shadowFrames()); lua_setfield(L, -2, "shadowFrames");
         lua_pushboolean(L, handoffTo.lock() == window); lua_setfield(L, -2, "handoff");
         lua_pushinteger(L, handoffFrames); lua_setfield(L, -2, "handoffFrames");
         lua_pushnumber(L, focus->progress()); lua_setfield(L, -2, "elapsed");
@@ -184,19 +183,18 @@ int focusAnimation(lua_State* L) {
     // compositor order, so pointer and keyboard routing change immediately.
     // Its visible portions recede at the same time as the new window lifts.
     const std::string outgoingAddress = luaL_optstring(L, 4, ""), outgoingId = luaL_optstring(L, 5, "");
-    const auto accent = color(L, 6, "d0bcff");
     for (const auto& other : Desktop::windowState()->windows()) {
         if (other != window && other->m_isMapped && !CExpressiveTaskAnimation::find(other) &&
             std::format("0x{:x}", reinterpret_cast<uintptr_t>(other.get())) == outgoingAddress &&
             std::format("{:x}", other->m_stableID) == outgoingId) {
             handoffFrom = other;
             handoffTo = window;
-            other->m_transformers.emplace_back(makeUnique<CStackFocusAnimation>(other, stiffness, damping, -amplitude * 0.65, accent));
+            other->m_transformers.emplace_back(makeUnique<CStackFocusAnimation>(other, stiffness, damping, -amplitude * 0.65));
             g_pHyprRenderer->damageWindow(other);
             break;
         }
     }
-    window->m_transformers.emplace_back(makeUnique<CStackFocusAnimation>(window, stiffness, damping, amplitude, accent));
+    window->m_transformers.emplace_back(makeUnique<CStackFocusAnimation>(window, stiffness, damping, amplitude));
     g_pHyprRenderer->damageWindow(window);
     lua_pushboolean(L, true); return 1;
 }

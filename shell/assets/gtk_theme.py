@@ -152,6 +152,11 @@ def apply_palette(colours, config_root, mode=None):
     on_error = "#" + colours.get("onError", colours["onPrimary"])
     rules = [
         f"window, window.background, window.dialog, messagedialog, dialog, .dialog, .background {{ background-color: {surface}; background-image: none; color: {ink}; }}",
+        # AdwDialog covers its host to receive modal input. Only its sheet is
+        # opaque; the surrounding dimming node must keep the parent visible.
+        "dialog-host > dialog { background: none; }",
+        "dialog-host > dialog dimming { background-color: rgba(0, 0, 0, 0.32); }",
+        f"dialog-host > dialog.background sheet, dialog-host > dialog.view sheet {{ background-color: {surface}; color: {ink}; }}",
         f".view, viewport, treeview, iconview, textview, textview text, list, flowbox, gridview, columnview, .content-view, notebook > stack {{ background-color: {surface}; background-image: none; color: {ink}; }}",
         f"headerbar, toolbar, actionbar, statusbar, searchbar, searchbar > revealer > box, actionbar > revealer > box, .search-bar, .inline-toolbar, .toolbar, .sidebar, .navigation-sidebar, notebook > header {{ background-color: {container}; background-image: none; color: {ink}; }}",
         f"window headerbar, window .titlebar, window .top-bar, window .bottom-bar {{ background-image: none; border-color: {border}; box-shadow: none; }}",

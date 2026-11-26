@@ -38,6 +38,23 @@ with tempfile.TemporaryDirectory(prefix='hics-gtk-palette-') as directory:
    if sockets or compositor.poll() is not None:break
    time.sleep(.1)
   assert sockets,(base/'compositor.log').read_text()[-3000:]
+  binary=base/'adw-dialog'
+  flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','libadwaita-1'],text=True))
+  subprocess.run(['cc',str(ROOT/'tests/fixtures/adw-dialog-probe.c'),*flags,'-o',str(binary)],check=True,capture_output=True)
+  for mode in ('floating','bottom'):
+   prefix=base/mode
+   run=subprocess.run([str(binary)]+(['bottom'] if mode=='bottom' else []),env=dict(env,XDG_RUNTIME_DIR=str(runtime),WAYLAND_DISPLAY=str(sockets[0]),GDK_BACKEND='wayland',GSK_RENDERER='cairo',GTK_PROBE_IMAGE=str(prefix)),capture_output=True,text=True,timeout=12)
+   assert run.returncode==0,run.stderr
+   assert 'Theme parsing error' not in run.stderr,run.stderr
+   before,during,after=[Image.open(str(prefix)+f'-{i}.png').convert('RGB') for i in range(3)]
+   during.save('/tmp/hics-adw-dialog-'+mode+'.png')
+   for x in (70,before.width-70):
+    original=before.getpixel((x,70));dimmed=during.getpixel((x,70))
+    channel=1 if x<before.width/2 else 0
+    assert dimmed[channel]>max(dimmed[(channel+1)%3],dimmed[(channel+2)%3])*2,('Parent content hidden by modal background',mode,original,dimmed,run.stdout)
+    assert dimmed[channel]<original[channel],('Parent content was not dimmed',mode,original,dimmed)
+    assert after.getpixel((x,70))==original,('Closing dialog did not restore content',mode)
+   print('PASS: AdwDialog '+mode+' dims visible parent content and restores it on close')
   for binary in ("gtk4","gtk5"):
    run=subprocess.run([str(base/binary)],env=dict(env,XDG_RUNTIME_DIR=str(runtime),WAYLAND_DISPLAY=str(sockets[0]),GDK_BACKEND='wayland',GSK_RENDERER='cairo'),capture_output=True,text=True,timeout=12)
    assert run.returncode==0,run.stderr
