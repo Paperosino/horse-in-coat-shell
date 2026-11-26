@@ -2112,9 +2112,11 @@ hl.window_rule({ name = "hyprstack-screen-dialogs", match = {
 -- Swappy's client header is an editing toolbar without window controls.
 -- Explicit product override for the screenshot editor; protocol detection
 -- remains exclusively in decoration-policy.cpp.
-hl.window_rule({ name = "hics-screenshot-editor-titlebar", match = {
-    class = "^swappy$"
-}, ["hyprbars:no_bar"] = false })
+if no_titlebar then
+    hl.window_rule({ name = "hics-screenshot-editor-titlebar", match = {
+        class = "^swappy$"
+    }, ["hyprbars:no_bar"] = false })
+end
 -- Stable identities prevent a newly created window reusing a closed address
 -- from inheriting its place in the activation history.
 local canvas_focus_history = {}
