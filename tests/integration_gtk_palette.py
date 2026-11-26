@@ -104,6 +104,7 @@ with tempfile.TemporaryDirectory(prefix='hics-gtk-palette-') as directory:
    if version==5:flags.append('-DADWAITA_PROBE')
    subprocess.run(['cc',str(ROOT/'tests/fixtures/gtk-header-probe.c'),*flags,'-o',str(binary)],check=True,capture_output=True)
    header_env=dict(env,XDG_RUNTIME_DIR=str(runtime),WAYLAND_DISPLAY=str(sockets[0]),GDK_BACKEND='wayland',GSK_RENDERER='cairo',GSETTINGS_BACKEND='keyfile',XDG_DATA_HOME=str(base/'data'),XDG_CACHE_HOME=str(base/'cache'),GTK_PROBE_FOLDER=str(base/'files'),GTK_PROBE_IMAGE=str(base/f'header{version}.png'))
+   if version==3:header_env.update(GTK_THEME='Adwaita:light',GTK_PROBE_STYLE='/tmp/hics132-gtk3-style.txt')
    script='import subprocess,sys;subprocess.run(["gsettings","set","org.gnome.desktop.wm.preferences","button-layout","close,minimize:"],check=True);sys.exit(subprocess.run([sys.argv[1]]).returncode)'
    run=subprocess.run(['dbus-run-session','--',sys.executable,'-c',script,str(binary)],env=header_env,capture_output=True,text=True,timeout=20)
    assert run.returncode==0,run.stderr
@@ -116,8 +117,12 @@ with tempfile.TemporaryDirectory(prefix='hics-gtk-palette-') as directory:
     line=[image.getpixel((x,y)) for x in range(30,image.width-30)]
     bright=sum(min(pixel)>190 for pixel in line)
     assert bright<len(line)*.70,(version,y,bright,len(line))
+   for y in range(image.height):
+    line=[image.getpixel((x,y)) for x in range(20,image.width-20)]
+    pale=sum(min(p)>150 and max(p)-min(p)<30 for p in line)
+    assert pale<len(line)*.6,('Unstyled pale file-chooser border',version,y,pale,len(line))
    image.save(f'/tmp/hics-gtk-header{version}.png')
-   print(f'PASS: GTK {version} header/file chooser honours button order without a bright header stripe')
+   print(f'PASS: GTK {version} header/file chooser honours button order without pale separator strips')
  finally:
   compositor.terminate();compositor.wait(timeout=10)
 print('PASS: GTK2/3 widget colours and GTK4 rendered button states follow the shell palette')

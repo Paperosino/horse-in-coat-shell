@@ -954,6 +954,15 @@ local function refresh_decorations(animate, keep_appearance)
     -- Border width changes atomically with the layout. There is no interpolated
     -- appearance value, so a per-frame timer only repeats the same settings.
     if not keep_appearance then appearance() end
+    local plugin = hl.plugin.hyprbars
+    if plugin and plugin.animate_window then
+        for _, window in ipairs(hl.get_windows()) do
+            local record = record_for(window)
+            if record and record.keep_above then
+                plugin.animate_window(window.address,string.format("%x",window.stable_id),"keep-above",true)
+            end
+        end
+    end
 end
 
 local function change(action, views, transition)
@@ -1714,7 +1723,35 @@ function layouts.action(operation, address, stable_id)
     -- minimize. That delayed state request must not undo a newer minimize.
     -- A hidden client cannot initiate a fresh click on its native titlebar.
     if record.minimized and (operation == "maximize-set" or operation == "maximize-unset") then return end
-    if operation == "close" then
+    if operation == "keep-above" then
+        local plugin = hl.plugin.hyprbars
+        local enabled = not record.keep_above
+        if plugin and plugin.animate_window and plugin.animate_window(window.address, string.format("%x",window.stable_id), "keep-above", enabled) then
+            record.keep_above = enabled
+            save()
+        end
+    elseif operation == "fullscreen" then
+        hl.dispatch(hl.dsp.window.fullscreen_state({window=window,internal=2,client=2,action="toggle"}))
+    elseif operation == "center" then
+        local box = geometry(window)
+        local area = maximized_geometry(window)
+        box.x, box.y = area.x+(area.width-box.width)/2, area.y+(area.height-box.height)/2
+        set_geometry(window,fit_geometry(window,box,0))
+        remember_window(window)
+        save()
+    elseif operation == "size-up" or operation == "size-down" or operation == "size-reset" then
+        if record.maximized then set_maximized(window,false) end
+        record.menu_size = record.menu_size or geometry(window)
+        local current = geometry(window)
+        local factor = operation == "size-up" and 1.1 or 1/1.1
+        local width = operation == "size-reset" and record.menu_size.width or current.width*factor
+        local height = operation == "size-reset" and record.menu_size.height or current.height*factor
+        local box = {x=current.x+(current.width-width)/2,y=current.y+(current.height-height)/2,
+            width=math.max(100,width),height=math.max(80,height)}
+        set_geometry(window,fit_geometry(window,box,0))
+        remember_window(window)
+        save()
+    elseif operation == "close" then
         hl.dispatch(hl.dsp.window.close({ window = window }))
     elseif operation == "restore" or operation == "activate" then
         if record.minimized then

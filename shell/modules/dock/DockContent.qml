@@ -33,6 +33,8 @@ Item {
     readonly property alias listSurface: appList
     readonly property alias menuSurface: taskMenu
     readonly property alias previewSurface: windowPreview
+    readonly property bool draggingFiles: fileDrag.containsDrag
+    readonly property string fileDragTarget: fileDrag.task?.group?.key ?? ""
     readonly property bool motionEnabled: DockConf.animations && !GlobalConfig.appearance.reducedMotion && !GameMode.reduceDockMotion
     readonly property real motionPadding: motionEnabled ? (DockConf.lift * Tokens.scale + root.iconSize * 0.3 + 12 * Tokens.scale) : 0
     property real wavePosition: vertical ? height / 2 : width / 2
@@ -53,14 +55,14 @@ Item {
         if (!motionEnabled) return shapes;
         for (let i=0; i<motionButtons.length; ++i) {
             const button=motionButtons[i];
-            if (!button || button.wave<0.015) continue;
+            if (!button || button.wave<0.0005) continue;
             const p=button.mapToItem(root,button.width/2,button.height/2);
             if ((vertical ? p.y<0 || p.y>height : p.x<0 || p.x>width)) continue;
             // Scale follows Translate in the icon transform list, so it also
             // scales the displacement. Keep the membrane in that same space.
             const lift=DockConf.lift*Tokens.scale*button.wave*button.visualScale;
             const normal=vertical ? (DockConf.position==="left"?1:-1) : (atBottom?-1:1);
-            const padding=6*Tokens.scale;
+            const padding=6*Tokens.scale*Math.min(1,button.wave*8);
             const w=button.width*button.visualScale*(vertical?1+0.08*button.wave:1)+2*padding;
             const h=button.height*button.visualScale*(vertical?1:1+0.08*button.wave)+2*padding;
             const cx=p.x+(vertical?normal*lift:0), cy=p.y+(vertical?0:normal*lift);
@@ -219,6 +221,60 @@ Item {
             task.act("dock-activate",task.windows[next]);event.accepted=true;
         }
     }
+    // Native file drags have their own Wayland data-device stream. A single
+    // target follows the same transformed icon geometry as the pointer router.
+    DropArea {
+        id:fileDrag
+        parent:raisedInput.parent
+        z:raisedInput.z+1
+        // Hyprland 0.56 sends drag-enter at the surface centre, followed by
+        // correctly positioned motion. Receive the offer on the owning surface
+        // and hit-test icons on motion; its shaped Wayland input mask is intact.
+        anchors.fill:parent
+        enabled:root.visible && !root.listOpen && !root.menuOpen
+        property var task:null
+        property int generation:0
+        onEnabledChanged: if(!enabled){++generation;task=null;revealDrag.stop();}
+        function updatePoint(p: point): void {
+            const target=root.raisedTaskAt(p);
+            if(task!==target){revealDrag.stop();task=target;if(task?.windows?.length)revealDrag.start();}
+            root.wavePosition=root.vertical?p.y:p.x;
+        }
+        onEntered:drag=>{
+            drag.accepted=drag.hasUrls;
+            if(!drag.accepted)return;
+            const current=++generation;
+            updatePoint(mapToItem(root,drag.x,drag.y));
+            // Correct the pinned compositor's synthetic centre coordinates
+            // once per enter, including a drag that stops moving immediately.
+            Hypr.extras.request("j/cursorpos",(success,text)=>{
+                if(!root||!fileDrag||!success||!fileDrag.containsDrag||fileDrag.generation!==current)return;
+                try {
+                    const cursor=JSON.parse(text),monitor=Hypr.monitorFor(root.screen)?.lastIpcObject;
+                    fileDrag.updatePoint(root.mapFromItem(root.QsWindow.window.contentItem,cursor.x-(monitor?.x??root.screen.x),cursor.y-(monitor?.y??root.screen.y)));
+                } catch(error) { console.warn("Could not locate dragged file over dock"); }
+            });
+        }
+        onPositionChanged:drag=>{
+            // The synthetic initial motion can repeat the same centre before
+            // the one-shot cursor reply; it must not invalidate that repair.
+            if(Math.abs(drag.x-width/2)>.1||Math.abs(drag.y-height/2)>.1)++generation;
+            updatePoint(mapToItem(root,drag.x,drag.y));
+        }
+        onExited:{++generation;task=null;revealDrag.stop();}
+        onDropped:drop=>{++generation;task=null;revealDrag.stop();drop.accepted=false;}
+        Timer {
+            id:revealDrag;interval:1000
+            onTriggered:{
+                const task=fileDrag.task;
+                if(!fileDrag.containsDrag||!task?.windows?.length)return;
+                const windows=task.windows.slice().sort((a,b)=>(a.lastIpcObject.focusHistoryID<0?100000:a.lastIpcObject.focusHistoryID)-(b.lastIpcObject.focusHistoryID<0?100000:b.lastIpcObject.focusHistoryID));
+                Hypr.windowAction("dock-activate",windows[0]);
+                task.accentPulse=1;dragFeedback.restart();
+            }
+        }
+        NumberAnimation {id:dragFeedback;target:fileDrag.task;property:"accentPulse";to:0;duration:GlobalConfig.appearance.reducedMotion?0:360}
+    }
     SequentialAnimation {
         id:membraneImpulse
         NumberAnimation {target:root;property:"absorptionAmount";to:1;duration:70}
@@ -262,7 +318,7 @@ Item {
     }
     readonly property real offsetScale: 0
 
-    readonly property real listNaturalWidth: 320 * Tokens.scale
+    readonly property real listNaturalWidth: Tokens.sizes.launcher.itemWidth + Tokens.padding.large * 2
     readonly property int popupGap: Math.round(8 * Tokens.scale)
     readonly property var appEntries: ApplicationCatalogue.applications.values
     property bool listOpen: false
@@ -343,16 +399,18 @@ Item {
     visible: DockConf.enabled && panelVisible
     implicitWidth: Math.min(maxWidth, dock.implicitWidth)
     implicitHeight: Math.min(maxHeight, dock.implicitHeight)
-    onVisibleChanged: { if (!visible) closePopups(); Qt.callLater(reportTargets); }
+    onVisibleChanged: { if (!visible) closePopups(); else if(screenState.launcher)listOpen=true; Qt.callLater(reportTargets); }
+    Component.onCompleted: if(visible && screenState.launcher)listOpen=true
     onVerticalChanged: listOpen = false
     Connections {
         target: DockConf
         function onPositionChanged() { root.closePopups(); }
     }
     onListOpenChanged: {
+        if (screenState.launcher !== listOpen) ShellState.setLauncher(screenState, listOpen);
         if (listOpen) {
             closeMenu();
-            screenState.launcher = screenState.sidebar = screenState.session = false;
+            screenState.dashboard = screenState.sidebar = screenState.session = screenState.clipboard = false;
             search.text = "";
             Qt.callLater(() => search.forceActiveFocus());
         }
@@ -360,7 +418,7 @@ Item {
 
     Connections {
         target: root.screenState
-        function onLauncherChanged() { if (root.screenState.launcher) root.closePopups(); }
+        function onLauncherChanged() { if (root.visible) root.listOpen = root.screenState.launcher; }
         function onSidebarChanged() { if (root.screenState.sidebar) root.closePopups(); }
         function onSessionChanged() { if (root.screenState.session) root.closePopups(); }
         function onDashboardChanged() { if (root.screenState.dashboard) root.closePopups(); }
@@ -701,7 +759,7 @@ Item {
     // Same AppList and search control as the launcher, inside the drawer surface.
     Item {
         id: appList
-        width: Math.min(root.listNaturalWidth, root.vertical ? root.screen.width - root.width - 32 * Tokens.scale : root.width)
+        width: Math.min(root.listNaturalWidth, root.vertical ? root.screen.width - root.width - 32 * Tokens.scale : root.maxWidth)
         height: openProgress * naturalHeight
         readonly property real naturalHeight: Math.max(0, Math.min(root.screen.height * 0.6, 440 * Tokens.scale,
             root.vertical ? root.viewportHeight : root.atBottom ? root.y : root.viewportHeight - root.y - root.height))

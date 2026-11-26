@@ -1,7 +1,7 @@
 """Qt client for the same translated-camera input regression as the GTK fixture."""
 import os
 import sys
-from PySide6.QtCore import QEvent, QMimeData, Qt
+from PySide6.QtCore import QEvent, QMimeData, QUrl, Qt
 from PySide6.QtGui import QColor, QDrag, QPainter
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QWidget
 
@@ -38,7 +38,10 @@ class Source(ColourPanel):
                 del self.origin
                 print("PREPARE", flush=True)
                 data = QMimeData()
-                data.setText("hyprstack-test")
+                if os.environ.get("HICS_TEST_FILE_DRAG"):
+                    data.setUrls([QUrl.fromLocalFile(os.environ["HICS_TEST_FILE_DRAG"])])
+                else:
+                    data.setText("hyprstack-test")
                 drag = QDrag(self)
                 drag.setMimeData(data)
                 drag.exec(Qt.CopyAction)

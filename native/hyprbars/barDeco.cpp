@@ -1,4 +1,6 @@
 #include "barDeco.hpp"
+#include <hyprland/src/managers/EventManager.hpp>
+#include <nlohmann/json.hpp>
 #include "decoration-policy.hpp"
 #include <hyprland/src/desktop/state/ViewState.hpp>
 #include <hyprland/src/managers/SessionLockManager.hpp>
@@ -248,6 +250,20 @@ void CHyprBar::onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent 
         return;
     }
     if (!inputIsValid()) return;
+
+    if (e.button == BTN_RIGHT) {
+        const auto box = assignedBoxGlobal();
+        const auto point = g_pInputManager->getMouseCoordsInternal();
+        if (!box.containsPoint(point)) return;
+        if (!m_pWindow->m_monitor) return;
+        const auto request = nlohmann::json{
+                {"address", std::format("0x{:x}", reinterpret_cast<uintptr_t>(m_pWindow.get()))},
+                {"stableId", std::format("{:x}", m_pWindow->m_stableID)},
+                {"monitor", m_pWindow->m_monitor->m_name}, {"x", point.x}, {"y", point.y}}.dump();
+        handleDownEvent(info, std::nullopt, false);
+        if (g_pEventManager && info.cancelled) g_pEventManager->postEvent({"hics_titlebar_menu", request});
+        return;
+    }
 
     handleDownEvent(info, std::nullopt, e.button == BTN_LEFT);
 }

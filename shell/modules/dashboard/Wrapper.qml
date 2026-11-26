@@ -46,6 +46,13 @@ Item {
     readonly property real interactionHeight: Math.max(height, hoverHeight)
     readonly property real interactionWidth: Math.max(width, hoverWidth)
     property real offsetScale: shouldBeActive && contentPrepared ? 0 : 1
+    focus: shouldBeActive
+    Keys.onEscapePressed: {
+        const interactions = ShellState.componentsFor(screenState.modelData)?.interactionWrapper;
+        if (interactions) interactions.dashboardHoverBlocked = true;
+        screenState.dashboard = false;
+    }
+    onContentPreparedChanged: if (shouldBeActive && contentPrepared) forceActiveFocus()
 
     function prepareContent(): void {
         if (contentPrepared || preparingGraphics || content.status !== Loader.Ready
@@ -65,6 +72,7 @@ Item {
 
     onShouldBeActiveChanged: {
         if (shouldBeActive) {
+            Qt.callLater(() => { if (root.shouldBeActive) root.forceActiveFocus(); });
             implicitHeight = Qt.binding(() => contentHeight);
             // After idle, the GPU and the scenegraph's text/shape resources
             // can be cold even though the QML objects remain loaded. Finish

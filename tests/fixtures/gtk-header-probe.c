@@ -21,6 +21,12 @@ static gboolean capture(gpointer data) {
     gdk_texture_save_to_png(texture, g_getenv("GTK_PROBE_IMAGE"));
     g_object_unref(texture); gsk_render_node_unref(node); g_object_unref(paintable);
 #else
+    const char *stylePath = g_getenv("GTK_PROBE_STYLE");
+    if (stylePath) {
+        char *style = gtk_style_context_to_string(gtk_widget_get_style_context(window), GTK_STYLE_CONTEXT_PRINT_RECURSE | GTK_STYLE_CONTEXT_PRINT_SHOW_STYLE);
+        g_file_set_contents(stylePath, style, -1, NULL);
+        g_free(style);
+    }
     GdkWindow *surface = gtk_widget_get_window(window);
     GdkPixbuf *image = gdk_pixbuf_get_from_window(surface, 0, 0, gtk_widget_get_allocated_width(window), gtk_widget_get_allocated_height(window));
     gdk_pixbuf_save(image, g_getenv("GTK_PROBE_IMAGE"), "png", NULL, NULL); g_object_unref(image);

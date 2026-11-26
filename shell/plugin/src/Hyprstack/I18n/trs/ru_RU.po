@@ -13146,3 +13146,27 @@ msgstr "Механическая"
 
 msgid "Fluid Jelly"
 msgstr "Упругое желе"
+
+msgid "Keep above other windows"
+msgstr "Поверх других окон"
+
+msgid "Maximize or restore"
+msgstr "Развернуть или восстановить"
+
+msgid "Decrease window size"
+msgstr "Уменьшить окно"
+
+msgid "Increase window size"
+msgstr "Увеличить окно"
+
+msgid "Center window"
+msgstr "По центру экрана"
+
+msgid "Show all windows"
+msgstr "Показать все окна"
+
+msgid "Allow other windows above"
+msgstr "Не удерживать поверх других окон"
+
+msgid "Minimize"
+msgstr "Свернуть"

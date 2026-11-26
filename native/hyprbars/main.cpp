@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "barDeco.hpp"
+#include "above-windows.hpp"
 #include "decoration-policy.hpp"
 #include "globals.hpp"
 #include "task-animation.hpp"
@@ -175,6 +176,10 @@ int animateLuaWindow(lua_State* L) {
             std::format("{:x}", w->m_stableID) == id) { window = w; break; }
     }
     if (!window) { lua_pushboolean(L, false); return 1; }
+    if (operation == "keep-above") {
+        lua_pushboolean(L,hics::above::set(window,lua_toboolean(L,4)));
+        return 1;
+    }
     if (operation == "terminate-unresponsive") {
         // Resolve both compositor identities in this event-loop turn. Never
         // accept a PID from QML or target the newly focused application.
@@ -199,6 +204,15 @@ int animateLuaWindow(lua_State* L) {
     }
     if (operation == "titlebar-height") {
         lua_pushnumber(L, hics::decoration::evaluate(window).height); return 1;
+    }
+    if (operation == "geometry-state") {
+        const auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        const auto goalPosition = window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+        const auto goalSize = window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+        const auto json = nlohmann::json{{"at", {position.x, position.y}}, {"size", {size.x, size.y}},
+            {"settled", (position-goalPosition).size() < .5 && (size-goalSize).size() < .5}}.dump();
+        lua_pushlstring(L, json.data(), json.size()); return 1;
     }
     if (operation == "center") {
         lua_pushboolean(L, centerFloatingWindow(window, lua_toboolean(L, 4)));
@@ -359,9 +373,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     struct PolicyStartupGuard {
         HANDLE handle;
         bool committed = false;
-        ~PolicyStartupGuard() { if (!committed) { HicsKeyboardFocus::remove(); hics::decoration::remove(handle); } }
+        ~PolicyStartupGuard() { if (!committed) { hics::above::remove(handle); HicsKeyboardFocus::remove(); hics::decoration::remove(handle); } }
     } policyGuard{PHANDLE};
     hics::decoration::install(PHANDLE);
+    hics::above::install(PHANDLE);
     installClientSurfacePolicy(PHANDLE);
     HyprstackOverview::install(PHANDLE);
     HyprstackShaders::install();
@@ -487,6 +502,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 APICALL EXPORT void PLUGIN_EXIT() {
     HicsKeyboardFocus::remove();
+    hics::above::remove(PHANDLE);
     HyprstackTilingHover::remove();
     HyprstackShaders::remove();
     HyprstackAutoscroll::remove();

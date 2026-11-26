@@ -44,6 +44,21 @@ Item {
         ? Math.max(0, popoutsWrapper.y + popoutsWrapper.height) : 0
     readonly property real sidebarTop: bar.atBottom ? 0
         : Math.max(0, notifications.y + notifications.height + 5)
+    readonly property rect osdPlacement: {
+        const w = osdWrapper.width, h = osdWrapper.height;
+        const x = width - w - sessionWrapper.width;
+        const y = Math.max(0, (height-h)/2);
+        const popup = popoutsWrapper;
+        // Keep the gap within the shared circular SDF blend radius.
+        const gap = Math.min(8, Config.border.smoothing * 0.35) * Tokens.scale;
+        if (!popup.visible || popouts.isDetached || popup.x+popup.width <= x || popup.x >= x+w
+            || popup.y+popup.height+gap <= y || popup.y-gap >= y+h) return Qt.rect(0,y,w,h);
+        const below = popup.y+popup.height+gap, above = popup.y-h-gap;
+        if (!bar.atBottom && below+h <= height) return Qt.rect(0,below,w,h);
+        if (above >= 0) return Qt.rect(0,above,w,h);
+        if (below+h <= height) return Qt.rect(0,below,w,h);
+        return Qt.rect(Math.max(0,x-popup.x+w+gap),y,w,h);
+    }
 
     anchors.fill: parent
     anchors.margins: borderThickness
@@ -53,9 +68,9 @@ Item {
     Item {
         id: osdWrapper
 
-        anchors.verticalCenter: parent.verticalCenter
+        y: root.osdPlacement.y
         anchors.right: parent.right
-        anchors.rightMargin: sessionWrapper.anchors.rightMargin + session.width * (1 - session.offsetScale)
+        anchors.rightMargin: sessionWrapper.anchors.rightMargin + session.width * (1 - session.offsetScale) + root.osdPlacement.x
         clip: sidebar.visible || session.visible
 
         implicitWidth: osd.implicitWidth * (1 - osd.offsetScale)

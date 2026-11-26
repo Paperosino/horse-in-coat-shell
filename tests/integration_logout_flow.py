@@ -152,11 +152,11 @@ def main():
                     subprocess.run(['cc',str(fixtures/'virtual-pointer.c'),str(root/'virtual-pointer-protocol.c'),'-I',str(root),*flags,'-o',pointer_binary],check=True)
                 result=subprocess.run([QS,'ipc','--pid',str(qs.pid),'call','logoutFixture','button',action],env=appenv,text=True,capture_output=True,timeout=8,check=True)
                 point=json.loads(result.stdout.strip())
-                window=next(c for c in clients() if c.get('pid')==qs.pid and c.get('mapped'))
-                focus='local w=hl.get_window('+json.dumps('address:'+window['address'])+');hl.dispatch(hl.dsp.focus({window=w}))'
-                subprocess.run(['hyprctl','-i',item['instance'],'eval',focus],env=env,check=True,capture_output=True,timeout=3)
-                time.sleep(.3)
-                window=next(c for c in clients() if c.get('pid')==qs.pid and c.get('mapped'))
+                # The confirmation is now a full-output overlay, not a
+                # toplevel client that can be focused/covered by applications.
+                layers=json.loads(subprocess.check_output(['hyprctl','-i',item['instance'],'layers','-j'],env=env,text=True,timeout=3))
+                overlay=next(layer for monitor in layers.values() for levels in monitor['levels'].values() for layer in levels if layer['namespace']=='hics-logout-confirmation')
+                window={'at':[overlay['x'],overlay['y']]}
                 result=subprocess.run([QS,'ipc','--pid',str(qs.pid),'call','logoutFixture','button',action],env=appenv,text=True,capture_output=True,timeout=8,check=True)
                 point=json.loads(result.stdout.strip())
                 monitors=json.loads(subprocess.check_output(['hyprctl','-i',item['instance'],'monitors','-j'],env=env,text=True,timeout=3))

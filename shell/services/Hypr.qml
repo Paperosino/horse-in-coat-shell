@@ -14,6 +14,7 @@ import "KeyboardStateBindings.js" as KeyboardStateBindings
 
 Singleton {
     id: root
+    signal titlebarMenuRequested(var request)
 
     readonly property var toplevels: Hyprland.toplevels
     readonly property var workspaces: Hyprland.workspaces
@@ -241,6 +242,10 @@ Singleton {
     Connections {
         function onRawEvent(event: HyprlandEvent): void {
             const n = event.name;
+            if (n === "hics_titlebar_menu") {
+                try { root.titlebarMenuRequested(JSON.parse(event.data)); } catch (error) { console.warn("Invalid titlebar menu event"); }
+                return;
+            }
             if (n.endsWith("v2"))
                 return;
 

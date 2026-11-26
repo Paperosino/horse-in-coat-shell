@@ -87,13 +87,13 @@ StyledWindow {
 
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.layer: GameMode.enabled || (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
-    WlrLayershell.keyboardFocus: screenState.sidebar || screenState.launcher || screenState.session || screenState.clipboard || panels.dock.listOpen || panels.dock.menuOpen
+    WlrLayershell.layer: screenState.session || GameMode.enabled || (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
+    WlrLayershell.keyboardFocus: titlebarMenu.visible || screenState.sidebar || screenState.dashboard || screenState.launcher || screenState.session || screenState.clipboard || panels.dock.listOpen || panels.dock.menuOpen
         ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     // Open popups receive the dismissing click even over client
     // windows. The normal shaped input region resumes as soon as it closes.
-    mask: screenState.clipboard || panels.dock.menuOpen || panels.dock.listOpen ? null
+    mask: titlebarMenu.visible || screenState.session || screenState.clipboard || panels.dock.menuOpen || panels.dock.listOpen ? null
         : hasFullscreen && !((contentItem.Config.general.showOverFullscreen || GameMode.quietOn(targetScreen)) && focusGrab.active)
             ? emptyRegion : regions
 
@@ -101,6 +101,22 @@ StyledWindow {
     anchors.bottom: true
     anchors.left: true
     anchors.right: true
+
+    WindowMenu { id:titlebarMenu; parent:root.contentItem;anchors.fill:parent;screen:root.screen;z:11000 }
+    FocusScope {
+        parent:root.contentItem;anchors.fill:parent;z:10001
+        visible:root.screenState.session
+        focus:visible
+        Keys.onEscapePressed:root.screenState.session=false
+        MouseArea {
+            anchors.fill:parent
+            onPressed:event=>{
+                const p=panels.session.mapFromItem(parent,event.x,event.y);
+                if(p.x<0||p.y<0||p.x>panels.session.width||p.y>panels.session.height)root.screenState.session=false;
+                else event.accepted=false;
+            }
+        }
+    }
 
     Behavior on fsTransitionProg {
         Anim {}
@@ -162,7 +178,7 @@ StyledWindow {
 
         active: {
             if (!root.backingWindowVisible) return false;
-            if (panels.dock.listOpen || panels.dock.menuOpen) return true;
+            if (titlebarMenu.visible || panels.dock.listOpen || panels.dock.menuOpen) return true;
             const s = root.screenState;
             const conf = root.contentItem.Config;
             if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || (s.sidebar && conf.sidebar.enabled) || s.clipboard)
@@ -175,6 +191,7 @@ StyledWindow {
         }
         windows: [root]
         onCleared: {
+            titlebarMenu.request = null;
             panels.dock.closePopups();
             root.screenState.launcher = false;
             root.screenState.session = false;

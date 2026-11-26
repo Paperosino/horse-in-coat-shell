@@ -3,14 +3,16 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Wayland
+import Quickshell.Hyprland
 import Hyprstack.Config
 import Hyprstack.I18n
 import qs.components
 import qs.components.controls
 import qs.services
 
-// A non-modal view: the coordinator owns the decision and the blocker model.
-FloatingWindow {
+// Modal presentation only: cancellation/commit remain owned by LogoutFlow.
+PanelWindow {
     id: root
 
     property var blockers: []
@@ -19,15 +21,29 @@ FloatingWindow {
     signal cancelRequested()
     signal forceRequested()
 
-    title: Tr.tr("Applications preventing sign out")
-    implicitWidth: 520
-    implicitHeight: 400
-    minimumSize.width: 320
-    minimumSize.height: 280
-    color: Colours.palette.m3surface
+    property string title: Tr.tr("Applications preventing sign out")
+    anchors {left:true;right:true;top:true;bottom:true}
+    exclusionMode:ExclusionMode.Ignore
+    WlrLayershell.namespace:"hics-logout-confirmation"
+    WlrLayershell.layer:WlrLayer.Overlay
+    WlrLayershell.keyboardFocus:visible?WlrKeyboardFocus.Exclusive:WlrKeyboardFocus.None
+    color: Qt.alpha(Colours.palette.m3scrim,0.45)
     contentItem.Config.screen: screen?.name ?? ""
     contentItem.Tokens.screen: screen?.name ?? ""
-    onClosed: cancelRequested()
+    onVisibleChanged: if(visible)screen=Quickshell.screens.find(s=>s.name===Hypr.focusedMonitor?.name)??Quickshell.screens[0]
+    onBackingWindowVisibleChanged: if (backingWindowVisible) card.forceActiveFocus()
+    HyprlandFocusGrab {active:root.visible;windows:[root];onCleared:if(root.cancelEnabled)root.cancelRequested()}
+    MouseArea {anchors.fill:parent;acceptedButtons:Qt.AllButtons;onClicked:if(root.cancelEnabled)root.cancelRequested()}
+    StyledRect {
+        id:card
+        anchors.centerIn:parent
+        width:Math.min(520*Tokens.scale,parent.width-24*Tokens.scale)
+        height:Math.min(440*Tokens.scale,parent.height-24*Tokens.scale)
+        radius:Tokens.rounding.extraLarge
+        color:Colours.palette.m3surface
+        focus:root.visible
+        Keys.onEscapePressed:if(root.cancelEnabled)root.cancelRequested()
+        MouseArea {anchors.fill:parent;acceptedButtons:Qt.AllButtons}
 
     ColumnLayout {
         objectName: "logoutDialogContent"
@@ -121,5 +137,6 @@ FloatingWindow {
                 onClicked: root.forceRequested()
             }
         }
+    }
     }
 }

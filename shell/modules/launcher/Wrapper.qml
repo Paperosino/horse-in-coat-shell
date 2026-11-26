@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Hyprstack.Config
 import qs.components
+import qs.services
 import qs.modules.launcher.services
 
 Item {
@@ -13,7 +14,7 @@ Item {
     required property ScreenState screenState
     required property var panels
 
-    readonly property bool shouldBeActive: screenState.launcher && Config.launcher.enabled
+    readonly property bool shouldBeActive: screenState.launcher && Config.launcher.enabled && !(DockConf.enabled && panels.dock.panelVisible)
     property bool contentPrepared: false
     property bool retainContent: false
     property bool preparingGraphics: false
